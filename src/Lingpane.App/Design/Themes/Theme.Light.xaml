@@ -1,0 +1,117 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+    xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options">
+
+    <!-- 浅色主题 v1.0 · 强调色 #2F6BE0 -->
+    <sys:String x:Key="Theme.Name">Light</sys:String>
+
+    <!-- 表面 L0–L3 -->
+    <Color x:Key="Color.Surface.Window">#FFF7F7F9</Color>
+    <Color x:Key="Color.Surface.Content">#FFFFFFFF</Color>
+    <Color x:Key="Color.Surface.Sidebar">#FFFAFAFB</Color>
+    <Color x:Key="Color.Surface.Floating">#FFFFFFFF</Color>
+    <Color x:Key="Color.Surface.Interactive">#FFF2F2F5</Color>
+    <Color x:Key="Color.Surface.Hover">#FFF4F4F7</Color>
+    <Color x:Key="Color.Surface.Pressed">#FFEDEDF1</Color>
+    <Color x:Key="Color.Surface.Selected">#FFEAF0FD</Color>
+    <Color x:Key="Color.Surface.SelectedInactive">#FFF0F0F3</Color>
+
+    <!-- 描边 -->
+    <Color x:Key="Color.Border.Window">#FFD8D8DE</Color>
+    <Color x:Key="Color.Border.Strong">#FFE8E8EC</Color>
+    <Color x:Key="Color.Border.Hairline">#FFEFEFF2</Color>
+    <Color x:Key="Color.Border.Focus">#FF2F6BE0</Color>
+
+    <!-- 文字 -->
+    <Color x:Key="Color.Text.Primary">#FF1B1B1F</Color>
+    <Color x:Key="Color.Text.Secondary">#FF6B6B75</Color>
+    <Color x:Key="Color.Text.Tertiary">#FF9C9CA6</Color>
+    <Color x:Key="Color.Text.Disabled">#FFBEBEC6</Color>
+    <Color x:Key="Color.Text.OnAccent">#FFFFFFFF</Color>
+    <Color x:Key="Color.Text.OnSelected">#FF1B1B1F</Color>
+    <Color x:Key="Color.Text.Link">#FF2F6BE0</Color>
+
+    <!-- 图标 -->
+    <Color x:Key="Color.Icon.Primary">#FF5A5A66</Color>
+    <Color x:Key="Color.Icon.Secondary">#FF9C9CA6</Color>
+
+    <!-- 强调色 -->
+    <Color x:Key="Color.Accent.Default">#FF2F6BE0</Color>
+    <Color x:Key="Color.Accent.Hover">#FF2A60C8</Color>
+    <Color x:Key="Color.Accent.Pressed">#FF2455B0</Color>
+    <Color x:Key="Color.Accent.Subtle">#FFEAF0FD</Color>
+
+    <!-- 状态 -->
+    <Color x:Key="Color.Status.Danger">#FFC93B3B</Color>
+    <Color x:Key="Color.Status.Warning">#FFB4740C</Color>
+    <Color x:Key="Color.Status.Success">#FF2C8C57</Color>
+    <Color x:Key="Color.Status.Info">#FF2F6BE0</Color>
+
+    <!-- 彩色标签（仅用于 6px 圆点） -->
+    <Color x:Key="Color.Tag.Red">#FFE5484D</Color>
+    <Color x:Key="Color.Tag.Orange">#FFF76B15</Color>
+    <Color x:Key="Color.Tag.Yellow">#FFE8B520</Color>
+    <Color x:Key="Color.Tag.Green">#FF30A46C</Color>
+    <Color x:Key="Color.Tag.Blue">#FF2F6BE0</Color>
+    <Color x:Key="Color.Tag.Purple">#FF8E4EC6</Color>
+    <Color x:Key="Color.Tag.Gray">#FF8B8D98</Color>
+    <Color x:Key="Color.Tag.Black">#FF1B1B1F</Color>
+
+    <!-- 滚动条 / 遮罩 -->
+    <Color x:Key="Color.Scroll.Thumb">#FFC9C9D2</Color>
+    <Color x:Key="Color.Scroll.ThumbHover">#FFA8A8B4</Color>
+    <Color x:Key="Color.Overlay.Scrim">#66000000</Color>
+
+    <!-- 画刷（必须 Freeze，减少渲染对象开销） -->
+    <SolidColorBrush x:Key="Brush.Surface.Window" Color="{StaticResource Color.Surface.Window}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Surface.Content" Color="{StaticResource Color.Surface.Content}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Surface.Sidebar" Color="{StaticResource Color.Surface.Sidebar}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Surface.Floating" Color="{StaticResource Color.Surface.Floating}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Surface.Interactive" Color="{StaticResource Color.Surface.Interactive}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Surface.Hover" Color="{StaticResource Color.Surface.Hover}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Surface.Pressed" Color="{StaticResource Color.Surface.Pressed}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Surface.Selected" Color="{StaticResource Color.Surface.Selected}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Surface.SelectedInactive" Color="{StaticResource Color.Surface.SelectedInactive}" po:Freeze="True"/>
+
+    <SolidColorBrush x:Key="Brush.Border.Window" Color="{StaticResource Color.Border.Window}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Border.Strong" Color="{StaticResource Color.Border.Strong}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Border.Hairline" Color="{StaticResource Color.Border.Hairline}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Border.Focus" Color="{StaticResource Color.Border.Focus}" po:Freeze="True"/>
+
+    <SolidColorBrush x:Key="Brush.Text.Primary" Color="{StaticResource Color.Text.Primary}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Text.Secondary" Color="{StaticResource Color.Text.Secondary}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Text.Tertiary" Color="{StaticResource Color.Text.Tertiary}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Text.Disabled" Color="{StaticResource Color.Text.Disabled}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Text.OnAccent" Color="{StaticResource Color.Text.OnAccent}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Text.OnSelected" Color="{StaticResource Color.Text.OnSelected}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Text.Link" Color="{StaticResource Color.Text.Link}" po:Freeze="True"/>
+
+    <SolidColorBrush x:Key="Brush.Icon.Primary" Color="{StaticResource Color.Icon.Primary}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Icon.Secondary" Color="{StaticResource Color.Icon.Secondary}" po:Freeze="True"/>
+
+    <SolidColorBrush x:Key="Brush.Accent.Default" Color="{StaticResource Color.Accent.Default}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Accent.Hover" Color="{StaticResource Color.Accent.Hover}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Accent.Pressed" Color="{StaticResource Color.Accent.Pressed}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Accent.Subtle" Color="{StaticResource Color.Accent.Subtle}" po:Freeze="True"/>
+
+    <SolidColorBrush x:Key="Brush.Status.Danger" Color="{StaticResource Color.Status.Danger}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Status.Warning" Color="{StaticResource Color.Status.Warning}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Status.Success" Color="{StaticResource Color.Status.Success}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Status.Info" Color="{StaticResource Color.Status.Info}" po:Freeze="True"/>
+
+    <SolidColorBrush x:Key="Brush.Tag.Red" Color="{StaticResource Color.Tag.Red}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Tag.Orange" Color="{StaticResource Color.Tag.Orange}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Tag.Yellow" Color="{StaticResource Color.Tag.Yellow}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Tag.Green" Color="{StaticResource Color.Tag.Green}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Tag.Blue" Color="{StaticResource Color.Tag.Blue}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Tag.Purple" Color="{StaticResource Color.Tag.Purple}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Tag.Gray" Color="{StaticResource Color.Tag.Gray}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Tag.Black" Color="{StaticResource Color.Tag.Black}" po:Freeze="True"/>
+
+    <SolidColorBrush x:Key="Brush.Scroll.Thumb" Color="{StaticResource Color.Scroll.Thumb}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Scroll.ThumbHover" Color="{StaticResource Color.Scroll.ThumbHover}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Overlay.Scrim" Color="{StaticResource Color.Overlay.Scrim}" po:Freeze="True"/>
+
+</ResourceDictionary>

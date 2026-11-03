@@ -1,0 +1,39 @@
+<Project>
+
+  <!--
+    全局编译属性。所有子项目自动继承，禁止在各 csproj 里重复定义。
+    改这里等于改全部项目。
+  -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+
+    <!-- 版权署名（LICENSE / NOTICE / 程序集信息一致） -->
+    <Authors>谦山</Authors>
+    <Company>谦山</Company>
+    <Product>Lingpane</Product>
+    <Copyright>Copyright © 2026 谦山</Copyright>
+
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+
+    <!-- 只保留英文附属资源：减少发布体积与首帧前的资源探测 -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+  </PropertyGroup>
+
+  <!-- Release 专属：性能优先的编译选项 -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <Optimize>true</Optimize>
+    <TieredPGO>true</TieredPGO>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+</Project>

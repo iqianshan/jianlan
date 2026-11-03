@@ -1,0 +1,47 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,md}]
+end_of_line = lf
+indent_size = 2
+
+[*.{csproj,props,targets,manifest,xaml}]
+indent_size = 4
+
+[*.cs]
+# using 排序：System 在前
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# 命名空间与语法风格
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_prefer_braces = true:suggestion
+csharp_style_prefer_primary_constructors = true:suggestion
+
+# 可空与内存
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_coalesce_expression = true:suggestion
+
+# 性能相关：本项目对分配敏感，字符串比较一律显式指定
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true:warning
+csharp_style_prefer_method_group_conversion = true:suggestion
+
+# 分析器：文件管理器场景下部分规则噪音大，显式放宽
+dotnet_diagnostic.CA1062.severity = none
+dotnet_diagnostic.CA1303.severity = none
+dotnet_diagnostic.CA1416.severity = none
+dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.IDE0290.severity = none
+
+[*.xaml]
+# XAML 不参与 C# 规则
+indent_size = 4

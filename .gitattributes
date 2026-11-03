@@ -1,0 +1,29 @@
+# 默认按文本处理，换行统一交给 Git，避免整文件误判为改动
+* text=auto
+
+# 源码统一 CRLF（Windows 项目，与编辑器默认一致）
+*.cs        text eol=crlf
+*.xaml      text eol=crlf
+*.csproj    text eol=crlf
+*.props     text eol=crlf
+*.targets   text eol=crlf
+*.sln       text eol=crlf
+*.manifest  text eol=crlf
+*.ps1       text eol=crlf
+
+# 配置文件统一 LF（跨平台工具链读取）
+*.json      text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.md        text eol=lf
+.editorconfig text eol=lf
+.gitignore  text eol=lf
+.gitattributes text eol=lf
+
+# 二进制
+*.png binary
+*.ico binary
+*.jpg binary
+*.zip binary
+*.exe binary
+*.dll binary

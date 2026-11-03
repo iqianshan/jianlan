@@ -1,0 +1,42 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build -c Release --no-restore
+
+      - name: Test
+        run: dotnet test -c Release --no-build --verbosity normal
+        continue-on-error: true
+
+      # 冒烟：进程能起来且 5 秒内不退出。
+      # 绝对耗时不在此判定——共享 runner 噪声大，耗时由发布前本地测量，见 docs/performance-gate.md
+      - name: Startup smoke test
+        run: |
+          $exe = "src\Lingpane.App\bin\Release\net9.0-windows10.0.17763.0\Lingpane.exe"
+          if (-not (Test-Path $exe)) { throw "未找到构建产物：$exe" }
+          $p = Start-Process $exe -PassThru
+          Start-Sleep -Seconds 5
+          if ($p.HasExited) { throw "进程在 5 秒内退出，退出码 $($p.ExitCode)" }
+          $p.Kill()
+          Write-Host "冒烟通过"
+        shell: pwsh

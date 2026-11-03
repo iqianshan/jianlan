@@ -1,0 +1,526 @@
+# Lingpane 界面实现规则 v1.0
+
+| 项 | 内容 |
+|---|---|
+| 版本 | v1.0 |
+| 日期 | 2026-11-03 |
+| 适用范围 | `src/Lingpane.App` 全部 XAML 与自定义控件 |
+| 视觉基线 | 强调色 `#2F6BE0`；默认密度 32px（舒适）；四级表面 + 1px 描边；无模糊、无投影 |
+| 字号基线 | 8–24pt 连续可调（步进 1，默认跟随系统），设计基线 10pt ≈ 13px；行高/列宽随动，图标尺寸固定（§15 / FR-5.1.6 / FONT-06） |
+| 依据 | 《Lingpane 需求规格说明书 v1.0》P1–P7、NF-01~NF-13、FR-5.1、FR-5.2.4 |
+| 效力 | 本文件为 XAML 层强制规范。与本文件冲突的写法一律按本文件修改，不接受"先实现后补规范" |
+
+---
+
+## 1. 文件结构与加载顺序
+
+```
+src/Lingpane.App/
+  Typography/
+    FontMetrics.cs             ← 字号 → 派生尺寸的唯一计算入口（规则 4.6 / 15.2）
+    FontScaleService.cs        ← 运行期写入字号相关资源键、滚动锚定（规则 15.3）
+  Design/
+    DesignTokens.xaml          ← 唯一入口：尺寸/字体/动效/圆角 + 合并当前主题
+    Themes/
+      Theme.Light.xaml         ← 只含 Color.* 与 Brush.*
+      Theme.Dark.xaml
+      Theme.HighContrast.xaml
+    Styles/
+      Typography.xaml          ← 全部文字样式，字号/字体族/行高统一走 DynamicResource
+      Controls.Button.xaml     ← 控件模板，只引用 token，不定义颜色
+      Controls.List.xaml
+      ...
+```
+
+`App.xaml` 中依次合并 `DesignTokens.xaml` 与 `Styles/Typography.xaml`：
+
+```xml
+<Application.Resources>
+    <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="Design/DesignTokens.xaml"/>
+            <ResourceDictionary Source="Design/Styles/Typography.xaml"/>
+        </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+</Application.Resources>
+```
+
+**规则 1.1**　主题字典必须位于 `MergedDictionaries` 中带 `Theme.Name` 键的位置，切换时按标记查找，不按索引：
+
+```csharp
+public static void ApplyTheme(string name)
+{
+    var dict = Application.Current.Resources.MergedDictionaries
+        .FirstOrDefault(d => d.Contains("Theme.Name"));
+    if (dict is null) return;
+    var src = new Uri($"Design/Themes/Theme.{name}.xaml", UriKind.Relative);
+    if (dict.Source == src) return;
+    dict.Source = src;
+}
+```
+
+**规则 1.2**　三份主题字典的键集合必须完全一致（当前 83 个键）。新增颜色键时三份同步新增，否则切换主题会出现资源缺失而回退为默认黑字。
+
+**规则 1.3**　所有 `SolidColorBrush` 必须带 `po:Freeze="True"`。不可冻结的画刷在 WPF 中会产生额外的变更通知开销，列表万行滚动时可见。
+
+---
+
+## 2. Token 引用规则
+
+| 资源类型 | 引用方式 | 原因 |
+|---|---|---|
+| 圆角、动效时长、层级 | `StaticResource` | 运行期恒定，避免每次属性访问走字典查找 |
+| 间距 `Space.*`、内边距 `Padding.*` | `StaticResource` | 不随字号缩放，保持 4px 栅格 |
+| **字号 `Font.Size.*`、行高 `Font.LineHeight.*`** | **`DynamicResource`** | 字号可在设置中实时调整（§15） |
+| **行/控件高度 `Size.*Height`、`Size.Row.Active`** | **`DynamicResource`** | 随字号重算，否则大字被裁切 |
+| **列宽 `Column.*`** | **`DynamicResource`** | 随字号重算，否则日期/大小列截断；图标不随字号（FONT-06） |
+| 颜色 `Color.*`、画刷 `Brush.*` | `DynamicResource` | 主题切换需实时生效（FR-5.1.1 <100ms 无闪烁） |
+| 字体族 `Font.Family.*` | `DynamicResource` | 与字号同批更新；跨字典引用，Static 解析不可靠 |
+
+**规则 2.1（强制）**　界面 XAML 中**禁止出现颜色字面量**。不得出现 `#FF2F6BE0`、`Red`、`White`、`Transparent` 以外的颜色值；`Transparent` 仅允许用于背景。
+
+**规则 2.2（强制）**　禁止魔法数字。所有 `Height`、`Width`、`Margin`、`Padding`、`FontSize`、`CornerRadius` 必须来自 token 或用 `Space.*` 组合表达。
+
+**规则 2.3**　间距只允许 4 的整数倍，且优先用 `Space.1/2/3/4/6` 五档。出现 5、7、9 这类值一律视为错误。
+
+**规则 2.4**　禁止在 `Styles/*.xaml` 中定义颜色，颜色只能来自主题字典。控件模板只负责结构与尺寸。
+
+**规则 2.5（强制）**　字号相关 token 必须用 `DynamicResource`，不得用 `StaticResource`——`StaticResource` 在加载时求值一次，改字号不会更新。列表项虽有上万条，但虚拟化下只有可视项（约 30 个）会解析资源，开销可忽略；据此不接受"DynamicResource 太慢"作为退回 `StaticResource` 的理由。
+
+**规则 2.6（强制）**　`Typography.xaml` 中的样式已覆盖 `FontSize` / `FontFamily` / `LineHeight`，界面代码**禁止**再单独设置这三个属性（含 `FontSize="13"` 这类覆盖）。局部需要不同层级时，换样式而不是改属性。
+
+---
+
+## 3. 栅格与区域尺寸
+
+窗口根元素必须设置：
+
+```xml
+<Window UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        TextOptions.TextHintingMode="Fixed">
+```
+
+| 区域 | 尺寸（10pt 基准） | token | 字号变化时 |
+|---|---|---|---|
+| 标题栏高度 | 40 | `Size.TitleBar.Height` | 随动 |
+| 标签页高度 | 30，最小宽 100，最大宽 200 | `Size.Tab.*` | 随动 |
+| 工具栏高度 | 48 | `Size.Toolbar.Height` | 随动 |
+| 导航栏宽度 | 默认 184，范围 160–320 | `Size.Nav.Width.*` | 不动 |
+| 导航项高度 | 28 → 与行高一致 | `Size.Nav.Item.Height` | 随动 |
+| 列表表头高度 | 30 | `Size.Row.Header` | 随动 |
+| 列表行高（当前生效） | 32 | `Size.Row.Active` | 随动 |
+| 列表行高（舒适 / 紧凑） | 32 / 26 | `Size.Row.Comfortable` / `Size.Row.Compact` | 随动 |
+| 状态栏高度 | 28 | `Size.StatusBar.Height` | 随动 |
+| 列表图标 | 16 | `Size.Icon.List` | **不动**（FONT-06） |
+| 滚动条宽度 | 10 | `Size.ScrollBar.Thickness` | 不动 |
+| 分隔条宽度 | 6 | `Size.Splitter.Thickness` | 不动 |
+| 间距 / 内边距 | 4 的倍数 | `Space.*` / `Padding.*` | 不动 |
+
+**规则 3.1**　密度切换（FR-5.1.4）**只允许改变 `Size.Row.*`**。字号、图标尺寸、内边距不随密度变化。密度是行距，不是缩放。
+
+**规则 3.2**　列表左边界对齐：标签点槽位（12px，固定宽）→ 图标（16px）→ 文件名，三段位置在所有行、两个窗格间必须像素级一致。**槽位为空时也必须占位**，否则有标签的行会把文件名整体右移。
+
+**规则 3.3**　列宽使用 `Column.*` token，默认仅显示"名称 / 修改日期 / 大小"三列。类型由图标承担，不加第四列（列多则每列都窄，信息密度反而下降）。
+
+**规则 3.4**　禁止在列表中使用 `Grid.IsSharedSizeScope`。它会让虚拟化失效并强制全量测量，10 万项目录直接卡死。
+
+**规则 3.5（强制）**　列表行、导航项、表头、标签页、工具栏、状态栏的高度必须绑定对应 `Size.*` token（`DynamicResource`），**禁止写死**。写死意味着字号调大后文字被裁切。
+
+**规则 3.6**　高度与列宽取偶数（2px 网格），保证 DPI 缩放下的像素对齐；间距仍严格执行 4px 栅格。字号变化后出现的 34、36 这类偶数属于正常值。
+
+**规则 3.7（强制）**　`GridLength` 类型的属性（`RowDefinition.Height`、`ColumnDefinition.Width`）**不能**直接绑定 `sys:Double` 类型的 token——`DynamicResource` 不做类型转换，运行时抛异常或静默失效。正确写法：
+
+```xml
+<!-- ✗ 错误：Size.Toolbar.Height 是 double，赋给 GridLength -->
+<RowDefinition Height="{DynamicResource Size.Toolbar.Height}"/>
+
+<!-- ✓ 正确：行高交给容器自身的 Height（double） -->
+<Grid.RowDefinitions><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+<Border Height="{DynamicResource Size.Toolbar.Height}"/>
+
+<!-- ✓ 正确：列宽用 Auto + 元素固定宽度 -->
+<ColumnDefinition Width="Auto"/>
+<TextBlock Width="{DynamicResource Column.Date.Width}"/>
+```
+
+---
+
+## 4. 排版
+
+| 用途 | 字号 | 字重 | 颜色 |
+|---|---|---|---|
+| 文件名（列表行） | 13 | Normal | `Brush.Text.Primary` |
+| 次要列（日期/大小/类型） | 12 | Normal | `Brush.Text.Secondary` |
+| 表头 | 11 | Normal | `Brush.Text.Tertiary` |
+| 导航项 | 12 | Normal | `Brush.Text.Primary` |
+| 活动导航项 | 12 | **Emphasis** | `Brush.Accent.Default` |
+| 面包屑当前段 | 12 | Emphasis | `Brush.Text.Primary` |
+| 面包屑父级段 | 12 | Normal | `Brush.Text.Secondary` |
+| 标签页标题 | 12 | Normal | `Brush.Text.Primary` / 非活动 `Brush.Text.Secondary` |
+| 状态栏 | 11 | Normal | `Brush.Text.Secondary` |
+| 分组标题 / 侧栏小标题 | 11 | Normal | `Brush.Text.Tertiary` |
+| 对话框标题 | 15 | Emphasis | `Brush.Text.Primary` |
+
+> 上表为 **10pt（13px）基准值**。实际渲染按当前字号等比缩放，比例见规则 4.6；用户可调 8–24pt（§15）。
+
+**规则 4.1（强制）**　只允许 `Normal` 与 `Emphasis(Bold)` 两级字重。禁止 `Medium`、`SemiBold`、`Light`——微软雅黑无 Medium 字重，WPF 会走合成加粗，11–13px 下边缘发糊。强调优先靠字号与颜色，不靠加粗。
+
+**规则 4.2（强制）**　数值列必须开启等宽数字：
+
+```xml
+<TextBlock Text="{Binding SizeText}"
+           TextAlignment="Right"
+           Typography.NumeralAlignment="Tabular"
+           Style="{StaticResource Text.Secondary}" />
+```
+
+日期列同样使用 Tabular，且**省略年份**（`10-28 14:32`）。跨年条目再显示年份（`2025-09-12`）。
+
+**规则 4.3**　所有单行文本必须 `TextWrapping="NoWrap"` + `TextTrimming="CharacterEllipsis"`，并设置 `ToolTip` 显示完整值（FR-2.7 同理）。禁止让文件名换行撑高行。
+
+**规则 4.4**　禁止负 `LetterSpacing`（WPF 通过 `Typography` 无此属性时不要用 `TextEffect` 模拟）；中文标签不需要加字距。
+
+**规则 4.5**　`Text.FormattingMode` 必须为 `Display`（≤15px 时最清晰）。≥20px 的标题可局部覆盖为 `Ideal`。
+
+**规则 4.6（强制）**　字号不是逐项手调，而是由**唯一基准 `Font.Size.Row`** 按固定比例派生。比例与取整规则集中在 `FontMetrics` 一处，界面不得自行乘算：
+
+| 层级 | 派生比例（基准 13px / 10pt） | 下限 | 基准值时 |
+|---|---|---|---|
+| Title | ×1.538 | 18 | 20 |
+| Subtitle | ×1.154 | 14 | 15 |
+| Row（基准） | 1.0 | 10.7（8pt） | 13 |
+| Body | ×0.923 | 10 | 12 |
+| Caption | ×0.846 | 9 | 11 |
+| 行高（Row） | ×1.538 | — | 20 |
+| 行控件高度 | 行高 + 12（紧凑 +6）后取偶数 | 32 / 26 | 32 |
+| 列宽（日期/类型/大小） | ×1.077 后取偶数 | — | 110 / 110 / 90 |
+
+**规则 4.7**　字号调大后层级差必须同比放大，不得固定差值（例如"副标题永远比正文大 3px"）。否则大字号下层级塌陷为同一视觉重量。
+
+---
+
+## 5. 表面与颜色
+
+四级表面，相邻层明度差 4–6%，全部靠明度差与 1px 描边表达层级：
+
+| 层 | 用途 | 浅色 | 深色 |
+|---|---|---|---|
+| L0 窗口底 | 标题栏、标签带、状态栏 | `#F7F7F9` | `#1A1A1C` |
+| L1 内容区 | 列表、导航栏 | `#FFFFFF` / `#FAFAFB` | `#202023` |
+| L2 悬浮层 | 右键菜单、对话框、预览窗格 | `#FFFFFF` | `#26262A` |
+| L3 交互态 | 悬停、焦点、输入框底 | `#F4F4F7` / `#F2F2F5` | `#2E2E33` |
+
+**规则 5.1（强制）**　禁止使用 `#000000` 或 `#FFFFFF` 作为大面积底色。纯黑纯白在长时浏览下对比过硬，且与任何强调色都会"打架"。
+
+**规则 5.2（强制）**　`Color.Surface.*` 与 `Color.Text.*` 必须成对使用，不得跨层混搭（例如 L0 背景配 L2 的文字色）。
+
+**规则 5.3**　次级文字（`Text.Secondary`）对比度 ≥4.5:1；`Text.Tertiary` 只允许用于表头、分组标题等**非唯一信息**，不得用它承载文件名、路径、错误原因。
+
+**规则 5.4（强制）**　彩色标签只允许以 6px 圆点出现（`Size.Tag.Dot`），最多同时显示 3 个点，超出显示 `+N` 文本。**禁止**用标签色做整行底色、图标着色、边框。
+
+---
+
+## 6. 强调色使用白名单
+
+`#2F6BE0` 只允许出现在以下位置，其余一律禁止：
+
+| 允许 | 说明 |
+|---|---|
+| 键盘焦点框 | 2px `Brush.Border.Focus`，内缩 1px |
+| 选中行标记 | 左侧 2px 竖条（`Brush.Accent.Default`） |
+| 选中行填充 | `Brush.Surface.Selected`（强调色 10% 混合，不是原色） |
+| 活动标签指示 | 标签下方 2px 线 |
+| 拖放插入指示 | 2px 横线 + 端点圆点 |
+| 进度条 / 加载指示 | — |
+| 活动导航项 | 文字与图标 |
+| 链接文字 | `Brush.Text.Link` |
+| 活动窗格标识 | 窗格边框 1px `Brush.Border.Strong` 加深 |
+
+| 禁止 | 原因 |
+|---|---|
+| 按钮大面积填充 | 与 8 色标签争夺注意力 |
+| 标题、表头、正文着色 | 破坏层级 |
+| 选中行反白（蓝底白字） | 万行滚动刺眼，且与标签色冲突 |
+| 装饰性线条、图标点缀 | 强调色一旦"装饰化"就失去强调语义 |
+
+**规则 6.1**　高对比度模式下唯一允许的反白位置是选中行，通过 `Brush.Text.OnSelected` 实现——该 token 在浅/深色下等于正文色，在 HC 下等于 `HighlightTextBrush`。行模板始终绑定 `Text.OnSelected`，不写条件分支。
+
+---
+
+## 7. 描边、圆角、阴影
+
+**规则 7.1（强制）**　描边统一 1px（`BorderThickness.Hairline`）。**禁止 0.5px**——在 125%/150% DPI 下会被渲染为半透明灰线，比 1px 更脏。
+
+**规则 7.2**　层级靠 `Brush.Border.Hairline`（层间）与 `Brush.Border.Strong`（容器）区分；窗口外框用 `Brush.Border.Window`。同一容器不得同时用两种描边色。
+
+**规则 7.3（强制）**　阴影只允许出现在两个位置：右键菜单、模态对话框。且必须使用预渲染九宫格 PNG（3×3 `Border` 嵌套或 `NinePatch` 附件属性）实现，**禁止 `DropShadowEffect`**——它会把该子树降级为软件渲染，NF-04（≥55fps）直接失守。
+
+**规则 7.4（强制）**　列表、导航栏、标签栏、状态栏的视觉树中**禁止出现** `DropShadowEffect`、`BlurEffect`、`BitmapEffect`、`OpacityMask` 配合动画。
+
+**规则 7.5**　圆角：控件 4px，标签页 7px，菜单 8px，对话框 10px。同一控件不得出现不同半径（例如外框 8 内框 6）。
+
+**规则 7.6**　窗口圆角按系统区分：
+
+- Win11（Build ≥ 22000）：`DwmSetWindowAttribute(hwnd, 33 /*CORNERS_PREFERENCE*/, 2 /*ROUND*/, 4)`，系统级圆角，零成本。
+- Win10 1809~21H2：保持直角。**禁止 `SetWindowRgn` 硬裁**——边缘锯齿、缩放失效、与 DPI 变化冲突。
+
+**规则 7.7**　标题栏必须自绘（`WindowChrome`），用于两平台统一的深色标题栏与 40px 高度。自绘后拖拽区用 `WindowChrome.IsHitTestVisibleInChrome` 在按钮上放行。
+
+---
+
+## 8. 动效
+
+只有三条动画被允许，其余全部瞬时：
+
+| 场景 | 属性 | 时长 | 缓动 |
+|---|---|---|---|
+| 行/导航项悬停 | 仅 `SolidColorBrush.Color`（Background） | 90ms | `Easing.Standard` |
+| 菜单 / 弹窗出现 | `Opacity` 0→1 + `TranslateTransform.Y` 4→0 | 130ms | `Easing.Enter` |
+| 提示条（Toast）进入 | `TranslateTransform.Y` + `Opacity` | 180ms | `Easing.Standard` |
+
+**规则 8.1（强制）**　禁止对 `Width`、`Height`、`Margin`、`Padding`、`FontSize` 做动画——触发布局重算，单次即可能超过 NF-09 的 16ms 预算。
+
+**规则 8.2（强制）**　禁止以下场景做过渡：标签切换、目录切换、选中变化、滚动、视图模式切换。文件管理器一旦"有过渡感"就等同于"卡"。
+
+**规则 8.3**　动画必须 `FillBehavior="Stop"` 或在 `Completed` 中移除，避免持续持有动画时钟。
+
+**规则 8.4**　`SystemParameters.ClientAreaAnimation` 为 `false` 或系统启用"减少动画"时，所有时长降为 0（直接赋值，不播动画）。
+
+---
+
+## 9. 图标
+
+**规则 9.1（强制）**　界面 chrome（导航、工具栏、命令、状态栏）全部使用字体字形 `Font.Family.Icon`（Win10：`Segoe MDL2 Assets`；Win11：`Font.Family.Icon.Fluent`）。禁止为 chrome 引入 PNG/SVG 图标集——字体字形零启动成本、单色、任意 DPI 清晰。
+
+**规则 9.2（强制）**　码位集中定义在 `IconGlyphs.cs` 常量类中，XAML 只引用常量。禁止在 XAML 里内联写 `&#xE72B;` 之类的魔法码位。
+
+**规则 9.3（强制）**　系统 Shell 图标只允许出现在文件行内，尺寸固定单档 16px（大图标视图为 24px）。**禁止**把 Shell 图标与字体字形放在同一视觉权重的位置——这是精致感的第一杀手。
+
+**规则 9.4**　字形颜色只用 `Brush.Icon.Primary` / `Brush.Icon.Secondary`；活动态用 `Brush.Accent.Default`。禁止为单个图标单独定义颜色。
+
+**规则 9.5**　Shell 图标异步提取（FR-6.5），提取期间显示占位空白而不是"正在加载"图标，避免闪烁。
+
+---
+
+## 10. 交互状态矩阵
+
+列表行 / 导航项必须严格按下表实现，不允许自行发挥：
+
+| 状态 | 背景 | 文字 | 描边 / 标记 |
+|---|---|---|---|
+| 常态 | 透明 | `Brush.Text.Primary` | 无 |
+| 悬停 | `Brush.Surface.Hover` | `Brush.Text.Primary` | 无 |
+| 按下 | `Brush.Surface.Pressed` | `Brush.Text.Primary` | 无 |
+| 选中（焦点窗格） | `Brush.Surface.Selected` | `Brush.Text.OnSelected` | 左 2px `Brush.Accent.Default` |
+| 选中（失焦窗格） | `Brush.Surface.SelectedInactive` | `Brush.Text.OnSelected` | 左 2px `Brush.Border.Strong` |
+| 键盘焦点 | — | — | 2px `Brush.Border.Focus`，内缩 1px |
+| 禁用 | 透明 | `Brush.Text.Disabled` | 无 |
+
+**规则 10.1**　选中与悬停不同时叠加。选中优先，悬停只在未选中项上生效。
+
+**规则 10.2**　双窗格焦点标识（FR-3.5）：焦点窗格整个列表区 1px `Brush.Border.Strong` 包边，失焦窗格无描边。**禁止**用发光、降透明度、灰化整个非焦点窗格。
+
+**规则 10.3（强制）**　必须覆盖系统默认选中画刷，否则 `SystemColors.HighlightBrush` 会在深色模式下变成刺眼蓝块：
+
+```xml
+<Style TargetType="ListBoxItem" x:Key="Row.Item">
+    <Setter Property="Template">
+        <Setter.Value>
+            <ControlTemplate TargetType="ListBoxItem">
+                <Grid x:Name="Root" Background="Transparent" Height="{DynamicResource Size.Row.Active}">
+                    <Border x:Name="Sel" Background="Transparent" BorderThickness="0">
+                        <ContentPresenter Margin="{StaticResource Padding.Row}"/>
+                    </Border>
+                    <Border x:Name="Bar" Width="2" HorizontalAlignment="Left"
+                            Background="{DynamicResource Brush.Accent.Default}" Visibility="Collapsed"/>
+                </Grid>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="Sel" Property="Background" Value="{DynamicResource Brush.Surface.Hover}"/>
+                    </Trigger>
+                    <Trigger Property="IsSelected" Value="True">
+                        <Setter TargetName="Sel" Property="Background" Value="{DynamicResource Brush.Surface.Selected}"/>
+                        <Setter TargetName="Bar" Property="Visibility" Value="Visible"/>
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Setter.Value>
+    </Setter>
+</Style>
+```
+
+---
+
+## 11. 列表与性能红线
+
+逐条对应验收指标，任一违反即阻塞合并。
+
+| # | 红线 | 对应指标 |
+|---|---|---|
+| R-01 | `VirtualizingStackPanel.IsVirtualizing=True`、`VirtualizationMode=Recycling`、`ScrollUnit=Pixel` 三者必须同时开启 | NF-03 / NF-04 |
+| R-02 | 行模板内可视元素 ≤5 个（图标 + 3 列 + 标签点槽位），嵌套 Panel ≤2 层 | T-06 |
+| R-03 | 行模板内禁止 `RelativeSource FindAncestor`（每次生成走视觉树查找） | NF-04 |
+| R-04 | `Recycling` 模式下禁止依赖 `Loaded` 事件做一次性初始化 | NF-03 |
+| R-05 | 缩略图必须设 `DecodePixelWidth` 限制解码尺寸 + `BitmapScalingMode="LowQuality"` | NF-05 |
+| R-06 | 禁止 `DropShadowEffect`/`BlurEffect` 出现在列表、导航、标签栏子树 | NF-04 |
+| R-07 | 圆角与裁剪用 `Border`，禁止对高频重绘区域使用 `Path` 几何或 `Clip`+`OpacityMask` 组合 | NF-04 |
+| R-08 | 滚动过程中不得发起图标/缩略图/标签查询请求（防抖后统一批量查询） | FR-6.6 / FR-4.2.4 |
+| R-09 | 主题切换只替换字典 `Source`，不重建控件树；所有画刷已 Freeze | FR-5.1.1 |
+| R-10 | 任何 `Loaded`/`SizeChanged` 回调内禁止磁盘 IO、Shell COM 调用、数据库访问 | P1 / P2 |
+| R-11 | 列表刷新采用差异更新，禁止 `ItemsSource=null` 后重设（会丢失滚动位置与选中态） | T-04 |
+| R-12 | 单元格内不得使用 `TextBlock.Inlines` 拼接多段富文本 | NF-04 |
+
+---
+
+## 12. 高对比度与可访问性
+
+**规则 12.1**　`SystemParameters.HighContrast == true` 时强制使用 `Theme.HighContrast.xaml`，用户手动选择的浅/深色失效（系统优先）。
+
+**规则 12.2**　HC 模式下：彩色标签降级为单色圆点、状态色降级为正文色、半透明填充禁用、阴影禁用。这些由主题字典统一完成，界面代码不得写 `if (HighContrast)` 分支。
+
+**规则 12.3**　仅在 HC 下允许选中行反白，通过 `Text.OnSelected` 实现（见规则 6.1）。
+
+**规则 12.4**　所有可交互元素必须可 Tab 到达、焦点可见（规则 10）。自定义 `FocusVisualStyle` 必须同时适配三种主题，禁止使用系统默认虚线框。
+
+**规则 12.5**　图标按钮必须设置 `AutomationProperties.Name`；纯图标无文字区域必须提供 `ToolTip`。
+
+**规则 12.6**　行最小高度 26px，不得为"视觉精致"降低到 24px 以下（触屏与运动障碍用户）。
+
+---
+
+## 13. 禁止清单（汇总）
+
+| # | 禁止 | 替代做法 |
+|---|---|---|
+| F-01 | Acrylic / Mica 实时模糊 / `SetWindowCompositionAttribute` | 四级表面 + 1px 描边 |
+| F-02 | `DropShadowEffect` 用于列表、卡片、导航 | 1px 描边或九宫格 PNG（仅菜单/对话框） |
+| F-03 | 0.5px 描边 | 1px + `UseLayoutRounding` |
+| F-04 | 选中行蓝底白字 | `Surface.Selected` 填充 + 左竖条 |
+| F-05 | 0.5px 以下的"精致"间距、非 4 倍数间距 | `Space.*` 五档 |
+| F-06 | `Medium`/`SemiBold` 字重 | `Normal` / `Emphasis` |
+| F-07 | 布局属性动画（宽高、边距、字号） | 只动 `Opacity` / `Transform` / `Color` |
+| F-08 | 页面/标签切换滑动转场 | 瞬时切换 |
+| F-09 | 彩色标签做整行底色或图标着色 | 6px 圆点，最多 3 个 |
+| F-10 | 强调色用于装饰、标题、大面积填充 | 仅用于焦点/选中/活动/进度 |
+| F-11 | chrome 混用 PNG 图标与字体字形 | 全部字体字形（MDL2 / Fluent） |
+| F-12 | 列表内 `Grid.IsSharedSizeScope`、`FindAncestor`、`Inlines` 富文本 | 固定列宽 + `x:Reference` + 单 `TextBlock` |
+| F-13 | 用 `SetWindowRgn` 硬裁圆角 | Win11 用 DWM，Win10 保持直角 |
+| F-14 | 界面 XAML 内联颜色与魔法数字 | 全部走 token |
+| F-15 | 用 `Opacity` 灰化非焦点窗格 | 1px 描边区分焦点 |
+| F-16 | 为功能新增视觉效果而新增颜色键 | 复用现有 83 键，新增须评审 |
+
+---
+
+## 14. PR 自检清单
+
+提交前逐条勾选，未勾选不予合并：
+
+- [ ] XAML 中无颜色字面量、无魔法数字（全局搜索 `#`、`Red`、`White` 与裸数字）
+- [ ] 新增颜色键三份主题字典已同步，键数一致（当前 83）
+- [ ] 所有新增 `SolidColorBrush` 带 `po:Freeze="True"`
+- [ ] 新增控件只使用表格中定义的字号/字重，未出现 `Medium`/`SemiBold`
+- [ ] 数值列已开启 `Typography.NumeralAlignment="Tabular"` 且右对齐
+- [ ] 列表改动已确认虚拟化三件套仍开启，行模板元素数 ≤3
+- [ ] 未引入任何 `Effect`（`DropShadowEffect` / `BlurEffect`）
+- [ ] 动效只用了三条白名单，时长为 token
+- [ ] 字号相关属性（`FontSize` / `FontFamily` / `LineHeight` / 行高 / 列宽）全部 `DynamicResource`，未出现 `StaticResource`
+- [ ] 界面未单独覆盖 `FontSize`，全部套用 `Typography.xaml` 中的样式
+- [ ] 字号 9 / 14 / 24pt 三档各目视一遍：无裁切、无重叠、列不截断、滚动位置不跳
+- [ ] 三种主题目视检查：浅色、深色、高对比度下无文字不可读、无控件错位（AC-06）
+- [ ] 键盘走一遍：Tab 顺序、焦点可见、Space/Enter 可操作
+- [ ] 冷启动复测（NF-08 门禁通过）
+
+---
+
+## 15. 字号缩放（FR-5.1.5 ~ FR-5.1.7）
+
+### 15.1 变量
+
+| 项 | 值 |
+|---|---|
+| 变量 | 界面字号，单位 **pt**，存 `settings.json` → `appearance.fontSizePt` |
+| 范围 | **8–24pt 连续可调，步进 1**（`null` = 跟随系统） |
+| 默认 | 跟随系统（`SystemFonts.MessageFontSize`，100% DPI 下 12px ≈ 9pt） |
+| 内部单位 | 计算一律用 px：`px = pt × 4 / 3`。pt 只用于设置页展示与持久化 |
+| 派生系数 | `Font.Scale = 行字号px / 13`（只读，供非 token 场景使用） |
+| 字体族 | 同批下发：`Font.Family.UI` 由用户选择覆盖（FR-5.1.5） |
+
+**规则 15.1（强制）**　字号只有这一个变量。禁止出现"导航字号""状态栏字号"这类独立设置项——多变量必然导致布局总有一处错位。
+
+**规则 15.2**　pt 与 px 的换算只发生在 `FontScaleService` 一处。XAML、ViewModel、设置页均不得自行乘除，避免 4/3 系数散落各处。
+
+### 15.2 派生关系
+
+改字号时由 `FontScaleService.Apply(fontSizePt, compact)` 一次性写回下列资源键，界面只读：
+
+| 资源键 | 来源 |
+|---|---|
+| `Font.Size.Caption` / `Body` / `Row` / `Subtitle` / `Title` | 基准 × 比例（规则 4.6） |
+| `Font.LineHeight.Caption` / `Body` / `Row` | 各自字号 × 1.45 / 1.667 / 1.538 |
+| `Size.Row.Comfortable` / `Compact` / `Active` | 行高 + 行内余量，取偶数，有下限 |
+| `Size.Row.Header` / `Nav.Item.Height` / `Tab.Height` | 同上 |
+| `Size.TitleBar.Height` / `Toolbar.Height` / `StatusBar.Height` | 同上 |
+| `Column.Name.MinWidth` / `Date` / `Type` / `Size` | 基准列宽 × 比例，取偶数 |
+| `Font.Scale` | 只读系数 |
+| `Font.Family.UI` | 用户选择的字体族（无则保持默认栈） |
+
+**不随字号变化**：`Size.Icon.*`（FONT-06 明确要求图标尺寸不跟字号）、`Space.*`、`Padding.*`、`Size.Nav.Width.*`、`Size.ScrollBar.Thickness`、`Size.Splitter.Thickness`。
+
+### 15.3 实现约束
+
+| # | 规则 |
+|---|---|
+| A-01 | 只有 `FontScaleService.Apply` / `ApplyFontFamily` 允许写这些资源键。禁止在 ViewModel、转换器、XAML 里直接改 `Application.Resources` |
+| A-02 | 变更时**不得**重建控件树、不得重设 `ItemsSource`、不得重新枚举目录（FONT-04） |
+| A-03 | 变更前后必须 `CaptureAnchor` / `RestoreAnchor`，按项目索引恢复滚动位置（FONT-05） |
+| A-04 | 单次切换 <100ms，UI 线程无 >16ms 阻塞（FONT-08） |
+| A-05 | 图标尺寸固定，不参与缩放；字号变大时先扩列宽，再折叠列，最后才允许省略 |
+| A-06 | 用户手工拖过的列宽按比例缩放**一次**，之后不再自动改写；未拖过的列每次按新基准重算 |
+| A-07 | 字号变更后若文字被裁切，加宽列或折叠列，**禁止**回退缩小字号来凑 |
+| A-08 | 字体加载超时 >500ms 时保持原字体并提示，不得阻塞 UI（FONT-08） |
+
+### 15.4 布局自适应
+
+| 场景 | 行为 |
+|---|---|
+| 字号 >16pt | 名称列最小宽按比例提升，日期/类型列随后收缩，避免文件名只剩省略号（FONT-06） |
+| 字号 >16pt | 状态栏隐藏总大小，仅保留"已选中 N 项" |
+| 窗口宽度不足 | 按 类型 → 大小 → 日期 顺序折叠列，名称列始终保留 |
+| 紧凑密度 + 大字号 | 行高取两者较大者，**不允许**文字被压进 26px |
+| 高对比度 + 大字号 | 正常渲染，仅圆点/阴影按 HC 规则降级 |
+| 字体族切换 | 只换字形，不改任何尺寸；行高由新字体的实际度量决定，不做硬编码换算 |
+
+### 15.5 可读性红线
+
+- 行字号下限 8pt（≈10.7px），caption 下限 9px，不得更低。
+- 行高 ≥ 字号的 1.5 倍，否则行间无呼吸、易读性下降。
+- 任意档位下正文对比度 ≥4.5:1（`Text.Tertiary` 仍只用于非唯一信息）。
+- 字体族切换后若某字形缺字，落到 `Font.Family.UI` 的备用栈，不得显示豆腐块。
+
+### 15.6 验收
+
+- 按 AC-06：**9 / 14 / 24pt 三档** × 浅色 / 深色 / 高对比度共 9 组，逐组检查：无裁切、无重叠、无控件错位、滚动位置不跳。
+- 自动化断言三条：行高 token 与行字号成正比；列宽之和与列表可视宽一致或正确触发横向滚动；切换耗时 <100ms。
+
+---
+
+
+## 附录 A：Token 索引
+
+| 分组 | 键前缀 | 数量 | 引用方式 |
+|---|---|---|---|
+| 字体与缩放 | `Font.*` | 17 | Static（`Font.Scale` 只读） |
+| 间距 | `Space.*` | 8 | Static |
+| 尺寸与内边距 | `Size.*`、`Padding.*` | 31 | `Size.*Height` / `Size.Icon.List` 为 Dynamic |
+| 圆角 | `Radius.*`、`CornerRadius.*` | 8 | Static |
+| 描边 | `BorderThickness.*` | 3 | Static |
+| 动效 | `Duration.*`、`Easing.*`、`Motion.*` | 6 | Static |
+| 列宽 | `Column.*` | 4 | Dynamic |
+| 层级 | `ZIndex.*` | 3 | Static |
+| 颜色 | `Color.*` | 41 | Dynamic（经 `Brush.*` 间接使用） |
+| 画刷 | `Brush.*` | 41 | Dynamic |
+| **合计** | `DesignTokens.xaml` | **80** | — |
+| **合计** | 单个主题字典 | **83**（41 色 + 41 刷 + `Theme.Name`） | — |

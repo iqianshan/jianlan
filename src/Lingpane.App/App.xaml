@@ -1,0 +1,18 @@
+<Application x:Class="Lingpane.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        合并顺序（界面规则 §1）：
+        DesignTokens → 主题 → Typography → 控件样式
+        主题字典位于 DesignTokens 的 MergedDictionaries 内，切换时按键 Theme.Name 查找。
+    -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Design/DesignTokens.xaml"/>
+                <ResourceDictionary Source="Design/Styles/Controls.List.xaml"/>
+                <ResourceDictionary Source="Design/Styles/Typography.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

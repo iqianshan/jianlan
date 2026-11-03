@@ -1,0 +1,108 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        文字样式 v1.0
+        字号 / 行高 / 字体族全部 DynamicResource，字号变更时自动生效，无需重建控件。
+        其它字典合并顺序：DesignTokens.xaml → 本文件（本文件不定义颜色、不定义数值）。
+
+        禁止在界面里直接写 FontSize / FontFamily / LineHeight，一律套用下列样式。
+    -->
+
+    <Style x:Key="Text.Base" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="{DynamicResource Font.Family.UI}"/>
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Row}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+        <Setter Property="TextWrapping" Value="NoWrap"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
+        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+    </Style>
+
+    <!-- 列表文件名 -->
+    <Style x:Key="Text.Row" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Base}"/>
+
+    <!-- 次要列：日期、类型、状态栏 -->
+    <Style x:Key="Text.Secondary" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Base}">
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Body}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
+        <Setter Property="LineHeight" Value="{DynamicResource Font.LineHeight.Body}"/>
+    </Style>
+
+    <!-- 数值列：右对齐 + 等宽数字 -->
+    <Style x:Key="Text.Number" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Secondary}">
+        <Setter Property="TextAlignment" Value="Right"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+    </Style>
+
+    <!-- 表头 / 分组标题 -->
+    <Style x:Key="Text.Header" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Base}">
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Caption}"/>
+        <Setter Property="LineHeight" Value="{DynamicResource Font.LineHeight.Caption}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Tertiary}"/>
+    </Style>
+
+    <!-- 导航项 -->
+    <Style x:Key="Text.Nav" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Base}">
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Body}"/>
+    </Style>
+
+    <Style x:Key="Text.Nav.Active" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Nav}">
+        <Setter Property="FontWeight" Value="{StaticResource Font.Weight.Emphasis}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Accent.Default}"/>
+    </Style>
+
+    <!-- 标签页标题 -->
+    <Style x:Key="Text.Tab" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Base}">
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Body}"/>
+    </Style>
+
+    <!-- 说明文字 / 路径 / 状态 -->
+    <Style x:Key="Text.Caption" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Base}">
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Caption}"/>
+        <Setter Property="LineHeight" Value="{DynamicResource Font.LineHeight.Caption}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Tertiary}"/>
+    </Style>
+
+    <!-- 多行说明（预览窗格、错误提示）：允许换行，行高跟随字号 -->
+    <Style x:Key="Text.Caption.Wrap" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Caption}">
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="TextTrimming" Value="None"/>
+        <Setter Property="TextAlignment" Value="Left"/>
+        <Setter Property="LineStackingStrategy" Value="BlockLineHeight"/>
+        <Setter Property="VerticalAlignment" Value="Top"/>
+    </Style>
+
+    <!-- 对话框标题 -->
+    <Style x:Key="Text.Subtitle" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Base}">
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Subtitle}"/>
+        <Setter Property="FontWeight" Value="{StaticResource Font.Weight.Emphasis}"/>
+    </Style>
+
+    <!-- 首页 / 空状态大标题 -->
+    <Style x:Key="Text.Title" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Base}">
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Title}"/>
+        <Setter Property="FontWeight" Value="{StaticResource Font.Weight.Emphasis}"/>
+    </Style>
+
+    <!-- 等宽：文件哈希、快捷键、错误码 -->
+    <Style x:Key="Text.Mono" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Base}">
+        <Setter Property="FontFamily" Value="{DynamicResource Font.Family.Mono}"/>
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Body}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
+    </Style>
+
+    <!-- 字体图标 -->
+    <Style x:Key="Text.Glyph" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="{DynamicResource Font.Family.Icon}"/>
+        <Setter Property="FontSize" Value="{DynamicResource Size.Icon.Small}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Icon.Primary}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
+    </Style>
+
+</ResourceDictionary>
