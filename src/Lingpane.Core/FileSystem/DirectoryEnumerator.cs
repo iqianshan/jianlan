@@ -28,11 +28,15 @@ public static class DirectoryEnumerator
     /// <summary>惰性枚举，调用方负责在后台线程消费。</summary>
     public static IEnumerable<FileEntry> Enumerate(string path)
     {
+        // 归一化一次：条目只保存所在目录，完整路径按需拼接。
+        // 这个字符串被本目录下所有条目共享，因此一万个条目只留一份前缀。
+        string directory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+
         var enumerable = new FileSystemEnumerable<FileEntry>(
-            path,
-            static (ref FileSystemEntry entry) => new FileEntry(
+            directory,
+            (ref FileSystemEntry entry) => new FileEntry(
                 entry.FileName.ToString(),
-                entry.ToFullPath(),
+                directory,
                 entry.IsDirectory,
                 entry.IsDirectory ? 0L : entry.Length,
                 entry.LastWriteTimeUtc.LocalDateTime),

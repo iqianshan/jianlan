@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace WpfBaseline;
 
@@ -50,7 +51,28 @@ internal static class Program
             {
                 // 日志写失败不影响退出
             }
-            app.Shutdown();
+
+            // 稳定后再退出，顺便采一次内存。
+            // 口径与 Lingpane 的 NF-05 一致：私有提交（任务管理器"提交大小"）为主，工作集为辅。
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
+            timer.Tick += (_, _) =>
+            {
+                timer.Stop();
+                try
+                {
+                    using var p = Process.GetCurrentProcess();
+                    p.Refresh();
+                    long priv = p.PrivateMemorySize64 / (1024 * 1024);
+                    long ws = p.WorkingSet64 / (1024 * 1024);
+                    File.AppendAllText(logPath, $"mem priv={priv}MB ws={ws}MB" + Environment.NewLine);
+                }
+                catch (IOException)
+                {
+                    // 忽略
+                }
+                app.Shutdown();
+            };
+            timer.Start();
         };
 
         window.Show();

@@ -33,7 +33,19 @@ param(
     # NF 阈值
     [int]$MaxFirstScreenMs = 800,
     [double]$MinFps = 55,
-    [int]$MaxPrivateMb = 120
+    [int]$MaxPrivateMb = 120,
+
+    # 归一化：每轮先跑一次空窗口对照，用"Lingpane 减去空窗口"的增量判定。
+    # 绝对私有提交在同一台机器上能漂移 30MB 以上（实测空窗口 76~114MB），
+    # 不归一化时同一个 exe 会时而通过时而超标。NF-08 已改用相对基线，NF-05 同理。
+    [switch]$Normalize,
+
+    # 归一化口径下的增量上限（MB）。万项目录 + 滚动实测约 38，留到 45。
+    [double]$MaxDeltaMb = 45,
+
+    # 预热次数（不计入结果）。首次启动的进程私有提交明显偏高
+    # （实测同一个空窗口首轮 118MB，稳定后 82MB），不预热会把冷态成本算进结果。
+    [int]$Warmup = 1
 )
 
 $ErrorActionPreference = 'Stop'
@@ -44,13 +56,52 @@ if (-not (Test-Path $Path)) { throw "找不到测试目录：$Path（先用 tool
 $resultPath = Join-Path $env:LOCALAPPDATA 'Lingpane\logs\perf-probe.json'
 $results = @()
 
+# 归一化用的空窗口对照（与 tools/env-check 共用同一个程序）
+$blankExe = Join-Path $PSScriptRoot '..\env-check\WpfBaseline\out\WpfBaseline.exe'
+$blankLog = Join-Path $env:TEMP 'wpf-baseline.log'
+$blankMb = $null
+
+if ($Normalize -and -not (Test-Path $blankExe)) {
+    throw "归一化需要空窗口对照程序：$blankExe（先跑 tools/env-check/Measure-Baseline.ps1 编译）"
+}
+
+function Measure-BlankMb {
+    if (Test-Path $blankLog) { [System.IO.File]::Delete($blankLog) }
+    $p = Start-Process -FilePath $blankExe -PassThru
+    $p.WaitForExit(30000) | Out-Null
+    if (-not (Test-Path $blankLog)) { return $null }
+
+    $line = Get-Content $blankLog | Where-Object { $_ -match 'mem priv=(\d+)MB' } | Select-Object -Last 1
+    if ($line -and $line -match 'mem priv=(\d+)MB') { return [double]$Matches[1] }
+    return $null
+}
+
 Write-Host "测量 $Runs 次：$Path（帧数 $Frames）" -ForegroundColor Cyan
+if ($Normalize) { Write-Host "归一化已开启：每轮先测空窗口对照" -ForegroundColor Cyan }
+
+if ($Warmup -gt 0) {
+    Write-Host "预热 $Warmup 次（不计入结果）..." -ForegroundColor DarkGray
+    for ($w = 1; $w -le $Warmup; $w++) {
+        if ($Normalize) { $null = Measure-BlankMb }
+        if (Test-Path $resultPath) { [System.IO.File]::Delete($resultPath) }
+        $wp = Start-Process -FilePath $Exe -ArgumentList '--perf-probe', "`"$Path`"", '--perf-frames', '0' -PassThru
+        $wp.WaitForExit(180000) | Out-Null
+        Start-Sleep -Milliseconds 300
+    }
+}
 
 for ($i = 1; $i -le $Runs; $i++) {
     # 用 .NET API 而非 Remove-Item：某些环境对 cmdlet 的删除有安全钩子拦截
     if (Test-Path $resultPath) { [System.IO.File]::Delete($resultPath) }
 
-    $proc = Start-Process -FilePath $Exe -ArgumentList '--perf-probe', "`"$Path`"", '--perf-frames', $Frames -PassThru
+    if ($Normalize) {
+        $blankBefore = Measure-BlankMb
+        $proc = Start-Process -FilePath $Exe -ArgumentList '--perf-probe', "`"$Path`"", '--perf-frames', $Frames -PassThru
+    }
+    else {
+        $blankBefore = $null
+        $proc = Start-Process -FilePath $Exe -ArgumentList '--perf-probe', "`"$Path`"", '--perf-frames', $Frames -PassThru
+    }
     $deadline = [DateTime]::UtcNow.AddSeconds(120)
 
     while (-not $proc.HasExited -and [DateTime]::UtcNow -lt $deadline) {
@@ -70,10 +121,20 @@ for ($i = 1; $i -le $Runs; $i++) {
     }
 
     $r = Get-Content $resultPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($Normalize -and $null -ne $blankBefore) {
+        $r | Add-Member -NotePropertyName 'blankMb' -NotePropertyValue $blankBefore -Force
+        $r | Add-Member -NotePropertyName 'deltaMb' -NotePropertyValue ([double]$r.privateMb - $blankBefore) -Force
+    }
     $results += $r
 
-    Write-Host ("  第 {0} 次：枚举 {1,5} ms | 首屏 {2,6:N0} ms | {3,6:N1} fps | P95 帧 {4,5:N1} ms | 私有 {5,6:N1} MB" -f `
-            $i, $r.enumerateMs, $r.firstScreenMs, $r.fps, $r.p95FrameMs, $r.privateMb)
+    if ($Normalize -and $null -ne $blankBefore) {
+        Write-Host ("  第 {0} 次：枚举 {1,5} ms | 首屏 {2,6:N0} ms | {3,6:N1} fps | P95 帧 {4,5:N1} ms | 私有 {5,6:N1} MB | 空窗 {6,5:N0} | 增量 {7,5:N1} MB" -f `
+                $i, $r.enumerateMs, $r.firstScreenMs, $r.fps, $r.p95FrameMs, $r.privateMb, $blankBefore, $r.deltaMb)
+    }
+    else {
+        Write-Host ("  第 {0} 次：枚举 {1,5} ms | 首屏 {2,6:N0} ms | {3,6:N1} fps | P95 帧 {4,5:N1} ms | 私有 {5,6:N1} MB" -f `
+                $i, $r.enumerateMs, $r.firstScreenMs, $r.fps, $r.p95FrameMs, $r.privateMb)
+    }
 }
 
 if ($results.Count -eq 0) { throw "没有采集到任何结果" }
@@ -109,16 +170,49 @@ if ($Frames -gt 0) {
     Write-Host ("最大帧间隔   {0,8:N1} ms" -f $maxFrame)
 }
 Write-Host ("私有提交     {0,8:N1} MB   阈值 <= {1} MB    （NF-05，对应任务管理器'提交大小'）" -f $private, $MaxPrivateMb)
+
+$deltaValues = @($results | Where-Object { $null -ne $_.deltaMb } | ForEach-Object { [double]$_.deltaMb })
+$delta = $null
+if ($Normalize -and $deltaValues.Count -gt 0) {
+    $blankMed = Get-Median ($results | Where-Object { $null -ne $_.blankMb } | ForEach-Object { [double]$_.blankMb })
+    $delta = Get-Median $deltaValues
+    Write-Host ("空窗口基线   {0,8:N1} MB   （当前系统 WPF 空载，随环境漂移）" -f $blankMed)
+    Write-Host ("相对增量     {0,8:N1} MB   阈值 <= {1} MB    （NF-05 归一化口径）" -f $delta, $MaxDeltaMb)
+}
+
 Write-Host ("工作集       {0,8:N1} MB   （含共享框架页，仅参考；加载后 {1:N1} MB）" -f $ws, $wsLoad)
 Write-Host ("句柄         {0,8:N0}" -f $handles)
 Write-Host ("GDI 对象     {0,8:N0}" -f $gdi)
 
+# 环境态判定（2026-11-03 实测）：
+#   同一 exe 在同一台机器上存在两态，GDI 与句柄同步变化，私有提交相差约 36MB：
+#     低态  GDI 56  / 句柄 ~950  / 万项目录私有提交 ~108MB
+#     高态  GDI 148 / 句柄 ~1260 / 万项目录私有提交 ~144MB
+#   两态与代码无关（空窗口对照同步变化），且不会自行回落，重启系统后恢复。
+#   高态下的内存数字与历史不可比，此时不应据此判定 NF-05 通过或未通过。
+$gdiHigh = $gdi -gt 80
+if ($gdiHigh) {
+    Write-Host ''
+    Write-Host '注意：GDI 对象高于 80，当前处于高态（正常态为 56）。' -ForegroundColor Yellow
+    Write-Host '      高态下私有提交比正常态高约 36MB，此数字不可与历史对比，NF-05 判定无效。' -ForegroundColor Yellow
+    Write-Host '      恢复方式：重启系统后重测。' -ForegroundColor Yellow
+}
+
 $fail = @()
 if ($firstMs -gt $MaxFirstScreenMs) { $fail += "首屏 ${firstMs}ms > ${MaxFirstScreenMs}ms" }
 if ($Frames -gt 0 -and $fps -lt $MinFps) { $fail += "帧率 ${fps} < ${MinFps}" }
-if ($private -gt $MaxPrivateMb) { $fail += "私有提交 ${private}MB > ${MaxPrivateMb}MB" }
+if ($Normalize) {
+    if ($null -ne $delta -and $delta -gt $MaxDeltaMb) { $fail += "相对增量 ${delta}MB > ${MaxDeltaMb}MB" }
+}
+elseif ($private -gt $MaxPrivateMb) { $fail += "私有提交 ${private}MB > ${MaxPrivateMb}MB" }
 
 Write-Host ""
+if ($gdiHigh) {
+    Write-Host '判定：不可判定 —— 环境处于高态，内存指标无效。' -ForegroundColor Yellow
+    Write-Host ('      其余指标：首屏 {0:N0} ms、帧率 {1:N1} fps' -f $firstMs, $fps)
+    exit 3
+}
+
 if ($fail.Count -eq 0) {
     Write-Host "判定：通过" -ForegroundColor Green
     exit 0

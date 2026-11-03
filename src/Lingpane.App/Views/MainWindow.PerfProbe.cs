@@ -36,6 +36,11 @@ public partial class MainWindow
 
         try
         {
+            // 渲染层级：2 = 硬件加速，1 = 部分加速，0 = 软件渲染。
+            // 软件渲染会让私有提交和 GDI 对象大幅上涨，此时的 NF-05 数字不代表正常环境，
+            // 必须先记录层级再判断内存是否真的超标。
+            r.RenderTier = RenderCapability.Tier >> 16;
+
             var sw = Stopwatch.StartNew();
             await _viewModel.NavigateAsync(ProbePath!);
 
@@ -76,6 +81,7 @@ public partial class MainWindow
                     r.MaxFrameMs = Math.Round(stats.MaxFrameMs, 2);
                     r.SlowFrames = stats.SlowFrames;
                     r.PeakWorkingSetMb = stats.PeakWorkingSetMb;
+                    r.Samples = stats.Samples;
                 }
             }
 
@@ -153,10 +159,14 @@ public partial class MainWindow
     /// <summary>
     /// 逐帧驱动滚动并记录帧间隔。滚动会不断把新项拉进视口，
     /// 因此测的是"项容器复用 + 图标查询"的综合成本，而非纯绘制。
+    ///
+    /// 每 <see cref="SampleEvery"/> 帧采一次句柄/GDI/私有提交，用于判断资源增长是
+    /// 线性泄漏还是一次性预热——只看首尾两个点无法区分二者。
     /// </summary>
     private static async Task<FrameStats> SampleScrollAsync(ScrollViewer sv, int frames, double step)
     {
         var intervals = new List<double>(frames);
+        var samples = new List<ResourceSample>();
         var tcs = new TaskCompletionSource();
         long last = 0;
         int count = 0;
@@ -174,11 +184,18 @@ public partial class MainWindow
             if (offset > max) offset = 0;
             sv.ScrollToVerticalOffset(offset);
 
-            // 每 30 帧采一次峰值内存，避免每帧都做系统调用
+            // 每 30 帧采一次，避免每帧都做系统调用
             if (count % 30 == 0)
             {
                 double ws = CurrentWorkingSetMb();
                 if (ws > peakWs) peakWs = ws;
+                samples.Add(new ResourceSample
+                {
+                    Frame = count,
+                    PrivateMb = CurrentPrivateMb(),
+                    Handles = CurrentHandleCount(),
+                    Gdi = GetGuiResources(Self.Handle, 0),
+                });
             }
 
             if (++count >= frames)
@@ -194,7 +211,7 @@ public partial class MainWindow
         if (finished != tcs.Task)
         {
             CompositionTarget.Rendering -= OnRendering;
-            return new FrameStats { Frames = intervals.Count, PeakWorkingSetMb = peakWs };
+            return new FrameStats { Frames = intervals.Count, PeakWorkingSetMb = peakWs, Samples = samples };
         }
 
         double total = intervals.Sum();
@@ -213,6 +230,7 @@ public partial class MainWindow
             // 超过 2 帧预算（33ms）计为一次可感知卡顿
             SlowFrames = sorted.Count(x => x > 33.3),
             PeakWorkingSetMb = peakWs,
+            Samples = samples,
         };
     }
 
@@ -246,6 +264,12 @@ public partial class MainWindow
     [DllImport("user32.dll")]
     private static extern uint GetGuiResources(IntPtr hProcess, uint uiFlags);
 
+    /// <summary>
+    /// 采样用的进程句柄缓存。原先每次 <c>Process.GetCurrentProcess()</c> 都新建对象并打开进程句柄，
+    /// 高频采样时自身就会推高句柄计数，污染被测指标。
+    /// </summary>
+    private static readonly Process Self = Process.GetCurrentProcess();
+
     private struct FrameStats
     {
         public int Frames;
@@ -256,13 +280,26 @@ public partial class MainWindow
         public double MaxFrameMs;
         public int SlowFrames;
         public double PeakWorkingSetMb;
+        public List<ResourceSample> Samples;
     }
+}
+
+/// <summary>滚动过程中的一次资源快照，用于判断增长是线性泄漏还是预热。</summary>
+internal sealed class ResourceSample
+{
+    public int Frame { get; set; }
+    public double PrivateMb { get; set; }
+    public int Handles { get; set; }
+    public uint Gdi { get; set; }
 }
 
 internal sealed class PerfProbeResult
 {
     public string Target { get; set; } = string.Empty;
     public int ItemCount { get; set; }
+
+    /// <summary>WPF 渲染层级：2 硬件加速 / 1 部分加速 / 0 软件渲染。非 2 时内存与帧率均不可比。</summary>
+    public int RenderTier { get; set; }
 
     /// <summary>目录枚举耗时（后台线程）。</summary>
     public long EnumerateMs { get; set; }
@@ -296,6 +333,9 @@ internal sealed class PerfProbeResult
     public int HandleCountBefore { get; set; }
     public int HandleCount { get; set; }
     public uint GdiObjects { get; set; }
+
+    /// <summary>滚动期间的资源快照序列，用于区分线性泄漏与一次性预热。</summary>
+    public List<ResourceSample>? Samples { get; set; }
 
     public string? Error { get; set; }
     public DateTime CompletedAt { get; set; }
