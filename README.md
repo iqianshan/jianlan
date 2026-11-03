@@ -8,9 +8,11 @@
 
 ---
 
-## 实测启动耗时
+## 实测性能
 
-测量环境：AMD Ryzen 7 PRO 5850U / Windows 11 / Release + ReadyToRun / 20 次取值。
+测量环境：AMD Ryzen 7 PRO 5850U / 16GB / Windows 11 / Release + ReadyToRun。
+
+### 启动（20 次取值，系统空闲）
 
 | 方案 | 冷启动 P50 | 备注 |
 |---|---|---|
@@ -23,14 +25,30 @@
 因此启动阶段关闭 IME，首次进入文本输入场景时再启用。
 
 > 早期目标为 P50 ≤ 400 ms。M0 实测表明该指标在 WPF 上不可达（空窗口即 1.1 s），
-> 现按实测调整为 **P50 ≤ 700 ms**，并保留 CI 门禁防止回退。
+> 现按实测调整为 **P50 ≤ 700 ms**，并保留门禁防止回退。
+>
+> 启动耗时受系统内存压力影响极大：可用内存降到 26% 时同一份代码会测到 789 ms。
+> 测量脚本会先校验环境，不合格时直接拒绝判定，避免把系统负载当成代码回归。
 
-## 已完成（M0）
+### 列表（10000 项目录，5 次中位）
+
+| 指标 | 实测 | 目标 |
+|---|---|---|
+| 目录枚举 | 66 ms | — |
+| 首屏（枚举+渲染） | 233 ms | ≤ 800 ms |
+| 滚动帧率 | 125.8 fps | ≥ 55 fps |
+| 私有提交内存 | 114.6 MB | ≤ 120 MB |
+
+10000 项相比空目录只增加 9.6 MB，虚拟化按预期工作。
+详细方法与口径见 [`docs/performance-gate.md`](docs/performance-gate.md) §9。
+
+## 已完成（M0 / M0.5）
 
 - 目录枚举（`FileSystemEnumerable`，零多余分配）
 - 系统图标异步提取（按扩展名，不访问磁盘）
-- 列表虚拟化（Recycling + Pixel 滚动）
+- 列表虚拟化（Recycling + Pixel 滚动），10000 项实测通过
 - 启动耗时埋点与测量脚本（`tools/startup-bench`）
+- 列表性能探针与测试目录生成（`tools/perf-fixture`）
 - 设计 Token 体系（四级表面 / 三主题 / 8–24pt 字号缩放）
 
 ## 规划中
@@ -50,6 +68,10 @@ dotnet publish src/Lingpane.App -c Release -r win-x64 --self-contained false -o 
 
 # 测启动
 pwsh tools/startup-bench/Measure-Startup.ps1 -Exe publish/Lingpane.exe -Runs 20
+
+# 测列表：先生成 10000 项测试目录，再测量
+pwsh tools/perf-fixture/New-TestDirectory.ps1 -Path D:\perf-10k -Count 10000
+pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Lingpane.exe -Path D:\perf-10k
 ```
 
 ## 设计原则

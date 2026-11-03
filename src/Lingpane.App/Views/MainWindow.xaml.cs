@@ -43,6 +43,13 @@ public partial class MainWindow : Window
         Loaded -= OnLoaded;
         StartupTrace.Mark("loaded");
 
+        // 诊断模式接管：测完自行退出，不写启动日志的 normal 路径
+        if (ProbePath is not null)
+        {
+            await RunPerfProbeAsync();
+            return;
+        }
+
         try
         {
             await _viewModel.NavigateAsync(ResolveStartPath());

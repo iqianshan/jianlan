@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-11-03",
+  "machine": "Ryzen 7 PRO 5850U / 16GB（可用 14.8GB）/ Windows 11 26100 / 高性能电源方案",
+  "metric": "inner-loaded-ms",
+  "runs": 20,
+  "p50": 578,
+  "p95": 639,
+  "ciToleranceFactor": 2.5,
+  "localToleranceFactor": 1.2,
+  "environment": "采集时系统空闲：可用内存 >60%，CPU 负载 <20%",
+  "note": "进程内 begin→loaded 耗时，不含进程创建。内存紧张时此值可涨到 800ms+（页被压缩换出），测量脚本会先校验环境，不合格时退出码 5、不出判定。更新前须读 docs/performance-gate.md §8.4。"
+}
