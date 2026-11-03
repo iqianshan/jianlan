@@ -58,6 +58,11 @@ jobs:
             Write-Host "::warning::启动埋点未生成（runner 环境不支持 GUI 渲染），本次跳过性能判定"
             exit 0
           }
+          if ($code -eq 5) {
+            # 环境降级（可用内存 <30% / CPU >60% / 离散度 >1.5）：结论无效，不是回归
+            Write-Host "::warning::runner 环境未达测量条件，本次跳过性能判定（详见日志中的环境校验输出）"
+            exit 0
+          }
           if ($code -ne 0) {
             Write-Host "::error::启动耗时超出基线 2.5 倍，可能引入了启动期同步 IO 或大资源加载"
             exit $code

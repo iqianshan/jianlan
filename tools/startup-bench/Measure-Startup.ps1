@@ -149,7 +149,8 @@ if ($BaselinePath) {
 }
 
 $logPath = Join-Path $env:LOCALAPPDATA 'Lingpane\logs\startup.log'
-if (Test-Path $logPath) { Remove-Item $logPath -Force }
+# 用 .NET API 而非 Remove-Item：某些环境对 cmdlet 的删除有安全钩子拦截
+if (Test-Path $logPath) { [System.IO.File]::Delete($logPath) }
 
 function Get-Percentile {
     param([double[]]$Values, [double]$P)

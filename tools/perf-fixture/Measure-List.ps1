@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    测量列表性能：枚举、首屏、滚动帧率、内存与句柄（NF-03 / NF-04 / NF-05）。
+    测量列表性能：枚举、首屏、滚动帧率、内存与句柄（NF-03 / NF-04 / NF-05 / NF-05R）。
 
 .DESCRIPTION
     调用 Lingpane.exe 的 --perf-probe 诊断模式。程序启动后加载指定目录，
@@ -33,14 +33,16 @@ param(
     # NF 阈值
     [int]$MaxFirstScreenMs = 800,
     [double]$MinFps = 55,
-    [int]$MaxPrivateMb = 120,
+    # NF-05 单窗格档。原 120MB 已于 ADR-0002 上调为 150（双窗格 185 / 预览窗格 230）。
+    [int]$MaxPrivateMb = 150,
 
     # 归一化：每轮先跑一次空窗口对照，用"Lingpane 减去空窗口"的增量判定。
     # 绝对私有提交在同一台机器上能漂移 30MB 以上（实测空窗口 76~114MB），
     # 不归一化时同一个 exe 会时而通过时而超标。NF-08 已改用相对基线，NF-05 同理。
     [switch]$Normalize,
 
-    # 归一化口径下的增量上限（MB）。万项目录 + 滚动实测约 38，留到 45。
+    # NF-05R：归一化口径下的增量上限（MB），即"Lingpane − 纯 WPF 空窗口"。
+    # 优化后万项目录 + 滚动实测 29.7，留到 45。这是代码回归判据，判定时先于 NF-05。
     [double]$MaxDeltaMb = 45,
 
     # 预热次数（不计入结果）。首次启动的进程私有提交明显偏高
@@ -177,7 +179,7 @@ if ($Normalize -and $deltaValues.Count -gt 0) {
     $blankMed = Get-Median ($results | Where-Object { $null -ne $_.blankMb } | ForEach-Object { [double]$_.blankMb })
     $delta = Get-Median $deltaValues
     Write-Host ("空窗口基线   {0,8:N1} MB   （当前系统 WPF 空载，随环境漂移）" -f $blankMed)
-    Write-Host ("相对增量     {0,8:N1} MB   阈值 <= {1} MB    （NF-05 归一化口径）" -f $delta, $MaxDeltaMb)
+    Write-Host ("相对增量     {0,8:N1} MB   阈值 <= {1} MB    （NF-05R，先行判定）" -f $delta, $MaxDeltaMb)
 }
 
 Write-Host ("工作集       {0,8:N1} MB   （含共享框架页，仅参考；加载后 {1:N1} MB）" -f $ws, $wsLoad)

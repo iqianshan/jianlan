@@ -62,11 +62,12 @@ Loaded
 | 决定 | 理由 | 记录 |
 |---|---|---|
 | WPF 而非 WinForms | Shell 互操作资料最厚；代价是启动基线 +350ms | [ADR-0001](adr/0001-ui-framework.md) |
-| 列表用 `IReadOnlyList` 整体替换 | 万项逐条 `Add` 触发 N 次 `CollectionChanged` | ADR-0002 |
+| 列表用 `IReadOnlyList` 整体替换 | 万项逐条 `Add` 触发 N 次 `CollectionChanged` | [ADR-0003](adr/0003-list-replacement.md) |
 | 图标按扩展名而非按文件 | 滚动零磁盘 IO；代价是特殊文件夹图标不准 | `docs/filesystem-and-icons.md` §4 |
 | 彩色标签用 File ID + 路径冗余 | ADS 复制即丢、纯路径重命名即丢 | `docs/requirements.md` FR-4 |
-| 不使用 DI 容器 | 对象图浅，容器初始化 20–30ms 不值得 | ADR-0003 |
+| 不使用 DI 容器 | 对象图深度为 1，容器初始化 20–30ms 不值得 | [ADR-0004](adr/0004-no-di-container.md) |
 | 收藏书签存 JSON 不建库 | 500 条以内约 60KB，读取 <5ms | FR-7 |
+| 内存分档 150/185/230 MB | WPF 框架底 81MB 吃掉 120MB 阈值的 68% | [ADR-0002](adr/0002-memory-budget.md) |
 
 ## 5. 线程模型
 
