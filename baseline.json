@@ -8,6 +8,13 @@
   "p95": 639,
   "ciToleranceFactor": 2.5,
   "localToleranceFactor": 1.2,
-  "environment": "采集时系统空闲：可用内存 >60%，CPU 负载 <20%",
-  "note": "进程内 begin→loaded 耗时，不含进程创建。内存紧张时此值可涨到 800ms+（页被压缩换出），测量脚本会先校验环境，不合格时退出码 5、不出判定。更新前须读 docs/performance-gate.md §8.4。"
+  "environment": "采集时可用内存 51%+、CPU 39% 以下。复测两轮：P50 569 / 511 ms。",
+  "verified": {
+    "date": "2026-11-03",
+    "rounds": [
+      { "freeRatio": 0.51, "cpuLoad": 39, "runs": 20, "p50": 569, "p95": 619 },
+      { "freeRatio": 0.51, "cpuLoad": 29, "runs": 10, "p50": 511, "p95": 540 }
+    ]
+  },
+  "note": "进程内 App 构造→Loaded 耗时，不含进程创建与 CLR 加载（对外口径在此基础上约 +190ms）。内存紧张时此值可涨到 800ms+（页被压缩换出）。测量脚本会校验环境：可用内存 <50% 或 CPU >80% 时仍出数据，但标记为参考值、退出码 5、不作出门禁判定。更新前须读 docs/performance-gate.md §8。"
 }
