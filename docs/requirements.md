@@ -45,7 +45,7 @@
 | Windows 11 资源管理器 | C++ / WinUI 混合 | 400–800ms（进程预热后 <300ms） | 80–150MB |
 | files-community/Files | WinUI 3 + .NET | 1500–3000ms | 200–400MB |
 | Everything | C++ / Win32 | <150ms | 20–40MB |
-| **本项目** | C# / .NET 9 / WPF | **P50 ≤700ms，P95 ≤900ms（实测约 605ms）** | **≤120MB（见 NF-05 分档）** |
+| **本项目** | C# / .NET 9 / WPF | **P50 ≤700ms，P95 ≤900ms（实测 578ms）** | **≤120MB（见 NF-05 分档）** |
 
 > 竞品数据为公开量级参考。本项目数值为 M0 同机实测，方法见 `docs/performance-gate.md`。
 

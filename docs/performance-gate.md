@@ -72,7 +72,7 @@ pwsh tools/startup-bench/Measure-Startup.ps1 -Exe publish/Lingpane.exe -Runs 20
 | WPF 最小空窗口（默认） | 1030–1120 ms | **框架基线** |
 | WPF 最小空窗口（禁 IME） | 541–665 ms | 差异来自输入法上下文 |
 | WPF HwndSource 直建（绕过 Application/Window） | 978–1051 ms | 证明慢在渲染管线初始化，不在窗口类本身 |
-| **Lingpane M0（禁 IME）** | **574–649 ms** | 业务代码增量约 0–60 ms |
+| **Lingpane M0（禁 IME）** | **574–649 ms（20 次：P50 578 / P95 639，min 542 / max 727）** | 业务代码增量约 0–60 ms |
 
 结论：
 

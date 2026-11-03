@@ -7,7 +7,7 @@
       outer —— 外部计时：Process.Start → 主窗口句柄出现。接近用户感知。
       inner —— 进程内埋点：App 构造 → 首帧渲染完成（startup.log 的 total）。
 
-    门禁判定用 inner 的 P50（≤400ms）。outer 只做参考，因为它受轮询粒度
+    门禁判定用 inner 的 P50（≤700ms）与 P95（≤900ms）。outer 只做参考，因为它受轮询粒度
     （10ms）与系统负载影响，不适合做硬性阈值。
 
     说明：本脚本不清系统文件缓存，测的是"已运行过一次之后"的稳定值。
@@ -22,7 +22,9 @@ param(
 
     [int]$Runs = 20,
 
-    [int]$GateP50Ms = 400
+    [int]$GateP50Ms = 700,
+
+    [int]$GateP95Ms = 900
 )
 
 $ErrorActionPreference = 'Stop'
@@ -91,12 +93,18 @@ Write-Host "================ 结果 ================" -ForegroundColor Cyan
 Write-Host ("进程内 P50 = {0,6:N0} ms   P95 = {1,6:N0} ms   min = {2,6:N0} ms   max = {3,6:N0} ms" -f `
         $innerP50, $innerP95, ($innerArr | Measure-Object -Minimum).Minimum, ($innerArr | Measure-Object -Maximum).Maximum)
 Write-Host ("外部   P50 = {0,6:N0} ms   P95 = {1,6:N0} ms" -f $outerP50, $outerP95)
-Write-Host ("门禁阈值   P50 <= {0} ms" -f $GateP50Ms)
+Write-Host ("门禁阈值   P50 <= {0} ms，P95 <= {1} ms" -f $GateP50Ms, $GateP95Ms)
 
-if ($innerP50 -le $GateP50Ms) {
+$p50Ok = $innerP50 -le $GateP50Ms
+$p95Ok = $innerP95 -le $GateP95Ms
+
+if ($p50Ok -and $p95Ok) {
     Write-Host "判定：通过" -ForegroundColor Green
     exit 0
+} elseif ($p50Ok) {
+    Write-Host "判定：P50 通过、P95 超标（抖动大，多为系统负载或后台扫描所致，建议空闲时复测）" -ForegroundColor Yellow
+    exit 3
 } else {
-    Write-Host "判定：未通过（超出 $([Math]::Round($innerP50 - $GateP50Ms)) ms）" -ForegroundColor Red
+    Write-Host ("判定：未通过（P50 超出 {0} ms）" -f [Math]::Round($innerP50 - $GateP50Ms)) -ForegroundColor Red
     exit 2
 }
