@@ -54,6 +54,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>
+    /// 成功进入某个目录后触发（含刷新）。目录监听、选中恢复都挂在这里，
+    /// 避免各处导航入口各写一遍收尾逻辑。
+    /// </summary>
+    public event Action<string>? NavigationCompleted;
+
+    /// <summary>
     /// 直接暴露 IReadOnlyList 而不批量灌 ObservableCollection：
     /// 万项逐条 Add 会触发 N 次 CollectionChanged，切换目录直接卡住。
     /// </summary>
@@ -232,6 +238,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
             ApplyFilter();
             Raise(nameof(CanGoBack));
             Raise(nameof(CanGoForward));
+
+            // 监听与选中恢复挂在这里：导航/刷新走同一条收尾路径
+            NavigationCompleted?.Invoke(target);
         }
         else
         {
@@ -344,6 +353,25 @@ public sealed class MainViewModel : INotifyPropertyChanged
             _ => totalSize > 0 ? $"选中 {count} 项 · {FileEntry.FormatSizeText(totalSize)}" : $"选中 {count} 项",
         };
     }
+
+    /// <summary>当前选中项。命令的可执行性判断与文件操作都用它，避免各处再从 ListBox 里捞。</summary>
+    public IReadOnlyList<FileEntry> SelectedEntries { get; private set; } = [];
+
+    public void SetSelectedEntries(IReadOnlyList<FileEntry> entries) => SelectedEntries = entries;
+
+    /// <summary>按完整路径取当前列表里的条目，用于刷新后恢复选中。</summary>
+    public FileEntry? FindByPath(string fullPath)
+    {
+        foreach (var entry in _entries)
+        {
+            if (string.Equals(entry.FullPath, fullPath, StringComparison.OrdinalIgnoreCase)) return entry;
+        }
+
+        return null;
+    }
+
+    /// <summary>状态栏提示。文件操作的结果文本走这里，不走 HintText（HintText 会被下次导航清空）。</summary>
+    public void SetStatus(string text) => StatusText = text;
 
     private void ResortInMemory()
     {

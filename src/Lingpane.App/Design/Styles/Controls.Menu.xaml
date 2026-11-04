@@ -1,0 +1,90 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        右键菜单最小样式集。
+        WPF 默认 ContextMenu/MenuItem 用的是系统配色，深色主题下是一块突兀的白底，
+        这里只覆盖用得到的部分：无图标、无子菜单、无勾选态。
+        将来要加子菜单或勾选项时，需要扩展模板（Popup 与 IsCheckable 分支）。
+    -->
+
+    <Style x:Key="ContextMenu.Default" TargetType="ContextMenu">
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface.Window}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Hairline}"/>
+        <Setter Property="BorderThickness" Value="{DynamicResource BorderThickness.Hairline}"/>
+        <Setter Property="Padding" Value="4"/>
+        <Setter Property="HasDropShadow" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource CornerRadius.Control}"
+                            Padding="{TemplateBinding Padding}">
+                        <StackPanel IsItemsHost="True"
+                                    KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="MenuItem.Default" TargetType="MenuItem">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Body}"/>
+        <Setter Property="Padding" Value="8,5,8,5"/>
+        <Setter Property="MinWidth" Value="200"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <Border x:Name="Bd"
+                            Background="Transparent"
+                            CornerRadius="{StaticResource CornerRadius.Control}"
+                            Padding="{TemplateBinding Padding}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ContentPresenter Grid.Column="0"
+                                              ContentSource="Header"
+                                              RecognizesAccessKey="True"
+                                              VerticalAlignment="Center"/>
+                            <!-- 键位提示由代码按 KeyBindings 表填入，XAML 里不写死 -->
+                            <TextBlock x:Name="Gesture"
+                                       Grid.Column="1"
+                                       Margin="24,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Text="{TemplateBinding InputGestureText}"
+                                       Style="{StaticResource Text.Caption}"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bd" Property="Background"
+                                    Value="{DynamicResource Brush.Surface.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Disabled}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Menu.Separator" TargetType="Separator">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Separator">
+                    <Border Height="1"
+                            Margin="6,4,6,4"
+                            Background="{DynamicResource Brush.Border.Hairline}"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>
+

@@ -258,7 +258,55 @@
                 <Grid Grid.Row="1">
                     <ListBox x:Name="FileList"
                              ItemsSource="{Binding Entries}"
-                             SelectionChanged="OnFileSelectionChanged">
+                             SelectionMode="Extended"
+                             SelectionChanged="OnFileSelectionChanged"
+                             PreviewMouseRightButtonDown="OnFileRightButtonDown"
+                             MouseDoubleClick="OnFileDoubleClick"
+                             Tag="{Binding RelativeSource={RelativeSource AncestorType=Window}}">
+                        <!--
+                            右键菜单。ContextMenu 不在可视树里，拿不到窗口的 DataContext，
+                            因此用 PlacementTarget（= 本 ListBox）的 Tag 把窗口传进去，
+                            Command 绑定到窗口上的命令属性。键位提示由代码按快捷键表填入。
+                        -->
+                        <ListBox.ContextMenu>
+                            <ContextMenu Style="{StaticResource ContextMenu.Default}"
+                                         DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
+                                <MenuItem Style="{StaticResource MenuItem.Default}"
+                                          Header="打开"
+                                          Command="{Binding OpenItemCommand}"/>
+                                <Separator Style="{StaticResource Menu.Separator}"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}"
+                                          Header="新建文件夹"
+                                          Command="{Binding NewFolderCommand}"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}"
+                                          Header="重命名"
+                                          Command="{Binding RenameCommand}"/>
+                                <Separator Style="{StaticResource Menu.Separator}"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}"
+                                          Header="复制"
+                                          Command="{Binding CopyItemsCommand}"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}"
+                                          Header="剪切"
+                                          Command="{Binding CutItemsCommand}"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}"
+                                          Header="粘贴"
+                                          Command="{Binding PasteCommand}"/>
+                                <Separator Style="{StaticResource Menu.Separator}"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}"
+                                          Header="删除"
+                                          Command="{Binding DeleteCommand}"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}"
+                                          Header="永久删除"
+                                          Command="{Binding DeletePermanentCommand}"/>
+                                <Separator Style="{StaticResource Menu.Separator}"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}"
+                                          Header="复制完整路径"
+                                          Command="{Binding CopyPathCommand}"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}"
+                                          Header="属性"
+                                          Command="{Binding PropertiesCommand}"/>
+                            </ContextMenu>
+                        </ListBox.ContextMenu>
                         <ListBox.Style>
                             <Style TargetType="ListBox" BasedOn="{StaticResource List.Surface}">
                                 <Setter Property="ItemTemplate" Value="{StaticResource Row.Details}"/>

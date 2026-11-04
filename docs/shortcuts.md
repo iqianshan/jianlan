@@ -2,9 +2,15 @@
 
 > 对应 FR-10.6。键位一经发布不再变更；新增键位必须避开下表已占用组合。
 >
-> **实现状态（M1）**：`Alt+←/→/↑`、`Ctrl+L`、`Enter`、`F5`、`Ctrl+R`、`Ctrl+Shift+1/2`、
-> `Ctrl+Shift+D`、`Ctrl+,` 已可用。`Ctrl+Shift+3`（大图标）与文件操作类快捷键随对应功能一起接入，
-> 大图标视图需要先补虚拟化面板，见 `docs/performance-gate.md`。
+> **实现状态（M1）**：`Alt+←/→/↑`、`Backspace`、`Ctrl+L`、`F5`、`Ctrl+R`、`Ctrl+Shift+1/2`、
+> `Ctrl+Shift+D`、`Ctrl+,`、`Enter`、`F2`、`Delete`、`Shift+Delete`、`Ctrl+C/X/V`、
+> `Ctrl+Shift+N`、`Ctrl+Shift+C`、`Alt+Enter` 已可用。
+> `Ctrl+Shift+3`（大图标）**不绑定**：该视图决定不做，见 `docs/adr/0005-large-icon-view.md`。
+>
+> **实现方式**：键位表在 `Lingpane.App/Input/KeyBindings.cs`，由窗口的 `PreviewKeyDown`
+> 统一派发，**不使用** `Window.InputBindings`——`KeyGesture` 对 `,` 这类 OEM 键的匹配
+> 不可靠，实测 `Ctrl+,` 不触发；且 `KeyGesture` 不认 `Key.System`，Alt 组合需另行归一化。
+> 右键菜单的键位提示由同一张表填入，不存在菜单与实现不一致的可能。
 
 ## 1. 标签页
 
@@ -40,8 +46,8 @@
 |---|---|
 | `Ctrl + Shift + 1` | 详细信息视图 |
 | `Ctrl + Shift + 2` | 列表视图 |
-| `Ctrl + Shift + 3` | 大图标视图 |
-| `Ctrl + 滚轮` | 图标大小（仅大图标视图生效） |
+| `Ctrl + Shift + 3` | 大图标视图（**不实现**，见 ADR-0005，键位保留不绑定） |
+| `Ctrl + 滚轮` | 图标大小（仅大图标视图生效，随该视图一并搁置） |
 | `Ctrl + Shift + D` | 切换主题（跟随系统 → 浅色 → 深色） |
 | `Ctrl + Shift + H` | 显示/隐藏隐藏文件 |
 | `F11` | 预览窗格开关 |

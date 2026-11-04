@@ -1,12 +1,16 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
 using Lingpane.App.Commands;
+using Lingpane.App.Services;
 using Lingpane.App.ViewModels;
 using Lingpane.Core.Commands;
 using Lingpane.Core.Diagnostics;
+using Lingpane.Core.FileSystem;
 using Lingpane.Core.Settings;
 
 namespace Lingpane.App.Views;
@@ -25,6 +29,16 @@ public partial class MainWindow : Window
     public CommandAdapter DetailsCommand { get; }
     public CommandAdapter ListViewCommand { get; }
     public CommandAdapter SettingsCommand { get; }
+    public CommandAdapter OpenItemCommand { get; }
+    public CommandAdapter NewFolderCommand { get; }
+    public CommandAdapter RenameCommand { get; }
+    public CommandAdapter DeleteCommand { get; }
+    public CommandAdapter DeletePermanentCommand { get; }
+    public CommandAdapter CopyItemsCommand { get; }
+    public CommandAdapter CutItemsCommand { get; }
+    public CommandAdapter PasteCommand { get; }
+    public CommandAdapter CopyPathCommand { get; }
+    public CommandAdapter PropertiesCommand { get; }
 
     public MainWindow()
     {
@@ -97,6 +111,86 @@ public partial class MainWindow : Window
             Gesture = "Ctrl+,",
             Execute = OpenSettings,
         });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.FocusAddress,
+            Title = "定位地址栏",
+            Gesture = "Ctrl+L",
+            Execute = BeginAddressEdit,
+        });
+
+        // 文件操作（M1 批 3）。可执行性由选中状态与当前目录决定，
+        // 右键菜单与快捷键共用这一份判断，不各写一遍。
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.OpenItem,
+            Title = "打开",
+            Execute = OpenSelection,
+            CanExecute = HasSingleSelection,
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.NewFolder,
+            Title = "新建文件夹",
+            Execute = () => _ = NewFolderAsync(),
+            CanExecute = CanCreateInCurrentDirectory,
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.Rename,
+            Title = "重命名",
+            Execute = () => _ = RenameSelectionAsync(),
+            CanExecute = HasSingleSelection,
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.Delete,
+            Title = "删除",
+            Execute = () => _ = DeleteSelectionAsync(permanent: false),
+            CanExecute = HasSelection,
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.DeletePermanent,
+            Title = "永久删除",
+            Execute = () => _ = DeleteSelectionAsync(permanent: true),
+            CanExecute = HasSelection,
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.CopyItems,
+            Title = "复制",
+            Execute = () => CopySelection(cut: false),
+            CanExecute = HasSelection,
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.CutItems,
+            Title = "剪切",
+            Execute = () => CopySelection(cut: true),
+            CanExecute = HasSelection,
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.Paste,
+            Title = "粘贴",
+            Execute = () => _ = PasteAsync(),
+            CanExecute = CanPaste,
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.CopyPath,
+            Title = "复制完整路径",
+            Execute = CopyPathSelection,
+            CanExecute = HasSelection,
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.Properties,
+            Title = "属性",
+            Execute = ShowProperties,
+            CanExecute = HasSelection,
+        });
 
         UpCommand = new CommandAdapter(_commands.Get(CommandIds.GoUp));
         BackCommand = new CommandAdapter(_commands.Get(CommandIds.GoBack));
@@ -106,18 +200,23 @@ public partial class MainWindow : Window
         DetailsCommand = new CommandAdapter(_commands.Get(CommandIds.ViewDetails));
         ListViewCommand = new CommandAdapter(_commands.Get(CommandIds.ViewList));
         SettingsCommand = new CommandAdapter(_commands.Get(CommandIds.OpenSettings));
+        OpenItemCommand = new CommandAdapter(_commands.Get(CommandIds.OpenItem));
+        NewFolderCommand = new CommandAdapter(_commands.Get(CommandIds.NewFolder));
+        RenameCommand = new CommandAdapter(_commands.Get(CommandIds.Rename));
+        DeleteCommand = new CommandAdapter(_commands.Get(CommandIds.Delete));
+        DeletePermanentCommand = new CommandAdapter(_commands.Get(CommandIds.DeletePermanent));
+        CopyItemsCommand = new CommandAdapter(_commands.Get(CommandIds.CopyItems));
+        CutItemsCommand = new CommandAdapter(_commands.Get(CommandIds.CutItems));
+        PasteCommand = new CommandAdapter(_commands.Get(CommandIds.Paste));
+        CopyPathCommand = new CommandAdapter(_commands.Get(CommandIds.CopyPath));
+        PropertiesCommand = new CommandAdapter(_commands.Get(CommandIds.Properties));
 
-        // 快捷键只能在这里挂：KeyBinding 不继承 DataContext，写在 XAML 里绑不到命令
-        InputBindings.Add(new KeyBinding(RefreshCommand, Key.F5, ModifierKeys.None));
-        InputBindings.Add(new KeyBinding(RefreshCommand, Key.R, ModifierKeys.Control));
-        InputBindings.Add(new KeyBinding(UpCommand, Key.Up, ModifierKeys.Alt));
-        InputBindings.Add(new KeyBinding(BackCommand, Key.Left, ModifierKeys.Alt));
-        InputBindings.Add(new KeyBinding(ForwardCommand, Key.Right, ModifierKeys.Alt));
-        InputBindings.Add(new KeyBinding(ThemeCommand, Key.D, ModifierKeys.Control | ModifierKeys.Shift));
-        InputBindings.Add(new KeyBinding(DetailsCommand, Key.D1, ModifierKeys.Control | ModifierKeys.Shift));
-        InputBindings.Add(new KeyBinding(ListViewCommand, Key.D2, ModifierKeys.Control | ModifierKeys.Shift));
-        InputBindings.Add(new KeyBinding(new DelegateCommand(BeginAddressEdit), Key.L, ModifierKeys.Control));
-        InputBindings.Add(new KeyBinding(SettingsCommand, Key.OemComma, ModifierKeys.Control));
+        // 快捷键不用 Window.InputBindings：KeyGesture 对 , 这类 OEM 键的匹配依赖布局，
+        // 实测 Ctrl+, 不触发。改为一张显式表 + PreviewKeyDown 派发，见 Input/KeyBindings.cs。
+        PreviewKeyDown += OnPreviewKeyDown;
+
+        // 目录一换就换监听目标
+        _viewModel.NavigationCompleted += StartWatching;
 
         Loaded += OnLoaded;
         ContentRendered += OnContentRendered;
@@ -193,6 +292,32 @@ public partial class MainWindow : Window
         var window = new SettingsWindow { Owner = this };
         window.Show();
     }
+
+    // ── 快捷键 ──────────────────────────────────────────────────────────────
+
+    private void OnPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        // 文本输入控件里不抢键：地址栏的 Ctrl+C 应该复制文字，而不是复制文件
+        if (Keyboard.FocusedElement is TextBoxBase) return;
+
+        if (!Input.KeyBindings.TryMatch(e, out string commandId)) return;
+
+        // 匹配到就吞掉，即使命令此刻不可执行——否则 ListBox 会把它当成"首字母定位"
+        e.Handled = true;
+        _commands.Invoke(commandId);
+    }
+
+    // ── 命令可执行性 ────────────────────────────────────────────────────────
+
+    private bool HasSelection() => !_viewModel.IsLoading && _viewModel.SelectedEntries.Count > 0;
+
+    private bool HasSingleSelection() => !_viewModel.IsLoading && _viewModel.SelectedEntries.Count == 1;
+
+    private bool CanCreateInCurrentDirectory()
+        => !_viewModel.IsLoading && !string.IsNullOrEmpty(_viewModel.CurrentPath);
+
+    private bool CanPaste()
+        => !_viewModel.IsLoading && FileClipboard.HasData && !string.IsNullOrEmpty(_viewModel.CurrentPath);
 
     /// <summary>
     /// 记录列表滚动位置。字号/行高变化会导致偏移量失真，
@@ -284,15 +409,73 @@ public partial class MainWindow : Window
     {
         long total = 0;
         int count = 0;
+        var selected = new List<FileEntry>(FileList.SelectedItems.Count);
 
         foreach (object item in FileList.SelectedItems)
         {
-            if (item is not Core.FileSystem.FileEntry entry) continue;
+            if (item is not FileEntry entry) continue;
+            selected.Add(entry);
             count++;
             total += entry.Size;
         }
 
         _viewModel.SetSelection(count, total);
+        _viewModel.SetSelectedEntries(selected);
+
+        // 选中数变化影响"打开/重命名/删除"等命令的可执行性，右键菜单打开前必须已刷新
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    /// <summary>
+    /// 右键菜单的键位提示从快捷键表里取，与真实绑定同源。
+    /// 写在 XAML 里就会出现"菜单写着 Ctrl+,，实际却是别的键"这类不同步。
+    /// </summary>
+    private void ApplyMenuGestures()
+    {
+        if (FileList.ContextMenu is not { } menu) return;
+
+        foreach (object item in menu.Items)
+        {
+            if (item is not MenuItem { Command: CommandAdapter adapter } menuItem) continue;
+
+            menuItem.InputGestureText = Input.KeyBindings.Gestures.TryGetValue(adapter.Source.Id, out string? text)
+                ? text
+                : string.Empty;
+        }
+    }
+
+    /// <summary>右键先选中行再弹菜单：不选中的话菜单里的操作对象是上一批选中项。</summary>
+    private void OnFileRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is not DependencyObject source) return;
+        if (FindAncestor<ListBoxItem>(source) is not { } item) return;
+
+        if (!item.IsSelected)
+        {
+            FileList.SelectedItems.Clear();
+            item.IsSelected = true;
+        }
+    }
+
+    private void OnFileDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is not DependencyObject source) return;
+        if (FindAncestor<ListBoxItem>(source) is not { DataContext: FileEntry entry }) return;
+
+        OpenEntry(entry);
+        e.Handled = true;
+    }
+
+    private static T? FindAncestor<T>(DependencyObject? node) where T : DependencyObject
+    {
+        while (node is not null and not T)
+        {
+            node = node is Visual or Visual3D
+                ? VisualTreeHelper.GetParent(node)
+                : LogicalTreeHelper.GetParent(node);
+        }
+
+        return node as T;
     }
 
     /// <summary>首次渲染回调：比 ContentRendered 更早、更准确反映"画面出现"。</summary>
@@ -316,6 +499,7 @@ public partial class MainWindow : Window
         StartupTrace.Mark("loaded");
 
         ApplySettingsToUi();
+        ApplyMenuGestures();
 
         // 诊断模式接管：测完自行退出，不写启动日志的 normal 路径
         if (ProbePath is not null)

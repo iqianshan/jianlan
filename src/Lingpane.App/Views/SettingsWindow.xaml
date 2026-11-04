@@ -183,7 +183,7 @@
                 <CheckBox x:Name="ConfirmDeleteCheck"
                           Margin="0,0,0,16"
                           Style="{StaticResource CheckBox.Default}"
-                          Content="删除前确认（文件操作在 M1 批 3 接入）"
+                          Content="删除前确认"
                           Checked="OnConfirmDeleteChanged"
                           Unchecked="OnConfirmDeleteChanged"/>
 

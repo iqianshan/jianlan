@@ -17,6 +17,7 @@
                 <ResourceDictionary Source="Design/Styles/Typography.xaml"/>
                 <ResourceDictionary Source="Design/Styles/Controls.Input.xaml"/>
                 <ResourceDictionary Source="Design/Styles/RowTemplates.xaml"/>
+                <ResourceDictionary Source="Design/Styles/Controls.Menu.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

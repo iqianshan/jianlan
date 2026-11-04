@@ -14,6 +14,18 @@ public static class CommandIds
     public const string ViewDetails = "view.details";
     public const string ViewList = "view.list";
     public const string FocusAddress = "nav.focusAddress";
+
+    // 文件操作（M1 批 3）
+    public const string OpenItem = "file.open";
+    public const string NewFolder = "file.newFolder";
+    public const string Rename = "file.rename";
+    public const string Delete = "file.delete";
+    public const string DeletePermanent = "file.deletePermanent";
+    public const string CopyItems = "file.copy";
+    public const string CutItems = "file.cut";
+    public const string Paste = "file.paste";
+    public const string CopyPath = "file.copyPath";
+    public const string Properties = "file.properties";
 }
 
 /// <summary>
