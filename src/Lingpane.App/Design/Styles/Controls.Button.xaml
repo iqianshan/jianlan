@@ -41,5 +41,86 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <!--
+        面包屑链接：文字即按钮。不做下划线，靠悬停底色提示可点，
+        与资源管理器一致；高度取行高以免工具栏被撑高。
+    -->
+    <Style x:Key="Button.Link" TargetType="Button">
+        <Setter Property="Height" Value="{DynamicResource Size.Row.Comfortable}"/>
+        <Setter Property="Padding" Value="6,0,6,0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Body}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="{StaticResource CornerRadius.Control}">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Margin="{TemplateBinding Padding}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Surface.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Surface.Pressed}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        列表列头。左对齐、无外边距，宽度由列定义控制，
+        这样列头与行模板用的是同一套列宽，不会错位。
+    -->
+    <Style x:Key="Button.Header" TargetType="Button">
+        <Setter Property="Height" Value="{DynamicResource Size.Row.Header}"/>
+        <Setter Property="Padding" Value="6,0,6,0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Caption}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="{StaticResource CornerRadius.Control}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="Center"
+                                          Margin="{TemplateBinding Padding}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Surface.Hover}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 地址栏输入框：默认模板会带系统配色，这里显式收窄并去掉焦点光晕 -->
+    <Style x:Key="TextBox.Address" TargetType="TextBox">
+        <Setter Property="Height" Value="{DynamicResource Size.Row.Comfortable}"/>
+        <Setter Property="Padding" Value="8,0,8,0"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface.Content}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Hairline}"/>
+        <Setter Property="BorderThickness" Value="{DynamicResource BorderThickness.Hairline}"/>
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Body}"/>
+    </Style>
 
 </ResourceDictionary>

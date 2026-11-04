@@ -7,7 +7,13 @@ public static class CommandIds
 {
     public const string Refresh = "app.refresh";
     public const string GoUp = "nav.goUp";
+    public const string GoBack = "nav.goBack";
+    public const string GoForward = "nav.goForward";
     public const string CycleTheme = "app.cycleTheme";
+    public const string OpenSettings = "app.openSettings";
+    public const string ViewDetails = "view.details";
+    public const string ViewList = "view.list";
+    public const string FocusAddress = "nav.focusAddress";
 }
 
 /// <summary>

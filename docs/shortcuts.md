@@ -1,6 +1,10 @@
 # 快捷键
 
 > 对应 FR-10.6。键位一经发布不再变更；新增键位必须避开下表已占用组合。
+>
+> **实现状态（M1）**：`Alt+←/→/↑`、`Ctrl+L`、`Enter`、`F5`、`Ctrl+R`、`Ctrl+Shift+1/2`、
+> `Ctrl+Shift+D`、`Ctrl+,` 已可用。`Ctrl+Shift+3`（大图标）与文件操作类快捷键随对应功能一起接入，
+> 大图标视图需要先补虚拟化面板，见 `docs/performance-gate.md`。
 
 ## 1. 标签页
 
@@ -87,7 +91,7 @@
 以下组合**已占用，不得分配给新功能**：
 
 `Ctrl+T` `Ctrl+W` `Ctrl+Shift+T` `Ctrl+Tab` `Ctrl+1…9` `Alt+←→↑` `Backspace` `Ctrl+L`
-`F5` `Ctrl+R` `Ctrl+D` `Ctrl+H` `Ctrl+Shift+1…3` `Ctrl+滚轮` `F11` `Ctrl+B` `Enter`
+`F5` `Ctrl+R` `Ctrl+D` `Ctrl+H` `Ctrl+Shift+1…3` `Ctrl+Shift+D` `Ctrl+,` `Ctrl+滚轮` `F11` `Ctrl+B` `Enter`
 `Ctrl+A/C/X/V` `Delete` `Shift+Delete` `F2` `Ctrl+Shift+N` `Alt+Enter` `Ctrl+Shift+C`
 `Tab` `F6` `Ctrl+\` `Alt+1…8,0` `Ctrl+,` `F1` `Alt+F4` `Ctrl+Shift+W`
 

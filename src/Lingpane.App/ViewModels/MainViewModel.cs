@@ -1,9 +1,11 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
 using Lingpane.App.Shell;
 using Lingpane.Core.FileSystem;
 using Lingpane.Core.Navigation;
+using Lingpane.Core.Settings;
 
 namespace Lingpane.App.ViewModels;
 
@@ -11,15 +13,43 @@ namespace Lingpane.App.ViewModels;
 public sealed record NavItem(string Name, string Glyph, string Path);
 
 /// <summary>
-/// M0 主视图模型：只负责"打开一个目录并把结果交给列表"。
+/// 主视图模型：负责"打开目录 → 过滤 → 排序 → 交给列表"，以及导航栈与地址栏状态。
 /// 不含标签页、双窗格、彩标——这些在 M2 接入。
+///
+/// 内存与响应性约定：
+///   · <c>_all</c> 保存磁盘枚举的原始结果，切换"显示隐藏文件"只在内存里过滤，不重新枚举（FR-5.2.4）
+///   · 对外只暴露整体替换的 IReadOnlyList，避免逐条 CollectionChanged（ADR-0003）
 /// </summary>
 public sealed class MainViewModel : INotifyPropertyChanged
 {
+    private readonly NavigationHistory _history = new();
+    private readonly AppSettings _settings;
+
+    private List<FileEntry> _all = [];
     private IReadOnlyList<FileEntry> _entries = [];
+    private IReadOnlyList<BreadcrumbSegment> _breadcrumbs = [];
     private string _currentPath = string.Empty;
+    private string _addressText = string.Empty;
     private string _statusText = "就绪";
+    private string _selectionText = string.Empty;
+    private string _hintText = string.Empty;
     private bool _isLoading;
+    private bool _isAddressEditing;
+    private DefaultViewKind _viewMode;
+    private EntrySort _sort;
+
+    /// <summary>导航序号：用于丢弃过期的异步枚举结果（快速连按时防止旧目录覆盖新目录）。</summary>
+    private int _navigationToken;
+
+    public MainViewModel(AppSettings settings)
+    {
+        _settings = settings;
+        // schema 里允许 grid，但 M1 未实现该视图（见 SetViewMode），启动时回落到列表
+        _viewMode = settings.Behavior.DefaultView == DefaultViewKind.Grid
+            ? DefaultViewKind.List
+            : settings.Behavior.DefaultView;
+        _sort = new EntrySort(settings.Behavior.SortBy, settings.Behavior.SortDescending, settings.Behavior.FoldersFirst);
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -34,6 +64,305 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     public IReadOnlyList<NavItem> QuickAccess { get; } = BuildQuickAccess();
+
+    public IReadOnlyList<BreadcrumbSegment> Breadcrumbs
+    {
+        get => _breadcrumbs;
+        private set => Set(ref _breadcrumbs, value);
+    }
+
+    public string CurrentPath
+    {
+        get => _currentPath;
+        private set
+        {
+            if (!Set(ref _currentPath, value)) return;
+            Raise(nameof(TitleText));
+        }
+    }
+
+    /// <summary>
+    /// 窗口标题：显示当前目录名，任务栏与 Alt+Tab 里才分得清开了哪个目录。
+    /// 同时它也是自动化验证导航是否生效的观察点（标题会随目录变化）。
+    /// </summary>
+    public string TitleText
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(_currentPath)) return "Lingpane";
+
+            string name = Path.GetFileName(
+                Path.TrimEndingDirectorySeparator(_currentPath));
+
+            // 盘符根目录取不到名称，直接显示 "C:\"
+            return string.IsNullOrEmpty(name) ? _currentPath : $"{name} - Lingpane";
+        }
+    }
+
+    /// <summary>地址栏编辑态的文本，进入编辑时等于完整路径。</summary>
+    public string AddressText
+    {
+        get => _addressText;
+        set => Set(ref _addressText, value);
+    }
+
+    /// <summary>true = 显示可编辑地址栏；false = 显示面包屑。</summary>
+    public bool IsAddressEditing
+    {
+        get => _isAddressEditing;
+        set => Set(ref _isAddressEditing, value);
+    }
+
+    public string StatusText
+    {
+        get => _statusText;
+        private set => Set(ref _statusText, value);
+    }
+
+    public string SelectionText
+    {
+        get => _selectionText;
+        private set => Set(ref _selectionText, value);
+    }
+
+    public bool IsLoading
+    {
+        get => _isLoading;
+        private set => Set(ref _isLoading, value);
+    }
+
+    public DefaultViewKind ViewMode
+    {
+        get => _viewMode;
+        private set
+        {
+            if (!Set(ref _viewMode, value)) return;
+            Raise(nameof(IsDetailsView));
+            Raise(nameof(IsListView));
+        }
+    }
+
+    public bool IsDetailsView => _viewMode == DefaultViewKind.Details;
+
+    public bool IsListView => _viewMode == DefaultViewKind.List;
+
+    public EntrySort Sort
+    {
+        get => _sort;
+        private set
+        {
+            if (!Set(ref _sort, value)) return;
+            Raise(nameof(IsSortByName));
+            Raise(nameof(IsSortByDate));
+            Raise(nameof(IsSortBySize));
+            Raise(nameof(IsSortByType));
+            Raise(nameof(SortArrow));
+            Raise(nameof(NameHeader));
+            Raise(nameof(DateHeader));
+            Raise(nameof(TypeHeader));
+            Raise(nameof(SizeHeader));
+        }
+    }
+
+    // 列头文本带方向箭头，只给当前排序列加。放在视图模型里算，
+    // 界面就不必为四个列头各写一组 DataTrigger。
+    public string NameHeader => HeaderText("名称", SortFieldKind.Name);
+
+    public string DateHeader => HeaderText("修改日期", SortFieldKind.Date);
+
+    public string TypeHeader => HeaderText("类型", SortFieldKind.Type);
+
+    public string SizeHeader => HeaderText("大小", SortFieldKind.Size);
+
+    private string HeaderText(string label, SortFieldKind field)
+        => _sort.Field == field ? $"{label} {SortArrow}" : label;
+
+    public bool IsSortByName => _sort.Field == SortFieldKind.Name;
+
+    public bool IsSortByDate => _sort.Field == SortFieldKind.Date;
+
+    public bool IsSortBySize => _sort.Field == SortFieldKind.Size;
+
+    public bool IsSortByType => _sort.Field == SortFieldKind.Type;
+
+    /// <summary>列头上的方向指示：升序 ▲ / 降序 ▼。</summary>
+    public string SortArrow => _sort.Descending ? "▼" : "▲";
+
+    public bool CanGoBack => _history.CanGoBack;
+
+    public bool CanGoForward => _history.CanGoForward;
+
+    /// <summary>最近一次目录枚举耗时，供性能核对。</summary>
+    public long LastEnumerateMs { get; private set; }
+
+    /// <summary>当前目录条目总数（未过滤），用于状态栏与测试。</summary>
+    public int TotalCount => _all.Count;
+
+    public async Task NavigateAsync(string path, bool recordHistory = true)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return;
+
+        string target = path.Trim().Trim('"');
+        int token = ++_navigationToken;
+
+        IsLoading = true;
+        StatusText = "读取中…";
+
+        long started = Stopwatch.GetTimestamp();
+        var result = await Task.Run(() =>
+        {
+            bool ok = DirectoryEnumerator.TryRead(target, _sort, out var list, out var error);
+            return (Ok: ok, List: list, Error: error);
+        }).ConfigureAwait(true);
+
+        // 期间用户又导航了一次：丢弃本次结果，否则会把新目录覆盖成旧目录
+        if (token != _navigationToken) return;
+
+        LastEnumerateMs = (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+
+        if (result.Ok)
+        {
+            _all = result.List;
+            if (recordHistory) _history.Push(target);
+
+            CurrentPath = target;
+            AddressText = target;
+            Breadcrumbs = Breadcrumb.Build(target);
+            SelectionText = string.Empty;
+            ApplyFilter();
+            Raise(nameof(CanGoBack));
+            Raise(nameof(CanGoForward));
+        }
+        else
+        {
+            _all = [];
+            Entries = [];
+            CurrentPath = target;
+            Breadcrumbs = Breadcrumb.Build(target);
+            StatusText = $"无法打开：{result.Error}";
+        }
+
+        IsLoading = false;
+    }
+
+    /// <summary>刷新当前目录。不产生新的历史记录，否则连按 F5 会堆满后退栈。</summary>
+    public Task RefreshAsync()
+        => string.IsNullOrEmpty(CurrentPath) ? Task.CompletedTask : NavigateAsync(CurrentPath, recordHistory: false);
+
+    public Task<bool> GoBackAsync() => GoAsync(back: true);
+
+    public Task<bool> GoForwardAsync() => GoAsync(back: false);
+
+    private async Task<bool> GoAsync(bool back)
+    {
+        bool moved = back ? _history.TryGoBack(out string path) : _history.TryGoForward(out path);
+        if (!moved) return false;
+
+        // 历史栈已经在 TryGoXxx 内移动过，导航时不能再 Push 一次
+        await NavigateAsync(path, recordHistory: false).ConfigureAwait(true);
+        Raise(nameof(CanGoBack));
+        Raise(nameof(CanGoForward));
+        return true;
+    }
+
+    /// <summary>点击列头：同一列切换升降序，换列改为升序。排序在内存中完成，不重新枚举磁盘。</summary>
+    public void SortBy(SortFieldKind field)
+    {
+        Sort = _sort.Toggle(field);
+        ResortInMemory();
+    }
+
+    /// <summary>
+    /// 切换视图模式。仅本次会话有效，不覆盖设置里的"默认视图"。
+    /// M1 只提供"详细信息"与"列表"两种：两者都能走 VirtualizingStackPanel，
+    /// 大图标/磁贴需要虚拟化 WrapPanel，否则万项目录会创建一万个容器，排到批 3 补。
+    /// </summary>
+    /// <returns>false 表示该视图暂不可用，调用方应保持原视图。</returns>
+    public bool SetViewMode(DefaultViewKind mode)
+    {
+        if (mode == _viewMode) return true;
+
+        if (mode == DefaultViewKind.Grid)
+        {
+            HintText = "大图标视图尚未实现（需虚拟化面板，避免万项目录卡顿），已保持当前视图";
+            return false;
+        }
+
+        HintText = string.Empty;
+        ViewMode = mode;
+        return true;
+    }
+
+    /// <summary>"显示扩展名"开关：逐条通知绑定，不重新枚举磁盘。</summary>
+    public void ApplyShowExtensions(bool show) => FileEntry.SetShowExtensions(_all, show);
+
+    public string HintText
+    {
+        get => _hintText;
+        private set => Set(ref _hintText, value);
+    }
+
+    /// <summary>给一次性提示（路径不存在、视图不可用等）用，下一次导航时清空。</summary>
+    public void SetHint(string message) => HintText = message;
+
+    /// <summary>"显示隐藏文件"开关：只在内存过滤，不重新枚举。</summary>
+    public void ApplyFilter()
+    {
+        if (_settings.Behavior.ShowHidden)
+        {
+            Entries = _all;
+        }
+        else
+        {
+            var visible = new List<FileEntry>(_all.Count);
+            foreach (var entry in _all)
+            {
+                if (!entry.IsHidden) visible.Add(entry);
+            }
+
+            Entries = visible;
+        }
+
+        UpdateStatus();
+    }
+
+    /// <summary>显示隐藏文件之后，需要重算状态栏的条目数。</summary>
+    public void UpdateStatus()
+    {
+        int visible = _entries.Count;
+        StatusText = _all.Count == visible
+            ? $"{visible} 项 · 枚举 {LastEnumerateMs} ms"
+            : $"{visible} 项（已隐藏 {_all.Count - visible} 项）· 枚举 {LastEnumerateMs} ms";
+    }
+
+    public void SetSelection(int count, long totalSize)
+    {
+        SelectionText = count switch
+        {
+            0 => string.Empty,
+            1 => "选中 1 项",
+            _ => totalSize > 0 ? $"选中 {count} 项 · {FileEntry.FormatSizeText(totalSize)}" : $"选中 {count} 项",
+        };
+    }
+
+    private void ResortInMemory()
+    {
+        if (_all.Count == 0)
+        {
+            UpdateStatus();
+            return;
+        }
+
+        _all.Sort(_sort.ToComparison());
+        ApplyFilter();
+    }
+
+    /// <summary>把异常转成可展示的状态文本，不让异常冒泡到 UI 线程。</summary>
+    public void ReportError(Exception ex)
+    {
+        IsLoading = false;
+        StatusText = "操作失败：" + ex.Message;
+    }
 
     private static List<NavItem> BuildQuickAccess()
     {
@@ -57,70 +386,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
         return list;
     }
 
-    public string CurrentPath
+    private bool Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
     {
-        get => _currentPath;
-        private set => Set(ref _currentPath, value);
-    }
-
-    public string StatusText
-    {
-        get => _statusText;
-        private set => Set(ref _statusText, value);
-    }
-
-    public bool IsLoading
-    {
-        get => _isLoading;
-        private set => Set(ref _isLoading, value);
-    }
-
-    /// <summary>最近一次目录枚举耗时，供 M0 性能核对。</summary>
-    public long LastEnumerateMs { get; private set; }
-
-    public async Task NavigateAsync(string path)
-    {
-        if (string.IsNullOrWhiteSpace(path)) return;
-
-        IsLoading = true;
-        StatusText = "读取中…";
-
-        long started = Stopwatch.GetTimestamp();
-        var result = await Task.Run(() =>
-        {
-            bool ok = DirectoryEnumerator.TryReadSorted(path, out var list, out var error);
-            return (Ok: ok, List: list, Error: error);
-        }).ConfigureAwait(true);
-
-        LastEnumerateMs = (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
-
-        if (result.Ok)
-        {
-            Entries = result.List;
-            CurrentPath = path;
-            StatusText = $"{result.List.Count} 项 · 枚举 {LastEnumerateMs} ms";
-        }
-        else
-        {
-            Entries = [];
-            CurrentPath = path;
-            StatusText = $"无法打开：{result.Error}";
-        }
-
-        IsLoading = false;
-    }
-
-    /// <summary>把异常转成可展示的状态文本，不让异常冒泡到 UI 线程。</summary>
-    public void ReportError(Exception ex)
-    {
-        IsLoading = false;
-        StatusText = "操作失败：" + ex.Message;
-    }
-
-    private void Set<T>(ref T field, T value, [CallerMemberName] string? name = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value)) return;
+        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
         field = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        Raise(name);
+        return true;
     }
+
+    private void Raise([CallerMemberName] string? name = null)
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }

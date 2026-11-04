@@ -26,6 +26,15 @@ public partial class App : Application
     private SingleInstanceGuard? _singleInstance;
 
     /// <summary>
+    /// 主窗口引用，必须在创建时留存：窗口关闭后 Application.MainWindow 会变成 null，
+    /// 而尺寸保存发生在关闭之后（OnExit 兜底路径）。
+    /// </summary>
+    private Window? _mainWindow;
+
+    /// <summary>读入时的"最后目录"，用来判断本次会话有没有产生需要落盘的改动。</summary>
+    private static string? _loadedLastPath;
+
+    /// <summary>
     /// 在 跟随系统 → 浅色 → 深色 之间循环，并把选择写回设置。
     /// 只读模式（settings.json 版本过高）只切不写。
     /// </summary>
@@ -40,20 +49,27 @@ public partial class App : Application
 
         Settings.Appearance.Theme = next;
         ThemeService.Apply(next);
-
-        if (!SettingsReadOnly && !_isProbeMode)
-        {
-            try
-            {
-                SettingsStore.Save(Settings, isReadOnly: SettingsReadOnly);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                System.Diagnostics.Debug.WriteLine($"[settings] 主题保存失败：{ex.Message}");
-            }
-        }
+        SaveSettings();
 
         return next;
+    }
+
+    /// <summary>
+    /// 保存设置。只读模式与探针模式不写盘；失败只留日志，不打断操作。
+    /// 所有改动设置的路径都走这里，避免各自 try/catch 后行为不一致。
+    /// </summary>
+    public static void SaveSettings()
+    {
+        if (SettingsReadOnly || _isProbeMode) return;
+
+        try
+        {
+            SettingsStore.Save(Settings, isReadOnly: SettingsReadOnly);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Diagnostics.AppLog.Error("settings.save", "E4002", ex.Message);
+        }
     }
 
     public App()
@@ -97,9 +113,10 @@ public partial class App : Application
         Settings = loaded.Settings;
         SettingsReadOnly = loaded.IsReadOnly;
         SettingsWarning = loaded.Warning;
+        _loadedLastPath = Settings.Session.LastPath;
         if (loaded.Warning is not null)
         {
-            System.Diagnostics.Debug.WriteLine($"[settings] {loaded.Warning}");
+            Diagnostics.AppLog.Warn("settings.load", "E4001", loaded.Warning);
         }
         StartupTrace.Mark("settings");
 
@@ -118,6 +135,11 @@ public partial class App : Application
                 ? WindowState.Maximized
                 : WindowState.Normal,
         };
+        _mainWindow = window;
+
+        // 尺寸要在窗口还活着时取。Closing 是最后一个能拿到有效 Width/Height 的时机，
+        // 等 OnExit 再读，Application.MainWindow 已被置空。
+        window.Closing += (_, _) => PersistWindowState(window);
 
         // 诊断模式：--perf-probe <目录> [--perf-frames N]，见 Views/MainWindow.PerfProbe.cs
         if (probePath is not null)
@@ -164,19 +186,23 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        PersistSession();
+        // 兜底：正常情况下 Closing 已经存过，这里只会走到"值未变直接返回"。
+        // 不能依赖 Current.MainWindow——窗口关闭时 WPF 会把它置空，见 PersistWindowState 注释。
+        PersistWindowState(_mainWindow);
         _singleInstance?.Dispose();
         base.OnExit(e);
     }
 
     /// <summary>
-    /// 退出时保存窗口尺寸。只在真的变了才写盘——
-    /// 规范要求"首次改动设置时才创建文件"，用户什么都没改就不该凭空多一个 settings.json。
+    /// 保存窗口尺寸。调用点必须在窗口还活着的时候（Closing），
+    /// 因为窗口一旦关闭，<see cref="Application.MainWindow"/> 会被 WPF 置空，
+    /// OnExit 里再取就只能拿到 null——早期版本正是因此在第一步就返回，尺寸从未落盘。
+    /// 只在真的变了才写盘：规范要求"首次改动设置时才创建文件"，用户什么都没改就不该凭空多一个 settings.json。
     /// </summary>
-    private static void PersistSession()
+    private static void PersistWindowState(Window? w)
     {
         if (_isProbeMode || SettingsReadOnly) return;
-        if (Current?.MainWindow is not Window w) return;
+        if (w is null) return;
 
         // 最大化时存还原尺寸，否则下次取消最大化会得到一个占满屏幕的"普通"窗口
         Rect bounds = w.WindowState == WindowState.Normal
@@ -190,7 +216,9 @@ public partial class App : Application
         bool maximized = w.WindowState == WindowState.Maximized;
 
         var s = Settings.Session;
-        if (s.WindowWidth == width && s.WindowHeight == height && s.WindowMaximized == maximized)
+        // 最后目录由窗口在 Closing 中写入；只要它与读入时不同，也属于"用户改动过"，需要落盘
+        bool samePath = string.Equals(s.LastPath, _loadedLastPath, StringComparison.Ordinal);
+        if (s.WindowWidth == width && s.WindowHeight == height && s.WindowMaximized == maximized && samePath)
         {
             return;
         }
@@ -202,11 +230,12 @@ public partial class App : Application
         try
         {
             SettingsStore.Save(Settings, isReadOnly: SettingsReadOnly);
+            _loadedLastPath = s.LastPath;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // 写失败只在状态栏提示，不弹窗、不阻塞退出
-            System.Diagnostics.Debug.WriteLine($"[settings] 保存失败：{ex.Message}");
+            // 不弹窗、不阻塞退出，但必须留痕：设置写不进去用户是感知不到的
+            Diagnostics.AppLog.Error("settings.save", "E4002", ex.Message);
         }
     }
 

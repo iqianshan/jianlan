@@ -473,6 +473,29 @@ pwsh tools/env-check/Measure-Baseline.ps1 -Runs 10
 编译一个最小 WPF 空窗口（同样关闭 IME，与 Lingpane 一致），测 P50。判据：P50 ≤ 800 ms
 为环境正常（本机正常值 485–665 ms，留余量）；超过则环境异常。
 
+### 11.4 判断"这次改动是否引入回归"的正确做法
+
+历史数字不能用来判断回归。2026-11-04 下午出现过一次典型案例：
+
+| 对象 | 上午 | 下午 |
+|---|---|---|
+| 上一提交的二进制（未改一行代码） | 499 ms | **743 ms** |
+| 当轮改动的二进制 | — | 749 ms（同一测量窗口内） |
+
+只看"499 → 749"会误判为 +250 ms 严重回归；实际上**同一份旧二进制在同一时刻也是 743 ms**，
+即整机对这类进程变慢了，与代码无关。
+
+因此判定回归只有一种可靠方式：**用 `git worktree` 检出上一提交、单独编译，与当前版本交替测量**。
+
+```bash
+git worktree add /d/tmp/lingpane-head <上一提交>
+dotnet publish /d/tmp/lingpane-head/src/Lingpane.App -c Release -r win-x64 -o /d/tmp/lingpane-head/out
+# 然后对两个 exe 交替跑 Measure-Startup，比对 P50
+git worktree remove /d/tmp/lingpane-head --force
+```
+
+判据：两版 P50 差在 ±10% 内即视为无回归，绝对值超标交给 §11.1 的对照程序处理。
+
 `tools/startup-bench/Measure-Startup.ps1` 在判定未通过且离散度正常时，会自动提示先跑
 这个对照——因为"数据很稳、但整体偏移"，正是环境变慢的典型特征。
 
