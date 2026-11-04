@@ -41,6 +41,10 @@ public partial class MainWindow
             // 必须先记录层级再判断内存是否真的超标。
             r.RenderTier = RenderCapability.Tier >> 16;
 
+            // 主题影响渲染成本（深色/高对比度画笔路径不同），记录实际生效值才能解释数字差异
+            r.AppliedTheme = Design.ThemeService.Current.ToString();
+            r.WindowSize = $"{Math.Round(ActualWidth)}x{Math.Round(ActualHeight)}";
+
             var sw = Stopwatch.StartNew();
             await _viewModel.NavigateAsync(ProbePath!);
 
@@ -300,6 +304,12 @@ internal sealed class PerfProbeResult
 
     /// <summary>WPF 渲染层级：2 硬件加速 / 1 部分加速 / 0 软件渲染。非 2 时内存与帧率均不可比。</summary>
     public int RenderTier { get; set; }
+
+    /// <summary>实际生效的主题（Light / Dark / HighContrast），用于解释渲染成本差异。</summary>
+    public string AppliedTheme { get; set; } = string.Empty;
+
+    /// <summary>窗口客户区尺寸，确认 session 设置生效。</summary>
+    public string WindowSize { get; set; } = string.Empty;
 
     /// <summary>目录枚举耗时（后台线程）。</summary>
     public long EnumerateMs { get; set; }

@@ -21,11 +21,14 @@
               界面不得自行按比例计算任何数值；图标尺寸固定，不随字号变化（FONT-06）。
 
         主题切换：
-        MergedDictionaries[0] 为当前主题字典。切换时按下表查找并替换 Source，
-        不要依赖索引（App.xaml 后续可能追加其他字典）。
-            var d = Application.Current.Resources.MergedDictionaries
-                        .First(x => x.Contains("Theme.Name"));
-            d.Source = new Uri("Design/Themes/Theme.Dark.xaml", UriKind.Relative);
+        本文件的 MergedDictionaries 内合并当前主题字典。切换统一走 ThemeService.Apply，
+        不要在别处改 Source。注意 Theme.Name 在内层字典里，顶层的
+        MergedDictionaries[i].Contains("Theme.Name") 查不到，必须扫一层嵌套：
+
+            foreach (var outer in Application.Current.Resources.MergedDictionaries)
+                for (int i = 0; i < outer.MergedDictionaries.Count; i++)
+                    if (outer.MergedDictionaries[i].Contains("Theme.Name"))
+                        outer.MergedDictionaries[i].Source = new Uri("Themes/Theme.Dark.xaml", UriKind.Relative);
     -->
 
     <ResourceDictionary.MergedDictionaries>
