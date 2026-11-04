@@ -126,6 +126,49 @@ def main() -> int:
         print(f"已点击客户区 ({x},{y})")
         return 0
 
+    if action == "drag":
+        # 真实输入拖拽（不是 PostMessage 合成）：Thumb 依赖 GetKeyState(VK_LBUTTON)，
+        # 投递的消息过不了这一步，只有 SetCursorPos + mouse_event 才会被认作拖拽。
+        # 坐标是屏幕物理像素。
+        x1, y1, x2, y2 = (int(v) for v in sys.argv[3:7])
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        target_thread = user32.GetWindowThreadProcessId(hwnd, None)
+        current_thread = kernel32.GetCurrentThreadId()
+
+        attached = user32.AttachThreadInput(current_thread, target_thread, True)
+        try:
+            # 不能用 SW_RESTORE：它会把最大化窗口还原成普通尺寸并挪位置，
+            # 后续按"最大化时的屏幕坐标"算出来的点就全错位了。
+            user32.BringWindowToTop(hwnd)
+            user32.SetForegroundWindow(hwnd)
+            user32.SetActiveWindow(hwnd)
+            user32.SetFocus(hwnd)
+            time.sleep(0.35)
+        finally:
+            user32.AttachThreadInput(current_thread, target_thread, False)
+
+        fg = user32.GetForegroundWindow()
+        fg_pid = wt.DWORD()
+        user32.GetWindowThreadProcessId(fg, ctypes.byref(fg_pid))
+        print(f"前台窗口 pid={fg_pid.value}（目标 pid={int(sys.argv[1])}），hwnd={hwnd} fg={fg}")
+
+        user32.SetCursorPos(x1, y1)
+        time.sleep(0.25)
+        user32.mouse_event(0x0002, 0, 0, 0, 0)   # LEFTDOWN
+        time.sleep(0.12)
+
+        steps = 14
+        for i in range(1, steps + 1):
+            user32.SetCursorPos(x1 + (x2 - x1) * i // steps, y1 + (y2 - y1) * i // steps)
+            time.sleep(0.03)
+
+        time.sleep(0.15)
+        user32.mouse_event(0x0004, 0, 0, 0, 0)   # LEFTUP
+        time.sleep(0.5)
+        print(f"已拖拽 ({x1},{y1}) -> ({x2},{y2})")
+        return 0
+
     if action == "keys":
         # 只支持验证用的少数组合，够驱动快捷键即可
         combos = {
@@ -137,6 +180,7 @@ def main() -> int:
             "alt+left": (0x12, 0x25),
             "alt+right": (0x12, 0x27),
             "f5": (0x74,),
+            "esc": (0x1B,),
         }
 
         combo = " ".join(sys.argv[3:]).lower()

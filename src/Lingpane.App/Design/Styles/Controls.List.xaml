@@ -109,13 +109,19 @@
     </Style>
 
     <!--
-        列宽拖拽把手：盖在列头按钮的右边缘上（5px），
+        列宽拖拽把手：盖在列头按钮的左边缘上（5px）。
         常态只有一条几乎看不见的竖线，悬停/拖动时才亮成强调色——
         避免列头出现一排"斑马纹"，同时又不至于完全找不到。
+
+        为什么挂左边缘而不是右边缘：名称列是星号列，会吸收剩余宽度。
+        若把手挂在右边缘，向右拖时列宽 +X、名称列同步 -X，日期列的
+        左边界左移而右边界不动（总宽守恒），手感是"反的"。
+        挂在左边缘后，拖动等价于推这根分隔线：左邻列 +X、本列 -X，
+        边界跟着鼠标走，总宽不变，也不会把最右侧的列挤出可视区。
     -->
     <Style x:Key="Thumb.ColumnResize" TargetType="{x:Type Thumb}">
         <Setter Property="Width" Value="5"/>
-        <Setter Property="HorizontalAlignment" Value="Right"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
         <Setter Property="Cursor" Value="SizeWE"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Template">

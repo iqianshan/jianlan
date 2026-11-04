@@ -351,19 +351,43 @@ public partial class MainWindow : Window
             Point origin = button.TranslatePoint(new Point(0, 0), FileList);
             Point screen = button.PointToScreen(new Point(0, 0));
             WriteKeyLog($"layout {button.Tag}: w={button.ActualWidth:0.#} x={origin.X:0.#} " +
-                        $"screenX={screen.X:0.#} content=\"{button.Content}\"");
+                        $"screenX={screen.X:0.#} screenY={screen.Y:0.#} content=\"{button.Content}\"");
+        }
+
+        // 把手的实际屏幕矩形：拖拽验证（模拟输入）必须按这个坐标落点，
+        // 按列头坐标推算容易在缩放/边框上差几像素而打空。
+        foreach (Thumb thumb in HeaderGrid.Children.OfType<Thumb>())
+        {
+            Point p = thumb.PointToScreen(new Point(0, 0));
+            WriteKeyLog($"layout thumb {thumb.Tag}: x={p.X:0.#} y={p.Y:0.#} " +
+                        $"w={thumb.ActualWidth:0.#} h={thumb.ActualHeight:0.#}");
         }
     }
+
+    // 名称列（星号列）的最小可视宽度，与 DesignTokens 的 Column.Name.MinWidth 对齐。
+    // 拖宽其他列时不能把名称列压到这条线以下，否则文件名不可读、
+    // 且星号列被压到 0 后 Grid 会整体溢出，把最右侧的列挤出可视区。
+    private const double MinNameWidth = 160;
 
     private void OnColumnResize(object sender, DragDeltaEventArgs e)
     {
         if (sender is not Thumb { Tag: string token }) return;
 
         double current = ReadColumnWidth(token);
-        double next = Math.Clamp(
-            current + e.HorizontalChange,
-            AppSettings.MinColumnWidth,
-            AppSettings.MaxColumnWidth);
+
+        // 把手挂在列的左边缘：向右拖（HorizontalChange > 0）= 把分隔线右推，
+        // 本列变窄、左邻列变宽；向左拖则相反。取反后分隔线始终跟着鼠标，
+        // 而不是"列宽变了、边界却不动"。
+        double next = current - e.HorizontalChange;
+
+        // 只有本列变宽时受限：最多吃掉名称列让出的富余宽度，避免溢出
+        if (next > current)
+        {
+            double nameSlack = HeaderGrid.ColumnDefinitions[2].ActualWidth - MinNameWidth;
+            next = Math.Min(next, current + Math.Max(0, nameSlack));
+        }
+
+        next = Math.Clamp(next, AppSettings.MinColumnWidth, AppSettings.MaxColumnWidth);
 
         if (Math.Abs(next - current) < 0.5) return;
 
@@ -373,10 +397,17 @@ public partial class MainWindow : Window
 
     private void OnColumnResizeDone(object sender, DragCompletedEventArgs e)
     {
-        if (sender is not Thumb) return;
+        if (sender is not Thumb thumb) return;
 
         // 一次拖拽只落盘一次，不跟随每个 DragDelta 写文件
         App.SaveSettings();
+
+        if (KeyDebug)
+        {
+            AppSettings s = App.Settings;
+            WriteKeyLog($"columns done {thumb.Tag} delta={e.HorizontalChange:0.#} " +
+                        $"out={s.Layout.ColumnDateWidth:0.#}/{s.Layout.ColumnTypeWidth:0.#}/{s.Layout.ColumnSizeWidth:0.#}");
+        }
     }
 
     private static double ReadColumnWidth(string token) => token switch
