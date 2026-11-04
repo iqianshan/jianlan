@@ -210,7 +210,7 @@
                         </Style>
                     </Border.Style>
 
-                    <Grid Margin="{StaticResource Padding.Row}">
+                    <Grid x:Name="HeaderGrid" Margin="{StaticResource Padding.Row}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
@@ -224,26 +224,40 @@
                         <Border Grid.Column="1" Width="{DynamicResource Size.Icon.List}"/>
 
                         <Button Grid.Column="2"
+                                x:Name="NameHeaderButton"
                                 Style="{StaticResource Button.Header}"
                                 Content="{Binding NameHeader}"
                                 Tag="Name"
                                 Click="OnSortClick"
                                 ToolTip="按名称排序"/>
                         <Button Grid.Column="3"
+                                x:Name="DateHeaderButton"
                                 Style="{StaticResource Button.Header}"
                                 Width="{DynamicResource Column.Date.Width}"
                                 Content="{Binding DateHeader}"
                                 Tag="Date"
                                 Click="OnSortClick"
                                 ToolTip="按修改日期排序"/>
+                        <Thumb Grid.Column="3"
+                               Style="{StaticResource Thumb.ColumnResize}"
+                               Tag="Column.Date.Width"
+                               DragDelta="OnColumnResize"
+                               DragCompleted="OnColumnResizeDone"/>
                         <Button Grid.Column="4"
+                                x:Name="TypeHeaderButton"
                                 Style="{StaticResource Button.Header}"
                                 Width="{DynamicResource Column.Type.Width}"
                                 Content="{Binding TypeHeader}"
                                 Tag="Type"
                                 Click="OnSortClick"
                                 ToolTip="按类型排序"/>
+                        <Thumb Grid.Column="4"
+                               Style="{StaticResource Thumb.ColumnResize}"
+                               Tag="Column.Type.Width"
+                               DragDelta="OnColumnResize"
+                               DragCompleted="OnColumnResizeDone"/>
                         <Button Grid.Column="5"
+                                x:Name="SizeHeaderButton"
                                 Style="{StaticResource Button.Header}"
                                 Width="{DynamicResource Column.Size.Width}"
                                 Content="{Binding SizeHeader}"
@@ -251,6 +265,11 @@
                                 Click="OnSortClick"
                                 HorizontalContentAlignment="Right"
                                 ToolTip="按大小排序"/>
+                        <Thumb Grid.Column="5"
+                               Style="{StaticResource Thumb.ColumnResize}"
+                               Tag="Column.Size.Width"
+                               DragDelta="OnColumnResize"
+                               DragCompleted="OnColumnResizeDone"/>
                     </Grid>
                 </Border>
 

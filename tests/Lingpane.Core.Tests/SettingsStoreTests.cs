@@ -153,4 +153,33 @@ public sealed class SettingsStoreTests : IDisposable
 
         Assert.Equal(original, File.ReadAllText(File_));   // 原文件未被改写
     }
+
+    [Theory]
+    [InlineData(10, AppSettings.MinColumnWidth)]        // 小于下限 → 夹到下限
+    [InlineData(9999, AppSettings.MaxColumnWidth)]      // 大于上限 → 夹到上限
+    [InlineData(180, 180)]                              // 合法值原样保留
+    [InlineData(0, AppSettings.DefaultColumnDateWidth)] // 0 视为未设置
+    [InlineData(-5, AppSettings.DefaultColumnDateWidth)]
+    public void 列宽越界被夹取或回落默认(double stored, double expected)
+    {
+        var settings = new AppSettings();
+        settings.Layout.ColumnDateWidth = stored;
+
+        settings.Normalize();
+
+        Assert.Equal(expected, settings.Layout.ColumnDateWidth, 3);
+    }
+
+    [Fact]
+    public void 列宽为NaN时回落默认而不抛异常()
+    {
+        var settings = new AppSettings();
+
+        // 手改配置文件可以写出 1e999（解析为 Infinity），不能让界面拿到 NaN 宽度
+        settings.Layout.ColumnSizeWidth = double.NaN;
+
+        settings.Normalize();
+
+        Assert.Equal(AppSettings.DefaultColumnSizeWidth, settings.Layout.ColumnSizeWidth, 3);
+    }
 }

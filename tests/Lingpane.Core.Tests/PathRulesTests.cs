@@ -51,4 +51,15 @@ public class PathRulesTests
         Assert.True(PathRules.IsSameOrAncestor(@"\\server\share\a", @"\\server\share\a\b"));
         Assert.False(PathRules.IsSameOrAncestor(@"\\server\share\a", @"\\server\share\ab"));
     }
+
+    [Theory]
+    [InlineData(@"C:\Users", true)]
+    [InlineData(@"C:\", true)]
+    [InlineData(@"d:\data\sub", true)]
+    [InlineData(@"\\server\share", false)]   // 网络路径可能因离线阻塞，不解析图标
+    [InlineData(@".\relative", false)]
+    [InlineData(@"C:", false)]               // 盘符相对路径不是绝对位置
+    [InlineData(@"", false)]
+    public void IsLocalDrivePath_只认本地盘绝对路径(string path, bool expected)
+        => Assert.Equal(expected, PathRules.IsLocalDrivePath(path));
 }

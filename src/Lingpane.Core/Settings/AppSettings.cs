@@ -53,6 +53,8 @@ public sealed class AppSettings
 
     public SessionSettings Session { get; set; } = new();
 
+    public LayoutSettings Layout { get; set; } = new();
+
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
 
@@ -66,6 +68,7 @@ public sealed class AppSettings
         Behavior ??= new BehaviorSettings();
         Privacy ??= new PrivacySettings();
         Session ??= new SessionSettings();
+        Layout ??= new LayoutSettings();
 
         if (!Enum.IsDefined(Appearance.Theme)) Appearance.Theme = ThemeKind.System;
         if (!Enum.IsDefined(Appearance.Density)) Appearance.Density = DensityKind.Comfortable;
@@ -87,6 +90,24 @@ public sealed class AppSettings
 
         Session.WindowWidth = Math.Max(Session.WindowWidth, MinWindowWidth);
         Session.WindowHeight = Math.Max(Session.WindowHeight, MinWindowHeight);
+
+        Layout.ColumnDateWidth = ClampColumn(Layout.ColumnDateWidth, DefaultColumnDateWidth);
+        Layout.ColumnTypeWidth = ClampColumn(Layout.ColumnTypeWidth, DefaultColumnTypeWidth);
+        Layout.ColumnSizeWidth = ClampColumn(Layout.ColumnSizeWidth, DefaultColumnSizeWidth);
+    }
+
+    public const double MinColumnWidth = 56;
+    public const double MaxColumnWidth = 400;
+
+    public const double DefaultColumnDateWidth = 110;
+    public const double DefaultColumnTypeWidth = 110;
+    public const double DefaultColumnSizeWidth = 90;
+
+    /// <summary>非有限值（NaN/Infinity）或被写成 0 的列宽一律回落到默认值。</summary>
+    private static double ClampColumn(double value, double fallback)
+    {
+        if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0) return fallback;
+        return Math.Clamp(value, MinColumnWidth, MaxColumnWidth);
     }
 }
 
@@ -150,14 +171,29 @@ public sealed class PrivacySettings
 }
 
 public sealed class SessionSettings
-{
-    public int WindowWidth { get; set; } = 1100;
+{    public int WindowWidth { get; set; } = 1100;
 
     public int WindowHeight { get; set; } = 720;
 
     public bool WindowMaximized { get; set; }
 
     public string? LastPath { get; set; }
+
+    [JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
+}
+
+/// <summary>
+/// 列表列宽。名称列是星号列，随窗口伸缩，因此不在此处保存；
+/// 日期/类型/大小三列是固定宽度，可拖拽并记住（settings-schema §3.5）。
+/// </summary>
+public sealed class LayoutSettings
+{
+    public double ColumnDateWidth { get; set; } = AppSettings.DefaultColumnDateWidth;
+
+    public double ColumnTypeWidth { get; set; } = AppSettings.DefaultColumnTypeWidth;
+
+    public double ColumnSizeWidth { get; set; } = AppSettings.DefaultColumnSizeWidth;
 
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }

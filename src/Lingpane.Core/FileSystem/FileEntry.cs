@@ -120,6 +120,28 @@ public sealed class FileEntry : INotifyPropertyChanged
     /// <summary>图标缓存键：目录统一，文件按扩展名（FONT-06 图标不随字号变化）。</summary>
     public string IconKey { get; }
 
+    /// <summary>
+    /// 实际参与绑定的图标键。默认等于 <see cref="IconKey"/>；
+    /// 目录在后台解析出真实图标后会被改写（形如 <c>#12</c>），并通知界面换图。
+    ///
+    /// 为什么不在 Core 里直接存 ImageSource：Core 不引用 WPF，
+    /// 这里只保存一个可解释的键，取图仍由 App 层的图标服务完成。
+    /// </summary>
+    public string IconToken => _iconToken ?? IconKey;
+
+    private string? _iconToken;
+
+    private static readonly PropertyChangedEventArgs IconTokenChanged = new(nameof(IconToken));
+
+    /// <summary>设置真实图标键。相同值不触发通知，避免整批刷新时的无谓布局。</summary>
+    public void SetIconToken(string? token)
+    {
+        if (string.Equals(_iconToken, token, StringComparison.Ordinal)) return;
+
+        _iconToken = token;
+        PropertyChanged?.Invoke(this, IconTokenChanged);
+    }
+
     private static string ResolveIconKey(string name, bool isDirectory)
     {
         if (isDirectory) return ".folder";

@@ -28,7 +28,7 @@
             <Image Grid.Column="1"
                    Width="{DynamicResource Size.Icon.List}"
                    Height="{DynamicResource Size.Icon.List}"
-                   Source="{Binding IconKey,
+                   Source="{Binding IconToken,
                             Converter={x:Static conv:IconKeyToImageConverter.Instance}}"/>
 
             <TextBlock Grid.Column="2"
@@ -70,7 +70,7 @@
             <Image Grid.Column="1"
                    Width="{DynamicResource Size.Icon.List}"
                    Height="{DynamicResource Size.Icon.List}"
-                   Source="{Binding IconKey,
+                   Source="{Binding IconToken,
                             Converter={x:Static conv:IconKeyToImageConverter.Instance}}"/>
 
             <TextBlock Grid.Column="2"

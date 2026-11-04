@@ -1,4 +1,5 @@
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -49,6 +50,9 @@ public partial class MainWindow : Window
 
         InitializeComponent();
         DataContext = _viewModel;
+
+        // 列宽要在首帧前就位，否则会看到一次"默认宽度 → 记忆宽度"的跳动
+        ApplyColumnWidths();
 
         // 命令在此集中注册：菜单、快捷键、工具栏按钮都从同一张表取，
         // 避免同一功能在三处各写一份逻辑（ADR-0004 无容器，直接构造即可）。
@@ -232,6 +236,7 @@ public partial class MainWindow : Window
 
         // 目录一换就换监听目标
         _viewModel.NavigationCompleted += StartWatching;
+        _viewModel.NavigationCompleted += ScheduleFolderIcons;
 
         Loaded += OnLoaded;
         ContentRendered += OnContentRendered;
@@ -241,6 +246,9 @@ public partial class MainWindow : Window
         // 因此退出时写到盘上的是本窗口刚更新的值。
         Closing += (_, _) =>
         {
+            // 热键是系统级资源，进程退出前主动交还，避免句柄被回收前的短暂占用
+            UnregisterSettingsHotkey();
+
             if (!string.IsNullOrEmpty(_viewModel.CurrentPath))
             {
                 App.Settings.Session.LastPath = _viewModel.CurrentPath;
@@ -291,6 +299,8 @@ public partial class MainWindow : Window
 
         StatusBarHost.Visibility = s.Appearance.ShowStatusBar ? Visibility.Visible : Visibility.Collapsed;
 
+        ApplyColumnWidths();
+
         _viewModel.ApplyShowExtensions(s.Behavior.ShowExtensions);
         _viewModel.ApplyFilter();
 
@@ -302,9 +312,98 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OpenSettings()
+    // ── 列宽 ────────────────────────────────────────────────────────────────
+    //
+    // 列宽不放 ViewModel：它只影响显示，且行模板与列头共用同三个 DynamicResource
+    // 令牌（Column.Date/Type/Size.Width），改令牌即全局生效，不需要重建列表。
+    // 名称列是星号列，宽度随窗口伸缩，因此不参与拖拽。
+
+    private void ApplyColumnWidths()
     {
-        // 单例：重复点"设置"不应叠出多个窗口
+        AppSettings s = App.Settings;
+        Resources["Column.Date.Width"] = s.Layout.ColumnDateWidth;
+        Resources["Column.Type.Width"] = s.Layout.ColumnTypeWidth;
+        Resources["Column.Size.Width"] = s.Layout.ColumnSizeWidth;
+
+        if (KeyDebug)
+        {
+            WriteKeyLog($"columns in={s.Layout.ColumnDateWidth}/{s.Layout.ColumnTypeWidth}/{s.Layout.ColumnSizeWidth}");
+        }
+    }
+
+    /// <summary>布局诊断：列头实际宽度与可视位置，确认"列被裁掉"还是"列不存在"。</summary>
+    private void LogColumnLayout()
+    {
+        if (!KeyDebug) return;
+
+        WriteKeyLog($"layout window={ActualWidth:0}x{ActualHeight:0} list={FileList.ActualWidth:0} " +
+                    $"header={HeaderGrid.ActualWidth:0} margin={HeaderGrid.Margin}");
+
+        for (int i = 0; i < HeaderGrid.ColumnDefinitions.Count; i++)
+        {
+            WriteKeyLog($"layout col{i}={HeaderGrid.ColumnDefinitions[i].ActualWidth:0.#}");
+        }
+
+        foreach (Button button in new[] { NameHeaderButton, DateHeaderButton, TypeHeaderButton, SizeHeaderButton })
+        {
+            if (button is null) continue;
+
+            Point origin = button.TranslatePoint(new Point(0, 0), FileList);
+            Point screen = button.PointToScreen(new Point(0, 0));
+            WriteKeyLog($"layout {button.Tag}: w={button.ActualWidth:0.#} x={origin.X:0.#} " +
+                        $"screenX={screen.X:0.#} content=\"{button.Content}\"");
+        }
+    }
+
+    private void OnColumnResize(object sender, DragDeltaEventArgs e)
+    {
+        if (sender is not Thumb { Tag: string token }) return;
+
+        double current = ReadColumnWidth(token);
+        double next = Math.Clamp(
+            current + e.HorizontalChange,
+            AppSettings.MinColumnWidth,
+            AppSettings.MaxColumnWidth);
+
+        if (Math.Abs(next - current) < 0.5) return;
+
+        WriteColumnWidth(token, next);
+        Resources[token] = next;
+    }
+
+    private void OnColumnResizeDone(object sender, DragCompletedEventArgs e)
+    {
+        if (sender is not Thumb) return;
+
+        // 一次拖拽只落盘一次，不跟随每个 DragDelta 写文件
+        App.SaveSettings();
+    }
+
+    private static double ReadColumnWidth(string token) => token switch
+    {
+        "Column.Date.Width" => App.Settings.Layout.ColumnDateWidth,
+        "Column.Type.Width" => App.Settings.Layout.ColumnTypeWidth,
+        _ => App.Settings.Layout.ColumnSizeWidth,
+    };
+
+    private static void WriteColumnWidth(string token, double value)
+    {
+        switch (token)
+        {
+            case "Column.Date.Width":
+                App.Settings.Layout.ColumnDateWidth = value;
+                break;
+            case "Column.Type.Width":
+                App.Settings.Layout.ColumnTypeWidth = value;
+                break;
+            default:
+                App.Settings.Layout.ColumnSizeWidth = value;
+                break;
+        }
+    }
+
+    private void OpenSettings()
+    {        // 单例：重复点"设置"不应叠出多个窗口
         if (Application.Current.Windows.OfType<SettingsWindow>().FirstOrDefault() is { } existing)
         {
             existing.Activate();
@@ -358,8 +457,86 @@ public partial class MainWindow : Window
         if (KeyDebug) WriteKeyLog($"hook attached hwnd=0x{handle:X} source=0x{source.Handle:X}");
     }
 
+    // ── 窗口热键：Ctrl+, 的最后一道保障 ────────────────────────────────────
+    //
+    // 实测结论（2026-11-04）：注入 WM_KEYDOWN 能触发，真实按键盘不能。
+    // 已排除"其它程序占用了 Ctrl+, 全局热键"（RegisterHotKey 在裸进程里注册成功）。
+    // 剩下的可能都在输入链路的下层：输入法 hook、键盘布局、以及 WPF 对 OEM 键的改写。
+    // 这些都无法从进程内部断言，所以不再猜——直接改走系统热键通道：
+    //
+    //   RegisterHotKey 由系统在把按键分发给前台窗口之前处理，命中时投递 WM_HOTKEY
+    //   到注册者窗口，按键不再作为普通输入下发。输入法、WPF 的 Key 归一化、
+    //   TranslateMessage 全被绕过。
+    //
+    // 只在窗口激活期间注册，失活立即注销：热键是系统级的，长期持有会把
+    // 其它程序的 Ctrl+, 也抢过来。这是"本窗口内生效"与"不打扰别人"的折中。
+
+    private const int HotkeySettings = 0x4C50;          // 任意固定 id，仅本窗口使用
+    private const int WmHotkey = 0x0312;
+    private const uint ModControl = 0x0002;
+    private const uint ModNoRepeat = 0x4000;            // 长按不重复触发
+    private const int VkOemComma = 0xBC;
+
+    private IntPtr _hotkeyWindow;
+    private bool _hotkeyRegistered;
+
+    protected override void OnActivated(EventArgs e)
+    {
+        base.OnActivated(e);
+        RegisterSettingsHotkey();
+    }
+
+    protected override void OnDeactivated(EventArgs e)
+    {
+        UnregisterSettingsHotkey();
+        base.OnDeactivated(e);
+    }
+
+    private void RegisterSettingsHotkey()
+    {
+        if (_hotkeyRegistered) return;
+
+        _hotkeyWindow = new WindowInteropHelper(this).Handle;
+        if (_hotkeyWindow == IntPtr.Zero) return;
+
+        if (RegisterHotKey(_hotkeyWindow, HotkeySettings, ModControl | ModNoRepeat, VkOemComma))
+        {
+            _hotkeyRegistered = true;
+            if (KeyDebug) WriteKeyLog("hotkey registered: Ctrl+,");
+            return;
+        }
+
+        // 注册失败几乎只有两种原因：别的程序已占用该组合，或窗口句柄失效。
+        // 这条一定要落盘——它决定了用户报告的"按了没反应"到底怪谁。
+        WriteKeyLog($"hotkey register FAILED err={Marshal.GetLastWin32Error()}");
+    }
+
+    private void UnregisterSettingsHotkey()
+    {
+        if (!_hotkeyRegistered) return;
+
+        UnregisterHotKey(_hotkeyWindow, HotkeySettings);
+        _hotkeyRegistered = false;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, int vk);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
     private IntPtr OnWindowMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
+        if (msg == WmHotkey)
+        {
+            if (wParam.ToInt32() != HotkeySettings) return IntPtr.Zero;
+
+            if (KeyDebug) WriteKeyLog("wm_hotkey -> app.openSettings");
+            handled = true;
+            Dispatcher.BeginInvoke(DispatcherPriority.Input, () => _commands.Invoke(CommandIds.OpenSettings));
+            return IntPtr.Zero;
+        }
+
         if (msg is not (WmKeyDown or WmSysKeyDown)) return IntPtr.Zero;
 
         if ((lParam.ToInt64() & (1L << 30)) != 0) return IntPtr.Zero;   // 长按重复，忽略
@@ -636,6 +813,7 @@ public partial class MainWindow : Window
     private void OnContentRendered(object? sender, EventArgs e)
     {
         StartupTrace.Mark("firstframe");
+        LogColumnLayout();
         FlushOnce();
     }
 

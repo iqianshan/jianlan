@@ -122,6 +122,7 @@ public partial class MainWindow
         _debounceTimer?.Stop();
         StopWatching();
         _viewModel.NavigationCompleted -= StartWatching;
+        _viewModel.NavigationCompleted -= ScheduleFolderIcons;
 
         base.OnClosed(e);
     }

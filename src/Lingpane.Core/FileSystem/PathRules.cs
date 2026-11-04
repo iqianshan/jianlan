@@ -37,9 +37,22 @@ public static class PathRules
         return normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>去掉结尾的分隔符，但保留根路径本身的 <c>C:\</c> 形态。</summary>
-    private static string TrimSeparators(string value)
+    /// <summary>
+    /// 是否本地盘路径（<c>C:\...</c>）。网络路径（<c>\\server\share</c>）与相对路径返回 false。
+    ///
+    /// 用于决定"能不能按真实路径去问 Shell 要图标"：网络路径在对方离线时
+    /// 一次 <c>SHGetFileInfo</c> 就能阻塞几十秒，这类路径一律不解析。
+    /// </summary>
+    public static bool IsLocalDrivePath(string path)
     {
+        if (string.IsNullOrEmpty(path)) return false;
+        if (path.Length < 3 || path[1] != ':' || !char.IsAsciiLetter(path[0])) return false;
+
+        return path[2] == Path.DirectorySeparatorChar || path[2] == Path.AltDirectorySeparatorChar;
+    }
+
+    /// <summary>去掉结尾的分隔符，但保留根路径本身的 <c>C:\</c> 形态。</summary>
+    private static string TrimSeparators(string value)    {
         string trimmed = value.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
         // "C:\" 去掉分隔符会变成 "C:"，那是"当前目录"的相对写法，必须补回来

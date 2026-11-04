@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -18,6 +19,7 @@ namespace Lingpane.App.Shell;
 public static class ShellIconProvider
 {
     private const uint SHGFI_ICON = 0x0000_0100;
+    private const uint SHGFI_PIDL = 0x0000_0008;
     private const uint SHGFI_SMALLICON = 0x0000_0001;
     private const uint SHGFI_USEFILEATTRIBUTES = 0x0000_0010;
 
@@ -26,6 +28,9 @@ public static class ShellIconProvider
 
     private static readonly Dictionary<string, ImageSource> Cache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly object Gate = new();
+
+    /// <summary>系统图标序号 → 位图。同一图标在 Shell 里只有一个序号，因此天然去重。</summary>
+    private static readonly Dictionary<int, ImageSource> IndexCache = new();
 
     private static ImageSource? _fallback;
 
@@ -43,6 +48,107 @@ public static class ShellIconProvider
             Cache[iconKey] = image;
             return image;
         }
+    }
+
+    /// <summary>
+    /// 按绑定用的 token 取图：<c>#12</c> 表示"按 shell 图标序号"，其余按扩展名。
+    /// 序号图必须由 <see cref="ResolvePathIconIndex"/> 先解析好，否则回落通用图标。
+    /// </summary>
+    public static ImageSource GetByToken(string token)
+    {
+        if (token.Length > 1 && token[0] == '#')
+        {
+            lock (Gate)
+            {
+                if (IndexCache.TryGetValue(int.Parse(token[1..], CultureInfo.InvariantCulture), out var image))
+                {
+                    return image;
+                }
+            }
+        }
+
+        return Get(token);
+    }
+
+    /// <summary>
+    /// 按<b>真实路径</b>解析图标序号（会访问磁盘，只能在后台线程调用）。
+    /// 返回 -1 表示失败。序号用于去重：几百个普通文件夹返回的是同一个序号，
+    /// 只有真正有专属图标的目录才是新序号，因此不会出现"一万个位图"。
+    ///
+    /// 必须走 PIDL：实测直接传路径给 SHGetFileInfo 对任何目录都只返回通用文件夹图标，
+    /// 专属图标（下载/桌面这类已知文件夹、以及 desktop.ini 里声明的图标）
+    /// 只有在 shell 命名空间里才解析得出来。
+    /// </summary>
+    public static int ResolvePathIconIndex(string path, bool isDirectory)
+    {
+        IntPtr pidl = IntPtr.Zero;
+
+        try
+        {
+            int hr = SHParseDisplayName(path, IntPtr.Zero, out pidl, 0, out _);
+            if (hr != 0 || pidl == IntPtr.Zero) return -1;
+
+            var info = new SHFILEINFO();
+            IntPtr result = SHGetFileInfo(
+                pidl,
+                isDirectory ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL,
+                ref info,
+                (uint)Marshal.SizeOf<SHFILEINFO>(),
+                SHGFI_PIDL | SHGFI_ICON | SHGFI_SMALLICON);
+
+            if (result == IntPtr.Zero || info.hIcon == IntPtr.Zero || info.iIcon <= 0) return -1;
+
+            try
+            {
+                lock (Gate)
+                {
+                    if (!IndexCache.ContainsKey(info.iIcon))
+                    {
+                        var source = Imaging.CreateBitmapSourceFromHIcon(
+                            info.hIcon, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+                        source.Freeze();
+                        IndexCache[info.iIcon] = source;
+                    }
+                }
+
+                return info.iIcon;
+            }
+            finally
+            {
+                DestroyIcon(info.hIcon);
+            }
+        }
+        catch (Exception)
+        {
+            return -1;
+        }
+        finally
+        {
+            if (pidl != IntPtr.Zero) CoTaskMemFree(pidl);
+        }
+    }
+
+    /// <summary>
+    /// 后台解析前必须先初始化 COM：SHParseDisplayName 依赖 shell 命名空间。
+    /// MTA 即可满足，返回 false 表示本线程已有其它模型（不影响后续调用）。
+    /// </summary>
+    public static void EnsureComInitialized() => CoInitializeEx(IntPtr.Zero, CoInitMultithreaded);
+
+    /// <summary>通用文件夹图标的序号，用来判断"这个目录没有自定义图标"。</summary>
+    public static int ResolveGenericFolderIndex()
+    {
+        var info = new SHFILEINFO();
+        IntPtr result = SHGetFileInfo(
+            "lingpane.folder",
+            FILE_ATTRIBUTE_DIRECTORY,
+            ref info,
+            (uint)Marshal.SizeOf<SHFILEINFO>(),
+            SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES);
+
+        if (result == IntPtr.Zero || info.hIcon == IntPtr.Zero) return -1;
+
+        DestroyIcon(info.hIcon);
+        return info.iIcon;
     }
 
     private static BitmapSource? Load(string iconKey)
@@ -113,6 +219,30 @@ public static class ShellIconProvider
         ref SHFILEINFO psfi,
         uint cbFileInfo,
         uint uFlags);
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, EntryPoint = "SHGetFileInfoW")]
+    private static extern IntPtr SHGetFileInfo(
+        IntPtr pidl,
+        uint dwFileAttributes,
+        ref SHFILEINFO psfi,
+        uint cbFileInfo,
+        uint uFlags);
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern int SHParseDisplayName(
+        string pszName,
+        IntPtr pbc,
+        out IntPtr ppidl,
+        uint sfgaoIn,
+        out uint psfgaoOut);
+
+    [DllImport("ole32.dll")]
+    private static extern void CoTaskMemFree(IntPtr ptr);
+
+    private const int CoInitMultithreaded = 0x0;
+
+    [DllImport("ole32.dll", EntryPoint = "CoInitializeEx")]
+    private static extern int CoInitializeEx(IntPtr pvReserved, int dwCoInit);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool DestroyIcon(IntPtr hIcon);

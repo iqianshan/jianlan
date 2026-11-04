@@ -7,17 +7,26 @@
 > `Ctrl+Shift+N`、`Ctrl+Shift+C`、`Alt+Enter`、菜单键（`VK_APPS`）已可用。
 > `Ctrl+Shift+3`（大图标）**不绑定**：该视图决定不做，见 `docs/adr/0005-large-icon-view.md`。
 >
-> **实现方式**：键位表在 `Lingpane.App/Input/KeyBindings.cs`，采用**双入口**：
+> **实现方式**：键位表在 `Lingpane.App/Input/KeyBindings.cs`，采用**三入口**：
 >
-> 1. 主入口是窗口消息 `WM_KEYDOWN` / `WM_SYSKEYDOWN`（`HwndSource` 钩子），按**物理键码（VK）**
+> 1. `Ctrl + ,` 单独走**系统热键**：窗口激活时 `RegisterHotKey`，失活立即注销，
+>    命中时收到 `WM_HOTKEY` 打开设置。验证过程见下方"为什么 Ctrl+, 要特殊处理"。
+> 2. 主入口是窗口消息 `WM_KEYDOWN` / `WM_SYSKEYDOWN`（`HwndSource` 钩子），按**物理键码（VK）**
 >    匹配。输入法（TSF/IME）会在 WPF 之前改写 `Key`，`Ctrl+,` 这类标点组合在中文输入法下
->    经常收不到 `PreviewKeyDown`——这也是"`Ctrl+C/V` 正常、`Ctrl+,` 无反应"的真实原因。
-> 2. 兜底是 `PreviewKeyDown`，把 `Key.System` / `Key.ImeProcessed` / `Key.DeadCharProcessed`
+>    经常收不到 `PreviewKeyDown`。
+> 3. 兜底是 `PreviewKeyDown`，把 `Key.System` / `Key.ImeProcessed` / `Key.DeadCharProcessed`
 >    归一化后再查同一张表，覆盖没有物理键的合成输入。
 >
 > **不使用** `Window.InputBindings`：`KeyGesture` 对 `,` 这类 OEM 键的匹配不可靠，
 > 且不认 `Key.System`，匹配规则藏在框架里无法断言。
 > 右键菜单的键位提示由同一张表填入，不存在菜单与实现不一致的可能。
+>
+> **为什么 `Ctrl+,` 要特殊处理**（2026-11-04 实测记录）：
+> 前两版依次用 `KeyGesture`、VK 匹配都没能让真实按键生效，但注入 `WM_KEYDOWN` 能生效。
+> 已排除"被其它程序注册成全局热键"（裸进程 `RegisterHotKey` 成功）。
+> 剩下的变量都在输入链路下层（输入法 hook、键盘布局），进程内无法断言，
+> 因此不再猜：改用系统热键通道，由系统在分发按键之前处理，输入法与 WPF 的 Key 归一化全被绕过。
+> 代价是热键是系统级的，所以只在窗口激活期间持有，绝不长期占用。
 >
 > 排查工具：`Lingpane.exe --keydebug` 会把每条按键消息写进 `%LOCALAPPDATA%\Lingpane\logs\keydebug.log`
 > （物理键码、修饰键、焦点元素、命中的命令），默认关闭，不写盘。

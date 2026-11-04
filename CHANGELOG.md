@@ -22,6 +22,9 @@
 - 地址栏：面包屑（盘符、UNC 共享各自成段）+ `Ctrl+L` 切换为完整路径编辑，回车跳转、Esc 取消
 - 视图切换：详细信息 / 列表（均走虚拟化栈），`Ctrl+Shift+1/2`
 - 列头排序：名称/修改日期/类型/大小，同列切换升降序，文件夹优先不受方向影响
+- 列宽拖拽：日期/类型/大小三列的右边缘可拖动，宽度记忆进 `settings.json` 的 `layout` 段
+- 目录真实图标：后台按 shell 命名空间解析，下载/桌面这类已知文件夹与带 `desktop.ini` 的目录
+  显示专属图标（ADR-0006）
 - 自然排序：`file2` 排在 `file10` 之前（数字段按数值比较）
 - 显示隐藏文件、显示扩展名：内存过滤，不重新枚举磁盘
 - 设置窗口（FR-5）：主题、界面字体（系统已装字体，按其自身渲染预览）、字号 8–24pt、
@@ -48,9 +51,11 @@
 
 - 窗口尺寸记忆从未生效：窗口关闭后 `Application.MainWindow` 被 WPF 置空，
   而保存发生在 `OnExit`，因此每轮都在第一步返回。改为在 `Closing` 时取值并保留窗口引用
-- `Ctrl+,` 打不开设置：输入法在 WPF 之前改写按键，`PreviewKeyDown` 收到的是
-  `Key.ImeProcessed` 而非 `Key.OemComma`。改为窗口消息层按物理键码（VK）匹配，
-  `PreviewKeyDown` 归一化三种变体后兜底
+- `Ctrl+,` 打不开设置：三轮定位后的结论是**按键到不了窗口的派发层**——注入 `WM_KEYDOWN` 能触发，
+  真实按键不能，且已排除"被其它程序注册为全局热键"。改为窗口激活时 `RegisterHotKey`、
+  失活即注销，命中走 `WM_HOTKEY`，输入法与 WPF 的 Key 归一化全被绕过
+- 目录图标按路径直接 `SHGetFileInfo` 只返回通用文件夹图标（连 `desktop.ini` 都不认），
+  改为 `SHParseDisplayName` + `SHGFI_PIDL`（ADR-0006）
 - 首次启动带目录参数被忽略：只有单实例转交路径解析参数，直接 `Lingpane.exe D:\x`
   仍打开上次目录。改为参数优先于会话记忆
 - 列表多选后 `SelectedItems.Clear()` 抛 `InvalidOperationException`（默认 `SelectionMode=Single`），

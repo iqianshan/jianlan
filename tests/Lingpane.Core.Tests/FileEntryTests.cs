@@ -58,4 +58,26 @@ public class FileEntryTests
         var entry = new FileEntry("Photos", @"C:\Photos", true, 0, DateTime.Now);
         Assert.Equal(".folder", entry.IconKey);
     }
+
+    [Fact]
+    public void IconToken_默认取IconKey_解析后改用真实图标键并通知一次()
+    {
+        var entry = new FileEntry("Photos", @"C:\Photos", true, 0, DateTime.Now);
+        Assert.Equal(".folder", entry.IconToken);
+
+        int notified = 0;
+        entry.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(FileEntry.IconToken)) notified++;
+        };
+
+        entry.SetIconToken("#42");
+        Assert.Equal("#42", entry.IconToken);
+        Assert.Equal(1, notified);
+        Assert.Equal(".folder", entry.IconKey);   // 原始扩展名键不能被覆盖，否则回退无路
+
+        // 同值重复设置不应再触发重绘
+        entry.SetIconToken("#42");
+        Assert.Equal(1, notified);
+    }
 }

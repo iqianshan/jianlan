@@ -50,6 +50,12 @@
     "windowHeight": 720,
     "windowMaximized": false,
     "lastPath": null
+  },
+
+  "layout": {
+    "columnDateWidth": 110,     // 56–400
+    "columnTypeWidth": 110,     // 56–400
+    "columnSizeWidth": 90       // 56–400
   }
 }
 ```
@@ -65,6 +71,10 @@
 | `historyLimit` | 0–500 | 夹取 |
 | `cacheLimitMb` | 64–4096 | 夹取 |
 | `windowWidth/Height` | ≥ 最小窗口尺寸 | 夹取 |
+| `columnDate/Type/SizeWidth` | 56–400（单位：DIP） | 夹取；`0`、`NaN`、`Infinity` 回落默认值 |
+
+> 名称列是星号列（宽度随窗口伸缩），因此**没有**对应字段，也不参与拖拽。
+> 列宽只在拖拽结束时落盘一次，不跟随每个拖动事件写文件。
 
 ## 4. 读写规则
 
