@@ -11,6 +11,7 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Design/DesignTokens.xaml"/>
                 <ResourceDictionary Source="Design/Styles/Controls.List.xaml"/>
+                <ResourceDictionary Source="Design/Styles/Controls.Button.xaml"/>
                 <ResourceDictionary Source="Design/Styles/Typography.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

@@ -166,6 +166,14 @@ $inner = New-Object System.Collections.Generic.List[double]
 Write-Host "测量 $Runs 次：$Exe" -ForegroundColor Cyan
 
 for ($i = 1; $i -le $Runs; $i++) {
+    # 记录本轮开始前的日志行数。必须用"新增了一行"来判定本轮采到数据，
+    # 否则进程若在首帧前被杀，取到的会是上一轮的旧值——旧写法正是这样产生了
+    # 19 次完全相同的 1347ms，看着异常稳定，实际是重复读同一行。
+    $linesBefore = 0
+    if (Test-Path $logPath) {
+        $linesBefore = @(Get-Content $logPath).Count
+    }
+
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $proc = Start-Process -FilePath $Exe -PassThru
     $deadline = [DateTime]::UtcNow.AddSeconds(15)
@@ -178,23 +186,35 @@ for ($i = 1; $i -le $Runs; $i++) {
     $sw.Stop()
     $outer.Add($sw.Elapsed.TotalMilliseconds)
 
-    # 等埋点落盘
-    Start-Sleep -Milliseconds 250
-    if (-not $proc.HasExited) { $proc.Kill(); $proc.WaitForExit() }
-
+    # 等本轮新增的埋点落盘（最多 5 秒）。慢机器上首帧可能明显晚于窗口句柄出现。
     $innerMs = $null
-    if (Test-Path $logPath) {
+    $pollDeadline = [DateTime]::UtcNow.AddSeconds(5)
+    while ([DateTime]::UtcNow -lt $pollDeadline) {
+        Start-Sleep -Milliseconds 50
+        if (-not (Test-Path $logPath)) { continue }
+
+        $lines = @(Get-Content $logPath).Count
+        if ($lines -le $linesBefore) { continue }
+
         $lastLine = Get-Content $logPath -Tail 1
         if ($lastLine -match 'total=(\d+)') { $innerMs = [double]$Matches[1] }
+        break
     }
+
+    if (-not $proc.HasExited) { $proc.Kill(); $proc.WaitForExit() }
+
     if ($null -ne $innerMs) { $inner.Add($innerMs) }
 
-    $displayInner = if ($null -ne $innerMs) { "$innerMs ms" } else { "n/a" }
+    $displayInner = if ($null -ne $innerMs) { "$innerMs ms" } else { "未采到埋点" }
     Write-Host ("  第 {0,2} 次：外部 {1,6:N0} ms | 进程内 {2}" -f $i, $sw.Elapsed.TotalMilliseconds, $displayInner)
 }
 
-if ($inner.Count -eq 0) {
-    Write-Host "未采集到进程内埋点，请确认日志路径：$logPath" -ForegroundColor Yellow
+$missing = $Runs - $inner.Count
+if ($missing -gt 0) {
+    Write-Host ("[提示] {0} 次未采到埋点（进程在首帧前结束），已排除，不计入统计。" -f $missing) -ForegroundColor Yellow
+}
+
+if ($inner.Count -eq 0) {    Write-Host "未采集到进程内埋点，请确认日志路径：$logPath" -ForegroundColor Yellow
     Write-Host "（CI 环境可能不支持 GUI 渲染，退出码 4 表示环境不支持，不视为性能不达标）"
     exit 4
 }

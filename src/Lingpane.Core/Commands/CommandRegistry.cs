@@ -1,0 +1,68 @@
+namespace Lingpane.Core.Commands;
+
+/// <summary>
+/// 命令标识。统一用常量，避免字符串在菜单、快捷键、按钮之间各写一份而拼错。
+/// </summary>
+public static class CommandIds
+{
+    public const string Refresh = "app.refresh";
+    public const string GoUp = "nav.goUp";
+    public const string CycleTheme = "app.cycleTheme";
+}
+
+/// <summary>
+/// 一条命令的定义。不含任何 UI 类型——图标、按钮、菜单项都由界面层各自绑定，
+/// Core 只描述"叫什么、什么时候能执行、执行做什么"。
+/// </summary>
+public sealed class AppCommand
+{
+    public required string Id { get; init; }
+
+    /// <summary>界面显示名，如"刷新"。</summary>
+    public required string Title { get; init; }
+
+    /// <summary>快捷键的显示文本（仅用于提示，真正的绑定在界面层），如 "F5"。</summary>
+    public string? Gesture { get; init; }
+
+    public required Action Execute { get; init; }
+
+    /// <summary>返回 false 时界面应禁用该命令。为空表示始终可执行。</summary>
+    public Func<bool>? CanExecute { get; init; }
+
+    public bool CanRun() => CanExecute?.Invoke() ?? true;
+}
+
+/// <summary>
+/// 命令注册表。按 Id 查找，重复注册抛异常——命令 Id 冲突属于编码错误，
+/// 应当尽早暴露，而不是让后注册的静默覆盖前一个。
+/// </summary>
+public sealed class CommandRegistry
+{
+    private readonly Dictionary<string, AppCommand> _commands = new(StringComparer.Ordinal);
+
+    public void Register(AppCommand command)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        if (!_commands.TryAdd(command.Id, command))
+        {
+            throw new InvalidOperationException($"命令 Id 重复：{command.Id}");
+        }
+    }
+
+    public AppCommand Get(string id) =>
+        _commands.TryGetValue(id, out var c)
+            ? c
+            : throw new KeyNotFoundException($"未注册的命令：{id}");
+
+    /// <summary>执行命令。不可执行时不抛异常，返回 false（快捷键应静默忽略，不弹错）。</summary>
+    public bool Invoke(string id)
+    {
+        if (!_commands.TryGetValue(id, out var c) || !c.CanRun()) return false;
+
+        c.Execute();
+        return true;
+    }
+
+    public IReadOnlyCollection<AppCommand> All => _commands.Values;
+}

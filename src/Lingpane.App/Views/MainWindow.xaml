@@ -26,12 +26,36 @@
                 Background="{DynamicResource Brush.Surface.Window}"
                 BorderBrush="{DynamicResource Brush.Border.Hairline}"
                 BorderThickness="0,0,0,1">
-            <TextBlock Margin="{StaticResource Padding.Toolbar}"
-                       VerticalAlignment="Center"
-                       Style="{StaticResource Text.Secondary}"
-                       Text="{Binding CurrentPath}"
-                       TextTrimming="CharacterEllipsis"
-                       ToolTip="{Binding CurrentPath}"/>
+            <Grid Margin="{StaticResource Padding.Toolbar}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 命令按钮：与快捷键共用同一批命令对象，禁用状态由 CanExecute 决定 -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            Command="{Binding UpCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            Content="↑ 上级"
+                            ToolTip="转到上级目录（Alt+↑）"/>
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            Command="{Binding RefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            Content="刷新"
+                            ToolTip="重新读取当前目录（F5）"/>
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            Command="{Binding ThemeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            Content="主题"
+                            ToolTip="在跟随系统 / 浅色 / 深色之间切换（Ctrl+Shift+D）"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="1"
+                           Margin="8,0,0,0"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource Text.Secondary}"
+                           Text="{Binding CurrentPath}"
+                           TextTrimming="CharacterEllipsis"
+                           ToolTip="{Binding CurrentPath}"/>
+            </Grid>
         </Border>
 
         <Grid Grid.Row="1">

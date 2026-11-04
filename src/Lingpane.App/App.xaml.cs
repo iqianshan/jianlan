@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using Lingpane.App.Design;
+using Lingpane.App.Services;
 using Lingpane.App.Typography;
 using Lingpane.App.Views;
 using Lingpane.Core.Diagnostics;
@@ -22,16 +23,72 @@ public partial class App : Application
     /// <summary>诊断探针模式：不得写设置文件，否则会污染测量并覆盖用户窗口尺寸。</summary>
     private static bool _isProbeMode;
 
+    private SingleInstanceGuard? _singleInstance;
+
+    /// <summary>
+    /// 在 跟随系统 → 浅色 → 深色 之间循环，并把选择写回设置。
+    /// 只读模式（settings.json 版本过高）只切不写。
+    /// </summary>
+    public static ThemeKind CycleTheme()
+    {
+        ThemeKind next = Settings.Appearance.Theme switch
+        {
+            ThemeKind.System => ThemeKind.Light,
+            ThemeKind.Light => ThemeKind.Dark,
+            _ => ThemeKind.System,
+        };
+
+        Settings.Appearance.Theme = next;
+        ThemeService.Apply(next);
+
+        if (!SettingsReadOnly && !_isProbeMode)
+        {
+            try
+            {
+                SettingsStore.Save(Settings, isReadOnly: SettingsReadOnly);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                System.Diagnostics.Debug.WriteLine($"[settings] 主题保存失败：{ex.Message}");
+            }
+        }
+
+        return next;
+    }
+
     public App()
     {
         // 进程内最早的可控埋点位置
         StartupTrace.Begin();
+
+        // 崩溃记录要在任何业务代码之前挂上，否则启动期异常会静默消失
+        Diagnostics.CrashLogger.Attach(this);
     }
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
         StartupTrace.Mark("resources");
+
+        // 诊断模式：--perf-probe <目录> [--perf-frames N]，见 Views/MainWindow.PerfProbe.cs。
+        // 先解析：探针必须能独立运行，不能因为已有实例在跑就退出。
+        var (probePath, probeFrames) = ParseProbeArgs(e.Args);
+        _isProbeMode = probePath is not null;
+
+        // 单实例：已有窗口在运行时，把参数转交给它并立即退出（FR-10.1）。
+        // 只有一次 Mutex 创建，管道监听在窗口显示后才启动，不进启动预算。
+        if (!_isProbeMode)
+        {
+            if (!SingleInstanceGuard.TryAcquire(out var guard))
+            {
+                SingleInstanceGuard.TrySend(e.Args);
+                Shutdown();
+                return;
+            }
+
+            _singleInstance = guard;
+        }
+        StartupTrace.Mark("singleinstance");
 
         // 首帧前只读 appearance 与 session 两组（settings-schema §4）：
         // 这两组决定窗口尺寸与配色，首帧后再读会看到尺寸跳变与主题闪变。
@@ -63,12 +120,10 @@ public partial class App : Application
         };
 
         // 诊断模式：--perf-probe <目录> [--perf-frames N]，见 Views/MainWindow.PerfProbe.cs
-        var (probePath, probeFrames) = ParseProbeArgs(e.Args);
         if (probePath is not null)
         {
             window.ProbePath = probePath;
             window.ProbeFrames = probeFrames;
-            _isProbeMode = true;
         }
 
         // M0 实测结论：窗口激活时创建 IME 上下文在当前环境耗时约 500ms。
@@ -79,11 +134,38 @@ public partial class App : Application
 
         window.Show();
         StartupTrace.Mark("show");
+
+        // 管道监听放在窗口显示之后：第二次启动的转交请求宁可晚几十毫秒，
+        // 也不要让管道创建进启动路径。
+        _singleInstance?.StartListening(OnSecondInstance);
+    }
+
+    /// <summary>
+    /// 收到第二次启动的转交参数：激活已有窗口，若有目录参数则导航过去。
+    /// 回调在管道线程上，必须切回 UI 线程。
+    /// </summary>
+    private void OnSecondInstance(string[] args)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (MainWindow is not Views.MainWindow w) return;
+
+            if (w.WindowState == WindowState.Minimized) w.WindowState = WindowState.Normal;
+
+            w.Show();
+            w.Activate();
+            w.Topmost = true;
+            w.Topmost = false;
+
+            string? dir = args.FirstOrDefault(a => !a.StartsWith('-') && Directory.Exists(a));
+            if (dir is not null) w.NavigateTo(dir);
+        });
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
         PersistSession();
+        _singleInstance?.Dispose();
         base.OnExit(e);
     }
 
