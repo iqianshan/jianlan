@@ -508,7 +508,10 @@ public partial class MainWindow : Window
 
         // 注册失败几乎只有两种原因：别的程序已占用该组合，或窗口句柄失效。
         // 这条一定要落盘——它决定了用户报告的"按了没反应"到底怪谁。
-        WriteKeyLog($"hotkey register FAILED err={Marshal.GetLastWin32Error()}");
+        // 成功路径不写盘（每次激活都会走这里），失败才留痕。
+        int error = Marshal.GetLastWin32Error();
+        Diagnostics.AppLog.Warn("hotkey.register", "E7001", $"Ctrl+, 注册失败 err={error}");
+        if (KeyDebug) WriteKeyLog($"hotkey register FAILED err={error}");
     }
 
     private void UnregisterSettingsHotkey()
