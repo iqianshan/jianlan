@@ -47,9 +47,11 @@ public partial class MainWindow : Window
     {
         // 设置必须在创建视图模型前就绪：默认视图、排序规则都来自设置
         _viewModel = new MainViewModel(App.Settings);
+        StartupTrace.Mark("vm");
 
         InitializeComponent();
         DataContext = _viewModel;
+        StartupTrace.Mark("xaml");
 
         // 列宽要在首帧前就位，否则会看到一次"默认宽度 → 记忆宽度"的跳动
         ApplyColumnWidths();
@@ -229,6 +231,7 @@ public partial class MainWindow : Window
         PasteCommand = new CommandAdapter(_commands.Get(CommandIds.Paste));
         CopyPathCommand = new CommandAdapter(_commands.Get(CommandIds.CopyPath));
         PropertiesCommand = new CommandAdapter(_commands.Get(CommandIds.Properties));
+        StartupTrace.Mark("cmd");
 
         // 快捷键不用 Window.InputBindings：KeyGesture 对 , 这类 OEM 键的匹配依赖布局，
         // 实测 Ctrl+, 不触发。改为一张显式表 + PreviewKeyDown 派发，见 Input/KeyBindings.cs。
@@ -862,6 +865,7 @@ public partial class MainWindow : Window
 
         ApplySettingsToUi();
         ApplyMenuGestures();
+        StartupTrace.Mark("uisetup");
 
         // 诊断模式接管：测完自行退出，不写启动日志的 normal 路径
         if (ProbePath is not null)
