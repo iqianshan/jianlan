@@ -259,8 +259,15 @@
                     <ListBox x:Name="FileList"
                              ItemsSource="{Binding Entries}"
                              SelectionMode="Extended"
+                             AllowDrop="True"
                              SelectionChanged="OnFileSelectionChanged"
                              PreviewMouseRightButtonDown="OnFileRightButtonDown"
+                             PreviewMouseLeftButtonDown="OnFileDragStart"
+                             PreviewMouseLeftButtonUp="OnFileDragEnd"
+                             PreviewMouseMove="OnFileDragMove"
+                             DragOver="OnFileDragOver"
+                             DragLeave="OnFileDragLeave"
+                             Drop="OnFileDrop"
                              MouseDoubleClick="OnFileDoubleClick"
                              Tag="{Binding RelativeSource={RelativeSource AncestorType=Window}}">
                         <!--

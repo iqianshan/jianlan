@@ -28,6 +28,15 @@
   密度、导航栏/状态栏开关、默认视图与排序、隐藏文件与扩展名、隐私项
 - 窗口标题显示当前目录名，任务栏可辨认
 - 窗口尺寸、最大化状态与最后目录在关闭时保存（`settings.json`）
+- 文件操作：新建文件夹、重命名、复制、剪切、粘贴、删除到回收站、永久删除
+  （`SHFileOperationW`，独立 STA 线程）、属性和复制完整路径
+- 名称校验：非法字符、Windows 保留设备名、结尾点；重名自动追加 `(2)`，不覆盖已有数据
+- 右键菜单：按主题配色，键位提示从快捷键表回填，禁用态由 `CanExecute` 驱动
+- 拖放：外部文件拖入（同卷移动、跨卷复制，`Ctrl`/`Shift` 强制）、拖到文件夹行放进该目录、
+  选中项拖出到其他程序；拖入自身或子目录一律拒绝
+- 目录变更监听：`FileSystemWatcher` + 400ms 去抖，外部改动自动刷新并按路径恢复选中
+- `Ctrl+A` 全选、菜单键打开上下文菜单
+- `--keydebug` 按键诊断：把每条按键消息写入 `logs/keydebug.log`，默认关闭
 
 ### 变更
 
@@ -39,6 +48,13 @@
 
 - 窗口尺寸记忆从未生效：窗口关闭后 `Application.MainWindow` 被 WPF 置空，
   而保存发生在 `OnExit`，因此每轮都在第一步返回。改为在 `Closing` 时取值并保留窗口引用
+- `Ctrl+,` 打不开设置：输入法在 WPF 之前改写按键，`PreviewKeyDown` 收到的是
+  `Key.ImeProcessed` 而非 `Key.OemComma`。改为窗口消息层按物理键码（VK）匹配，
+  `PreviewKeyDown` 归一化三种变体后兜底
+- 首次启动带目录参数被忽略：只有单实例转交路径解析参数，直接 `Lingpane.exe D:\x`
+  仍打开上次目录。改为参数优先于会话记忆
+- 列表多选后 `SelectedItems.Clear()` 抛 `InvalidOperationException`（默认 `SelectionMode=Single`），
+  异常被 fire-and-forget 任务吞掉，表现为"点了没反应"
 
 ### 性能
 

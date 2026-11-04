@@ -34,6 +34,9 @@ public partial class App : Application
     /// <summary>读入时的"最后目录"，用来判断本次会话有没有产生需要落盘的改动。</summary>
     private static string? _loadedLastPath;
 
+    /// <summary>首次启动命令行里带的目录，优先于上次打开的目录。null 表示没带。</summary>
+    public static string? StartupDirectory { get; private set; }
+
     /// <summary>
     /// 在 跟随系统 → 浅色 → 深色 之间循环，并把选择写回设置。
     /// 只读模式（settings.json 版本过高）只切不写。
@@ -90,6 +93,16 @@ public partial class App : Application
         // 先解析：探针必须能独立运行，不能因为已有实例在跑就退出。
         var (probePath, probeFrames) = ParseProbeArgs(e.Args);
         _isProbeMode = probePath is not null;
+
+        // 按键诊断：必须在窗口构造前设置，静态初始化已经读过一次环境变量
+        if (e.Args.Contains("--keydebug", StringComparer.Ordinal))
+        {
+            Views.MainWindow.KeyDebug = true;
+        }
+
+        // 首次启动带目录参数时，参数优先于"上次打开的目录"（FR-10.2）。
+        // 之前只有单实例转交路径解析参数，直接 `Lingpane.exe D:\x` 会被忽略。
+        StartupDirectory = e.Args.FirstOrDefault(a => !a.StartsWith('-') && Directory.Exists(a));
 
         // 单实例：已有窗口在运行时，把参数转交给它并立即退出（FR-10.1）。
         // 只有一次 Mutex 创建，管道监听在窗口显示后才启动，不进启动预算。

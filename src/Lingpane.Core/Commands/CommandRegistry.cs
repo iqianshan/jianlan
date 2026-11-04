@@ -26,6 +26,8 @@ public static class CommandIds
     public const string Paste = "file.paste";
     public const string CopyPath = "file.copyPath";
     public const string Properties = "file.properties";
+    public const string ShowContextMenu = "file.contextMenu";
+    public const string SelectAll = "file.selectAll";
 }
 
 /// <summary>

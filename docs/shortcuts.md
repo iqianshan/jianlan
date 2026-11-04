@@ -3,14 +3,24 @@
 > 对应 FR-10.6。键位一经发布不再变更；新增键位必须避开下表已占用组合。
 >
 > **实现状态（M1）**：`Alt+←/→/↑`、`Backspace`、`Ctrl+L`、`F5`、`Ctrl+R`、`Ctrl+Shift+1/2`、
-> `Ctrl+Shift+D`、`Ctrl+,`、`Enter`、`F2`、`Delete`、`Shift+Delete`、`Ctrl+C/X/V`、
-> `Ctrl+Shift+N`、`Ctrl+Shift+C`、`Alt+Enter` 已可用。
+> `Ctrl+Shift+D`、`Ctrl+,`、`Enter`、`F2`、`Delete`、`Shift+Delete`、`Ctrl+C/X/V`、`Ctrl+A`、
+> `Ctrl+Shift+N`、`Ctrl+Shift+C`、`Alt+Enter`、菜单键（`VK_APPS`）已可用。
 > `Ctrl+Shift+3`（大图标）**不绑定**：该视图决定不做，见 `docs/adr/0005-large-icon-view.md`。
 >
-> **实现方式**：键位表在 `Lingpane.App/Input/KeyBindings.cs`，由窗口的 `PreviewKeyDown`
-> 统一派发，**不使用** `Window.InputBindings`——`KeyGesture` 对 `,` 这类 OEM 键的匹配
-> 不可靠，实测 `Ctrl+,` 不触发；且 `KeyGesture` 不认 `Key.System`，Alt 组合需另行归一化。
+> **实现方式**：键位表在 `Lingpane.App/Input/KeyBindings.cs`，采用**双入口**：
+>
+> 1. 主入口是窗口消息 `WM_KEYDOWN` / `WM_SYSKEYDOWN`（`HwndSource` 钩子），按**物理键码（VK）**
+>    匹配。输入法（TSF/IME）会在 WPF 之前改写 `Key`，`Ctrl+,` 这类标点组合在中文输入法下
+>    经常收不到 `PreviewKeyDown`——这也是"`Ctrl+C/V` 正常、`Ctrl+,` 无反应"的真实原因。
+> 2. 兜底是 `PreviewKeyDown`，把 `Key.System` / `Key.ImeProcessed` / `Key.DeadCharProcessed`
+>    归一化后再查同一张表，覆盖没有物理键的合成输入。
+>
+> **不使用** `Window.InputBindings`：`KeyGesture` 对 `,` 这类 OEM 键的匹配不可靠，
+> 且不认 `Key.System`，匹配规则藏在框架里无法断言。
 > 右键菜单的键位提示由同一张表填入，不存在菜单与实现不一致的可能。
+>
+> 排查工具：`Lingpane.exe --keydebug` 会把每条按键消息写进 `%LOCALAPPDATA%\Lingpane\logs\keydebug.log`
+> （物理键码、修饰键、焦点元素、命中的命令），默认关闭，不写盘。
 
 ## 1. 标签页
 
@@ -66,6 +76,7 @@
 | `Ctrl + Shift + N` | 新建文件夹 |
 | `Alt + Enter` | 打开属性对话框 |
 | `Ctrl + Shift + C` | 复制完整路径 |
+| 菜单键（`VK_APPS`） | 打开上下文菜单（与右键等效） |
 
 ## 5. 双窗格（M2）
 
