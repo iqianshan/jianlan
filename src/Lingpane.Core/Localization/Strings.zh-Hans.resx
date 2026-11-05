@@ -581,4 +581,10 @@
   <data name="Settings.OpenDataDir.Failed" xml:space="preserve">
     <value>无法打开数据目录：{0}</value>
   </data>
+  <data name="Dialog.Yes" xml:space="preserve">
+    <value>是</value>
+  </data>
+  <data name="Dialog.No" xml:space="preserve">
+    <value>否</value>
+  </data>
 </root>

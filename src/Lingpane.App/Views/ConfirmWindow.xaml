@@ -1,0 +1,40 @@
+<Window x:Class="Lingpane.App.Views.ConfirmWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="440"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource Brush.Surface.Window}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display">
+
+    <!--
+        为什么不直接用 MessageBox：MessageBox 的按钮文字由 Windows 系统语言决定，
+        不受应用语言影响。英文界面下弹出"是(Y)/否(N)"，与整窗英文文案割裂，
+        中文系统上英文用户永远看不到英文按钮。自绘窗口的按钮走资源键，
+        跟界面语言一致，顺带能控制英文文案的换行与按钮宽度。
+    -->
+    <StackPanel Margin="{StaticResource Padding.Dialog}">
+        <TextBlock x:Name="MessageText"
+                   Style="{StaticResource Text.Base}"
+                   TextWrapping="Wrap"/>
+
+        <StackPanel Margin="0,20,0,0"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right">
+            <Button x:Name="CancelButton"
+                    Style="{StaticResource Button.Toolbar}"
+                    MinWidth="88"
+                    IsCancel="True"
+                    Click="OnCancel"/>
+            <Button x:Name="ConfirmButton"
+                    Style="{StaticResource Button.Toolbar}"
+                    MinWidth="88"
+                    IsDefault="True"
+                    Click="OnConfirm"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

@@ -42,7 +42,7 @@ def _enable_dpi_awareness() -> None:
 _enable_dpi_awareness()
 
 
-def find_window(pid: int, title: str | None = None) -> int:
+def find_window(pid: int, title: str | None = None, min_size: int = 200) -> int:
     """返回该进程面积最大的可见顶层窗口句柄，找不到返回 0。
 
     不能取"第一个"：WPF 进程除主窗口外还会有小的辅助窗口（如输入法候选、
@@ -64,7 +64,7 @@ def find_window(pid: int, title: str | None = None) -> int:
                 if title.lower() not in buf.value.lower():
                     return True
             _, _, width, height = get_rect(hwnd)
-            if width >= 200 and height >= 200:
+            if width >= min_size and height >= min_size // 2:
                 found.append((width * height, hwnd))
         return True
 
@@ -95,6 +95,19 @@ def get_visible_rect(hwnd: int):
     return get_rect(hwnd)
 
 
+def resolve_hwnd(pid: int) -> int:
+    """按优先级取窗口句柄：WD_HWND 直指 > WD_TITLE 标题子串 > 面积最大的主窗口。
+
+    WD_HWND 是为了截图弹出层：右键菜单/下拉菜单是独立 HWND 且比主窗口小，
+    既拿不到标题（通常是空的），也会被尺寸门槛过滤掉。
+    """
+    forced = os.environ.get("WD_HWND")
+    if forced:
+        return int(forced, 0)
+    minimum = int(os.environ.get("WD_MIN", "200"))
+    return find_window(pid, os.environ.get("WD_TITLE"), minimum)
+
+
 def main() -> int:
     if len(sys.argv) < 3:
         print(__doc__)
@@ -103,7 +116,7 @@ def main() -> int:
     pid = int(sys.argv[1])
     action = sys.argv[2]
 
-    hwnd = find_window(pid, os.environ.get("WD_TITLE"))
+    hwnd = resolve_hwnd(pid)
     if not hwnd:
         print(f"未找到 pid={pid} 的可见窗口")
         return 1
@@ -151,11 +164,12 @@ def main() -> int:
             if owner.value == pid and user32.IsWindowVisible(h):
                 buf = ctypes.create_unicode_buffer(256)
                 user32.GetWindowTextW(h, buf, 256)
-                titles.append(buf.value)
+                _, _, width, height = get_rect(h)
+                titles.append(f"{h} {width}x{height} {buf.value}")
             return True
 
         user32.EnumWindows(enum_proc, 0)
-        print(" | ".join(t for t in titles if t))
+        print(" | ".join(titles))
         return 0
 
     if action == "click":
@@ -169,6 +183,25 @@ def main() -> int:
         user32.PostMessageW(hwnd, 0x0202, 0, lparam)       # WM_LBUTTONUP
         time.sleep(0.8)
         print(f"已点击客户区 ({x},{y})")
+        return 0
+
+    if action == "rclick":
+        # 右键菜单：ContextMenu 只响应 WM_RBUTTONUP，且 WPF 会等一个 200ms 左右
+        # 的"双击判定窗口"再弹，所以这里的人工延时不能省。
+        # 用真实鼠标事件而不是 PostMessage：WPF 的 ContextMenu 打开前会检查
+        # 鼠标按键状态（GetKeyState），投递的消息没有真实按键状态，菜单不弹。
+        x, y = int(sys.argv[3]), int(sys.argv[4])
+        left, top, _, _ = get_rect(hwnd)
+        user32.BringWindowToTop(hwnd)
+        user32.SetForegroundWindow(hwnd)
+        time.sleep(0.2)
+        user32.SetCursorPos(left + x, top + y)
+        time.sleep(0.25)
+        user32.mouse_event(0x0008, 0, 0, 0, 0)   # RIGHTDOWN
+        time.sleep(0.12)
+        user32.mouse_event(0x0010, 0, 0, 0, 0)   # RIGHTUP
+        time.sleep(1.0)
+        print(f"已右键客户区 ({x},{y})")
         return 0
 
     if action == "drag":
@@ -226,7 +259,12 @@ def main() -> int:
             "alt+up": (0x12, 0x26),
             "alt+left": (0x12, 0x25),
             "alt+right": (0x12, 0x27),
+            "f2": (0x71,),
+            "alt+enter": (0x12, 0x0D),
             "f5": (0x74,),
+            "delete": (0x2E,),
+            "enter": (0x0D,),
+            "ctrl+a": (0x11, 0x41),
             "esc": (0x1B,),
         }
 

@@ -594,4 +594,10 @@
   <data name="Settings.OpenDataDir.Failed" xml:space="preserve">
     <value>Cannot open the data folder: {0}</value>
   </data>
+  <data name="Dialog.Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Dialog.No" xml:space="preserve">
+    <value>No</value>
+  </data>
 </root>

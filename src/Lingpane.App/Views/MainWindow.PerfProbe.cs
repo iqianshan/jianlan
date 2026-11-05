@@ -132,7 +132,16 @@ public partial class MainWindow
             foreach (string language in languages)
             {
                 var watch = Stopwatch.StartNew();
-                Core.Localization.LocalizationService.Instance.Apply(language);
+
+                // 三个设置值走 Apply(string)，其余按 BCP-47 名字直接换文化。
+                // 伪语言走查（qps-ploc）就走这条：它不是用户可选语言，
+                // Apply(string) 会把它当未知值折回 auto，界面上就看不到伪文字。
+                Core.Localization.LocalizationService.Instance.Apply(
+                    language is Core.Localization.LocalizationService.SettingAuto
+                             or Core.Localization.LocalizationService.SettingChinese
+                             or Core.Localization.LocalizationService.SettingEnglish
+                        ? Core.Localization.LocalizationService.Resolve(language)
+                        : System.Globalization.CultureInfo.GetCultureInfo(language));
                 await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
                 long elapsed = (long)watch.Elapsed.TotalMilliseconds;
 

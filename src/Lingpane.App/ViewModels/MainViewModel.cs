@@ -75,6 +75,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         Raise(nameof(SizeHeader));
         QuickAccess = BuildQuickAccess();
 
+        // 类型列是按语言算出来的文案，绑定不会自己重取，必须逐条通知
+        FileEntry.RefreshTypeText(_entries);
+
         StatusText = HasNavigationError
             ? string.Format(Strings.Error_CannotOpen, DescribeNavigationError(_lastNavigationErrorCode))
             : StatusText;

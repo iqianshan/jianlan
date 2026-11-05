@@ -123,9 +123,9 @@ public partial class MainWindow
                 ? string.Format(Strings.Dialog_DeleteConfirmPermanent, what)
                 : string.Format(Strings.Dialog_DeleteConfirmRecycle, what);
 
-            if (MessageBox.Show(this, question,
+            if (!ConfirmWindow.Ask(this,
                     permanent ? Strings.Dialog_DeleteTitlePermanent : Strings.Dialog_DeleteTitle,
-                    MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+                    question))
             {
                 return;
             }
@@ -205,9 +205,9 @@ public partial class MainWindow
         if (items.Count > 1)
         {
             long total = items.Sum(i => i.Size);
-            MessageBox.Show(this,
-                string.Format(Strings.Properties_MultiSummary, items.Count, FileEntry.FormatSizeText(total)),
-                Strings.Properties_Title, MessageBoxButton.OK, MessageBoxImage.Information);
+            ConfirmWindow.Notify(this,
+                Strings.Properties_Title,
+                string.Format(Strings.Properties_MultiSummary, items.Count, FileEntry.FormatSizeText(total)));
             return;
         }
 
@@ -215,11 +215,11 @@ public partial class MainWindow
         string size = entry.IsDirectory ? Strings.Properties_FolderSizeUnknown : FileEntry.FormatSizeText(entry.Size);
         string parent = Path.GetDirectoryName(entry.FullPath) ?? _viewModel.CurrentPath;
 
-        MessageBox.Show(this,
+        ConfirmWindow.Notify(this,
+            Strings.Properties_Title,
             string.Format(Strings.Properties_EntryDetail,
                 entry.Name, parent, entry.TypeText, size,
-                entry.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.CurrentCulture)),
-            Strings.Properties_Title, MessageBoxButton.OK, MessageBoxImage.Information);
+                entry.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.CurrentCulture)));
     }
 
     /// <summary>

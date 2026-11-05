@@ -22,8 +22,13 @@
     <AssemblyVersion>0.1.0.0</AssemblyVersion>
     <FileVersion>0.1.0.0</FileVersion>
 
-    <!-- 保留中英两套附属资源。只写 en 会把 zh-Hans 卫星程序集裁掉，切中文后一片英文 -->
-    <SatelliteResourceLanguages>en;zh-Hans</SatelliteResourceLanguages>
+    <!--
+      保留中英两套附属资源。只写 en 会把 zh-Hans 卫星程序集裁掉，切中文后一片英文。
+      伪语言 qps-ploc 只在显式传 -p:IncludePseudoLoc=true 时编入：
+      它是走查用的诊断语言，混进正式发布包会白白多一个卫星目录。
+    -->
+    <SatelliteResourceLanguages Condition="'$(IncludePseudoLoc)' == 'true'">en;zh-Hans;qps-ploc</SatelliteResourceLanguages>
+    <SatelliteResourceLanguages Condition="'$(IncludePseudoLoc)' != 'true'">en;zh-Hans</SatelliteResourceLanguages>
 
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <EnableDefaultNoneItems>false</EnableDefaultNoneItems>

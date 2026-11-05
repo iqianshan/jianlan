@@ -335,12 +335,10 @@ public partial class SettingsWindow : Window
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
-            MessageBox.Show(
+            ConfirmWindow.Notify(
                 this,
-                string.Format(CultureInfo.CurrentCulture, Strings.Settings_OpenDataDir_Failed, ex.Message),
-                "Lingpane",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+                Strings.Application_Name,
+                string.Format(CultureInfo.CurrentCulture, Strings.Settings_OpenDataDir_Failed, ex.Message));
         }
     }
 

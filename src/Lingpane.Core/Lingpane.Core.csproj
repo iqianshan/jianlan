@@ -13,4 +13,13 @@
     不用 MSBuild 内置的 StronglyTyped 生成：它产出 internal 类，App 项目访问不到。
   -->
 
+  <!--
+    伪语言资源由 tools/i18n/pseudo-loc.py 生成，不进版本库。
+    SDK 的默认 glob 会自动把它当 EmbeddedResource，这里显式摘掉，
+    只有走查时传 -p:IncludePseudoLoc=true 才编入。
+  -->
+  <ItemGroup Condition="'$(IncludePseudoLoc)' != 'true'">
+    <EmbeddedResource Remove="Localization/Strings.qps-ploc.resx" />
+  </ItemGroup>
+
 </Project>

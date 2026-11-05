@@ -598,4 +598,10 @@ public static class Strings
     public static string Settings_OpenDataDir_Failed => LocalizationService.Instance.Get("Settings.OpenDataDir.Failed");
     // 含占位符：string.Format(Strings.Settings_OpenDataDir_Failed, ...)
 
+    /// <summary>Yes</summary>
+    public static string Dialog_Yes => LocalizationService.Instance.Get("Dialog.Yes");
+
+    /// <summary>No</summary>
+    public static string Dialog_No => LocalizationService.Instance.Get("Dialog.No");
+
 }

@@ -88,6 +88,21 @@ public sealed class FileEntry : INotifyPropertyChanged
 
     private static readonly PropertyChangedEventArgs DisplayNameChanged = new(nameof(DisplayName));
 
+    private static readonly PropertyChangedEventArgs TypeTextChanged = new(nameof(TypeText));
+
+    /// <summary>
+    /// 语言切换后重算类型列。属性本身不缓存，但绑定只在收到通知时才重取——
+    /// 不通知的话，已渲染的行会一直停在切换前的语言上（伪语言走查发现的问题）。
+    /// 与 <see cref="SetShowExtensions"/> 同一套路：批量通知，只有可视行真有订阅者。
+    /// </summary>
+    public static void RefreshTypeText(IReadOnlyList<FileEntry> entries)
+    {
+        foreach (var entry in entries)
+        {
+            entry.PropertyChanged?.Invoke(entry, TypeTextChanged);
+        }
+    }
+
     /// <summary>完整路径。首次访问时拼接并缓存，之后不再重复分配。</summary>
     public string FullPath => _fullPath ??= Path.Join(_parentPath, Name);
 
