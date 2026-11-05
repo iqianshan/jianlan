@@ -68,8 +68,12 @@
 
 ### 性能
 
-- Release 启用 ReadyToRun
+- Release 启用 ReadyToRun（与未启用版本交替对照：−16 ms）
 - 启动期关闭 IME 上下文创建：约 −500 ms、−43 MB
+- 设置读取改用源生成序列化（`SettingsJsonContext`），去掉首次反序列化的反射类型构建：
+  交替对照 −36 ms（−5.6%），`settings` 段 69 → 58 ms
+- 启动埋点增加进程 CPU 时间与 `Show()` 内部分段（`srcinit` / `activated`），
+  用于区分"耗时在算"还是"耗时在等"
 - 冷启动实测 P50 ≈ 605 ms（AMD Ryzen 7 PRO 5850U / Win11）
 
 ### 文档

@@ -189,10 +189,45 @@ CPU 上限取 60 而非 50：Windows 空闲机器也常在 30–50% 波动，50 
 | 优化 | 收益 | 位置 |
 |---|---|---|
 | 启动期关闭 IME | **约 −500 ms，−43 MB** | `App.OnStartup` |
-| ReadyToRun 发布 | 减少 JIT，首次运行稳定 | `Lingpane.App.csproj` |
+| 设置读取改用源生成序列化 | **−36 ms（−5.6%，交替对照）** | `SettingsStore` / `SettingsJsonContext` |
+| ReadyToRun 发布 | −16 ms（与未 R2R 版本交替对照） | `Lingpane.App.csproj` |
 | `SatelliteResourceLanguages=en` | 减少附属程序集探测 | `Directory.Build.props` |
 | 图标按扩展名而非按文件查询 | 滚动零磁盘 IO | `ShellIconProvider` |
 | 列表用 `IReadOnlyList` 整体替换 | 避免 N 次 `CollectionChanged` | `MainViewModel` |
+
+### 6.1 `Show()` 段的两态：启动耗时最大的不确定性来源
+
+2026-11-05 实测发现，同一份可执行文件在两个时间点测出的启动耗时可差 **400 ms 以上**，
+差值几乎全部落在 `window` → `srcinit` 这一段（即 `Window.Show()` 内部的窗口源初始化）：
+
+| 状态 | `window` | `srcinit` | 该段耗时 | 总 P50 |
+|---|---|---|---|---|
+| 快 | 336 ms | 494 ms | 158 ms | 566 ms |
+| 慢 | 379 ms | 985 ms | **606 ms** | 1048 ms |
+
+判定依据：`MarkCpu` 记录的进程 CPU 时间在慢态下从 531 ms 涨到 1460 ms（墙钟 606 ms），
+即 **1.4 个核在满载计算**，不是在等 IO 或等待消息。
+
+已排除的原因（均为单变量对照实验）：
+
+| 假设 | 实验 | 结果 |
+|---|---|---|
+| 自定义字体（Alibaba PuHuiTi 2.0）渲染 | 把 `fontFamily` 置空 | 该段仍 560 ms，无关 |
+| 输入法上下文创建 | 注释掉 `SetIsInputMethodEnabled` | 该段仍 540 ms，无关 |
+| GPU / D3D 设备初始化 | `ProcessRenderMode = SoftwareOnly` | 该段仍 570 ms，无关 |
+| 窗口句柄重建 | 记录 `WindowInteropHelper.Handle` | 前后句柄一致，未重建 |
+| `TieredPGO` | 关掉后交替对照 | 0 ms 差异，已回滚 |
+
+剩下的是 `HwndSource` / `PresentationSource` 的初始化本身（`activated` 触发时
+`PresentationSource.FromVisual` 仍为 null，说明此时窗口源尚未就绪）。
+这一段由 WPF 与系统共同完成，代码侧没有可控的介入点。
+
+**测量规则**：判定"某次改动是否引入启动回归"前，先看 `srcinit - window` 是否显著大于 160 ms。
+若是，本次数据不可用于代码判定——它反映的是系统状态，不是代码。
+
+> 已知本机存在全局钩子类软件时该段会明显变长（输入法、屏幕录制、安全软件都会插入
+> `CreateWindowEx` 的钩子链）。换一台干净的机器对照是最快的验证方式。
+
 
 ## 7. 待验证的优化（按收益排序）
 
@@ -202,6 +237,13 @@ CPU 上限取 60 而非 50：Windows 空闲机器也常在 30–50% 波动，50 
 | `TieredCompilation=false` + 全量 R2R | −30~80 ms | 低：需实测确认 |
 | 延迟初始化控件样式（`Controls.*.xaml` 按需） | −30~50 ms | 中：首次打开列表可能闪一下 |
 | 窗口构造后再预热字体 | 未知 | 低 |
+
+已否决：
+
+| 候选 | 结论 |
+|---|---|
+| `TieredPGO=false` | 交替对照 0 ms 差异，不值得牺牲稳态性能 |
+| 改 TFM 去掉 Windows SDK 投影（省 24 MB 体积） | `Microsoft.Windows.SDK.NET.dll` 与 `WinRT.Runtime.dll` 运行时未加载，对启动无影响，只影响发布体积 |
 
 **任何优化若不能通过一次 20 次测量的 P50/P95 对比，不予采纳。**
 

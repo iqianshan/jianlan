@@ -167,7 +167,13 @@ public partial class App : Application
 
         StartupTrace.Mark("window");
 
+        // 切分 Show()：它曾出现 150ms 与 600ms 两种表现，靠墙钟分不清卡在哪一步
+        window.SourceInitialized += (_, _) => StartupTrace.Mark("srcinit");
+        window.Activated += (_, _) => StartupTrace.Mark("activated");
+
+        StartupTrace.MarkCpu("preShow");
         window.Show();
+        StartupTrace.MarkCpu("postShow");
         StartupTrace.Mark("show");
 
         // 管道监听放在窗口显示之后：第二次启动的转交请求宁可晚几十毫秒，

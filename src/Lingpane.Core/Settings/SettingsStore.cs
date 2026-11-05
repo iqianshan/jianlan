@@ -30,6 +30,9 @@ public static class SettingsStore
         o.Converters.Add(new LenientEnumConverter<DensityKind>());
         o.Converters.Add(new LenientEnumConverter<DefaultViewKind>());
         o.Converters.Add(new LenientEnumConverter<SortFieldKind>());
+
+        // 用源生成的元数据替掉反射元数据：省掉首次反序列化的类型构建
+        o.TypeInfoResolver = SettingsJsonContext.Default;
         return o;
     }
 

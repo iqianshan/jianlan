@@ -15,12 +15,14 @@ namespace Lingpane.Core.Diagnostics;
 /// </summary>
 public static class StartupTrace
 {
-    private const int Capacity = 16;
+    private const int Capacity = 24;
 
     private static readonly Stopwatch Clock = new();
     private static readonly (string Name, long Ms)[] Marks = new (string, long)[Capacity];
+    private static readonly (string Name, long CpuMs)[] CpuMarks = new (string, long)[Capacity];
 
     private static int _count;
+    private static int _cpuCount;
     private static bool _begun;
 
     public static bool IsEnabled => _begun;
@@ -44,6 +46,28 @@ public static class StartupTrace
         Marks[_count++] = (name, Clock.ElapsedMilliseconds);
     }
 
+    /// <summary>
+    /// 记录进程累计 CPU 时间。
+    /// 用来区分"耗时是在算"还是"耗时是在等"：Show 段曾出现 150ms 与 520ms 两种状态，
+    /// 若 CPU 时间远小于墙钟时间，说明卡在同步等待（DWM / 输入法 / 显示驱动），
+    /// 而不是我们的代码在跑。
+    /// </summary>
+    public static void MarkCpu(string name)
+    {
+        if (!_begun) return;
+        if (_cpuCount >= Capacity) return;
+
+        try
+        {
+            using var p = Process.GetCurrentProcess();
+            CpuMarks[_cpuCount++] = (name, (long)p.TotalProcessorTime.TotalMilliseconds);
+        }
+        catch
+        {
+            // 取不到就不记，不影响启动
+        }
+    }
+
     /// <summary>单行摘要，形如 <c>begin=0 paths=2 window=196 firstframe=312</c>。</summary>
     public static string Summary()
     {
@@ -55,6 +79,16 @@ public static class StartupTrace
             if (i > 0) sb.Append(' ');
             sb.Append(Marks[i].Name).Append('=').Append(Marks[i].Ms).Append("ms");
         }
+
+        if (_cpuCount > 0)
+        {
+            sb.Append(" | cpu");
+            for (int i = 0; i < _cpuCount; i++)
+            {
+                sb.Append(' ').Append(CpuMarks[i].Name).Append('=').Append(CpuMarks[i].CpuMs).Append("ms");
+            }
+        }
+
         return sb.ToString();
     }
 
