@@ -4,7 +4,7 @@
 >
 > **实现状态（M1）**：`Alt+←/→/↑`、`Backspace`、`Ctrl+L`、`F5`、`Ctrl+R`、`Ctrl+Shift+1/2`、
 > `Ctrl+Shift+D`、`Ctrl+,`、`Enter`、`F2`、`Delete`、`Shift+Delete`、`Ctrl+C/X/V`、`Ctrl+A`、
-> `Ctrl+Shift+N`、`Ctrl+Shift+C`、`Alt+Enter`、菜单键（`VK_APPS`）已可用。
+> `Ctrl+Shift+N`、`Ctrl+Shift+M`、`Ctrl+Shift+C`、`Alt+Enter`、菜单键（`VK_APPS`）已可用。
 > `Ctrl+Shift+3`（大图标）**不绑定**：该视图决定不做，见 `docs/adr/0005-large-icon-view.md`。
 >
 > **实现方式**：键位表在 `Lingpane.App/Input/KeyBindings.cs`，采用**三入口**：
@@ -83,6 +83,7 @@
 | `Shift + Delete` | 永久删除（需二次确认） |
 | `F2` | 重命名 |
 | `Ctrl + Shift + N` | 新建文件夹 |
+| `Ctrl + Shift + M` | 新建文本文档 |
 | `Alt + Enter` | 打开属性对话框 |
 | `Ctrl + Shift + C` | 复制完整路径 |
 | 菜单键（`VK_APPS`） | 打开上下文菜单（与右键等效） |
@@ -118,7 +119,7 @@
 
 `Ctrl+T` `Ctrl+W` `Ctrl+Shift+T` `Ctrl+Tab` `Ctrl+1…9` `Alt+←→↑` `Backspace` `Ctrl+L`
 `F5` `Ctrl+R` `Ctrl+D` `Ctrl+H` `Ctrl+Shift+1…3` `Ctrl+Shift+D` `Ctrl+,` `Ctrl+滚轮` `F11` `Ctrl+B` `Enter`
-`Ctrl+A/C/X/V` `Delete` `Shift+Delete` `F2` `Ctrl+Shift+N` `Alt+Enter` `Ctrl+Shift+C`
+`Ctrl+A/C/X/V` `Delete` `Shift+Delete` `F2` `Ctrl+Shift+N` `Ctrl+Shift+M` `Alt+Enter` `Ctrl+Shift+C`
 `Tab` `F6` `Ctrl+\` `Alt+1…8,0` `Ctrl+,` `F1` `Alt+F4` `Ctrl+Shift+W`
 
 实现要求：

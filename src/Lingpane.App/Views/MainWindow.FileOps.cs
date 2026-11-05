@@ -58,6 +58,23 @@ public partial class MainWindow
         await RenameEntryAsync(_viewModel.FindByPath(created));
     }
 
+    private async Task NewFileAsync()
+    {
+        string directory = _viewModel.CurrentPath;
+        if (string.IsNullOrEmpty(directory)) return;
+
+        if (!FileOperations.TryCreateFile(directory, null, out string created, out string? error))
+        {
+            _viewModel.SetStatus("新建文件失败：" + error);
+            return;
+        }
+
+        await RefreshAndSelectAsync([created]);
+
+        // 默认名带了扩展名，重命名时选中词干部分，改完按回车即可
+        await RenameEntryAsync(_viewModel.FindByPath(created));
+    }
+
     private async Task RenameSelectionAsync()
     {
         if (_viewModel.SelectedEntries.Count != 1) return;

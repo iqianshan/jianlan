@@ -18,6 +18,7 @@ public static class CommandIds
     // 文件操作（M1 批 3）
     public const string OpenItem = "file.open";
     public const string NewFolder = "file.newFolder";
+    public const string NewFile = "file.newFile";
     public const string Rename = "file.rename";
     public const string Delete = "file.delete";
     public const string DeletePermanent = "file.deletePermanent";

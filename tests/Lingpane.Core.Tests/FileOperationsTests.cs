@@ -90,6 +90,59 @@ public class FileOperationsTests : IDisposable
     }
 
     [Fact]
+    public void TryCreateFile_建出空文件且带默认扩展名()
+    {
+        Assert.True(FileOperations.TryCreateFile(_root, null, out string created, out _));
+
+        Assert.Equal(FileOperations.DefaultFileName, Path.GetFileName(created));
+        Assert.True(File.Exists(created));
+        Assert.Equal(0, new FileInfo(created).Length);
+    }
+
+    [Fact]
+    public void TryCreateFile_自动避开重名且保留扩展名()
+    {
+        Assert.True(FileOperations.TryCreateFile(_root, null, out string first, out _));
+        Assert.True(FileOperations.TryCreateFile(_root, null, out string second, out _));
+
+        Assert.Equal("新建文本文档.txt", Path.GetFileName(first));
+        Assert.Equal("新建文本文档 (2).txt", Path.GetFileName(second));
+    }
+
+    [Fact]
+    public void TryCreateFile_非法名返回原因()
+    {
+        Assert.False(FileOperations.TryCreateFile(_root, "a|b.txt", out string created, out string? error));
+        Assert.Equal(string.Empty, created);
+        Assert.NotNull(error);
+    }
+
+    [Fact]
+    public void TryCreateFile_已存在同名时不截断原文件()
+    {
+        string existing = Path.Join(_root, "keep.txt");
+        File.WriteAllText(existing, "原有内容");
+
+        // 走 CreateNew（重名会走 UniqueName，这里直接指定已被占用的名字验证不覆盖语义）
+        Assert.True(FileOperations.TryCreateFile(_root, "keep.txt", out string created, out _));
+
+        Assert.NotEqual(existing, created);
+        Assert.Equal("原有内容", File.ReadAllText(existing));
+    }
+
+    [Fact]
+    public void TryCreateFile_目录不存在时返回错误而不抛()
+    {
+        // 目录的 ReadOnly 属性在 Windows 上不阻止写入，无法用来构造无权限场景；
+        // 这里验证"路径不可写"的失败路径本身：不抛异常、给出原因、不留半成品
+        string missing = Path.Join(_root, "not-exist");
+
+        Assert.False(FileOperations.TryCreateFile(missing, null, out string created, out string? error));
+        Assert.Equal(string.Empty, created);
+        Assert.NotNull(error);
+    }
+
+    [Fact]
     public void TryRename_文件改名()
     {
         string source = Path.Join(_root, "old.txt");

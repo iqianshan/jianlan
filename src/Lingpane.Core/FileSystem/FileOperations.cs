@@ -126,6 +126,43 @@ public static class FileOperations
         }
     }
 
+    /// <summary>新建文件的默认名。带扩展名，否则 Windows 下双击问"用什么打开"。</summary>
+    public const string DefaultFileName = "新建文本文档.txt";
+
+    /// <summary>
+    /// 新建空文件。<paramref name="name"/> 为空时用 <see cref="DefaultFileName"/>。
+    ///
+    /// 用 <see cref="FileMode.CreateNew"/> 而不是 <c>File.Create</c>：前者在文件已存在时抛异常，
+    /// 后者会把同名文件截成 0 字节。虽然前面已经做过重名改名，但"改名 → 创建"之间仍有窗口期，
+    /// 并发时宁可失败也不能毁掉别人的数据。
+    /// </summary>
+    public static bool TryCreateFile(string directory, string? name, out string createdPath, out string? error)
+    {
+        createdPath = string.Empty;
+
+        string desired = string.IsNullOrWhiteSpace(name) ? DefaultFileName : name.Trim();
+
+        if (!TryValidateName(desired, out error)) return false;
+
+        try
+        {
+            createdPath = Path.Join(directory, UniqueName(directory, desired, isDirectory: false));
+
+            using (new FileStream(createdPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                // 只建空文件，不写内容
+            }
+
+            return true;
+        }
+        catch (Exception ex) when (IsExpected(ex))
+        {
+            error = ex.Message;
+            createdPath = string.Empty;
+            return false;
+        }
+    }
+
     /// <summary>
     /// 重命名。新名与原名仅大小写不同时允许（Windows 上常见需求，如 readme → README），
     /// 其余重名一律拒绝，不自动改名——用户刚输入的名字被悄悄改掉更糟。

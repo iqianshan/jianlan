@@ -96,7 +96,7 @@ public static class ShellIconProvider
                 (uint)Marshal.SizeOf<SHFILEINFO>(),
                 SHGFI_PIDL | SHGFI_ICON | SHGFI_SMALLICON);
 
-            if (result == IntPtr.Zero || info.hIcon == IntPtr.Zero || info.iIcon <= 0) return -1;
+            if (result == IntPtr.Zero || info.hIcon == IntPtr.Zero || info.iIcon < 0) return -1;
 
             try
             {
@@ -126,6 +126,37 @@ public static class ShellIconProvider
         {
             if (pidl != IntPtr.Zero) CoTaskMemFree(pidl);
         }
+    }
+
+    /// <summary>
+    /// 按<b>扩展名</b>解析图标序号（<c>SHGFI_USEFILEATTRIBUTES</c>，不访问磁盘）。
+    ///
+    /// 用途是给"按路径解析"做对照：两者序号相同就说明这个文件没有专属图标，
+    /// 不必把结果写回界面。文件类型图标序号可能是 0（快捷方式就是），所以失败用 -1 表示。
+    /// </summary>
+    public static int ResolveExtensionIconIndex(string iconKey)
+    {
+        bool isDirectory = iconKey.Equals(".folder", StringComparison.OrdinalIgnoreCase);
+
+        string probe = isDirectory
+            ? "lingpane.folder"
+            : iconKey.Equals(".file", StringComparison.OrdinalIgnoreCase)
+                ? "lingpane.file"
+                : "lingpane" + iconKey;
+
+        var info = new SHFILEINFO();
+
+        IntPtr result = SHGetFileInfo(
+            probe,
+            isDirectory ? FILE_ATTRIBUTE_DIRECTORY : FILE_ATTRIBUTE_NORMAL,
+            ref info,
+            (uint)Marshal.SizeOf<SHFILEINFO>(),
+            SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES);
+
+        if (result == IntPtr.Zero || info.hIcon == IntPtr.Zero) return -1;
+
+        DestroyIcon(info.hIcon);
+        return info.iIcon;
     }
 
     /// <summary>

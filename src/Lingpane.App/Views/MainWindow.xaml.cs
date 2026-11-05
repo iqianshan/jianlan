@@ -34,6 +34,7 @@ public partial class MainWindow : Window
     public CommandAdapter SettingsCommand { get; }
     public CommandAdapter OpenItemCommand { get; }
     public CommandAdapter NewFolderCommand { get; }
+    public CommandAdapter NewFileCommand { get; }
     public CommandAdapter RenameCommand { get; }
     public CommandAdapter DeleteCommand { get; }
     public CommandAdapter DeletePermanentCommand { get; }
@@ -145,6 +146,13 @@ public partial class MainWindow : Window
         });
         _commands.Register(new AppCommand
         {
+            Id = CommandIds.NewFile,
+            Title = "新建文本文档",
+            Execute = () => _ = NewFileAsync(),
+            CanExecute = CanCreateInCurrentDirectory,
+        });
+        _commands.Register(new AppCommand
+        {
             Id = CommandIds.Rename,
             Title = "重命名",
             Execute = () => _ = RenameSelectionAsync(),
@@ -223,6 +231,7 @@ public partial class MainWindow : Window
         SettingsCommand = new CommandAdapter(_commands.Get(CommandIds.OpenSettings));
         OpenItemCommand = new CommandAdapter(_commands.Get(CommandIds.OpenItem));
         NewFolderCommand = new CommandAdapter(_commands.Get(CommandIds.NewFolder));
+        NewFileCommand = new CommandAdapter(_commands.Get(CommandIds.NewFile));
         RenameCommand = new CommandAdapter(_commands.Get(CommandIds.Rename));
         DeleteCommand = new CommandAdapter(_commands.Get(CommandIds.Delete));
         DeletePermanentCommand = new CommandAdapter(_commands.Get(CommandIds.DeletePermanent));
@@ -791,13 +800,31 @@ public partial class MainWindow : Window
     /// 右键菜单的键位提示从快捷键表里取，与真实绑定同源。
     /// 写在 XAML 里就会出现"菜单写着 Ctrl+,，实际却是别的键"这类不同步。
     /// </summary>
+    /// <summary>
+    /// 每次菜单弹出时回填键位提示。
+    ///
+    /// 必须在 <c>Opened</c> 而不是 <c>Loaded</c> 做：菜单项的命令是经由
+    /// <see cref="System.Windows.Controls.Primitives.Popup.PlacementTarget"/> 拿窗口的，
+    /// 而 PlacementTarget 只在弹出时才有值。加载阶段调用的结果是一律拿到 null，
+    /// 键位提示静默为空——界面上看不出错，只能靠下面的日志兜底。
+    /// </summary>
+    private void OnContextMenuOpened(object sender, RoutedEventArgs e) => ApplyMenuGestures();
+
     private void ApplyMenuGestures()
     {
         if (FileList.ContextMenu is not { } menu) return;
 
         foreach (object item in menu.Items)
         {
-            if (item is not MenuItem { Command: CommandAdapter adapter } menuItem) continue;
+            if (item is not MenuItem menuItem) continue;
+
+            if (menuItem.Command is not CommandAdapter adapter)
+            {
+                // 绑定名字写错时 Command 为 null，菜单项会静默失效——界面上完全看不出，
+                // 只能在这里留痕。正常情况一行都不会写。
+                WriteKeyLog($"menu unbound: header=\"{menuItem.Header}\"");
+                continue;
+            }
 
             menuItem.InputGestureText = Input.KeyBindings.Gestures.TryGetValue(adapter.Source.Id, out string? text)
                 ? text
@@ -864,7 +891,6 @@ public partial class MainWindow : Window
         AttachKeyHook();
 
         ApplySettingsToUi();
-        ApplyMenuGestures();
         StartupTrace.Mark("uisetup");
 
         // 诊断模式接管：测完自行退出，不写启动日志的 normal 路径

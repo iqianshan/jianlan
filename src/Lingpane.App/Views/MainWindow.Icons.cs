@@ -5,7 +5,8 @@ using Lingpane.Core.FileSystem;
 namespace Lingpane.App.Views;
 
 /// <summary>
-/// 目录真实图标：导航完成后在后台补齐（ADR-0006）。
+/// 真实图标补充：目录专属图标（ADR-0006）与快捷方式图标（FR-6.5），
+/// 导航完成后在后台补齐。
 ///
 /// 时序上刻意排在首帧之后（<see cref="DispatcherPriority.ApplicationIdle"/>）：
 /// 图标只是"看起来更像资源管理器"，绝不能占用启动预算。旧结果用代次号丢弃，

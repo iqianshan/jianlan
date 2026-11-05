@@ -296,6 +296,7 @@
                         -->
                         <ListBox.ContextMenu>
                             <ContextMenu Style="{StaticResource ContextMenu.Default}"
+                                         Opened="OnContextMenuOpened"
                                          DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
                                 <MenuItem Style="{StaticResource MenuItem.Default}"
                                           Header="打开"
@@ -304,6 +305,9 @@
                                 <MenuItem Style="{StaticResource MenuItem.Default}"
                                           Header="新建文件夹"
                                           Command="{Binding NewFolderCommand}"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}"
+                                          Header="新建文本文档"
+                                          Command="{Binding NewFileCommand}"/>
                                 <MenuItem Style="{StaticResource MenuItem.Default}"
                                           Header="重命名"
                                           Command="{Binding RenameCommand}"/>

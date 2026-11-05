@@ -67,6 +67,7 @@ internal static class KeyBindings
         new(Key.X, Vk.X, ModifierKeys.Control, CommandIds.CutItems, "X"),
         new(Key.V, Vk.V, ModifierKeys.Control, CommandIds.Paste, "V"),
         new(Key.N, Vk.N, ModifierKeys.Control | ModifierKeys.Shift, CommandIds.NewFolder, "N"),
+        new(Key.M, Vk.M, ModifierKeys.Control | ModifierKeys.Shift, CommandIds.NewFile, "M"),
         new(Key.C, Vk.C, ModifierKeys.Control | ModifierKeys.Shift, CommandIds.CopyPath, "C"),
         new(Key.A, Vk.A, ModifierKeys.Control, CommandIds.SelectAll, "A"),
 
@@ -139,9 +140,11 @@ internal static class KeyBindings
 
     private static string Describe(string text, ModifierKeys modifiers)
     {
-        if ((modifiers & ModifierKeys.Control) != 0) text = "Ctrl+" + text;
-        if ((modifiers & ModifierKeys.Alt) != 0) text = "Alt+" + text;
+        // 前缀要从后往前加，最终才是 Windows 的书写顺序 Ctrl+Alt+Shift+Key。
+        // 反过来写会得到 "Shift+Ctrl+N" 这种别扭形式。
         if ((modifiers & ModifierKeys.Shift) != 0) text = "Shift+" + text;
+        if ((modifiers & ModifierKeys.Alt) != 0) text = "Alt+" + text;
+        if ((modifiers & ModifierKeys.Control) != 0) text = "Ctrl+" + text;
         return text;
     }
 
@@ -160,6 +163,7 @@ internal static class KeyBindings
         public const int C = 0x43;
         public const int D = 0x44;
         public const int L = 0x4C;
+        public const int M = 0x4D;
         public const int N = 0x4E;
         public const int R = 0x52;
         public const int V = 0x56;
