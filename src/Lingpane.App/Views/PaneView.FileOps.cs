@@ -16,20 +16,20 @@ namespace Lingpane.App.Views;
 /// 分工：Core 的 <see cref="FileOperations"/> 只管磁盘与结果，本文件负责对话框、
 /// 确认、状态栏文案与刷新后的选中恢复。界面层不碰磁盘细节，Core 不碰 UI。
 /// </summary>
-public partial class MainWindow
+public partial class PaneView
 {
-    private void OpenSelection()
+    internal void OpenSelection()
     {
-        if (_viewModel.SelectedEntries.Count == 0) return;
+        if (Vm.SelectedEntries.Count == 0) return;
 
-        OpenEntry(_viewModel.SelectedEntries[0]);
+        OpenEntry(Vm.SelectedEntries[0]);
     }
 
-    private void OpenEntry(FileEntry entry)
+    internal void OpenEntry(FileEntry entry)
     {
         if (entry.IsDirectory)
         {
-            _ = _viewModel.NavigateAsync(entry.FullPath);
+            _ = Vm.NavigateAsync(entry.FullPath);
             return;
         }
 
@@ -39,56 +39,56 @@ public partial class MainWindow
         }
         catch (Exception ex) when (ex is Win32Exception or IOException or UnauthorizedAccessException)
         {
-            _viewModel.SetStatus(string.Format(Strings.Status_OpenItemFailed, entry.Name));
+            Vm.SetStatus(string.Format(Strings.Status_OpenItemFailed, entry.Name));
         }
     }
 
-    private async Task NewFolderAsync()
+    internal async Task NewFolderAsync()
     {
-        string directory = _viewModel.CurrentPath;
+        string directory = Vm.CurrentPath;
         if (string.IsNullOrEmpty(directory)) return;
 
         if (!FileOperations.TryCreateFolder(directory, null, out string created, out string? error))
         {
-            _viewModel.SetStatus(string.Format(Strings.Status_NewFolderFailed, error));
+            Vm.SetStatus(string.Format(Strings.Status_NewFolderFailed, error));
             return;
         }
 
         await RefreshAndSelectAsync([created]);
 
         // 建完立刻进重命名：默认名几乎总要改，省一次 F2
-        await RenameEntryAsync(_viewModel.FindByPath(created));
+        await RenameEntryAsync(Vm.FindByPath(created));
     }
 
-    private async Task NewFileAsync()
+    internal async Task NewFileAsync()
     {
-        string directory = _viewModel.CurrentPath;
+        string directory = Vm.CurrentPath;
         if (string.IsNullOrEmpty(directory)) return;
 
         if (!FileOperations.TryCreateFile(directory, null, out string created, out string? error))
         {
-            _viewModel.SetStatus(string.Format(Strings.Status_NewFileFailed, error));
+            Vm.SetStatus(string.Format(Strings.Status_NewFileFailed, error));
             return;
         }
 
         await RefreshAndSelectAsync([created]);
 
         // 默认名带了扩展名，重命名时选中词干部分，改完按回车即可
-        await RenameEntryAsync(_viewModel.FindByPath(created));
+        await RenameEntryAsync(Vm.FindByPath(created));
     }
 
-    private async Task RenameSelectionAsync()
+    internal async Task RenameSelectionAsync()
     {
-        if (_viewModel.SelectedEntries.Count != 1) return;
-        await RenameEntryAsync(_viewModel.SelectedEntries[0]);
+        if (Vm.SelectedEntries.Count != 1) return;
+        await RenameEntryAsync(Vm.SelectedEntries[0]);
     }
 
-    private async Task RenameEntryAsync(FileEntry? entry)
+    internal async Task RenameEntryAsync(FileEntry? entry)
     {
         if (entry is null) return;
 
         string? name = TextPromptWindow.Ask(
-            this,
+            Window.GetWindow(this),
             Strings.Dialog_RenameTitle,
             string.Format(Strings.Dialog_RenamePrompt, entry.Name),
             entry.Name,
@@ -99,17 +99,17 @@ public partial class MainWindow
 
         if (!FileOperations.TryRename(entry.FullPath, name, out string renamedPath, out string? renameError))
         {
-            _viewModel.SetStatus(string.Format(Strings.Status_RenameFailed, renameError));
+            Vm.SetStatus(string.Format(Strings.Status_RenameFailed, renameError));
             return;
         }
 
         await RefreshAndSelectAsync([renamedPath]);
-        _viewModel.SetStatus(string.Format(Strings.Status_Renamed, Path.GetFileName(renamedPath)));
+        Vm.SetStatus(string.Format(Strings.Status_Renamed, Path.GetFileName(renamedPath)));
     }
 
-    private async Task DeleteSelectionAsync(bool permanent)
+    internal async Task DeleteSelectionAsync(bool permanent)
     {
-        var items = _viewModel.SelectedEntries;
+        var items = Vm.SelectedEntries;
         if (items.Count == 0) return;
 
         string what = items.Count == 1
@@ -123,7 +123,7 @@ public partial class MainWindow
                 ? string.Format(Strings.Dialog_DeleteConfirmPermanent, what)
                 : string.Format(Strings.Dialog_DeleteConfirmRecycle, what);
 
-            if (!ConfirmWindow.Ask(this,
+            if (!ConfirmWindow.Ask(Window.GetWindow(this),
                     permanent ? Strings.Dialog_DeleteTitlePermanent : Strings.Dialog_DeleteTitle,
                     question))
             {
@@ -144,24 +144,24 @@ public partial class MainWindow
 
         // 刷新会用新目录的统计重算状态栏，把失败原因覆盖掉——用户只看到"1 项"，
         // 根本不知道删除失败。失败结果必须重新写回去。
-        if (!result.Ok) _viewModel.SetStatus(text);
+        if (!result.Ok) Vm.SetStatus(text);
     }
 
-    private void CopySelection(bool cut)
+    internal void CopySelection(bool cut)
     {
-        var items = _viewModel.SelectedEntries;
+        var items = Vm.SelectedEntries;
         if (items.Count == 0) return;
 
         FileClipboard.Set(items.Select(i => i.FullPath).ToArray(), cut);
-        _viewModel.SetStatus(string.Format(cut ? Strings.Status_CutCount : Strings.Status_CopiedCount, items.Count));
+        Vm.SetStatus(string.Format(cut ? Strings.Status_CutCount : Strings.Status_CopiedCount, items.Count));
         CommandManager.InvalidateRequerySuggested();
     }
 
-    private async Task PasteAsync()
+    internal async Task PasteAsync()
     {
         if (!FileClipboard.HasData) return;
 
-        string directory = _viewModel.CurrentPath;
+        string directory = Vm.CurrentPath;
         if (string.IsNullOrEmpty(directory)) return;
 
         string[] paths = FileClipboard.Paths.ToArray();
@@ -184,35 +184,35 @@ public partial class MainWindow
             .ToArray());
 
         // 同删除：全量失败或部分失败的原因不能被刷新覆盖
-        if (!result.Ok || result.Failed > 0) _viewModel.SetStatus(text);
+        if (!result.Ok || result.Failed > 0) Vm.SetStatus(text);
     }
 
-    private void CopyPathSelection()
+    internal void CopyPathSelection()
     {
-        var items = _viewModel.SelectedEntries;
+        var items = Vm.SelectedEntries;
         if (items.Count == 0) return;
 
         try
         {
             Clipboard.SetText(string.Join(Environment.NewLine, items.Select(i => i.FullPath)));
-            _viewModel.SetStatus(string.Format(Strings.Status_PathsCopied, items.Count));
+            Vm.SetStatus(string.Format(Strings.Status_PathsCopied, items.Count));
         }
         catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or ArgumentException)
         {
             // 剪贴板被其他程序占用时 SetText 会抛 COMException，不能让它冒泡
-            _viewModel.SetStatus(Strings.Status_CopyPathFailed);
+            Vm.SetStatus(Strings.Status_CopyPathFailed);
         }
     }
 
-    private void ShowProperties()
+    internal void ShowProperties()
     {
-        var items = _viewModel.SelectedEntries;
+        var items = Vm.SelectedEntries;
         if (items.Count == 0) return;
 
         if (items.Count > 1)
         {
             long total = items.Sum(i => i.Size);
-            ConfirmWindow.Notify(this,
+            ConfirmWindow.Notify(Window.GetWindow(this),
                 Strings.Properties_Title,
                 string.Format(Strings.Properties_MultiSummary, items.Count, FileEntry.FormatSizeText(total)));
             return;
@@ -220,9 +220,9 @@ public partial class MainWindow
 
         var entry = items[0];
         string size = entry.IsDirectory ? Strings.Properties_FolderSizeUnknown : FileEntry.FormatSizeText(entry.Size);
-        string parent = Path.GetDirectoryName(entry.FullPath) ?? _viewModel.CurrentPath;
+        string parent = Path.GetDirectoryName(entry.FullPath) ?? Vm.CurrentPath;
 
-        ConfirmWindow.Notify(this,
+        ConfirmWindow.Notify(Window.GetWindow(this),
             Strings.Properties_Title,
             string.Format(Strings.Properties_EntryDetail,
                 entry.Name, parent, entry.TypeText, size,
@@ -238,13 +238,13 @@ public partial class MainWindow
         Func<Task<FileOpResult>> operation, string runningText, Func<FileOpResult, string> resultText)
     {
         _suppressWatcher = true;
-        _viewModel.SetStatus(runningText);
+        Vm.SetStatus(runningText);
 
         try
         {
             var result = await operation();
             string text = resultText(result);
-            _viewModel.SetStatus(text);
+            Vm.SetStatus(text);
             return (result, text);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -255,7 +255,7 @@ public partial class MainWindow
 
             string reason = FsErrors.DescribeForOperation(code);
             string text = string.Format(Strings.Status_OperationFailed, reason);
-            _viewModel.SetStatus(text);
+            Vm.SetStatus(text);
             return (FileOpResult.Failure(reason), text);
         }
         finally
@@ -267,7 +267,7 @@ public partial class MainWindow
     /// <summary>刷新当前目录并按路径恢复选中。刷新会整表替换，选中必须重设。</summary>
     private async Task RefreshAndSelectAsync(IReadOnlyList<string> selectPaths)
     {
-        await _viewModel.RefreshAsync();
+        await Vm.RefreshAsync();
         SelectPaths(selectPaths);
     }
 
@@ -284,7 +284,7 @@ public partial class MainWindow
         FileEntry? first = null;
         foreach (string path in selectPaths)
         {
-            if (_viewModel.FindByPath(path) is not { } entry) continue;
+            if (Vm.FindByPath(path) is not { } entry) continue;
 
             FileList.SelectedItems.Add(entry);
             first ??= entry;

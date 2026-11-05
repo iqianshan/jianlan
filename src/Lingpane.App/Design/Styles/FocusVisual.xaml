@@ -1,0 +1,52 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        键盘焦点视觉（FR-10.7 / AC-08）。
+
+        为什么要有这个文件：所有自绘控件模板里都写了 FocusVisualStyle={x:Null}，
+        把 WPF 的系统虚线框关掉了——这在鼠标操作时是对的（画虚线太吵），
+        但关掉之后没有再补任何替代，结果就是**纯键盘操作时完全看不出焦点在哪**。
+        Tab 走一遍工具栏、或用方向键在列表里移动，屏幕上没有任何变化。
+
+        实现上用 FocusVisualStyle 而不是模板内的 Border：
+        FocusVisualStyle 由 WPF 画在 Adorner 层，不参与布局，焦点进出时控件尺寸不会跳动。
+        如果在 ControlTemplate 里加一条 Border，1px 环会把内容挤走 2px。
+
+        两个变体：
+          · Ring  —— 向外扩 2px，用于按钮（按钮之间有空隙，越界不会盖住邻居）
+          · Inset —— 向内缩 1px，用于列表行（行与行紧贴，外扩会画到相邻行上）
+        颜色取 Brush.Border.Focus：浅色/深色是品牌蓝，高对比度自动切到系统 HighlightColor。
+    -->
+
+    <Style x:Key="FocusVisual.Ring">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="-2"
+                               RadiusX="4"
+                               RadiusY="4"
+                               Stroke="{DynamicResource Brush.Border.Focus}"
+                               StrokeThickness="2"
+                               SnapsToDevicePixels="True"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="FocusVisual.Inset">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="1"
+                               RadiusX="3"
+                               RadiusY="3"
+                               Stroke="{DynamicResource Brush.Border.Focus}"
+                               StrokeThickness="1"
+                               SnapsToDevicePixels="True"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

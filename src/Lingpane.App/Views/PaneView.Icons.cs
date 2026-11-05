@@ -12,11 +12,11 @@ namespace Lingpane.App.Views;
 /// 图标只是"看起来更像资源管理器"，绝不能占用启动预算。旧结果用代次号丢弃，
 /// 连续快速导航不会出现图标串到别的目录。
 /// </summary>
-public partial class MainWindow
+public partial class PaneView
 {
     private int _iconGeneration;
 
-    private void ScheduleFolderIcons(string directory)
+    internal void ScheduleFolderIcons(string directory)
     {
         int generation = ++_iconGeneration;
         if (string.IsNullOrEmpty(directory)) return;
@@ -29,7 +29,7 @@ public partial class MainWindow
         if (generation != _iconGeneration) return;
 
         // 快照必须在 UI 线程取：Entries 会被过滤/刷新整体替换
-        FileEntry[] snapshot = _viewModel.Entries.ToArray();
+        FileEntry[] snapshot = Vm.Entries.ToArray();
         if (snapshot.Length == 0) return;
 
         List<(FileEntry Entry, string Token)> updates;

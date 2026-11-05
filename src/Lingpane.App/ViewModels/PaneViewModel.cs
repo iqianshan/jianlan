@@ -14,14 +14,16 @@ namespace Lingpane.App.ViewModels;
 public sealed record NavItem(string Name, string Glyph, string Path);
 
 /// <summary>
-/// 主视图模型：负责"打开目录 → 过滤 → 排序 → 交给列表"，以及导航栈与地址栏状态。
-/// 不含标签页、双窗格、彩标——这些在 M2 接入。
+/// 单个浏览区（窗格）的视图模型：负责"打开目录 → 过滤 → 排序 → 交给列表"，
+/// 以及导航栈、地址栏状态与状态栏文案。不含标签页、双窗格、彩标——这些在 M2 接入。
+///
+/// 一个 PaneView 对应一个 PaneViewModel。双窗格就是两份，互不共享导航栈与选中项。
 ///
 /// 内存与响应性约定：
 ///   · <c>_all</c> 保存磁盘枚举的原始结果，切换"显示隐藏文件"只在内存里过滤，不重新枚举（FR-5.2.4）
 ///   · 对外只暴露整体替换的 IReadOnlyList，避免逐条 CollectionChanged（ADR-0003）
 /// </summary>
-public sealed class MainViewModel : INotifyPropertyChanged
+public sealed class PaneViewModel : INotifyPropertyChanged
 {
     private readonly NavigationHistory _history = new();
     private readonly AppSettings _settings;
@@ -49,7 +51,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     /// <summary>导航序号：用于丢弃过期的异步枚举结果（快速连按时防止旧目录覆盖新目录）。</summary>
     private int _navigationToken;
 
-    public MainViewModel(AppSettings settings)
+    public PaneViewModel(AppSettings settings)
     {
         _settings = settings;
         // schema 里允许 grid，但 M1 未实现该视图（见 SetViewMode），启动时回落到列表

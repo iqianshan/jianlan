@@ -47,18 +47,18 @@ public partial class MainWindow
             r.WindowSize = $"{Math.Round(ActualWidth)}x{Math.Round(ActualHeight)}";
 
             var sw = Stopwatch.StartNew();
-            await _viewModel.NavigateAsync(ProbePath!);
+            await Vm.NavigateAsync(ProbePath!);
 
-            r.ItemCount = _viewModel.Entries.Count;
-            r.EnumerateMs = _viewModel.LastEnumerateMs;
+            r.ItemCount = Vm.Entries.Count;
+            r.EnumerateMs = Vm.LastEnumerateMs;
 
             // 打不开的目录会返回 0 项，单看 ItemCount 与"空目录"无法区分。
             // AC-05 的边界场景正是靠这个字段判断"优雅失败"还是"静默空表"。
-            r.NavigateError = _viewModel.LastNavigationError;
+            r.NavigateError = Vm.LastNavigationError;
 
             // 状态栏是用户唯一能看到的失败提示，截图在窗口较高时会被裁掉底部，
             // 探针直接把文本带出来，验收脚本据此核对文案。
-            r.StatusText = _viewModel.StatusText;
+            r.StatusText = Vm.StatusText;
             r.NavigateReturnMs = Math.Round(sw.Elapsed.TotalMilliseconds, 1);
 
             // 首屏：导航完成 → 列表完成一次排版与绘制
@@ -71,7 +71,7 @@ public partial class MainWindow
             // 加载完成后的工作集（未滚动）
             r.WorkingSetAfterLoadMb = CurrentWorkingSetMb();
 
-            var sv = FindScrollViewer(FileList);
+            var sv = FindScrollViewer(Pane.FileList);
             if (sv is null)
             {
                 r.Error = "未找到 ScrollViewer（模板可能变更）";
@@ -82,7 +82,7 @@ public partial class MainWindow
 
                 if (ProbeFrames > 0)
                 {
-                    double step = Math.Max(48, GetItemHeight(FileList) * 3);
+                    double step = Math.Max(48, GetItemHeight(Pane.FileList) * 3);
                     r.ScrollStepPx = Math.Round(step, 0);
 
                     var stats = await SampleScrollAsync(sv, ProbeFrames, step);

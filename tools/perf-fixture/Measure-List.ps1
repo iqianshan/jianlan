@@ -42,8 +42,15 @@ param(
     [switch]$Normalize,
 
     # NF-05R：归一化口径下的增量上限（MB），即"Lingpane − 纯 WPF 空窗口"。
-    # 优化后万项目录 + 滚动实测 29.7，留到 45。这是代码回归判据，判定时先于 NF-05。
-    [double]$MaxDeltaMb = 45,
+    # 2026-11-03 实测 29.7 时定为 45；2026-11-05 复测 43.2~46.4 已踩线，
+    # 按 ADR-0008 重新标定为 65（实测均值 44.8 + M2 预估增量 15 + 余量）。
+    # 这是代码回归判据，判定时先于 NF-05。
+    [double]$MaxDeltaMb = 65,
+
+    # 空窗口对照的上限（MB）。超过说明系统处于高态，整批内存数据作废。
+    # 比 GDI > 80 更直接：高态下空窗口稳定在 118，而 GDI 偶尔是 118 偶尔是 120，
+    # 且 Lingpane 自身的私有提交会在 121~161 之间摆动，Normalize 相减也救不回来（见 ADR-0008）。
+    [double]$MaxBlankMb = 90,
 
     # 预热次数（不计入结果）。首次启动的进程私有提交明显偏高
     # （实测同一个空窗口首轮 118MB，稳定后 82MB），不预热会把冷态成本算进结果。
@@ -175,6 +182,7 @@ Write-Host ("私有提交     {0,8:N1} MB   阈值 <= {1} MB    （NF-05，对�
 
 $deltaValues = @($results | Where-Object { $null -ne $_.deltaMb } | ForEach-Object { [double]$_.deltaMb })
 $delta = $null
+$blankMed = $null
 if ($Normalize -and $deltaValues.Count -gt 0) {
     $blankMed = Get-Median ($results | Where-Object { $null -ne $_.blankMb } | ForEach-Object { [double]$_.blankMb })
     $delta = Get-Median $deltaValues
@@ -193,9 +201,19 @@ Write-Host ("GDI 对象     {0,8:N0}" -f $gdi)
 #   两态与代码无关（空窗口对照同步变化），且不会自行回落，重启系统后恢复。
 #   高态下的内存数字与历史不可比，此时不应据此判定 NF-05 通过或未通过。
 $gdiHigh = $gdi -gt 80
-if ($gdiHigh) {
+$blankHigh = $Normalize -and $null -ne $blankMed -and $blankMed -gt $MaxBlankMb
+$envBad = $gdiHigh -or $blankHigh
+if ($envBad) {
     Write-Host ''
-    Write-Host '注意：GDI 对象高于 80，当前处于高态（正常态为 56）。' -ForegroundColor Yellow
+    if ($blankHigh) {
+        Write-Host ("注意：空窗口对照 {0:N1} MB 超过 {1} MB，当前处于高态。" -f $blankMed, $MaxBlankMb) -ForegroundColor Yellow
+        Write-Host '      高态下 Lingpane 自身的私有提交会在 121~161MB 之间摆动，' -ForegroundColor Yellow
+        Write-Host '      Normalize 相减也救不回来（ADR-0008），NF-05R 判定无效。' -ForegroundColor Yellow
+    }
+    else {
+        Write-Host '注意：GDI 对象高于 80，当前处于高态（正常态为 56）。' -ForegroundColor Yellow
+    }
+
     Write-Host '      高态下私有提交比正常态高约 36MB，此数字不可与历史对比，NF-05 判定无效。' -ForegroundColor Yellow
     Write-Host '      恢复方式：重启系统后重测。' -ForegroundColor Yellow
 }

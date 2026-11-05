@@ -19,7 +19,7 @@ namespace Lingpane.App.Views;
 ///
 /// 磁盘操作全部交给 <see cref="FileOperations"/>，这里只做命中测试与效果提示。
 /// </summary>
-public partial class MainWindow
+public partial class PaneView
 {
     private Point _dragOrigin;
     private bool _dragArmed;
@@ -53,7 +53,7 @@ public partial class MainWindow
             item.IsSelected = true;
         }
 
-        var items = _viewModel.SelectedEntries;
+        var items = Vm.SelectedEntries;
         if (items.Count == 0) return;
 
         var data = new DataObject(DataFormats.FileDrop, items.Select(i => i.FullPath).ToArray());
@@ -70,7 +70,7 @@ public partial class MainWindow
 
         if (target is null || effect == DragDropEffects.None)
         {
-            _viewModel.SetHint(string.Empty);
+            Vm.SetHint(string.Empty);
             return;
         }
 
@@ -78,15 +78,15 @@ public partial class MainWindow
         string label = Path.GetFileName(target.TrimEnd(Path.DirectorySeparatorChar));
         if (label.Length == 0) label = target;
 
-        _viewModel.SetHint(string.Format(
+        Vm.SetHint(string.Format(
             effect == DragDropEffects.Move ? Strings.Hint_DragMoveTo : Strings.Hint_DragCopyTo, label));
     }
 
-    private void OnFileDragLeave(object sender, DragEventArgs e) => _viewModel.SetHint(string.Empty);
+    private void OnFileDragLeave(object sender, DragEventArgs e) => Vm.SetHint(string.Empty);
 
     private async void OnFileDrop(object sender, DragEventArgs e)
     {
-        _viewModel.SetHint(string.Empty);
+        Vm.SetHint(string.Empty);
         _dragArmed = false;
 
         DragDropEffects effect = ResolveExternalDropEffect(e, out string? target);
@@ -109,7 +109,7 @@ public partial class MainWindow
         if (result.Succeeded > 0) await RefreshAndSelectAsync([]);
 
         // 失败原因不能被随后的刷新覆盖
-        if (!result.Ok || result.Failed > 0) _viewModel.SetStatus(text);
+        if (!result.Ok || result.Failed > 0) Vm.SetStatus(text);
     }
 
     /// <summary>判定外部拖入的目标目录与效果。<paramref name="target"/> 为 null 表示不允许放下。</summary>
@@ -163,6 +163,6 @@ public partial class MainWindow
             return folder.FullPath;
         }
 
-        return _viewModel.CurrentPath;
+        return Vm.CurrentPath;
     }
 }

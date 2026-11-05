@@ -271,6 +271,9 @@ def main() -> int:
             "enter": (0x0D,),
             "ctrl+a": (0x11, 0x41),
             "esc": (0x1B,),
+            "tab": (0x09,),
+            "shift+tab": (0x10, 0x09),
+            "app": (0x5D,),
         }
 
         combo = " ".join(sys.argv[3:]).lower()

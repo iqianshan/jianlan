@@ -1,4 +1,5 @@
 using System.IO;
+using System.Windows;
 using System.Windows.Threading;
 
 namespace Lingpane.App.Views;
@@ -12,7 +13,7 @@ namespace Lingpane.App.Views;
 ///   · 复制大目录时事件会密集到达，直接每次刷新会把界面拖死——统一去抖 400ms。
 /// 程序自己发起操作期间用 <see cref="_suppressWatcher"/> 暂停，操作结束后由调用方刷新一次。
 /// </summary>
-public partial class MainWindow
+public partial class PaneView
 {
     private static readonly TimeSpan WatcherDebounce = TimeSpan.FromMilliseconds(400);
 
@@ -20,8 +21,9 @@ public partial class MainWindow
     private string? _watchedDirectory;
     private DispatcherTimer? _debounceTimer;
     private bool _suppressWatcher;
+    private bool _paneClosed;
 
-    private void StartWatching(string directory)
+    internal void StartWatching(string directory)
     {
         if (string.IsNullOrEmpty(directory)) return;
 
@@ -110,20 +112,26 @@ public partial class MainWindow
         _debounceTimer?.Stop();
 
         if (_suppressWatcher) return;
-        if (string.IsNullOrEmpty(_viewModel.CurrentPath)) return;
+        if (string.IsNullOrEmpty(Vm.CurrentPath)) return;
 
         // 外部变化时用户可能正多选，刷新后按路径恢复
-        string[] selected = _viewModel.SelectedEntries.Select(entry => entry.FullPath).ToArray();
+        string[] selected = Vm.SelectedEntries.Select(entry => entry.FullPath).ToArray();
         await RefreshAndSelectAsync(selected);
     }
 
-    protected override void OnClosed(EventArgs e)
+    /// <summary>
+    /// 窗格从可视树移除时收尾。原来是 Window.OnClosed，拆成 UserControl 后
+    /// 走 Unloaded——标签页关闭（FR-2.3）与窗口关闭都会走到这里。
+    /// 加一次性保护：Unloaded 在重设父子关系时可能重复触发。
+    /// </summary>
+    private void OnPaneUnloaded(object sender, RoutedEventArgs e)
     {
+        if (_paneClosed) return;
+        _paneClosed = true;
+
         _debounceTimer?.Stop();
         StopWatching();
-        _viewModel.NavigationCompleted -= StartWatching;
-        _viewModel.NavigationCompleted -= ScheduleFolderIcons;
-
-        base.OnClosed(e);
+        Vm.NavigationCompleted -= StartWatching;
+        Vm.NavigationCompleted -= ScheduleFolderIcons;
     }
 }

@@ -250,7 +250,7 @@ public partial class SettingsWindow : Window
     {
         if (_loading) return;
 
-        // 界面只提供两种视图，Grid 在 M1 未实现（见 MainViewModel.SetViewMode）
+        // 界面只提供两种视图，Grid 在 M1 未实现（见 PaneViewModel.SetViewMode）
         Settings.Behavior.DefaultView = ViewCombo.SelectedIndex == 1
             ? DefaultViewKind.List
             : DefaultViewKind.Details;

@@ -6,23 +6,32 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Media.Media3D;
 using System.Windows.Threading;
 using Lingpane.App.Commands;
 using Lingpane.App.Services;
 using Lingpane.App.ViewModels;
 using Lingpane.Core.Commands;
 using Lingpane.Core.Diagnostics;
-using Lingpane.Core.FileSystem;
 using Lingpane.Core.Settings;
 
 using Lingpane.Core.Localization;
 
 namespace Lingpane.App.Views;
 
+/// <summary>
+/// 窗口壳。持有导航栏、命令表、快捷键钩子、系统热键与会话保存，
+/// 浏览区（工具栏/地址栏/列头/列表/状态栏）在 <see cref="Pane"/> 里。
+///
+/// 分工边界：
+///   · 窗口级：窗口标题与尺寸、导航栏、快捷键派发、Ctrl+, 热键、设置窗口、启动计时、会话
+///   · 窗格级：一切"作用于某个目录"的东西，见 PaneView
+///
+/// 命令表现阶段仍在这里（按钮用 <c>AncestorType=Window</c> 取命令），
+/// 但每个命令的 Execute 都指向 <see cref="Pane"/>，所以语义已经从"窗口的命令"
+/// 变成"作用于当前窗格的命令"。下一步搬进 PaneView 时不需要改调用点。
+/// </summary>
 public partial class MainWindow : Window
 {
-    private readonly MainViewModel _viewModel;
     private readonly CommandRegistry _commands = new();
     private bool _flushed;
 
@@ -48,16 +57,14 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
-        // 设置必须在创建视图模型前就绪：默认视图、排序规则都来自设置
-        _viewModel = new MainViewModel(App.Settings);
-        StartupTrace.Mark("vm");
-
         InitializeComponent();
-        DataContext = _viewModel;
-        StartupTrace.Mark("xaml");
 
-        // 列宽要在首帧前就位，否则会看到一次"默认宽度 → 记忆宽度"的跳动
-        ApplyColumnWidths();
+        // 视图模型由窗口建、交给窗格用。反过来（窗格自己 new）会让
+        // "谁是所有者、什么时候创建、双窗格建几个"散落在窗格内部。
+        Pane.Attach(new PaneViewModel(App.Settings));
+        DataContext = Pane.ViewModel;
+        StartupTrace.Mark("vm");
+        StartupTrace.Mark("xaml");
 
         // 命令在此集中注册：菜单、快捷键、工具栏按钮都从同一张表取，
         // 避免同一功能在三处各写一份逻辑（ADR-0004 无容器，直接构造即可）。
@@ -66,32 +73,32 @@ public partial class MainWindow : Window
             Id = CommandIds.GoUp,
             TitleFactory = () => Strings.Command_GoUp,
             Gesture = "Alt+↑",
-            CanExecute = CanGoUp,
-            Execute = GoUp,
+            CanExecute = Pane.CanGoUp,
+            Execute = Pane.GoUp,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.GoBack,
             TitleFactory = () => Strings.Command_GoBack,
             Gesture = "Alt+←",
-            CanExecute = () => !_viewModel.IsLoading && _viewModel.CanGoBack,
-            Execute = () => _ = _viewModel.GoBackAsync(),
+            CanExecute = () => Vm is { IsLoading: false, CanGoBack: true },
+            Execute = () => _ = Vm.GoBackAsync(),
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.GoForward,
             TitleFactory = () => Strings.Command_GoForward,
             Gesture = "Alt+→",
-            CanExecute = () => !_viewModel.IsLoading && _viewModel.CanGoForward,
-            Execute = () => _ = _viewModel.GoForwardAsync(),
+            CanExecute = () => Vm is { IsLoading: false, CanGoForward: true },
+            Execute = () => _ = Vm.GoForwardAsync(),
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.Refresh,
             TitleFactory = () => Strings.Command_Refresh,
             Gesture = "F5",
-            CanExecute = () => !_viewModel.IsLoading,
-            Execute = () => _ = _viewModel.RefreshAsync(),
+            CanExecute = () => !Vm.IsLoading,
+            Execute = () => _ = Vm.RefreshAsync(),
         });
         _commands.Register(new AppCommand
         {
@@ -106,14 +113,14 @@ public partial class MainWindow : Window
             Id = CommandIds.ViewDetails,
             TitleFactory = () => Strings.Command_ViewDetails,
             Gesture = "Ctrl+Shift+1",
-            Execute = () => _viewModel.SetViewMode(DefaultViewKind.Details),
+            Execute = () => Vm.SetViewMode(DefaultViewKind.Details),
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.ViewList,
             TitleFactory = () => Strings.Command_ViewList,
             Gesture = "Ctrl+Shift+2",
-            Execute = () => _viewModel.SetViewMode(DefaultViewKind.List),
+            Execute = () => Vm.SetViewMode(DefaultViewKind.List),
         });
         _commands.Register(new AppCommand
         {
@@ -127,7 +134,7 @@ public partial class MainWindow : Window
             Id = CommandIds.FocusAddress,
             TitleFactory = () => Strings.Command_FocusAddress,
             Gesture = "Ctrl+L",
-            Execute = BeginAddressEdit,
+            Execute = Pane.BeginAddressEdit,
         });
 
         // 文件操作（M1 批 3）。可执行性由选中状态与当前目录决定，
@@ -136,91 +143,91 @@ public partial class MainWindow : Window
         {
             Id = CommandIds.OpenItem,
             TitleFactory = () => Strings.Command_Open,
-            Execute = OpenSelection,
-            CanExecute = HasSingleSelection,
+            Execute = Pane.OpenSelection,
+            CanExecute = Pane.HasSingleSelection,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.NewFolder,
             TitleFactory = () => Strings.Command_NewFolder,
-            Execute = () => _ = NewFolderAsync(),
-            CanExecute = CanCreateInCurrentDirectory,
+            Execute = () => _ = Pane.NewFolderAsync(),
+            CanExecute = Pane.CanCreateInCurrentDirectory,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.NewFile,
             TitleFactory = () => Strings.Command_NewFile,
-            Execute = () => _ = NewFileAsync(),
-            CanExecute = CanCreateInCurrentDirectory,
+            Execute = () => _ = Pane.NewFileAsync(),
+            CanExecute = Pane.CanCreateInCurrentDirectory,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.Rename,
             TitleFactory = () => Strings.Command_Rename,
-            Execute = () => _ = RenameSelectionAsync(),
-            CanExecute = HasSingleSelection,
+            Execute = () => _ = Pane.RenameSelectionAsync(),
+            CanExecute = Pane.HasSingleSelection,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.Delete,
             TitleFactory = () => Strings.Command_Delete,
-            Execute = () => _ = DeleteSelectionAsync(permanent: false),
-            CanExecute = HasSelection,
+            Execute = () => _ = Pane.DeleteSelectionAsync(permanent: false),
+            CanExecute = Pane.HasSelection,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.DeletePermanent,
             TitleFactory = () => Strings.Command_DeletePermanent,
-            Execute = () => _ = DeleteSelectionAsync(permanent: true),
-            CanExecute = HasSelection,
+            Execute = () => _ = Pane.DeleteSelectionAsync(permanent: true),
+            CanExecute = Pane.HasSelection,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.CopyItems,
             TitleFactory = () => Strings.Command_Copy,
-            Execute = () => CopySelection(cut: false),
-            CanExecute = HasSelection,
+            Execute = () => Pane.CopySelection(cut: false),
+            CanExecute = Pane.HasSelection,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.CutItems,
             TitleFactory = () => Strings.Command_Cut,
-            Execute = () => CopySelection(cut: true),
-            CanExecute = HasSelection,
+            Execute = () => Pane.CopySelection(cut: true),
+            CanExecute = Pane.HasSelection,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.Paste,
             TitleFactory = () => Strings.Command_Paste,
-            Execute = () => _ = PasteAsync(),
-            CanExecute = CanPaste,
+            Execute = () => _ = Pane.PasteAsync(),
+            CanExecute = Pane.CanPaste,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.CopyPath,
             TitleFactory = () => Strings.Command_CopyPath,
-            Execute = CopyPathSelection,
-            CanExecute = HasSelection,
+            Execute = Pane.CopyPathSelection,
+            CanExecute = Pane.HasSelection,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.Properties,
             TitleFactory = () => Strings.Command_Properties,
-            Execute = ShowProperties,
-            CanExecute = HasSelection,
+            Execute = Pane.ShowProperties,
+            CanExecute = Pane.HasSelection,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.ShowContextMenu,
             TitleFactory = () => Strings.Command_More,
-            Execute = ShowContextMenu,
+            Execute = Pane.ShowContextMenu,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.SelectAll,
             TitleFactory = () => Strings.Command_SelectAll,
-            Execute = SelectAllItems,
-            CanExecute = () => !_viewModel.IsLoading && FileList.Items.Count > 0,
+            Execute = Pane.SelectAllItems,
+            CanExecute = () => !Vm.IsLoading && Pane.ItemCount > 0,
         });
 
         UpCommand = new CommandAdapter(_commands.Get(CommandIds.GoUp));
@@ -249,8 +256,8 @@ public partial class MainWindow : Window
         PreviewKeyDown += OnPreviewKeyDown;
 
         // 目录一换就换监听目标
-        _viewModel.NavigationCompleted += StartWatching;
-        _viewModel.NavigationCompleted += ScheduleFolderIcons;
+        Vm.NavigationCompleted += Pane.StartWatching;
+        Vm.NavigationCompleted += Pane.ScheduleFolderIcons;
 
         Loaded += OnLoaded;
         ContentRendered += OnContentRendered;
@@ -263,43 +270,28 @@ public partial class MainWindow : Window
             // 热键是系统级资源，进程退出前主动交还，避免句柄被回收前的短暂占用
             UnregisterSettingsHotkey();
 
-            if (!string.IsNullOrEmpty(_viewModel.CurrentPath))
+            if (!string.IsNullOrEmpty(Vm.CurrentPath))
             {
-                App.Settings.Session.LastPath = _viewModel.CurrentPath;
+                App.Settings.Session.LastPath = Vm.CurrentPath;
             }
         };
     }
 
-    /// <summary>
-    /// 能否返回上级。注意 CurrentPath 在首次导航前是空串，
-    /// 而按钮绑定会在窗口加载时就查询 CanExecute——此处必须挡住空值，
-    /// 否则 Directory.GetParent("") 直接抛 ArgumentException，启动即崩。
-    /// </summary>
-    private bool CanGoUp()
-    {
-        string path = _viewModel.CurrentPath;
-        if (string.IsNullOrWhiteSpace(path)) return false;
-
-        try
-        {
-            return Directory.GetParent(path) is not null;
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
-    }
-
-    private void GoUp()
-    {
-        if (!CanGoUp()) return;
-
-        string parent = Directory.GetParent(_viewModel.CurrentPath)!.FullName;
-        _ = _viewModel.NavigateAsync(parent);
-    }
+    /// <summary>本窗口的浏览区视图模型。窗格在构造函数里附加，此后恒不为 null。</summary>
+    private PaneViewModel Vm => Pane.ViewModel!;
 
     /// <summary>供单实例转交使用：把已打开的窗口切到指定目录。</summary>
-    public void NavigateTo(string path) => _ = _viewModel.NavigateAsync(path);
+    public void NavigateTo(string path) => Pane.NavigateTo(path);
+
+    // ── 与设置页的接口 ──────────────────────────────────────────────────────
+    // 设置页只认 MainWindow，不认 PaneView。字号变化要按"项目索引"还原滚动位置，
+    // 因此这里保留两个转发方法，让设置页不必知道窗格的存在。
+
+    /// <inheritdoc cref="PaneView.CaptureScrollAnchor"/>
+    public (int Index, double Offset) CaptureScrollAnchor() => Pane.CaptureScrollAnchor();
+
+    /// <inheritdoc cref="PaneView.RestoreScrollAnchor"/>
+    public void RestoreScrollAnchor((int Index, double Offset) anchor) => Pane.RestoreScrollAnchor(anchor);
 
     /// <summary>设置改动后重新套用受影响的界面状态（不重建窗口）。</summary>
     public void ApplySettingsToUi()
@@ -311,139 +303,16 @@ public partial class MainWindow : Window
             : new GridLength(0);
         QuickAccessList.Visibility = s.Appearance.ShowNavPane ? Visibility.Visible : Visibility.Collapsed;
 
-        StatusBarHost.Visibility = s.Appearance.ShowStatusBar ? Visibility.Visible : Visibility.Collapsed;
+        // 导航栏底部的占位条跟随状态栏：状态栏隐藏时它也不该留着一条空横线
+        NavStatusSpacer.Visibility = s.Appearance.ShowStatusBar ? Visibility.Visible : Visibility.Collapsed;
 
-        ApplyColumnWidths();
-
-        _viewModel.ApplyShowExtensions(s.Behavior.ShowExtensions);
-        _viewModel.ApplyFilter();
+        Pane.ApplyAppearance(s);
 
         if (KeyDebug)
         {
             WriteKeyLog($"ui statusBar={s.Appearance.ShowStatusBar} " +
-                        $"visibility={StatusBarHost.Visibility} height={StatusBarHost.Height} " +
-                        $"actual={StatusBarHost.ActualHeight} statusText=\"{_viewModel.StatusText}\"");
-        }
-    }
-
-    // ── 列宽 ────────────────────────────────────────────────────────────────
-    //
-    // 列宽不放 ViewModel：它只影响显示，且行模板与列头共用同三个 DynamicResource
-    // 令牌（Column.Date/Type/Size.Width），改令牌即全局生效，不需要重建列表。
-    // 名称列是星号列，宽度随窗口伸缩，因此不参与拖拽。
-
-    private void ApplyColumnWidths()
-    {
-        AppSettings s = App.Settings;
-        Resources["Column.Date.Width"] = s.Layout.ColumnDateWidth;
-        Resources["Column.Type.Width"] = s.Layout.ColumnTypeWidth;
-        Resources["Column.Size.Width"] = s.Layout.ColumnSizeWidth;
-
-        if (KeyDebug)
-        {
-            WriteKeyLog($"columns in={s.Layout.ColumnDateWidth}/{s.Layout.ColumnTypeWidth}/{s.Layout.ColumnSizeWidth}");
-        }
-    }
-
-    /// <summary>布局诊断：列头实际宽度与可视位置，确认"列被裁掉"还是"列不存在"。</summary>
-    private void LogColumnLayout()
-    {
-        if (!KeyDebug) return;
-
-        WriteKeyLog($"layout window={ActualWidth:0}x{ActualHeight:0} list={FileList.ActualWidth:0} " +
-                    $"header={HeaderGrid.ActualWidth:0} margin={HeaderGrid.Margin}");
-
-        for (int i = 0; i < HeaderGrid.ColumnDefinitions.Count; i++)
-        {
-            WriteKeyLog($"layout col{i}={HeaderGrid.ColumnDefinitions[i].ActualWidth:0.#}");
-        }
-
-        foreach (Button button in new[] { NameHeaderButton, DateHeaderButton, TypeHeaderButton, SizeHeaderButton })
-        {
-            if (button is null) continue;
-
-            Point origin = button.TranslatePoint(new Point(0, 0), FileList);
-            Point screen = button.PointToScreen(new Point(0, 0));
-            WriteKeyLog($"layout {button.Tag}: w={button.ActualWidth:0.#} x={origin.X:0.#} " +
-                        $"screenX={screen.X:0.#} screenY={screen.Y:0.#} content=\"{button.Content}\"");
-        }
-
-        // 把手的实际屏幕矩形：拖拽验证（模拟输入）必须按这个坐标落点，
-        // 按列头坐标推算容易在缩放/边框上差几像素而打空。
-        foreach (Thumb thumb in HeaderGrid.Children.OfType<Thumb>())
-        {
-            Point p = thumb.PointToScreen(new Point(0, 0));
-            WriteKeyLog($"layout thumb {thumb.Tag}: x={p.X:0.#} y={p.Y:0.#} " +
-                        $"w={thumb.ActualWidth:0.#} h={thumb.ActualHeight:0.#}");
-        }
-    }
-
-    // 名称列（星号列）的最小可视宽度，与 DesignTokens 的 Column.Name.MinWidth 对齐。
-    // 拖宽其他列时不能把名称列压到这条线以下，否则文件名不可读、
-    // 且星号列被压到 0 后 Grid 会整体溢出，把最右侧的列挤出可视区。
-    private const double MinNameWidth = 160;
-
-    private void OnColumnResize(object sender, DragDeltaEventArgs e)
-    {
-        if (sender is not Thumb { Tag: string token }) return;
-
-        double current = ReadColumnWidth(token);
-
-        // 把手挂在列的左边缘：向右拖（HorizontalChange > 0）= 把分隔线右推，
-        // 本列变窄、左邻列变宽；向左拖则相反。取反后分隔线始终跟着鼠标，
-        // 而不是"列宽变了、边界却不动"。
-        double next = current - e.HorizontalChange;
-
-        // 只有本列变宽时受限：最多吃掉名称列让出的富余宽度，避免溢出
-        if (next > current)
-        {
-            double nameSlack = HeaderGrid.ColumnDefinitions[2].ActualWidth - MinNameWidth;
-            next = Math.Min(next, current + Math.Max(0, nameSlack));
-        }
-
-        next = Math.Clamp(next, AppSettings.MinColumnWidth, AppSettings.MaxColumnWidth);
-
-        if (Math.Abs(next - current) < 0.5) return;
-
-        WriteColumnWidth(token, next);
-        Resources[token] = next;
-    }
-
-    private void OnColumnResizeDone(object sender, DragCompletedEventArgs e)
-    {
-        if (sender is not Thumb thumb) return;
-
-        // 一次拖拽只落盘一次，不跟随每个 DragDelta 写文件
-        App.SaveSettings();
-
-        if (KeyDebug)
-        {
-            AppSettings s = App.Settings;
-            WriteKeyLog($"columns done {thumb.Tag} delta={e.HorizontalChange:0.#} " +
-                        $"out={s.Layout.ColumnDateWidth:0.#}/{s.Layout.ColumnTypeWidth:0.#}/{s.Layout.ColumnSizeWidth:0.#}");
-        }
-    }
-
-    private static double ReadColumnWidth(string token) => token switch
-    {
-        "Column.Date.Width" => App.Settings.Layout.ColumnDateWidth,
-        "Column.Type.Width" => App.Settings.Layout.ColumnTypeWidth,
-        _ => App.Settings.Layout.ColumnSizeWidth,
-    };
-
-    private static void WriteColumnWidth(string token, double value)
-    {
-        switch (token)
-        {
-            case "Column.Date.Width":
-                App.Settings.Layout.ColumnDateWidth = value;
-                break;
-            case "Column.Type.Width":
-                App.Settings.Layout.ColumnTypeWidth = value;
-                break;
-            default:
-                App.Settings.Layout.ColumnSizeWidth = value;
-                break;
+                        $"visibility={Pane.StatusBarVisibility} " +
+                        $"statusText=\"{Vm.StatusText}\"");
         }
     }
 
@@ -596,7 +465,7 @@ public partial class MainWindow : Window
 
         int vk = wParam.ToInt32();
         ModifierKeys modifiers = Keyboard.Modifiers & RelevantModifiers;
-        bool listFocused = FileList.IsKeyboardFocusWithin;
+        bool listFocused = Pane.IsListFocused;
 
         if (KeyDebug)
         {
@@ -652,7 +521,7 @@ public partial class MainWindow : Window
         _commands.Invoke(commandId);
     }
 
-    private static void WriteKeyLog(string message)
+    internal static void WriteKeyLog(string message)
     {
         try
         {
@@ -667,212 +536,6 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>键盘菜单键（VK_APPS）弹出上下文菜单，位置对齐列表。</summary>
-    private void ShowContextMenu()
-    {
-        if (FileList.ContextMenu is not { } menu) return;
-
-        menu.PlacementTarget = FileList;
-        menu.Placement = PlacementMode.Center;
-        menu.IsOpen = true;
-    }
-
-    /// <summary>WPF 的 ListBox 在 Extended 模式下没有内建 Ctrl+A，需要自己调 SelectAll。</summary>
-    private void SelectAllItems()
-    {
-        FileList.SelectAll();
-        CommandManager.InvalidateRequerySuggested();
-    }
-
-    // ── 命令可执行性 ────────────────────────────────────────────────────────
-
-    private bool HasSelection() => !_viewModel.IsLoading && _viewModel.SelectedEntries.Count > 0;
-
-    private bool HasSingleSelection() => !_viewModel.IsLoading && _viewModel.SelectedEntries.Count == 1;
-
-    private bool CanCreateInCurrentDirectory()
-        => !_viewModel.IsLoading && !string.IsNullOrEmpty(_viewModel.CurrentPath);
-
-    private bool CanPaste()
-        => !_viewModel.IsLoading && FileClipboard.HasData && !string.IsNullOrEmpty(_viewModel.CurrentPath);
-
-    /// <summary>
-    /// 记录列表滚动位置。字号/行高变化会导致偏移量失真，
-    /// 设置页据此按项目索引还原，避免改字号后列表跳回顶部（FONT-05）。
-    /// </summary>
-    public (int Index, double Offset) CaptureScrollAnchor()
-        => Typography.FontScaleService.CaptureAnchor(FindScrollViewer());
-
-    public void RestoreScrollAnchor((int Index, double Offset) anchor)
-        => Typography.FontScaleService.RestoreAnchor(FindScrollViewer(), anchor);
-
-    private ScrollViewer? FindScrollViewer()
-    {
-        return FindDescendant<ScrollViewer>(FileList);
-
-        static T? FindDescendant<T>(DependencyObject root) where T : DependencyObject
-        {
-            int count = VisualTreeHelper.GetChildrenCount(root);
-            for (int i = 0; i < count; i++)
-            {
-                DependencyObject child = VisualTreeHelper.GetChild(root, i);
-                if (child is T match) return match;
-                if (FindDescendant<T>(child) is { } nested) return nested;
-            }
-
-            return null;
-        }
-    }
-
-    // ── 地址栏 ──────────────────────────────────────────────────────────────
-
-    private void BeginAddressEdit()
-    {
-        if (string.IsNullOrEmpty(_viewModel.CurrentPath)) return;
-
-        _viewModel.IsAddressEditing = true;
-        AddressBox.Text = _viewModel.CurrentPath;
-        AddressBox.Focus();
-        AddressBox.SelectAll();
-    }
-
-    private void EndAddressEdit() => _viewModel.IsAddressEditing = false;
-
-    private async void OnAddressKeyDown(object sender, KeyEventArgs e)
-    {
-        switch (e.Key)
-        {
-            case Key.Enter:
-                string target = AddressBox.Text;
-                EndAddressEdit();
-                if (!string.IsNullOrWhiteSpace(target) && !Directory.Exists(target))
-                {
-                    _viewModel.SetHint(string.Format(Strings.Hint_PathNotFound, target));
-                    return;
-                }
-
-                await _viewModel.NavigateAsync(target);
-                e.Handled = true;
-                break;
-
-            case Key.Escape:
-                EndAddressEdit();
-                e.Handled = true;
-                break;
-        }
-    }
-
-    private void OnAddressLostFocus(object sender, KeyboardFocusChangedEventArgs e) => EndAddressEdit();
-
-    private void OnBreadcrumbClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button { Tag: string path } && !string.IsNullOrEmpty(path))
-        {
-            _ = _viewModel.NavigateAsync(path);
-        }
-    }
-
-    // ── 列表交互 ────────────────────────────────────────────────────────────
-
-    private void OnSortClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is not Button { Tag: string field }) return;
-        if (!Enum.TryParse<SortFieldKind>(field, ignoreCase: true, out var kind)) return;
-
-        _viewModel.SortBy(kind);
-    }
-
-    private void OnFileSelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        long total = 0;
-        int count = 0;
-        var selected = new List<FileEntry>(FileList.SelectedItems.Count);
-
-        foreach (object item in FileList.SelectedItems)
-        {
-            if (item is not FileEntry entry) continue;
-            selected.Add(entry);
-            count++;
-            total += entry.Size;
-        }
-
-        _viewModel.SetSelection(count, total);
-        _viewModel.SetSelectedEntries(selected);
-
-        // 选中数变化影响"打开/重命名/删除"等命令的可执行性，右键菜单打开前必须已刷新
-        CommandManager.InvalidateRequerySuggested();
-    }
-
-    /// <summary>
-    /// 右键菜单的键位提示从快捷键表里取，与真实绑定同源。
-    /// 写在 XAML 里就会出现"菜单写着 Ctrl+,，实际却是别的键"这类不同步。
-    /// </summary>
-    /// <summary>
-    /// 每次菜单弹出时回填键位提示。
-    ///
-    /// 必须在 <c>Opened</c> 而不是 <c>Loaded</c> 做：菜单项的命令是经由
-    /// <see cref="System.Windows.Controls.Primitives.Popup.PlacementTarget"/> 拿窗口的，
-    /// 而 PlacementTarget 只在弹出时才有值。加载阶段调用的结果是一律拿到 null，
-    /// 键位提示静默为空——界面上看不出错，只能靠下面的日志兜底。
-    /// </summary>
-    private void OnContextMenuOpened(object sender, RoutedEventArgs e) => ApplyMenuGestures();
-
-    private void ApplyMenuGestures()
-    {
-        if (FileList.ContextMenu is not { } menu) return;
-
-        foreach (object item in menu.Items)
-        {
-            if (item is not MenuItem menuItem) continue;
-
-            if (menuItem.Command is not CommandAdapter adapter)
-            {
-                // 绑定名字写错时 Command 为 null，菜单项会静默失效——界面上完全看不出，
-                // 只能在这里留痕。正常情况一行都不会写。
-                WriteKeyLog($"menu unbound: header=\"{menuItem.Header}\"");
-                continue;
-            }
-
-            menuItem.InputGestureText = Input.KeyBindings.Gestures.TryGetValue(adapter.Source.Id, out string? text)
-                ? text
-                : string.Empty;
-        }
-    }
-
-    /// <summary>右键先选中行再弹菜单：不选中的话菜单里的操作对象是上一批选中项。</summary>
-    private void OnFileRightButtonDown(object sender, MouseButtonEventArgs e)
-    {
-        if (e.OriginalSource is not DependencyObject source) return;
-        if (FindAncestor<ListBoxItem>(source) is not { } item) return;
-
-        if (!item.IsSelected)
-        {
-            FileList.SelectedItems.Clear();
-            item.IsSelected = true;
-        }
-    }
-
-    private void OnFileDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        if (e.OriginalSource is not DependencyObject source) return;
-        if (FindAncestor<ListBoxItem>(source) is not { DataContext: FileEntry entry }) return;
-
-        OpenEntry(entry);
-        e.Handled = true;
-    }
-
-    private static T? FindAncestor<T>(DependencyObject? node) where T : DependencyObject
-    {
-        while (node is not null and not T)
-        {
-            node = node is Visual or Visual3D
-                ? VisualTreeHelper.GetParent(node)
-                : LogicalTreeHelper.GetParent(node);
-        }
-
-        return node as T;
-    }
-
     /// <summary>首次渲染回调：比 ContentRendered 更早、更准确反映"画面出现"。</summary>
     private void OnFirstRender(object? sender, EventArgs e)
     {
@@ -884,7 +547,7 @@ public partial class MainWindow : Window
     private void OnContentRendered(object? sender, EventArgs e)
     {
         StartupTrace.Mark("firstframe");
-        LogColumnLayout();
+        Pane.LogColumnLayout();
         FlushOnce();
     }
 
@@ -909,28 +572,28 @@ public partial class MainWindow : Window
 
         try
         {
-            await _viewModel.NavigateAsync(ResolveStartPath());
+            await Vm.NavigateAsync(ResolveStartPath());
             StartupTrace.Mark("firstcontent");
             FlushOnce();
         }
         catch (Exception ex)
         {
-            _viewModel.ReportError(ex);
+            Vm.ReportError(ex);
         }
     }
 
     private async void OnQuickAccessSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (QuickAccessList.SelectedItem is not NavItem item) return;
-        if (string.Equals(item.Path, _viewModel.CurrentPath, StringComparison.OrdinalIgnoreCase)) return;
+        if (string.Equals(item.Path, Vm.CurrentPath, StringComparison.OrdinalIgnoreCase)) return;
 
         try
         {
-            await _viewModel.NavigateAsync(item.Path);
+            await Vm.NavigateAsync(item.Path);
         }
         catch (Exception ex)
         {
-            _viewModel.ReportError(ex);
+            Vm.ReportError(ex);
         }
     }
 

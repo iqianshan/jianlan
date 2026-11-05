@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!--
         合并顺序（界面规则 §1）：
-        DesignTokens → 主题 → 控件样式 → Typography → 行模板
+        DesignTokens → 焦点视觉 → 控件样式 → Typography → 行模板
         主题字典位于 DesignTokens 的 MergedDictionaries 内，切换时按键 Theme.Name 查找。
         RowTemplates 必须排在 Typography 之后：它用 StaticResource 引用文本样式，
         被引用者先合并才查得到。
@@ -12,6 +12,8 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Design/DesignTokens.xaml"/>
+                <!-- FocusVisual 必须排在控件样式之前：后者用 StaticResource 引用焦点环 -->
+                <ResourceDictionary Source="Design/Styles/FocusVisual.xaml"/>
                 <ResourceDictionary Source="Design/Styles/Controls.List.xaml"/>
                 <ResourceDictionary Source="Design/Styles/Controls.Button.xaml"/>
                 <ResourceDictionary Source="Design/Styles/Typography.xaml"/>

@@ -231,7 +231,7 @@ public static void ApplyTheme(string name)
 
 | 允许 | 说明 |
 |---|---|
-| 键盘焦点框 | 2px `Brush.Border.Focus`，内缩 1px |
+| 键盘焦点框 | 2px `Brush.Border.Focus`。列表项内缩 1px（行与行紧贴），按钮外扩 2px（周围有空隙）。实现见 `Design/Styles/FocusVisual.xaml` |
 | 选中行标记 | 左侧 2px 竖条（`Brush.Accent.Default`） |
 | 选中行填充 | `Brush.Surface.Selected`（强调色 10% 混合，不是原色） |
 | 活动标签指示 | 标签下方 2px 线 |
@@ -318,7 +318,7 @@ public static void ApplyTheme(string name)
 | 按下 | `Brush.Surface.Pressed` | `Brush.Text.Primary` | 无 |
 | 选中（焦点窗格） | `Brush.Surface.Selected` | `Brush.Text.OnSelected` | 左 2px `Brush.Accent.Default` |
 | 选中（失焦窗格） | `Brush.Surface.SelectedInactive` | `Brush.Text.OnSelected` | 左 2px `Brush.Border.Strong` |
-| 键盘焦点 | — | — | 2px `Brush.Border.Focus`，内缩 1px |
+| 键盘焦点 | — | — | 2px `Brush.Border.Focus`，列表项内缩 1px / 按钮外扩 2px |
 | 禁用 | 透明 | `Brush.Text.Disabled` | 无 |
 
 **规则 10.1**　选中与悬停不同时叠加。选中优先，悬停只在未选中项上生效。
@@ -386,6 +386,10 @@ public static void ApplyTheme(string name)
 **规则 12.3**　仅在 HC 下允许选中行反白，通过 `Text.OnSelected` 实现（见规则 6.1）。
 
 **规则 12.4**　所有可交互元素必须可 Tab 到达、焦点可见（规则 10）。自定义 `FocusVisualStyle` 必须同时适配三种主题，禁止使用系统默认虚线框。
+
+> 落地状态（2026-11-05）：`Design/Styles/FocusVisual.xaml` 定义 `FocusVisual.Ring`（按钮）与 `FocusVisual.Inset`（列表项），颜色统一取 `Brush.Border.Focus`——浅色/深色是品牌蓝，高对比度自动切到 `SystemColors.HighlightColor`。
+> 此前所有自绘模板都写 `FocusVisualStyle="{x:Null}"` 且没有替代，导致纯键盘操作时焦点完全不可见（FR-10.7 / AC-08 的直接阻塞项）。
+> **注意**：文字按钮（`Button.Link`）同样适用；不要因为它没有边框就省掉焦点环。
 
 **规则 12.5**　图标按钮必须设置 `AutomationProperties.Name`；纯图标无文字区域必须提供 `ToolTip`。
 
