@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using Lingpane.App.Diagnostics;
 using Lingpane.App.ViewModels;
+using Lingpane.Core.Localization;
 
 namespace Lingpane.App.Views;
 
@@ -78,6 +79,33 @@ public partial class TabStrip : UserControl
     {
         e.Handled = true;
         if (sender is FrameworkElement { DataContext: TabViewModel tab }) _host?.Close(tab);
+    }
+
+    /// <summary>
+    /// 右键菜单弹出前，把"固定 / 取消固定"那条改成当前状态对应的说法（FR-2.9）。
+    ///
+    /// 用一条菜单项改标题，而不是放两条互斥的菜单项：模板里要因此写两个
+    /// 条件相反的 <c>DataTrigger</c>，而这里只是打开前一次字符串赋值。
+    /// 每次弹出都重设，所以语言切换后也不会停在旧文案上。
+    /// </summary>
+    private void OnTabMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (sender is not FrameworkElement { ContextMenu: { } menu, DataContext: TabViewModel tab }) return;
+
+        foreach (object item in menu.Items)
+        {
+            if (item is MenuItem { Tag: "pin" } pin)
+            {
+                pin.Header = tab.IsPinned ? Strings.Tab_Menu_Unpin : Strings.Tab_Menu_Pin;
+                return;
+            }
+        }
+    }
+
+    private void OnTabTogglePin(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is FrameworkElement { DataContext: TabViewModel tab }) tab.IsPinned = !tab.IsPinned;
     }
 
     private void OnTabCloseOthers(object sender, RoutedEventArgs e)

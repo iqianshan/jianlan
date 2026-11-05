@@ -28,9 +28,19 @@ public partial class PaneView
     {
         _dragArmed = true;
         _dragOrigin = e.GetPosition(FileList);
-    }
 
-    private void OnFileDragEnd(object sender, MouseButtonEventArgs e) => _dragArmed = false;
+        // Ctrl+点文件夹是"新标签打开"（FR-2.10），不是多选。选中必须在**按下**就拦掉：
+        // 让 ListBox 先处理的话，用户会看到文件夹被选中、同时又冒出一个标签。
+        // 拖拽不受影响——真拖起来了，选中由 OnFileDragMove 自己补。
+        //
+        // 拦掉之后焦点也不会落到列表上，所以这里补一次 Focus：单窗格看不出来，
+        // 分屏时"点哪边哪边成为活动窗格"的规矩不能因为改了手势就丢掉。
+        if ((Keyboard.Modifiers & ModifierKeys.Control) != 0 && HitFolder(e.OriginalSource) is not null)
+        {
+            e.Handled = true;
+            FileList.Focus();
+        }
+    }
 
     private void OnFileDragMove(object sender, MouseEventArgs e)
     {

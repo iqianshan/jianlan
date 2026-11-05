@@ -77,6 +77,7 @@
                                 Height="{DynamicResource Size.Tab.Height}"
                                 BorderBrush="{DynamicResource Brush.Border.Hairline}"
                                 BorderThickness="0,0,1,0"
+                                ContextMenuOpening="OnTabMenuOpening"
                                 PreviewMouseLeftButtonDown="OnTabMouseLeftButtonDown"
                                 PreviewMouseDown="OnTabMouseDown">
                             <!-- 默认底色写在样式里而不是元素属性上：
@@ -122,10 +123,23 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
 
-                                    <TextBlock Grid.Column="0"
-                                               Margin="0,0,6,0"
-                                               Style="{StaticResource Text.Glyph}"
-                                               Text="&#xE8B7;"/>
+                                    <!-- 图标位：固定后换成实心图钉并染强调色（FR-2.9）。
+                                         不另加一列徽标——标签最窄只有 100px，多一个 16px 的
+                                         图形等于直接砍掉标题的可读宽度。 -->
+                                    <TextBlock Grid.Column="0" Margin="0,0,6,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Glyph}">
+                                                <Setter Property="Text" Value="&#xE8B7;"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                                                        <Setter Property="Text" Value="&#xE840;"/>
+                                                        <Setter Property="Foreground"
+                                                                Value="{DynamicResource Brush.Accent.Default}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
 
                                     <!-- 标题宽度上限落在 TextBlock 上：
                                          横向 StackPanel 测量子项时给的是无限宽，容器的
@@ -161,6 +175,13 @@
 
                             <Border.ContextMenu>
                                 <ContextMenu Style="{StaticResource ContextMenu.Default}">
+                                    <!-- 标题在 ContextMenuOpening 里按 IsPinned 改写成
+                                         "固定 / 取消固定"，见 OnTabMenuOpening -->
+                                    <MenuItem Style="{StaticResource MenuItem.Default}"
+                                              Header="{loc:Tr Key=Tab.Menu.Pin}"
+                                              Tag="pin"
+                                              Click="OnTabTogglePin"/>
+                                    <Separator Style="{StaticResource Menu.Separator}"/>
                                     <MenuItem Style="{StaticResource MenuItem.Default}"
                                               Header="{loc:Tr Key=Tab.Menu.Close}"
                                               Click="OnTabCloseClick"/>
@@ -182,7 +203,8 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <!-- 新建标签（FR-2.1）。放在滚动区之外，标签再多也点得到 -->
+        <!-- 新建标签（FR-2.1）。放在滚动区之外，标签再多也点得到。
+             到 12 个上限时按钮变灰：`+` 点了没反应比给一句提示更让人困惑 -->
         <Button x:Name="NewTabButton"
                 Grid.Column="1"
                 Width="{DynamicResource Size.Tab.Height}"
@@ -191,6 +213,7 @@
                 Margin="0"
                 Padding="0"
                 FontFamily="{DynamicResource Font.Family.Icon}"
+                IsEnabled="{Binding CanAdd}"
                 Content="&#xE710;"
                 Click="OnNewTabClick"
                 ToolTip="{loc:Tr Key=Tab.New.Tip}"/>

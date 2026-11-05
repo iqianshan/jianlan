@@ -123,6 +123,24 @@ public sealed class AppSettings
             Session.TabSecondPaths = Session.TabSecondPaths.Take(Session.Tabs.Count).ToList();
         }
 
+        // 固定标记同理：平行数组，短了补 false（默认不固定），长了截断
+        Session.TabPinned ??= [];
+        if (Session.TabPinned.Count < Session.Tabs.Count)
+        {
+            Session.TabPinned.AddRange(
+                Enumerable.Repeat(false, Session.Tabs.Count - Session.TabPinned.Count));
+        }
+        else if (Session.TabPinned.Count > Session.Tabs.Count)
+        {
+            Session.TabPinned = Session.TabPinned.Take(Session.Tabs.Count).ToList();
+        }
+
+        // 标签栏位置：认不出来的值回落顶部（手改坏了不至于把标签栏弄丢）
+        if (!AppearanceSettings.IsKnownTabPosition(Appearance.TabStripPosition))
+        {
+            Appearance.TabStripPosition = AppearanceSettings.TabTop;
+        }
+
         Layout.ColumnDateWidth = ClampColumn(Layout.ColumnDateWidth, DefaultColumnDateWidth);
         Layout.ColumnTypeWidth = ClampColumn(Layout.ColumnTypeWidth, DefaultColumnTypeWidth);
         Layout.ColumnSizeWidth = ClampColumn(Layout.ColumnSizeWidth, DefaultColumnSizeWidth);
@@ -195,6 +213,17 @@ public sealed class AppearanceSettings
 
     public bool ShowStatusBar { get; set; } = true;
 
+    /// <summary>
+    /// 标签栏位置（FR-2.4）：<c>top</c>（默认）/ <c>bottom</c>。
+    /// 用字符串而不是枚举的理由同 <see cref="GeneralSettings.Language"/>。
+    /// </summary>
+    public string TabStripPosition { get; set; } = TabTop;
+
+    public const string TabTop = "top";
+    public const string TabBottom = "bottom";
+
+    public static bool IsKnownTabPosition(string? value) => value is TabTop or TabBottom;
+
     /// <summary>未知字段原样保留，避免降级版本吃掉新版本写入的设置（settings-schema §4）。</summary>
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
@@ -218,7 +247,18 @@ public sealed class BehaviorSettings
 
     public bool DoubleClickOpens { get; set; } = true;
 
+    /// <summary>
+    /// 文件夹/`..` 是否在新标签打开（FR-2.10 的加强版）。默认关闭：
+    /// 双击进目录是最常用的动作，默认改成开标签会把标签栏迅速撑满。
+    /// </summary>
     public bool OpenFolderInNewTab { get; set; }
+
+    /// <summary>
+    /// 中键 / `Ctrl+左键` 开出的新标签是否留在后台（FR-2.10 的"可选"部分）。
+    /// 默认关：手势做完画面什么都没变，用户会以为没生效。想连续开一批目录再回来
+    /// （"后台打开"）的人可以打开它。
+    /// </summary>
+    public bool OpenNewTabInBackground { get; set; }
 
     public bool RestoreLastSession { get; set; } = true;
 
@@ -271,6 +311,12 @@ public sealed class SessionSettings
     /// 平行数组只是"多一个字段"，归一化里补齐长度就不会错位（见 Normalize）。
     /// </summary>
     public List<string> TabSecondPaths { get; set; } = [];
+
+    /// <summary>
+    /// 每个标签是否固定（FR-2.9）。同样与 <see cref="Tabs"/> 平行等长。
+    /// 固定状态属于"用户设定的意图"，丢了用户会以为功能坏了，因此必须落盘。
+    /// </summary>
+    public List<bool> TabPinned { get; set; } = [];
 
     /// <summary>会话恢复的标签数上限。再多也只是把启动拖慢，捡不回来的价值很低。</summary>
     public const int MaxTabs = 12;

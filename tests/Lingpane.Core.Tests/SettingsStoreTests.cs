@@ -234,4 +234,45 @@ public sealed class SettingsStoreTests : IDisposable
 
         Assert.Single(settings.Session.TabSecondPaths);
     }
+
+    [Fact]
+    public void 固定标记与标签数量对齐且缺少的位置默认不固定()
+    {
+        var settings = new AppSettings();
+        settings.Session.Tabs = [@"C:\a", @"C:\b", @"C:\c"];
+        settings.Session.TabPinned = [true];          // 手改文件时少写了几条
+
+        settings.Normalize();
+
+        // 第三份平行数组的约束与第二窗格路径完全一致（FR-2.9）
+        Assert.Equal(3, settings.Session.TabPinned.Count);
+        Assert.True(settings.Session.TabPinned[0]);
+        Assert.False(settings.Session.TabPinned[2]);
+    }
+
+    [Theory]
+    [InlineData("sideways")]     // 手改坏了
+    [InlineData("")]
+    [InlineData(null)]
+    public void 标签栏位置不认识时回落顶部(string? stored)
+    {
+        var settings = new AppSettings();
+        settings.Appearance.TabStripPosition = stored!;
+
+        settings.Normalize();
+
+        // 宁可回到顶部，也不要让标签栏落在一个不存在的位置上（会直接看不见标签）
+        Assert.Equal(AppearanceSettings.TabTop, settings.Appearance.TabStripPosition);
+    }
+
+    [Fact]
+    public void 标签栏位置为底部时保持不变()
+    {
+        var settings = new AppSettings();
+        settings.Appearance.TabStripPosition = AppearanceSettings.TabBottom;
+
+        settings.Normalize();
+
+        Assert.Equal(AppearanceSettings.TabBottom, settings.Appearance.TabStripPosition);
+    }
 }

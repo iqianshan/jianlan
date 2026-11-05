@@ -72,6 +72,11 @@ public partial class SettingsWindow : Window
         ShowHiddenCheck.IsChecked = Settings.Behavior.ShowHidden;
         ShowExtensionsCheck.IsChecked = Settings.Behavior.ShowExtensions;
         ConfirmDeleteCheck.IsChecked = Settings.Behavior.ConfirmDelete;
+        OpenFolderInNewTabCheck.IsChecked = Settings.Behavior.OpenFolderInNewTab;
+        BackgroundTabCheck.IsChecked = Settings.Behavior.OpenNewTabInBackground;
+
+        TabStripCombo.SelectedIndex =
+            Settings.Appearance.TabStripPosition == AppearanceSettings.TabBottom ? 1 : 0;
 
         ShowNavCheck.IsChecked = Settings.Appearance.ShowNavPane;
         ShowStatusCheck.IsChecked = Settings.Appearance.ShowStatusBar;
@@ -244,6 +249,19 @@ public partial class SettingsWindow : Window
         App.SaveSettings();
     }
 
+    /// <summary>标签栏位置（FR-2.4）：主窗口只挪一侧边框、不重建标签栏，因此即时生效。</summary>
+    private void OnTabStripPositionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading) return;
+
+        Settings.Appearance.TabStripPosition = TabStripCombo.SelectedIndex == 1
+            ? AppearanceSettings.TabBottom
+            : AppearanceSettings.TabTop;
+
+        Owner_?.ApplySettingsToUi();
+        App.SaveSettings();
+    }
+
     // ── 行为 ────────────────────────────────────────────────────────────────
 
     private void OnDefaultViewChanged(object sender, SelectionChangedEventArgs e)
@@ -295,6 +313,22 @@ public partial class SettingsWindow : Window
     {
         if (_loading) return;
         Settings.Behavior.ConfirmDelete = ConfirmDeleteCheck.IsChecked == true;
+        App.SaveSettings();
+    }
+
+    /// <summary>FR-2.10 的加强版：双击/回车进目录改成开标签。默认关，见 AppSettings 里的说明。</summary>
+    private void OnOpenFolderInNewTabChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        Settings.Behavior.OpenFolderInNewTab = OpenFolderInNewTabCheck.IsChecked == true;
+        App.SaveSettings();
+    }
+
+    /// <summary>中键 / Ctrl+左键开出的新标签是否留在后台（FR-2.10 的可选项）。</summary>
+    private void OnOpenNewTabInBackgroundChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        Settings.Behavior.OpenNewTabInBackground = BackgroundTabCheck.IsChecked == true;
         App.SaveSettings();
     }
 

@@ -31,14 +31,18 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <!-- 标签栏 -->
-            <RowDefinition Height="Auto"/>
+            <!-- 标签栏（在顶部时用它，切到底部时高度归零） -->
+            <RowDefinition x:Name="TabRowTop" Height="Auto"/>
             <RowDefinition Height="*"/>
             <!-- 与窗格状态栏等高的占位：让导航栏底部的分隔线与状态栏上边框连成一条 -->
             <RowDefinition Height="Auto"/>
+            <!-- 标签栏（在底部时用它）。两行都留着，切换位置只改高度与 Grid.Row，
+                 不重建控件——见 ApplyTabStripPosition -->
+            <RowDefinition x:Name="TabRowBottom" Height="0"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Grid.ColumnSpan="3"
+        <Border x:Name="TabFrame"
+                Grid.Row="0" Grid.ColumnSpan="3"
                 Background="{DynamicResource Brush.Surface.Window}"
                 BorderBrush="{DynamicResource Brush.Border.Hairline}"
                 BorderThickness="0,0,0,1">

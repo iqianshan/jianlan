@@ -36,6 +36,13 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     {
         _settings = settings;
         _defaultPath = defaultPath;
+
+        // 标签数直接决定"还能不能新建"，两个按钮/快捷键都要看它有没有变
+        Tabs.CollectionChanged += (_, _) =>
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsFull)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanAdd)));
+        };
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -59,9 +66,15 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
         }
     }
 
-    /// <summary>新建标签并激活（FR-2.1）。<paramref name="path"/> 为空时用默认目录。</summary>
-    public TabViewModel Add(string? path = null, bool activate = true)
+    /// <summary>
+    /// 新建标签并激活（FR-2.1）。<paramref name="path"/> 为空时用默认目录。
+    /// 已到上限（FR-2.5，12 个）时返回 <c>null</c>——由调用方决定怎么提示，
+    /// 视图模型不弹 UI 文案。
+    /// </summary>
+    public TabViewModel? Add(string? path = null, bool activate = true)
     {
+        if (IsFull) return null;
+
         string target = string.IsNullOrWhiteSpace(path) ? _defaultPath() : path;
 
         // 不在这里导航：调用方（`+` 按钮、Ctrl+T、会话恢复）时机各不相同，
@@ -73,6 +86,15 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
 
         return tab;
     }
+
+    /// <summary>标签数是否已达上限（FR-2.5）。</summary>
+    public bool IsFull => Tabs.Count >= SessionSettings.MaxTabs;
+
+    /// <summary>
+    /// 还能不能再新建一个标签。给界面的 `+` 按钮用：到上限时按钮变灰，
+    /// 比"点了没反应"清楚。Ctrl+T 与外部的"在新标签打开"仍要各自判一次。
+    /// </summary>
+    public bool CanAdd => Tabs.Count < SessionSettings.MaxTabs;
 
     /// <summary>恢复会话用：只建标签、只记路径，不读盘也不激活。</summary>
     public TabViewModel AddPending(string path)
@@ -165,12 +187,17 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
         }
     }
 
-    /// <summary>关闭其他（FR-2.12）。</summary>
+    /// <summary>
+    /// 关闭其他（FR-2.12）。**固定标签不参与**（FR-2.9）：固定的意义就是"这个我不要被顺手关掉"，
+    /// 让它被"关闭其他"带走等于功能失效。
+    /// </summary>
     public void CloseOthers(TabViewModel? keep)
     {
         if (keep is null || !Tabs.Contains(keep)) return;
 
-        foreach (TabViewModel tab in Tabs.Where(t => !ReferenceEquals(t, keep)).ToList())
+        foreach (TabViewModel tab in Tabs
+                     .Where(t => !ReferenceEquals(t, keep) && !t.IsPinned)
+                     .ToList())
         {
             RememberClosed(tab.Primary.CurrentPath);
             Tabs.Remove(tab);
@@ -180,7 +207,7 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
         Activate(keep);
     }
 
-    /// <summary>关闭右侧（FR-2.12）。关的是当前最后一个时什么都不做。</summary>
+    /// <summary>关闭右侧（FR-2.12）。固定标签同样跳过；关的是当前最后一个时什么都不做。</summary>
     public void CloseToRight(TabViewModel? tab)
     {
         if (tab is null) return;
@@ -188,7 +215,7 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
         int index = Tabs.IndexOf(tab);
         if (index < 0 || index == Tabs.Count - 1) return;
 
-        foreach (TabViewModel right in Tabs.Skip(index + 1).ToList())
+        foreach (TabViewModel right in Tabs.Skip(index + 1).Where(t => !t.IsPinned).ToList())
         {
             RememberClosed(right.Primary.CurrentPath);
             Tabs.Remove(right);
@@ -215,11 +242,11 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     /// <summary>Ctrl+Shift+T：重新打开最近关闭的标签（只保留路径）。</summary>
     public void ReopenClosed()
     {
-        if (_closed.Count == 0) return;
+        if (_closed.Count == 0 || IsFull) return;
 
         string path = _closed.Pop();
-        TabViewModel tab = Add(path, activate: true);
-        _ = tab.Primary.NavigateAsync(path);
+        TabViewModel? tab = Add(path, activate: true);
+        if (tab is not null) _ = tab.Primary.NavigateAsync(path);
     }
 
     /// <summary>退出时写进会话的路径列表（空的标签不写，否则下次启动多出一个没内容的标签）。</summary>
@@ -237,6 +264,13 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
         => Tabs.Select(t => t.SnapshotPaths())
                .Where(p => !string.IsNullOrWhiteSpace(p.Primary))
                .Select(p => p.Secondary)
+               .Take(SessionSettings.MaxTabs)
+               .ToList();
+
+    /// <summary>固定标记，与 <see cref="SnapshotPaths"/> 等长（FR-2.9）。</summary>
+    public List<bool> SnapshotPinned()
+        => Tabs.Where(t => !string.IsNullOrWhiteSpace(t.Primary.CurrentPath))
+               .Select(t => t.IsPinned)
                .Take(SessionSettings.MaxTabs)
                .ToList();
 

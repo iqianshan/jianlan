@@ -29,6 +29,14 @@ public partial class PaneView
     {
         if (entry.IsDirectory)
         {
+            // 设置项：双击/回车进目录时另开标签（默认关，见 BehaviorSettings.OpenFolderInNewTab）。
+            // 这里恒为"切过去"：双击是明确的"我要看这个"，开在后台等于什么都没发生。
+            if (App.Settings.Behavior.OpenFolderInNewTab)
+            {
+                OpenInNewTabRequested?.Invoke(entry.FullPath, false);
+                return;
+            }
+
             _ = Vm.NavigateAsync(entry.FullPath);
             return;
         }

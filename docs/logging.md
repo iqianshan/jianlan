@@ -53,7 +53,7 @@
 | `E3xxx` | 标签存储 | 预留（0.2.0） | — |
 | `E4xxx` | 设置 | `E4001` 解析失败 · `E4002` 写入失败 · `E4003` 版本过高 | `App` → `settings.load` / `settings.save` |
 | `E5xxx` | 目录监视 | `E5001` 启动失败 · `E5002` 运行期错误 | `MainWindow.Watcher` → `watcher.start` / `watcher.error` |
-| `E6xxx` | 预留 | — | — |
+| `E6xxx` | 标签页 | `E6001` 复制路径写剪贴板失败 · `E6002` 已达标签数上限（改为当前窗格导航） | `TabStrip` → `tab.copyPath`；`MainWindow` → `tab.limit` |
 | `E7xxx` | 窗口与输入 | `E7001` 全局热键注册失败 | `MainWindow` → `hotkey.register` |
 | `E8xxx` | 预览 | `E8001` Handler 缺失 · `E8002` 超时 · `E8003` 崩溃 | 预留（0.2.0） |
 

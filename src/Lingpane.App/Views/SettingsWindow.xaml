@@ -124,6 +124,16 @@
                     </ComboBox>
                 </StackPanel>
 
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Appearance.TabStrip}"/>
+                    <ComboBox x:Name="TabStripCombo"
+                              Style="{StaticResource ComboBox.Default}"
+                              SelectionChanged="OnTabStripPositionChanged">
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Appearance.TabStrip.Top}"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Appearance.TabStrip.Bottom}"/>
+                    </ComboBox>
+                </StackPanel>
+
                 <CheckBox x:Name="ShowNavCheck"
                           Margin="0,0,0,10"
                           Style="{StaticResource CheckBox.Default}"
@@ -202,6 +212,25 @@
                           Content="{loc:Tr Key=Settings.Behavior.ConfirmDelete}"
                           Checked="OnConfirmDeleteChanged"
                           Unchecked="OnConfirmDeleteChanged"/>
+
+                <CheckBox x:Name="OpenFolderInNewTabCheck"
+                          Margin="0,0,0,4"
+                          Style="{StaticResource CheckBox.Default}"
+                          Content="{loc:Tr Key=Settings.Behavior.OpenFolderInNewTab}"
+                          Checked="OnOpenFolderInNewTabChanged"
+                          Unchecked="OnOpenFolderInNewTabChanged"/>
+                <TextBlock Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Behavior.OpenFolderInNewTab.Hint}"/>
+
+                <CheckBox x:Name="BackgroundTabCheck"
+                          Margin="0,12,0,4"
+                          Style="{StaticResource CheckBox.Default}"
+                          Content="{loc:Tr Key=Settings.Behavior.OpenNewTabInBackground}"
+                          Checked="OnOpenNewTabInBackgroundChanged"
+                          Unchecked="OnOpenNewTabInBackgroundChanged"/>
+                <TextBlock Margin="0,0,0,16"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Behavior.OpenNewTabInBackground.Hint}"/>
 
                 <!-- ══ 隐私 ══ -->
                 <TextBlock Style="{StaticResource Text.SectionTitle}" Text="{loc:Tr Key=Settings.Section.Privacy}"/>

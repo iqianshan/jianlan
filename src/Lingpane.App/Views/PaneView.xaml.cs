@@ -168,6 +168,12 @@ public partial class PaneView : UserControl
     /// <summary>窗格被点中（键盘焦点进入列表）时触发，宿主据此切换"活动窗格"。</summary>
     public event Action<PaneView>? Activated;
 
+    /// <summary>
+    /// 请求把某个目录开进新标签（FR-2.10）。参数：(路径, 是否后台打开)。
+    /// 窗格不认识标签集合——新建标签要动窗口级的 <c>TabHost</c>，那是宿主的知识。
+    /// </summary>
+    public event Action<string, bool>? OpenInNewTabRequested;
+
     /// <summary>是否为当前活动窗格。分屏时用于区分命令目标与焦点包边。</summary>
     public bool IsActive { get; private set; }
 
@@ -650,6 +656,53 @@ public partial class PaneView : UserControl
         OpenEntry(entry);
         e.Handled = true;
     }
+
+    /// <summary>
+    /// 中键点文件夹 → 新标签打开（FR-2.10）。与资源管理器一致：
+    /// 中键在列表里表示"另开一处看它"，不改变当前选中项。
+    /// </summary>
+    private void OnFileMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Middle) return;
+
+        if (HitFolder(e.OriginalSource) is not { } folder) return;
+
+        e.Handled = true;
+        RequestNewTab(folder);
+    }
+
+    /// <summary>
+    /// `Ctrl+左键` 点文件夹 → 新标签打开（FR-2.10）。挂在**松开**上而不是按下：
+    /// `Ctrl+拖拽` 是"强制复制"，按下就开标签会让每一次 Ctrl 拖拽都多出一个标签。
+    /// 判据是 <see cref="_dragArmed"/> —— 只要中途真的拖起来了，它就被清掉了。
+    ///
+    /// 代价：文件夹不能再用 `Ctrl+点击` 多选（文件不受影响）。要选多个文件夹用 `Shift+点击`
+    /// 或 `Ctrl+A`，见 docs/shortcuts.md §1。选中动作在按下时就被拦掉了
+    /// （见 <see cref="OnFileDragStart"/>），所以不会出现"选中了一个、同时冒出个标签"。
+    /// </summary>
+    private void OnFileLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        bool wasClick = _dragArmed;
+        _dragArmed = false;
+
+        if (!wasClick) return;
+        if ((Keyboard.Modifiers & ModifierKeys.Control) == 0) return;
+
+        if (HitFolder(e.OriginalSource) is not { } folder) return;
+
+        e.Handled = true;
+        RequestNewTab(folder);
+    }
+
+    private static FileEntry? HitFolder(object? source)
+        => source is DependencyObject node
+           && FindAncestor<ListBoxItem>(node) is { DataContext: FileEntry { IsDirectory: true } folder
+           }
+            ? folder
+            : null;
+
+    private void RequestNewTab(FileEntry folder)
+        => OpenInNewTabRequested?.Invoke(folder.FullPath, App.Settings.Behavior.OpenNewTabInBackground);
 
     private static T? FindAncestor<T>(DependencyObject? node) where T : DependencyObject
     {

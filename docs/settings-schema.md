@@ -27,7 +27,8 @@
     "fontFamily": null,         // null = 默认字体栈；否则为系统字体族名
     "density": "comfortable",   // comfortable(32px) | compact(26px)
     "showNavPane": true,
-    "showStatusBar": true
+    "showStatusBar": true,
+    "tabStripPosition": "top"   // top | bottom（FR-2.4），无法识别时回落 top
   },
 
   "behavior": {
@@ -39,7 +40,8 @@
     "showExtensions": true,
     "confirmDelete": true,
     "doubleClickOpens": true,
-    "openFolderInNewTab": false,
+    "openFolderInNewTab": false,      // 双击/回车进目录时开新标签（FR-2.10）
+    "openNewTabInBackground": false,  // 中键/Ctrl+左键开出的标签是否留在后台（FR-2.10 可选项）
     "restoreLastSession": true,
     "closeLastTabToHome": true  // 关掉最后一个标签时回默认目录，而不是关窗口（FR-2.8）
   },
@@ -57,7 +59,8 @@
     "lastPath": null,
     "tabs": [],                 // 顺序即标签顺序；最多 12 条（SessionSettings.MaxTabs）
     "activeTabIndex": 0,        // 恢复后激活第几个标签
-    "tabSecondPaths": []        // 与 tabs 平行等长；空串 = 该标签没开分屏（ADR-0009）
+    "tabSecondPaths": [],       // 与 tabs 平行等长；空串 = 该标签没开分屏（ADR-0009）
+    "tabPinned": []             // 与 tabs 平行等长；true = 固定标签（FR-2.9）
   },
 
   "layout": {
@@ -86,11 +89,15 @@
 | `session.tabs` | 每条为非空路径；最多 12 条 | 空串剔除；超出截断到前 12 条 |
 | `session.activeTabIndex` | 0 ≤ 索引 < `tabs.length` | 夹取 |
 | `session.tabSecondPaths` | 与 `tabs` 等长；每条为空串或非空路径 | 短了补空串、长了截断（补齐而不是补 `null`：`null` 会把"没开分屏"和"没写这个字段"混成一种） |
+| `session.tabPinned` | 与 `tabs` 等长 | 短了补 `false`（默认不固定）、长了截断。固定是用户主动设的意图，丢了会被当成功能失效，所以必须落盘而不是只活在内存里 |
+| `appearance.tabStripPosition` | `top` / `bottom` | 无法识别回落 `top`：落到一个不存在的位置上，标签栏会直接看不见 |
 | `columnDate/Type/SizeWidth` | 56–400（单位：DIP） | 夹取；`0`、`NaN`、`Infinity` 回落默认值 |
 | `splitRatio` | 0.15–0.85 | 夹取；`NaN`/`Infinity` 回落 0.5。夹到 0.15 以下等于把一个窗格压成 0 宽，没有意义 |
 
 > **路径合法性不在归一化里判**：盘符可能暂时不在（U 盘没插），判了就把标签吃掉。
 > 恢复时按 `Directory.Exists` 过滤（`MainWindow.RestoreTabs`），宁少一个标签，不留死标签。
+> 三份平行列表必须**先按下标配对、再逐条筛**：反过来（先过滤路径再拿新下标回别的列表取）
+> 会在中间某个目录被删掉时整体错位，固定标记与第二窗格会落到相邻标签上。
 >
 > 名称列是星号列（宽度随窗口伸缩），因此**没有**对应字段，也不参与拖拽。
 > 列宽只在拖拽结束时落盘一次，不跟随每个拖动事件写文件。

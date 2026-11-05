@@ -21,6 +21,7 @@ public sealed class TabViewModel : INotifyPropertyChanged
 
     private PaneViewModel _activePane;
     private bool _isTabActive;
+    private bool _isPinned;
 
     /// <summary>关闭分屏后留下的第二窗格路径，下次开分屏时用。</summary>
     private string? _secondaryPath;
@@ -67,6 +68,21 @@ public sealed class TabViewModel : INotifyPropertyChanged
             if (_isTabActive == value) return;
             _isTabActive = value;
             Raise(nameof(IsTabActive));
+        }
+    }
+
+    /// <summary>
+    /// 固定标签（FR-2.9）。固定后不参与"关闭其他 / 关闭右侧"，也不再被这两个动作
+    /// 顺手带走。语义参考浏览器的固定标签：位置不动、只能单独关。
+    /// </summary>
+    public bool IsPinned
+    {
+        get => _isPinned;
+        set
+        {
+            if (_isPinned == value) return;
+            _isPinned = value;
+            Raise(nameof(IsPinned));
         }
     }
 

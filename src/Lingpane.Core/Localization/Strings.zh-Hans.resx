@@ -74,6 +74,12 @@
   <data name="Tab.Menu.CopyPath" xml:space="preserve">
     <value>复制路径</value>
   </data>
+  <data name="Tab.Menu.Pin" xml:space="preserve">
+    <value>固定标签页</value>
+  </data>
+  <data name="Tab.Menu.Unpin" xml:space="preserve">
+    <value>取消固定</value>
+  </data>
 
   <data name="Command_ToggleSplit" xml:space="preserve">
     <value>切换第二窗格</value>
@@ -549,6 +555,15 @@
   <data name="Settings.Appearance.ShowNav" xml:space="preserve">
     <value>显示左侧导航栏</value>
   </data>
+  <data name="Settings.Appearance.TabStrip" xml:space="preserve">
+    <value>标签栏位置</value>
+  </data>
+  <data name="Settings.Appearance.TabStrip.Top" xml:space="preserve">
+    <value>顶部</value>
+  </data>
+  <data name="Settings.Appearance.TabStrip.Bottom" xml:space="preserve">
+    <value>底部</value>
+  </data>
   <data name="Settings.Appearance.ShowStatus" xml:space="preserve">
     <value>显示底部状态栏</value>
   </data>
@@ -584,6 +599,18 @@
   </data>
   <data name="Settings.Behavior.ConfirmDelete" xml:space="preserve">
     <value>删除前确认</value>
+  </data>
+  <data name="Settings.Behavior.OpenFolderInNewTab" xml:space="preserve">
+    <value>文件夹在新标签页打开</value>
+  </data>
+  <data name="Settings.Behavior.OpenFolderInNewTab.Hint" xml:space="preserve">
+    <value>双击或按回车进入文件夹时新开一个标签页，不替换当前目录；立即生效</value>
+  </data>
+  <data name="Settings.Behavior.OpenNewTabInBackground" xml:space="preserve">
+    <value>新标签页在后台打开</value>
+  </data>
+  <data name="Settings.Behavior.OpenNewTabInBackground.Hint" xml:space="preserve">
+    <value>中键或 Ctrl+点击文件夹时，新标签页留在后台不切换，方便连开多处；关闭则立即切过去</value>
   </data>
   <data name="Settings.Privacy.RememberPath" xml:space="preserve">
     <value>记住上次打开的目录</value>

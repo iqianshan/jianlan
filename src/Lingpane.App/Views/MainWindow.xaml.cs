@@ -8,6 +8,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Lingpane.App.Commands;
+using Lingpane.App.Diagnostics;
 using Lingpane.App.Services;
 using Lingpane.App.ViewModels;
 using Lingpane.Core.Commands;
@@ -104,8 +105,14 @@ public partial class MainWindow : Window
         Pane.Activated += OnPaneActivated;
         Pane2.Activated += OnPaneActivated;
 
+        // 中键 / Ctrl+左键点文件夹 → 新标签（FR-2.10）。窗格只发意图，新建标签归窗口；
+        // 带着"是哪个窗格发的"一起转交——到达上限时要退回到发起的那一侧导航。
+        Pane.OpenInNewTabRequested += (path, background) => OpenInNewTab(Pane, path, background);
+        Pane2.OpenInNewTabRequested += (path, background) => OpenInNewTab(Pane2, path, background);
+
         // 分屏的行列先摆好：此时还没有标签，只是把两列/两行的宽度归位
         ApplySplitLayout();
+        ApplyTabStripPosition();
         StartupTrace.Mark("cmd");
 
         // 快捷键不用 Window.InputBindings：KeyGesture 对 , 这类 OEM 键的匹配依赖布局，
@@ -131,10 +138,12 @@ public partial class MainWindow : Window
                 App.Settings.Session.LastPath = Vm.CurrentPath;
             }
 
-            // 会话恢复（FR-2.11）：只记路径与活动位置，不记滚动与选中
+            // 会话恢复（FR-2.11）：只记路径与活动位置，不记滚动与选中。
+            // 三份列表必须一起取：分两次遍历可能因为期间有人关了标签而对不齐。
             List<string> paths = _tabs.SnapshotPaths();
             App.Settings.Session.Tabs = paths;
             App.Settings.Session.TabSecondPaths = _tabs.SnapshotSecondPaths();
+            App.Settings.Session.TabPinned = _tabs.SnapshotPinned();
             App.Settings.Session.ActiveTabIndex = Math.Clamp(_tabs.ActiveIndex, 0, Math.Max(0, paths.Count - 1));
         };
     }
@@ -158,36 +167,50 @@ public partial class MainWindow : Window
     /// <summary>
     /// 建立初始标签。会话恢复的全部读盘动作都在这里避开：只给路径、不枚举目录，
     /// 非活动标签一直懒到被激活才读（FR-2.11「不阻塞首帧」的实质）。
-    /// 12 个标签的构造成本是 12 个对象 + 12 次 <c>Directory.Exists</c>。
+    /// 12 个标签的构造成本是 12 个对象 + 每个标签两三次 <c>Directory.Exists</c>。
     /// </summary>
     private void RestoreTabs()
     {
         SessionSettings session = App.Settings.Session;
 
-        List<string> saved = App.Settings.Behavior.RestoreLastSession
-            ? session.Tabs.Where(Directory.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
-            : [];
+        // 三份平行的列表（路径 / 第二窗格 / 固定标记）先按索引配对，再逐条筛掉失效路径。
+        // 反过来做——先过滤路径、再拿新下标回原列表取——会在"中间某个目录被删了"时整体错位：
+        // 第 3 个标签的固定标记落到第 4 个标签上，第 5 个标签凭空多出一个第二窗格。
+        var restored = new List<(string Path, string Second, bool Pinned)>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        if (saved.Count == 0)
+        if (App.Settings.Behavior.RestoreLastSession)
+        {
+            for (int i = 0; i < session.Tabs.Count; i++)
+            {
+                string path = session.Tabs[i];
+                if (!Directory.Exists(path) || !seen.Add(path)) continue;
+
+                restored.Add((
+                    path,
+                    i < session.TabSecondPaths.Count ? session.TabSecondPaths[i] : string.Empty,
+                    i < session.TabPinned.Count && session.TabPinned[i]));
+            }
+        }
+
+        if (restored.Count == 0)
         {
             // 没有可恢复的会话，或恢复项全已失效：开一个默认目录的标签
             _tabs.Activate(_tabs.AddPending(ResolveStartPath()));
             return;
         }
 
-        for (int i = 0; i < saved.Count; i++)
+        foreach ((string path, string second, bool pinned) in restored)
         {
-            TabViewModel tab = _tabs.AddPending(saved[i]);
+            TabViewModel tab = _tabs.AddPending(path);
+            tab.IsPinned = pinned;
 
             // 第二窗格只记路径：窗格本身等"这个标签被激活且开着分屏"时才建，
             // 否则启动时就把 12 个标签的另一半全建出来，首帧预算立刻见底。
-            if (i < session.TabSecondPaths.Count && Directory.Exists(session.TabSecondPaths[i]))
-            {
-                tab.PrepareSecondaryPending(session.TabSecondPaths[i]);
-            }
+            if (Directory.Exists(second)) tab.PrepareSecondaryPending(second);
         }
 
-        _tabs.ActivateAt(Math.Clamp(session.ActiveTabIndex, 0, saved.Count - 1));
+        _tabs.ActivateAt(Math.Clamp(session.ActiveTabIndex, 0, restored.Count - 1));
     }
 
     private void RegisterTabCommands()
@@ -240,6 +263,22 @@ public partial class MainWindow : Window
                 Execute = () => _tabs.ActivateAt(index),
             });
         }
+    }
+
+    /// <summary>
+    /// 把某个目录开进新标签（FR-2.10）。<paramref name="background"/> 为 true 时只建不切，
+    /// 让用户连续开一批目录而不离开当前位置。
+    ///
+    /// 到 12 个上限（FR-2.5）时不新建，直接把路径交给**发起的那一侧窗格**导航——
+    /// 比"按键没反应"有用，也比弹一句"标签已满"轻。所以这里带着
+    /// <paramref name="source"/>：分屏时中键点右窗格，退回导航的必须是右窗格。
+    /// </summary>
+    private void OpenInNewTab(PaneView source, string path, bool background)
+    {
+        if (_tabs.Add(path, activate: !background) is not null) return;
+
+        AppLog.Warn("tab.limit", "E6002", $"已达 {SessionSettings.MaxTabs} 个标签，改为在当前窗格导航：{path}");  // i18n-ignore：只进 app.log
+        source.NavigateTo(path);
     }
 
     /// <summary>双窗格命令（FR-3.3）。开关是窗口级的：它不是某个标签的属性。</summary>
@@ -419,6 +458,25 @@ public partial class MainWindow : Window
         }
 
         if (KeyDebug) LogSplitLayout();
+    }
+
+    /// <summary>
+    /// 标签栏位置（FR-2.4）：顶部 / 底部，切换即时生效、不重建控件。
+    ///
+    /// 上下各留一行，只改哪一行有高度、以及分隔线画在哪一边。当初把标签栏固定在行 0，
+    /// 现在有了"底部"这个选项，如果改成重建 TabStrip 或准备两份控件，
+    /// 标签的鼠标捕获、拖拽与滚动位置都会跟着丢。
+    /// </summary>
+    private void ApplyTabStripPosition()
+    {
+        bool bottom = App.Settings.Appearance.TabStripPosition == AppearanceSettings.TabBottom;
+
+        Grid.SetRow(TabFrame, bottom ? 3 : 0);
+        TabRowTop.Height = bottom ? new GridLength(0) : GridLength.Auto;
+        TabRowBottom.Height = bottom ? GridLength.Auto : new GridLength(0);
+
+        // 分隔线画在朝向浏览区的那一侧：顶部时在下方，底部时在上方
+        TabFrame.BorderThickness = bottom ? new Thickness(0, 1, 0, 0) : new Thickness(0, 0, 0, 1);
     }
 
     /// <summary>
@@ -614,6 +672,9 @@ public partial class MainWindow : Window
 
         // 导航栏底部的占位条跟随状态栏：状态栏隐藏时它也不该留着一条空横线
         NavStatusSpacer.Visibility = s.Appearance.ShowStatusBar ? Visibility.Visible : Visibility.Collapsed;
+
+        // 标签栏位置（FR-2.4）：设置页改完立即生效，不用重启
+        ApplyTabStripPosition();
 
         // 状态栏与列宽在两个窗格各有一份，都要套一遍
         Pane.ApplyAppearance(s);

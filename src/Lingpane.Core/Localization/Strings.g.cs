@@ -66,6 +66,12 @@ public static class Strings
     /// <summary>Copy path</summary>
     public static string Tab_Menu_CopyPath => LocalizationService.Instance.Get("Tab.Menu.CopyPath");
 
+    /// <summary>Pin tab</summary>
+    public static string Tab_Menu_Pin => LocalizationService.Instance.Get("Tab.Menu.Pin");
+
+    /// <summary>Unpin tab</summary>
+    public static string Tab_Menu_Unpin => LocalizationService.Instance.Get("Tab.Menu.Unpin");
+
     /// <summary>Toggle second pane</summary>
     public static string Command_ToggleSplit => LocalizationService.Instance.Get("Command_ToggleSplit");
 
@@ -556,6 +562,15 @@ public static class Strings
     /// <summary>Show left navigation pane</summary>
     public static string Settings_Appearance_ShowNav => LocalizationService.Instance.Get("Settings.Appearance.ShowNav");
 
+    /// <summary>Tab bar position</summary>
+    public static string Settings_Appearance_TabStrip => LocalizationService.Instance.Get("Settings.Appearance.TabStrip");
+
+    /// <summary>Top</summary>
+    public static string Settings_Appearance_TabStrip_Top => LocalizationService.Instance.Get("Settings.Appearance.TabStrip.Top");
+
+    /// <summary>Bottom</summary>
+    public static string Settings_Appearance_TabStrip_Bottom => LocalizationService.Instance.Get("Settings.Appearance.TabStrip.Bottom");
+
     /// <summary>Show bottom status bar</summary>
     public static string Settings_Appearance_ShowStatus => LocalizationService.Instance.Get("Settings.Appearance.ShowStatus");
 
@@ -591,6 +606,18 @@ public static class Strings
 
     /// <summary>Confirm before deleting</summary>
     public static string Settings_Behavior_ConfirmDelete => LocalizationService.Instance.Get("Settings.Behavior.ConfirmDelete");
+
+    /// <summary>Open folders in a new tab</summary>
+    public static string Settings_Behavior_OpenFolderInNewTab => LocalizationService.Instance.Get("Settings.Behavior.OpenFolderInNewTab");
+
+    /// <summary>Double-click or Enter opens the folder in a new tab instead of replacing the current one; applies immediately</summary>
+    public static string Settings_Behavior_OpenFolderInNewTab_Hint => LocalizationService.Instance.Get("Settings.Behavior.OpenFolderInNewTab.Hint");
+
+    /// <summary>Open new tabs in the background</summary>
+    public static string Settings_Behavior_OpenNewTabInBackground => LocalizationService.Instance.Get("Settings.Behavior.OpenNewTabInBackground");
+
+    /// <summary>Middle-click or Ctrl+click a folder and the new tab stays in the background, so you can queue up several folders; turn o</summary>
+    public static string Settings_Behavior_OpenNewTabInBackground_Hint => LocalizationService.Instance.Get("Settings.Behavior.OpenNewTabInBackground.Hint");
 
     /// <summary>Remember the last opened folder</summary>
     public static string Settings_Privacy_RememberPath => LocalizationService.Instance.Get("Settings.Privacy.RememberPath");

@@ -80,6 +80,12 @@
   <data name="Tab.Menu.CopyPath" xml:space="preserve">
     <value>Copy path</value>
   </data>
+  <data name="Tab.Menu.Pin" xml:space="preserve">
+    <value>Pin tab</value>
+  </data>
+  <data name="Tab.Menu.Unpin" xml:space="preserve">
+    <value>Unpin tab</value>
+  </data>
 
   <data name="Command_ToggleSplit" xml:space="preserve">
     <value>Toggle second pane</value>
@@ -562,6 +568,15 @@
   <data name="Settings.Appearance.ShowNav" xml:space="preserve">
     <value>Show left navigation pane</value>
   </data>
+  <data name="Settings.Appearance.TabStrip" xml:space="preserve">
+    <value>Tab bar position</value>
+  </data>
+  <data name="Settings.Appearance.TabStrip.Top" xml:space="preserve">
+    <value>Top</value>
+  </data>
+  <data name="Settings.Appearance.TabStrip.Bottom" xml:space="preserve">
+    <value>Bottom</value>
+  </data>
   <data name="Settings.Appearance.ShowStatus" xml:space="preserve">
     <value>Show bottom status bar</value>
   </data>
@@ -597,6 +612,18 @@
   </data>
   <data name="Settings.Behavior.ConfirmDelete" xml:space="preserve">
     <value>Confirm before deleting</value>
+  </data>
+  <data name="Settings.Behavior.OpenFolderInNewTab" xml:space="preserve">
+    <value>Open folders in a new tab</value>
+  </data>
+  <data name="Settings.Behavior.OpenFolderInNewTab.Hint" xml:space="preserve">
+    <value>Double-click or Enter opens the folder in a new tab instead of replacing the current one; applies immediately</value>
+  </data>
+  <data name="Settings.Behavior.OpenNewTabInBackground" xml:space="preserve">
+    <value>Open new tabs in the background</value>
+  </data>
+  <data name="Settings.Behavior.OpenNewTabInBackground.Hint" xml:space="preserve">
+    <value>Middle-click or Ctrl+click a folder and the new tab stays in the background, so you can queue up several folders; turn off to switch to it right away</value>
   </data>
   <data name="Settings.Privacy.RememberPath" xml:space="preserve">
     <value>Remember the last opened folder</value>

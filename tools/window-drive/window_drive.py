@@ -318,6 +318,26 @@ def main() -> int:
         print(f"已双击客户区 ({x},{y})")
         return 0
 
+    if action == "ctrlclick":
+        # Ctrl+左键：FR-2.10 的第二个入口。修饰键必须用**真实键盘事件**按下，
+        # 因为应用读的是 Keyboard.Modifiers（物理状态）；投递 WM_KEYDOWN 只会在
+        # 消息队列里排一条按键，修饰键状态仍是"没按"。
+        x, y = int(sys.argv[3]), int(sys.argv[4])
+        vis_left, vis_top, _, _ = get_visible_rect(hwnd)
+        _bring_to_front(user32, hwnd)
+        user32.SetCursorPos(vis_left + x, vis_top + y)
+        time.sleep(0.25)
+        user32.keybd_event(0x11, 0, 0, 0)          # VK_CONTROL down
+        time.sleep(0.1)
+        user32.mouse_event(0x0002, 0, 0, 0, 0)     # LEFTDOWN
+        time.sleep(0.08)
+        user32.mouse_event(0x0004, 0, 0, 0, 0)     # LEFTUP
+        time.sleep(0.1)
+        user32.keybd_event(0x11, 0, 2, 0)          # VK_CONTROL up（KEYEVENTF_KEYUP）
+        time.sleep(0.9)
+        print(f"已 Ctrl+单击客户区 ({x},{y})")
+        return 0
+
     if action == "rclick":
         # 右键菜单：ContextMenu 只响应 WM_RBUTTONUP，且 WPF 会等一个 200ms 左右
         # 的"双击判定窗口"再弹，所以这里的人工延时不能省。
