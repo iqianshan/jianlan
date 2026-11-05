@@ -5,6 +5,7 @@ using Lingpane.App.Services;
 using Lingpane.App.Typography;
 using Lingpane.App.Views;
 using Lingpane.Core.Diagnostics;
+using Lingpane.Core.Localization;
 using Lingpane.Core.Settings;
 
 namespace Lingpane.App;
@@ -61,6 +62,17 @@ public partial class App : Application
     /// 保存设置。只读模式与探针模式不写盘；失败只留日志，不打断操作。
     /// 所有改动设置的路径都走这里，避免各自 try/catch 后行为不一致。
     /// </summary>
+    /// <summary>
+    /// 切换界面语言并立即存盘（FR-10.4：可手动覆盖，切换 &lt;200ms 且不重启）。
+    /// 刷新由 <see cref="LocalizationService"/> 通知驱动，调用方不需要重建窗口。
+    /// </summary>
+    public static void ApplyLanguage(string setting)
+    {
+        Settings.General.Language = setting;
+        LocalizationService.Instance.Apply(setting);
+        SaveSettings();
+    }
+
     public static void SaveSettings()
     {
         if (SettingsReadOnly || _isProbeMode) return;
@@ -132,6 +144,11 @@ public partial class App : Application
             Diagnostics.AppLog.Warn("settings.load", "E4001", loaded.Warning);
         }
         StartupTrace.Mark("settings");
+
+        // 语言必须在创建视图模型之前生效：视图模型构造期就会取文案（列头、侧栏名称）。
+        // 只做一次 ResourceManager 装配 + 三个 CultureInfo 赋值，约 1ms（docs/i18n.md §五）。
+        LocalizationService.Instance.Apply(Settings.General.Language);
+        StartupTrace.Mark("i18n");
 
         ThemeService.Apply(Settings.Appearance.Theme);
 

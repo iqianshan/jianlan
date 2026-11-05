@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using Lingpane.App.Shell;
 using Lingpane.Core.FileSystem;
+using Lingpane.Core.Localization;
 using Lingpane.Core.Navigation;
 using Lingpane.Core.Settings;
 
@@ -30,7 +31,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private IReadOnlyList<BreadcrumbSegment> _breadcrumbs = [];
     private string _currentPath = string.Empty;
     private string _addressText = string.Empty;
-    private string _statusText = "就绪";
+    private string _statusText = string.Empty;
     private string _selectionText = string.Empty;
     private string _hintText = string.Empty;
     private string? _lastNavigationError;
@@ -38,6 +39,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private bool _isAddressEditing;
     private DefaultViewKind _viewMode;
     private EntrySort _sort;
+    private IReadOnlyList<NavItem> _quickAccess = [];
+
+    // 语言切换要把状态栏/选中统计按当前语言重算，得记住上次的入参
+    private string _lastNavigationErrorCode = "E1001";
+    private int _lastSelectionCount;
+    private long _lastSelectionSize;
 
     /// <summary>导航序号：用于丢弃过期的异步枚举结果（快速连按时防止旧目录覆盖新目录）。</summary>
     private int _navigationToken;
@@ -50,6 +57,32 @@ public sealed class MainViewModel : INotifyPropertyChanged
             ? DefaultViewKind.List
             : settings.Behavior.DefaultView;
         _sort = new EntrySort(settings.Behavior.SortBy, settings.Behavior.SortDescending, settings.Behavior.FoldersFirst);
+        _quickAccess = BuildQuickAccess();
+        _statusText = Strings.Status_Ready;
+
+        // 切换语言后，视图模型里"算出来的"文本不会自己变（列头带排序箭头、状态栏是快照字符串）。
+        // 界面上的 {loc:Tr} 绑定由 LocalizationService 自己刷新，不经过这里。
+        LocalizationService.Instance.PropertyChanged += (_, _) => RefreshLocalizedText();
+    }
+
+    /// <summary>语言切换后重算所有算好的文案。只重算字符串，不重新枚举磁盘。</summary>
+    private void RefreshLocalizedText()
+    {
+        Raise(nameof(TitleText));
+        Raise(nameof(NameHeader));
+        Raise(nameof(DateHeader));
+        Raise(nameof(TypeHeader));
+        Raise(nameof(SizeHeader));
+        QuickAccess = BuildQuickAccess();
+
+        StatusText = HasNavigationError
+            ? string.Format(Strings.Error_CannotOpen, DescribeNavigationError(_lastNavigationErrorCode))
+            : StatusText;
+
+        UpdateStatus();
+        SetSelection(_lastSelectionCount, _lastSelectionSize);
+
+        if (ViewMode == DefaultViewKind.Grid) HintText = Strings.Hint_IconViewUnavailable;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -70,7 +103,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
         private set => Set(ref _entries, value);
     }
 
-    public IReadOnlyList<NavItem> QuickAccess { get; } = BuildQuickAccess();
+    /// <summary>侧栏常用位置。显示名是文案，切换语言后要重建（见 RefreshLocalizedText）。</summary>
+    public IReadOnlyList<NavItem> QuickAccess
+    {
+        get => _quickAccess;
+        private set => Set(ref _quickAccess, value);
+    }
 
     public IReadOnlyList<BreadcrumbSegment> Breadcrumbs
     {
@@ -96,13 +134,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         get
         {
-            if (string.IsNullOrEmpty(_currentPath)) return "Lingpane";
+            if (string.IsNullOrEmpty(_currentPath)) return Strings.Application_Name;
 
             string name = Path.GetFileName(
                 Path.TrimEndingDirectorySeparator(_currentPath));
 
             // 盘符根目录取不到名称，直接显示 "C:\"
-            return string.IsNullOrEmpty(name) ? _currentPath : $"{name} - Lingpane";
+            return string.IsNullOrEmpty(name) ? _currentPath : string.Format(Strings.Window_Title, name);
         }
     }
 
@@ -173,13 +211,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     // 列头文本带方向箭头，只给当前排序列加。放在视图模型里算，
     // 界面就不必为四个列头各写一组 DataTrigger。
-    public string NameHeader => HeaderText("名称", SortFieldKind.Name);
+    public string NameHeader => HeaderText(Strings.Column_Name, SortFieldKind.Name);
 
-    public string DateHeader => HeaderText("修改日期", SortFieldKind.Date);
+    public string DateHeader => HeaderText(Strings.Column_DateModified, SortFieldKind.Date);
 
-    public string TypeHeader => HeaderText("类型", SortFieldKind.Type);
+    public string TypeHeader => HeaderText(Strings.Column_Type, SortFieldKind.Type);
 
-    public string SizeHeader => HeaderText("大小", SortFieldKind.Size);
+    public string SizeHeader => HeaderText(Strings.Column_Size, SortFieldKind.Size);
 
     private string HeaderText(string label, SortFieldKind field)
         => _sort.Field == field ? $"{label} {SortArrow}" : label;
@@ -229,7 +267,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         int token = ++_navigationToken;
 
         IsLoading = true;
-        StatusText = "读取中…";
+        StatusText = Strings.Status_Loading;
 
         long started = Stopwatch.GetTimestamp();
         var result = await Task.Run(() =>
@@ -265,9 +303,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
             // 原始消息保留给日志与诊断（探针读它判断是否失败），
             // 界面只显示人话——.NET 的异常文本是英文且带路径，直接贴出来不合格
             // （docs/logging.md §6：用户提示不得出现堆栈、错误码、英文异常消息）。
-            LastNavigationError = result.Error ?? "未知错误";
+            LastNavigationError = result.Error ?? Strings.Error_Unknown;
 
             string code = MapFsErrorCode(result.Error);
+            _lastNavigationErrorCode = code;
             Diagnostics.AppLog.Warn("nav.open", code, $"{target} · {result.Error}");
 
             _all = [];
@@ -275,7 +314,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             CurrentPath = target;
             AddressText = target;
             Breadcrumbs = Breadcrumb.Build(target);
-            StatusText = "无法打开：" + DescribeNavigationError(code);
+            StatusText = string.Format(Strings.Error_CannotOpen, DescribeNavigationError(code));
         }
 
         IsLoading = false;
@@ -284,10 +323,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
     /// <summary>错误码 → 用户可读原因。文案要能被 i18n 抽走，不拼接原始异常文本。</summary>
     private static string DescribeNavigationError(string code) => code switch
     {
-        "E1002" => "没有访问权限",
-        "E1003" => "设备未就绪，请检查磁盘是否插好或网络是否连通",
-        "E1004" => "路径过长，超出系统限制",
-        _ => "找不到此位置",
+        "E1002" => Strings.Error_AccessDenied,
+        "E1003" => Strings.Error_DeviceNotReady,
+        "E1004" => Strings.Error_PathTooLong,
+        _ => Strings.Error_PathNotFound,
     };
 
     /// <summary>
@@ -298,19 +337,19 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         if (string.IsNullOrEmpty(message)) return "E1001";
 
-        if (message.Contains("拒绝访问", StringComparison.OrdinalIgnoreCase) ||
+        if (message.Contains("拒绝访问", StringComparison.OrdinalIgnoreCase) ||  // i18n-ignore：识别系统异常文本，不是文案
             message.Contains("denied", StringComparison.OrdinalIgnoreCase))
         {
             return "E1002";
         }
 
-        if (message.Contains("设备未就绪", StringComparison.OrdinalIgnoreCase) ||
+        if (message.Contains("设备未就绪", StringComparison.OrdinalIgnoreCase) ||  // i18n-ignore：识别系统异常文本，不是文案
             message.Contains("device is not ready", StringComparison.OrdinalIgnoreCase))
         {
             return "E1003";
         }
 
-        if (message.Contains("过长", StringComparison.OrdinalIgnoreCase) ||
+        if (message.Contains("过长", StringComparison.OrdinalIgnoreCase) ||  // i18n-ignore：识别系统异常文本，不是文案
             message.Contains("too long", StringComparison.OrdinalIgnoreCase))
         {
             return "E1004";
@@ -358,7 +397,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         if (mode == DefaultViewKind.Grid)
         {
-            HintText = "大图标视图尚未实现（需虚拟化面板，避免万项目录卡顿），已保持当前视图";
+            HintText = Strings.Hint_IconViewUnavailable;
             return false;
         }
 
@@ -405,17 +444,22 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         int visible = _entries.Count;
         StatusText = _all.Count == visible
-            ? $"{visible} 项 · 枚举 {LastEnumerateMs} ms"
-            : $"{visible} 项（已隐藏 {_all.Count - visible} 项）· 枚举 {LastEnumerateMs} ms";
+            ? string.Format(Strings.Status_Summary, visible, LastEnumerateMs)
+            : string.Format(Strings.Status_SummaryHidden, visible, _all.Count - visible, LastEnumerateMs);
     }
 
     public void SetSelection(int count, long totalSize)
     {
+        _lastSelectionCount = count;
+        _lastSelectionSize = totalSize;
+
         SelectionText = count switch
         {
             0 => string.Empty,
-            1 => "选中 1 项",
-            _ => totalSize > 0 ? $"选中 {count} 项 · {FileEntry.FormatSizeText(totalSize)}" : $"选中 {count} 项",
+            1 => Strings.Status_SelectedOne,
+            _ => totalSize > 0
+                ? string.Format(Strings.Status_SelectedWithSize, count, FileEntry.FormatSizeText(totalSize))
+                : string.Format(Strings.Status_SelectedCount, count),
         };
     }
 
@@ -454,7 +498,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public void ReportError(Exception ex)
     {
         IsLoading = false;
-        StatusText = "操作失败：" + ex.Message;
+        StatusText = string.Format(Strings.Status_OperationFailed, ex.Message);
     }
 
     private static List<NavItem> BuildQuickAccess()
@@ -464,13 +508,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             var (name, glyph) = folder.Kind switch
             {
-                KnownFolderKind.Desktop => ("桌面", IconGlyphs.Desktop),
-                KnownFolderKind.Documents => ("文档", IconGlyphs.Documents),
-                KnownFolderKind.Downloads => ("下载", IconGlyphs.Download),
-                KnownFolderKind.Pictures => ("图片", IconGlyphs.Pictures),
-                KnownFolderKind.Music => ("音乐", IconGlyphs.Music),
-                KnownFolderKind.Videos => ("视频", IconGlyphs.Video),
-                _ => ("此电脑", IconGlyphs.Account),
+                KnownFolderKind.Desktop => (Strings.Nav_Desktop, IconGlyphs.Desktop),
+                KnownFolderKind.Documents => (Strings.Nav_Documents, IconGlyphs.Documents),
+                KnownFolderKind.Downloads => (Strings.Nav_Downloads, IconGlyphs.Download),
+                KnownFolderKind.Pictures => (Strings.Nav_Pictures, IconGlyphs.Pictures),
+                KnownFolderKind.Music => (Strings.Nav_Music, IconGlyphs.Music),
+                KnownFolderKind.Videos => (Strings.Nav_Videos, IconGlyphs.Video),
+                _ => (Strings.Nav_ThisPc, IconGlyphs.Account),
             };
 
             list.Add(new NavItem(name, glyph, folder.Path));

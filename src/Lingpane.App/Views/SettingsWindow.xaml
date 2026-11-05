@@ -1,7 +1,8 @@
 <Window x:Class="Lingpane.App.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="设置"
+        xmlns:loc="clr-namespace:Lingpane.App.Localization"
+        Title="{loc:Tr Key=Toolbar.Settings}"
         Width="640" Height="660"
         MinWidth="560" MinHeight="520"
         WindowStartupLocation="CenterOwner"
@@ -35,6 +36,20 @@
                       Padding="{StaticResource Padding.Dialog}"
                       VerticalScrollBarVisibility="Auto">
             <StackPanel>
+
+                <!-- ══ 通用 ══ -->
+                <TextBlock Style="{StaticResource Text.SectionTitle}" Text="{loc:Tr Key=Settings.General}"/>
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Language}"/>
+                    <ComboBox x:Name="LanguageCombo"
+                              Style="{StaticResource ComboBox.Default}"
+                              SelectionChanged="OnLanguageChanged">
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Language.Auto}"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Language.Chinese}"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Language.English}"/>
+                    </ComboBox>
+                </StackPanel>
 
                 <!-- ══ 外观 ══ -->
                 <TextBlock Style="{StaticResource Text.SectionTitle}" Text="外观"/>

@@ -49,6 +49,13 @@ public partial class SettingsWindow : Window
 
     private void LoadSettingsIntoUi()
     {
+        LanguageCombo.SelectedIndex = Settings.General.Language switch
+        {
+            GeneralSettings.LanguageChinese => 1,
+            GeneralSettings.LanguageEnglish => 2,
+            _ => 0,
+        };
+
         ThemeCombo.SelectedIndex = (int)Settings.Appearance.Theme;
         DensityCombo.SelectedIndex = (int)Settings.Appearance.Density;
 
@@ -69,6 +76,24 @@ public partial class SettingsWindow : Window
 
         FollowSystemFontCheck.IsChecked = Settings.Appearance.FontSizePt is null;
         UpdateFontSizeText();
+    }
+
+    /// <summary>
+    /// 语言切换立即生效，不需要重启窗口：界面上的 {loc:Tr} 绑定与视图模型都会收到通知。
+    /// </summary>
+    private void OnLanguageChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading) return;
+
+        string value = LanguageCombo.SelectedIndex switch
+        {
+            1 => GeneralSettings.LanguageChinese,
+            2 => GeneralSettings.LanguageEnglish,
+            _ => GeneralSettings.LanguageAuto,
+        };
+
+        if (Settings.General.Language == value) return;
+        App.ApplyLanguage(value);
     }
 
     private async Task LoadFontsAsync()

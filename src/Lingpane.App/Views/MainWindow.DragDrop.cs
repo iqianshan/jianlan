@@ -4,6 +4,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Lingpane.Core.FileSystem;
 
+using Lingpane.Core.Localization;
+
 namespace Lingpane.App.Views;
 
 /// <summary>
@@ -76,7 +78,8 @@ public partial class MainWindow
         string label = Path.GetFileName(target.TrimEnd(Path.DirectorySeparatorChar));
         if (label.Length == 0) label = target;
 
-        _viewModel.SetHint($"{(effect == DragDropEffects.Move ? "移动" : "复制")}到「{label}」");
+        _viewModel.SetHint(string.Format(
+            effect == DragDropEffects.Move ? Strings.Hint_DragMoveTo : Strings.Hint_DragCopyTo, label));
     }
 
     private void OnFileDragLeave(object sender, DragEventArgs e) => _viewModel.SetHint(string.Empty);
@@ -96,12 +99,12 @@ public partial class MainWindow
             () => move
                 ? FileOperations.MoveAsync(sources, target)
                 : FileOperations.CopyAsync(sources, target),
-            move ? "正在移动…" : "正在复制…",
+            move ? Strings.Status_Moving : Strings.Status_Copying,
             r => !r.Ok
-                ? $"{(move ? "移动" : "复制")}失败：{r.Error}"
+                ? string.Format(move ? Strings.Status_MoveFailed : Strings.Status_CopyFailed, r.Error)
                 : r.Failed > 0
-                    ? $"完成 {r.Succeeded} 项，{r.Failed} 项失败：{r.Error}"
-                    : $"已{(move ? "移动" : "复制")} {r.Succeeded} 项");
+                    ? string.Format(Strings.Status_PartialFailed, r.Succeeded, r.Failed, r.Error)
+                    : string.Format(move ? Strings.Status_MovedCount : Strings.Status_CopiedCount, r.Succeeded));
 
         if (result.Succeeded > 0) await RefreshAndSelectAsync([]);
     }

@@ -16,7 +16,7 @@ public sealed class CommandAdapter : ICommand
 
     public AppCommand Source => _command;
 
-    public string Title => _command.Title;
+    public string Title => _command.ResolveTitle();
 
     public string? Gesture => _command.Gesture;
 

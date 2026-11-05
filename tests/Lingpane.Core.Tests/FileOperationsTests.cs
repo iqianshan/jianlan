@@ -1,4 +1,5 @@
 using Lingpane.Core.FileSystem;
+using Lingpane.Core.Localization;
 
 namespace Lingpane.Core.Tests;
 
@@ -76,8 +77,9 @@ public class FileOperationsTests : IDisposable
         Assert.True(FileOperations.TryCreateFolder(_root, null, out string first, out _));
         Assert.True(FileOperations.TryCreateFolder(_root, null, out string second, out _));
 
-        Assert.Equal("新建文件夹", Path.GetFileName(first));
-        Assert.Equal("新建文件夹 (2)", Path.GetFileName(second));
+        // 默认名跟随界面语言：断言文案来源而不是写死中文，否则英文环境跑测试必挂
+        Assert.Equal(Strings.Menu_NewFolder, Path.GetFileName(first));
+        Assert.Equal(Strings.Menu_NewFolder + " (2)", Path.GetFileName(second));
         Assert.True(Directory.Exists(second));
     }
 
@@ -105,8 +107,9 @@ public class FileOperationsTests : IDisposable
         Assert.True(FileOperations.TryCreateFile(_root, null, out string first, out _));
         Assert.True(FileOperations.TryCreateFile(_root, null, out string second, out _));
 
-        Assert.Equal("新建文本文档.txt", Path.GetFileName(first));
-        Assert.Equal("新建文本文档 (2).txt", Path.GetFileName(second));
+        Assert.Equal(Strings.File_NewTextFileName, Path.GetFileName(first));
+        Assert.Equal(Path.GetFileNameWithoutExtension(Strings.File_NewTextFileName) + " (2).txt",
+            Path.GetFileName(second));
     }
 
     [Fact]

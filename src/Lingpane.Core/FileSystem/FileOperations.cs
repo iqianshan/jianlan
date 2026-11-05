@@ -1,6 +1,9 @@
 using System.IO;
 using System.Runtime.InteropServices;
 
+using System.Globalization;
+using Lingpane.Core.Localization;
+
 namespace Lingpane.Core.FileSystem;
 
 /// <summary>
@@ -44,31 +47,31 @@ public static class FileOperations
 
         if (string.IsNullOrWhiteSpace(name))
         {
-            error = "名称不能为空";
+            error = Strings.Error_NameEmpty;
             return false;
         }
 
         if (name.Length > MaxNameLength)
         {
-            error = $"名称不能超过 {MaxNameLength} 个字符";
+            error = string.Format(CultureInfo.CurrentCulture, Strings.Error_NameTooLong, MaxNameLength);
             return false;
         }
 
         if (name.IndexOfAny(InvalidChars) >= 0)
         {
-            error = "名称不能包含 \\ / : * ? \" < > |";
+            error = Strings.Error_NameInvalidChars;
             return false;
         }
 
         if (name[^1] is '.' or ' ')
         {
-            error = "名称不能以空格或句点结尾";
+            error = Strings.Error_NameTrailingChar;
             return false;
         }
 
         if (ReservedNames.Contains(Path.GetFileNameWithoutExtension(name)))
         {
-            error = "该名称是系统保留名";
+            error = Strings.Error_NameReserved;
             return false;
         }
 
@@ -108,7 +111,7 @@ public static class FileOperations
     {
         createdPath = string.Empty;
 
-        string desired = string.IsNullOrWhiteSpace(name) ? "新建文件夹" : name.Trim();
+        string desired = string.IsNullOrWhiteSpace(name) ? Strings.Menu_NewFolder : name.Trim();
 
         if (!TryValidateName(desired, out error)) return false;
 
@@ -127,7 +130,7 @@ public static class FileOperations
     }
 
     /// <summary>新建文件的默认名。带扩展名，否则 Windows 下双击问"用什么打开"。</summary>
-    public const string DefaultFileName = "新建文本文档.txt";
+    public static string DefaultFileName => Strings.File_NewTextFileName;
 
     /// <summary>
     /// 新建空文件。<paramref name="name"/> 为空时用 <see cref="DefaultFileName"/>。
@@ -177,7 +180,7 @@ public static class FileOperations
         string? parent = Path.GetDirectoryName(path);
         if (parent is null)
         {
-            error = "无法解析所在目录";
+            error = Strings.Error_PathUnresolved;
             return false;
         }
 
@@ -193,14 +196,14 @@ public static class FileOperations
         bool isDirectory = Directory.Exists(path);
         if (!isDirectory && !File.Exists(path))
         {
-            error = "该项已不存在";
+            error = Strings.Error_ItemMissing;
             return false;
         }
 
         bool caseOnlyChange = string.Equals(path, target, StringComparison.OrdinalIgnoreCase);
         if (!caseOnlyChange && Exists(parent, trimmed))
         {
-            error = "该目录下已存在同名项";
+            error = Strings.Error_ItemExists;
             return false;
         }
 
@@ -232,7 +235,7 @@ public static class FileOperations
     public static Task<FileOpResult> DeleteAsync(IReadOnlyList<string> paths, bool permanent = false)
     {
         var existing = paths.Where(p => !string.IsNullOrEmpty(p)).ToArray();
-        if (existing.Length == 0) return Task.FromResult(FileOpResult.Failure("没有可删除的项"));
+        if (existing.Length == 0) return Task.FromResult(FileOpResult.Failure(Strings.Error_NothingToDelete));
 
         var tcs = new TaskCompletionSource<FileOpResult>(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -280,7 +283,7 @@ public static class FileOperations
                 if (IsSelfOrAncestor(source, targetDirectory))
                 {
                     failed++;
-                    firstError ??= "不能把文件夹复制到它自己里面";
+                    firstError ??= Strings.Error_CannotCopyIntoSelf;
                     continue;
                 }
 
@@ -299,7 +302,7 @@ public static class FileOperations
                 else
                 {
                     failed++;
-                    firstError ??= $"项已不存在：{source}";
+                    firstError ??= string.Format(CultureInfo.CurrentCulture, Strings.Error_ItemGone, source);
                 }
             }
             catch (Exception ex) when (IsExpected(ex))
@@ -324,7 +327,7 @@ public static class FileOperations
                 if (IsSelfOrAncestor(source, targetDirectory))
                 {
                     failed++;
-                    firstError ??= "不能把文件夹移动到它自己里面";
+                    firstError ??= Strings.Error_CannotMoveIntoSelf;
                     continue;
                 }
 
@@ -332,7 +335,7 @@ public static class FileOperations
                 if (!isDirectory && !File.Exists(source))
                 {
                     failed++;
-                    firstError ??= $"项已不存在：{source}";
+                    firstError ??= string.Format(CultureInfo.CurrentCulture, Strings.Error_ItemGone, source);
                     continue;
                 }
 
@@ -459,12 +462,12 @@ public static class FileOperations
 
             if (op.fAnyOperationsAborted)
             {
-                return new FileOpResult(false, 0, paths.Length, "操作已取消");
+                return new FileOpResult(false, 0, paths.Length, Strings.Error_Cancelled);
             }
 
             if (code != 0)
             {
-                return new FileOpResult(false, 0, paths.Length, $"删除失败（Shell 错误 0x{code:X}）");
+                return new FileOpResult(false, 0, paths.Length, string.Format(CultureInfo.CurrentCulture, Strings.Error_DeleteFailedShell, code.ToString("X", CultureInfo.InvariantCulture)));
             }
 
             return FileOpResult.Success(paths.Length);

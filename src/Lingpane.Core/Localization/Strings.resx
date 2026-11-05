@@ -1,0 +1,459 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  中性资源 = 英文（源语言）。中文见 Strings.zh-Hans.resx。
+
+  为什么中性是英文而不是中文：开源项目默认语言应为英文（README、issue、外部贡献者都在这条线上），
+  且中性资源直接编进主程序集，英文用户零探测。详见 docs/i18n.md §三。
+
+  键命名 区域.控件.语义，全英文，禁止用文案本身当键。占位符统一 {0}。
+-->
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="Application.Name" xml:space="preserve">
+    <value>Lingpane</value>
+  </data>
+  <data name="Window.Title" xml:space="preserve">
+    <value>{0} - Lingpane</value>
+  </data>
+
+  <!-- 工具栏 -->
+  <data name="Toolbar.Back" xml:space="preserve">
+    <value>Back (Alt+←)</value>
+  </data>
+  <data name="Toolbar.Forward" xml:space="preserve">
+    <value>Forward (Alt+→)</value>
+  </data>
+  <data name="Toolbar.Up" xml:space="preserve">
+    <value>Up one level (Alt+↑)</value>
+  </data>
+  <data name="Toolbar.Refresh" xml:space="preserve">
+    <value>Refresh (F5)</value>
+  </data>
+  <data name="Toolbar.Details" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Toolbar.Details.Tip" xml:space="preserve">
+    <value>Details view (Ctrl+Shift+1)</value>
+  </data>
+  <data name="Toolbar.List" xml:space="preserve">
+    <value>List</value>
+  </data>
+  <data name="Toolbar.List.Tip" xml:space="preserve">
+    <value>List view (Ctrl+Shift+2)</value>
+  </data>
+  <data name="Toolbar.Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Toolbar.Settings.Tip" xml:space="preserve">
+    <value>Open settings (Ctrl+,)</value>
+  </data>
+
+  <!-- 右键菜单 -->
+  <data name="Menu.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Menu.NewFolder" xml:space="preserve">
+    <value>New folder</value>
+  </data>
+  <data name="Menu.NewTextFile" xml:space="preserve">
+    <value>New text document</value>
+  </data>
+  <data name="Menu.Rename" xml:space="preserve">
+    <value>Rename</value>
+  </data>
+  <data name="Menu.Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Menu.Cut" xml:space="preserve">
+    <value>Cut</value>
+  </data>
+  <data name="Menu.Paste" xml:space="preserve">
+    <value>Paste</value>
+  </data>
+  <data name="Menu.Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Menu.DeletePermanent" xml:space="preserve">
+    <value>Delete permanently</value>
+  </data>
+  <data name="Menu.CopyPath" xml:space="preserve">
+    <value>Copy full path</value>
+  </data>
+  <data name="Menu.Properties" xml:space="preserve">
+    <value>Properties</value>
+  </data>
+
+  <!-- 列表列头与排序 -->
+  <data name="Column.Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Column.DateModified" xml:space="preserve">
+    <value>Date modified</value>
+  </data>
+  <data name="Column.Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Column.Size" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="Sort.Ascending" xml:space="preserve">
+    <value>Ascending</value>
+  </data>
+  <data name="Sort.Descending" xml:space="preserve">
+    <value>Descending</value>
+  </data>
+  <data name="Sort.ByName" xml:space="preserve">
+    <value>Sort by name</value>
+  </data>
+  <data name="Sort.ByDateModified" xml:space="preserve">
+    <value>Sort by date modified</value>
+  </data>
+  <data name="Sort.ByType" xml:space="preserve">
+    <value>Sort by type</value>
+  </data>
+  <data name="Sort.BySize" xml:space="preserve">
+    <value>Sort by size</value>
+  </data>
+
+  <!-- 空态 -->
+  <data name="Empty.Folder" xml:space="preserve">
+    <value>This folder is empty</value>
+  </data>
+  <data name="Empty.Inaccessible" xml:space="preserve">
+    <value>Can't access this folder</value>
+  </data>
+
+  <!-- 状态栏 -->
+  <data name="Status.Summary" xml:space="preserve">
+    <value>{0} items · enumerated {1} ms</value>
+  </data>
+  <data name="Status.SelectedCount" xml:space="preserve">
+    <value>{0} selected</value>
+  </data>
+  <data name="Status.SelectedOne" xml:space="preserve">
+    <value>1 item selected</value>
+  </data>
+  <data name="Status.SelectedWithSize" xml:space="preserve">
+    <value>{0} selected · {1}</value>
+  </data>
+  <data name="Status.SummaryHidden" xml:space="preserve">
+    <value>{0} items (hidden {1}) · enumerated {2} ms</value>
+  </data>
+  <data name="Status.Ready" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="Status.Loading" xml:space="preserve">
+    <value>Loading…</value>
+  </data>
+  <data name="Status.OperationFailed" xml:space="preserve">
+    <value>Operation failed: {0}</value>
+  </data>
+
+  <!-- 侧栏常用位置 -->
+  <data name="Nav.Desktop" xml:space="preserve">
+    <value>Desktop</value>
+  </data>
+  <data name="Nav.Documents" xml:space="preserve">
+    <value>Documents</value>
+  </data>
+  <data name="Nav.Downloads" xml:space="preserve">
+    <value>Downloads</value>
+  </data>
+  <data name="Nav.Pictures" xml:space="preserve">
+    <value>Pictures</value>
+  </data>
+  <data name="Nav.Music" xml:space="preserve">
+    <value>Music</value>
+  </data>
+  <data name="Nav.Videos" xml:space="preserve">
+    <value>Videos</value>
+  </data>
+  <data name="Nav.ThisPc" xml:space="preserve">
+    <value>This PC</value>
+  </data>
+
+  <!-- 错误：用户只看到人话，错误码只进日志 -->
+  <data name="Error.PathNotFound" xml:space="preserve">
+    <value>Location not found</value>
+  </data>
+  <data name="Error.AccessDenied" xml:space="preserve">
+    <value>Access denied</value>
+  </data>
+  <data name="Error.DeviceNotReady" xml:space="preserve">
+    <value>Device not ready — check the disk or network connection</value>
+  </data>
+  <data name="Error.PathTooLong" xml:space="preserve">
+    <value>Path is longer than the system limit</value>
+  </data>
+  <data name="Error.Unknown" xml:space="preserve">
+    <value>Unknown error</value>
+  </data>
+  <data name="Error.CannotOpen" xml:space="preserve">
+    <value>Cannot open: {0}</value>
+  </data>
+
+  <!-- 一次性提示 -->
+  <data name="Hint.IconViewUnavailable" xml:space="preserve">
+    <value>Large-icons view isn't implemented yet (it needs a virtualizing panel to stay smooth in huge folders); keeping the current view</value>
+  </data>
+
+  <!-- 设置：语言 -->
+  <data name="Settings.General" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="Settings.Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Settings.Language.Auto" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="Settings.Language.Chinese" xml:space="preserve">
+    <value>简体中文</value>
+  </data>
+  <data name="Settings.Language.English" xml:space="preserve">
+    <value>English</value>
+  </data>
+
+  <!-- 文件类型与对话框 -->
+  <data name="Type.Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="Type.File" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="File.NewTextFileName" xml:space="preserve">
+    <value>New text document.txt</value>
+  </data>
+  <data name="Dialog.Ok" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Dialog.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Error.NameEmpty" xml:space="preserve">
+    <value>Name cannot be empty</value>
+  </data>
+  <data name="Error.NameTooLong" xml:space="preserve">
+    <value>Name cannot exceed {0} characters</value>
+  </data>
+  <data name="Error.NameInvalidChars" xml:space="preserve">
+    <value>Name cannot contain \ / : * ? " &lt; &gt; |</value>
+  </data>
+  <data name="Error.NameTrailingChar" xml:space="preserve">
+    <value>Name cannot end with a space or a period</value>
+  </data>
+  <data name="Error.NameReserved" xml:space="preserve">
+    <value>That name is reserved by the system</value>
+  </data>
+  <data name="Error.PathUnresolved" xml:space="preserve">
+    <value>Cannot resolve the containing folder</value>
+  </data>
+  <data name="Error.ItemMissing" xml:space="preserve">
+    <value>That item no longer exists</value>
+  </data>
+  <data name="Error.ItemExists" xml:space="preserve">
+    <value>An item with the same name already exists in this folder</value>
+  </data>
+  <data name="Error.NothingToDelete" xml:space="preserve">
+    <value>Nothing to delete</value>
+  </data>
+  <data name="Error.CannotCopyIntoSelf" xml:space="preserve">
+    <value>A folder cannot be copied into itself</value>
+  </data>
+  <data name="Error.CannotMoveIntoSelf" xml:space="preserve">
+    <value>A folder cannot be moved into itself</value>
+  </data>
+  <data name="Error.ItemGone" xml:space="preserve">
+    <value>Item no longer exists: {0}</value>
+  </data>
+  <data name="Error.Cancelled" xml:space="preserve">
+    <value>Operation cancelled</value>
+  </data>
+  <data name="Error.DeleteFailedShell" xml:space="preserve">
+    <value>Delete failed (Shell error 0x{0})</value>
+  </data>
+
+  <!-- 文件操作与对话框 -->
+  <data name="Status.OpenItemFailed" xml:space="preserve">
+    <value>Cannot open "{0}"</value>
+  </data>
+  <data name="Status.NewFolderFailed" xml:space="preserve">
+    <value>Could not create folder: {0}</value>
+  </data>
+  <data name="Status.NewFileFailed" xml:space="preserve">
+    <value>Could not create file: {0}</value>
+  </data>
+  <data name="Dialog.RenameTitle" xml:space="preserve">
+    <value>Rename</value>
+  </data>
+  <data name="Dialog.RenamePrompt" xml:space="preserve">
+    <value>Enter a new name for "{0}"</value>
+  </data>
+  <data name="Status.RenameFailed" xml:space="preserve">
+    <value>Rename failed: {0}</value>
+  </data>
+  <data name="Status.Renamed" xml:space="preserve">
+    <value>Renamed to "{0}"</value>
+  </data>
+  <data name="Dialog.DeleteItem" xml:space="preserve">
+    <value>"{0}"</value>
+  </data>
+  <data name="Dialog.DeleteItems" xml:space="preserve">
+    <value>these {0} items</value>
+  </data>
+  <data name="Dialog.DeleteConfirmPermanent" xml:space="preserve">
+    <value>Permanently delete {0}?&#13;&#10;&#13;&#10;Permanent deletion skips the Recycle Bin and cannot be undone.</value>
+  </data>
+  <data name="Dialog.DeleteConfirmRecycle" xml:space="preserve">
+    <value>Move {0} to the Recycle Bin?</value>
+  </data>
+  <data name="Dialog.DeleteTitle" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Dialog.DeleteTitlePermanent" xml:space="preserve">
+    <value>Delete permanently</value>
+  </data>
+  <data name="Status.Deleting" xml:space="preserve">
+    <value>Deleting…</value>
+  </data>
+  <data name="Status.DeletingPermanent" xml:space="preserve">
+    <value>Deleting permanently…</value>
+  </data>
+  <data name="Status.DeletedCount" xml:space="preserve">
+    <value>Deleted {0} items</value>
+  </data>
+  <data name="Status.DeleteFailed" xml:space="preserve">
+    <value>Delete failed: {0}</value>
+  </data>
+  <data name="Status.CutCount" xml:space="preserve">
+    <value>Cut {0} items</value>
+  </data>
+  <data name="Status.CopiedCount" xml:space="preserve">
+    <value>Copied {0} items</value>
+  </data>
+  <data name="Status.Moving" xml:space="preserve">
+    <value>Moving…</value>
+  </data>
+  <data name="Status.Copying" xml:space="preserve">
+    <value>Copying…</value>
+  </data>
+  <data name="Status.MoveFailed" xml:space="preserve">
+    <value>Move failed: {0}</value>
+  </data>
+  <data name="Status.CopyFailed" xml:space="preserve">
+    <value>Copy failed: {0}</value>
+  </data>
+  <data name="Status.PartialFailed" xml:space="preserve">
+    <value>Completed {0}, {1} failed: {2}</value>
+  </data>
+  <data name="Status.MovedCount" xml:space="preserve">
+    <value>Moved {0} items</value>
+  </data>
+  <data name="Status.PathsCopied" xml:space="preserve">
+    <value>Copied {0} full paths</value>
+  </data>
+  <data name="Status.CopyPathFailed" xml:space="preserve">
+    <value>Could not copy the path</value>
+  </data>
+  <data name="Properties.Title" xml:space="preserve">
+    <value>Properties</value>
+  </data>
+  <data name="Properties.MultiSummary" xml:space="preserve">
+    <value>{0} items&#13;&#10;Total size: {1}</value>
+  </data>
+  <data name="Properties.FolderSizeUnknown" xml:space="preserve">
+    <value>Folder (size not counted)</value>
+  </data>
+  <data name="Properties.EntryDetail" xml:space="preserve">
+    <value>Name: {0}&#13;&#10;Location: {1}&#13;&#10;Type: {2}&#13;&#10;Size: {3}&#13;&#10;Modified: {4}</value>
+  </data>
+  <data name="Hint.PathNotFound" xml:space="preserve">
+    <value>Path not found: {0}</value>
+  </data>
+
+  <!-- 命令标题（命令面板/提示用；菜单用 Menu.* 那组） -->
+  <data name="Command.GoUp" xml:space="preserve">
+    <value>Up one level</value>
+  </data>
+  <data name="Command.GoBack" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Command.GoForward" xml:space="preserve">
+    <value>Forward</value>
+  </data>
+  <data name="Command.Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Command.CycleTheme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="Command.ViewDetails" xml:space="preserve">
+    <value>Details view</value>
+  </data>
+  <data name="Command.ViewList" xml:space="preserve">
+    <value>List view</value>
+  </data>
+  <data name="Command.OpenSettings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Command.FocusAddress" xml:space="preserve">
+    <value>Focus address bar</value>
+  </data>
+  <data name="Command.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Command.NewFolder" xml:space="preserve">
+    <value>New folder</value>
+  </data>
+  <data name="Command.NewFile" xml:space="preserve">
+    <value>New text document</value>
+  </data>
+  <data name="Command.Rename" xml:space="preserve">
+    <value>Rename</value>
+  </data>
+  <data name="Command.Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Command.DeletePermanent" xml:space="preserve">
+    <value>Delete permanently</value>
+  </data>
+  <data name="Command.Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Command.Cut" xml:space="preserve">
+    <value>Cut</value>
+  </data>
+  <data name="Command.Paste" xml:space="preserve">
+    <value>Paste</value>
+  </data>
+  <data name="Command.CopyPath" xml:space="preserve">
+    <value>Copy full path</value>
+  </data>
+  <data name="Command.Properties" xml:space="preserve">
+    <value>Properties</value>
+  </data>
+  <data name="Command.More" xml:space="preserve">
+    <value>More actions</value>
+  </data>
+  <data name="Command.SelectAll" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="Hint.DragMoveTo" xml:space="preserve">
+    <value>Move to "{0}"</value>
+  </data>
+  <data name="Hint.DragCopyTo" xml:space="preserve">
+    <value>Copy to "{0}"</value>
+  </data>
+</root>

@@ -1,0 +1,446 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  简体中文。键集合必须与 Strings.resx 完全一致（tools/i18n/check-keys.py 校验）。
+  改完不要手动同步 —— 缺键会在 CI 报出来。
+-->
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="Application.Name" xml:space="preserve">
+    <value>棂窗</value>
+  </data>
+  <data name="Window.Title" xml:space="preserve">
+    <value>{0} - 棂窗</value>
+  </data>
+
+  <data name="Toolbar.Back" xml:space="preserve">
+    <value>后退（Alt+←）</value>
+  </data>
+  <data name="Toolbar.Forward" xml:space="preserve">
+    <value>前进（Alt+→）</value>
+  </data>
+  <data name="Toolbar.Up" xml:space="preserve">
+    <value>上级目录（Alt+↑）</value>
+  </data>
+  <data name="Toolbar.Refresh" xml:space="preserve">
+    <value>刷新（F5）</value>
+  </data>
+  <data name="Toolbar.Details" xml:space="preserve">
+    <value>详细</value>
+  </data>
+  <data name="Toolbar.Details.Tip" xml:space="preserve">
+    <value>详细信息视图（Ctrl+Shift+1）</value>
+  </data>
+  <data name="Toolbar.List" xml:space="preserve">
+    <value>列表</value>
+  </data>
+  <data name="Toolbar.List.Tip" xml:space="preserve">
+    <value>列表视图（Ctrl+Shift+2）</value>
+  </data>
+  <data name="Toolbar.Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="Toolbar.Settings.Tip" xml:space="preserve">
+    <value>打开设置（Ctrl+,）</value>
+  </data>
+
+  <data name="Menu.Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="Menu.NewFolder" xml:space="preserve">
+    <value>新建文件夹</value>
+  </data>
+  <data name="Menu.NewTextFile" xml:space="preserve">
+    <value>新建文本文档</value>
+  </data>
+  <data name="Menu.Rename" xml:space="preserve">
+    <value>重命名</value>
+  </data>
+  <data name="Menu.Copy" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="Menu.Cut" xml:space="preserve">
+    <value>剪切</value>
+  </data>
+  <data name="Menu.Paste" xml:space="preserve">
+    <value>粘贴</value>
+  </data>
+  <data name="Menu.Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Menu.DeletePermanent" xml:space="preserve">
+    <value>永久删除</value>
+  </data>
+  <data name="Menu.CopyPath" xml:space="preserve">
+    <value>复制完整路径</value>
+  </data>
+  <data name="Menu.Properties" xml:space="preserve">
+    <value>属性</value>
+  </data>
+
+  <data name="Column.Name" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="Column.DateModified" xml:space="preserve">
+    <value>修改日期</value>
+  </data>
+  <data name="Column.Type" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="Column.Size" xml:space="preserve">
+    <value>大小</value>
+  </data>
+  <data name="Sort.Ascending" xml:space="preserve">
+    <value>升序</value>
+  </data>
+  <data name="Sort.Descending" xml:space="preserve">
+    <value>降序</value>
+  </data>
+  <data name="Sort.ByName" xml:space="preserve">
+    <value>按名称排序</value>
+  </data>
+  <data name="Sort.ByDateModified" xml:space="preserve">
+    <value>按修改日期排序</value>
+  </data>
+  <data name="Sort.ByType" xml:space="preserve">
+    <value>按类型排序</value>
+  </data>
+  <data name="Sort.BySize" xml:space="preserve">
+    <value>按大小排序</value>
+  </data>
+
+  <data name="Empty.Folder" xml:space="preserve">
+    <value>此文件夹为空</value>
+  </data>
+  <data name="Empty.Inaccessible" xml:space="preserve">
+    <value>无法访问此文件夹</value>
+  </data>
+
+  <data name="Status.Summary" xml:space="preserve">
+    <value>{0} 项 · 枚举 {1} ms</value>
+  </data>
+  <data name="Status.SelectedCount" xml:space="preserve">
+    <value>选中 {0} 项</value>
+  </data>
+  <data name="Status.SelectedOne" xml:space="preserve">
+    <value>选中 1 项</value>
+  </data>
+  <data name="Status.SelectedWithSize" xml:space="preserve">
+    <value>选中 {0} 项 · {1}</value>
+  </data>
+  <data name="Status.SummaryHidden" xml:space="preserve">
+    <value>{0} 项（已隐藏 {1} 项）· 枚举 {2} ms</value>
+  </data>
+  <data name="Status.Ready" xml:space="preserve">
+    <value>就绪</value>
+  </data>
+  <data name="Status.Loading" xml:space="preserve">
+    <value>读取中…</value>
+  </data>
+  <data name="Status.OperationFailed" xml:space="preserve">
+    <value>操作失败：{0}</value>
+  </data>
+
+  <data name="Nav.Desktop" xml:space="preserve">
+    <value>桌面</value>
+  </data>
+  <data name="Nav.Documents" xml:space="preserve">
+    <value>文档</value>
+  </data>
+  <data name="Nav.Downloads" xml:space="preserve">
+    <value>下载</value>
+  </data>
+  <data name="Nav.Pictures" xml:space="preserve">
+    <value>图片</value>
+  </data>
+  <data name="Nav.Music" xml:space="preserve">
+    <value>音乐</value>
+  </data>
+  <data name="Nav.Videos" xml:space="preserve">
+    <value>视频</value>
+  </data>
+  <data name="Nav.ThisPc" xml:space="preserve">
+    <value>此电脑</value>
+  </data>
+
+  <data name="Error.PathNotFound" xml:space="preserve">
+    <value>找不到此位置</value>
+  </data>
+  <data name="Error.AccessDenied" xml:space="preserve">
+    <value>没有访问权限</value>
+  </data>
+  <data name="Error.DeviceNotReady" xml:space="preserve">
+    <value>设备未就绪，请检查磁盘是否插好或网络是否连通</value>
+  </data>
+  <data name="Error.PathTooLong" xml:space="preserve">
+    <value>路径过长，超出系统限制</value>
+  </data>
+  <data name="Error.Unknown" xml:space="preserve">
+    <value>未知错误</value>
+  </data>
+  <data name="Error.CannotOpen" xml:space="preserve">
+    <value>无法打开：{0}</value>
+  </data>
+
+  <data name="Hint.IconViewUnavailable" xml:space="preserve">
+    <value>大图标视图尚未实现（需虚拟化面板，避免万项目录卡顿），已保持当前视图</value>
+  </data>
+
+  <data name="Settings.General" xml:space="preserve">
+    <value>通用</value>
+  </data>
+  <data name="Settings.Language" xml:space="preserve">
+    <value>界面语言</value>
+  </data>
+  <data name="Settings.Language.Auto" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="Settings.Language.Chinese" xml:space="preserve">
+    <value>简体中文</value>
+  </data>
+  <data name="Settings.Language.English" xml:space="preserve">
+    <value>English</value>
+  </data>
+
+  <!-- 文件类型与对话框 -->
+  <data name="Type.Folder" xml:space="preserve">
+    <value>文件夹</value>
+  </data>
+  <data name="Type.File" xml:space="preserve">
+    <value>文件</value>
+  </data>
+  <data name="File.NewTextFileName" xml:space="preserve">
+    <value>新建文本文档.txt</value>
+  </data>
+  <data name="Dialog.Ok" xml:space="preserve">
+    <value>确定</value>
+  </data>
+  <data name="Dialog.Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Error.NameEmpty" xml:space="preserve">
+    <value>名称不能为空</value>
+  </data>
+  <data name="Error.NameTooLong" xml:space="preserve">
+    <value>名称不能超过 {0} 个字符</value>
+  </data>
+  <data name="Error.NameInvalidChars" xml:space="preserve">
+    <value>名称不能包含 \ / : * ? " &lt; &gt; |</value>
+  </data>
+  <data name="Error.NameTrailingChar" xml:space="preserve">
+    <value>名称不能以空格或句点结尾</value>
+  </data>
+  <data name="Error.NameReserved" xml:space="preserve">
+    <value>该名称是系统保留名</value>
+  </data>
+  <data name="Error.PathUnresolved" xml:space="preserve">
+    <value>无法解析所在目录</value>
+  </data>
+  <data name="Error.ItemMissing" xml:space="preserve">
+    <value>该项已不存在</value>
+  </data>
+  <data name="Error.ItemExists" xml:space="preserve">
+    <value>该目录下已存在同名项</value>
+  </data>
+  <data name="Error.NothingToDelete" xml:space="preserve">
+    <value>没有可删除的项</value>
+  </data>
+  <data name="Error.CannotCopyIntoSelf" xml:space="preserve">
+    <value>不能把文件夹复制到它自己里面</value>
+  </data>
+  <data name="Error.CannotMoveIntoSelf" xml:space="preserve">
+    <value>不能把文件夹移动到它自己里面</value>
+  </data>
+  <data name="Error.ItemGone" xml:space="preserve">
+    <value>项已不存在：{0}</value>
+  </data>
+  <data name="Error.Cancelled" xml:space="preserve">
+    <value>操作已取消</value>
+  </data>
+  <data name="Error.DeleteFailedShell" xml:space="preserve">
+    <value>删除失败（Shell 错误 0x{0}）</value>
+  </data>
+
+  <!-- 文件操作与对话框 -->
+  <data name="Status.OpenItemFailed" xml:space="preserve">
+    <value>无法打开「{0}」</value>
+  </data>
+  <data name="Status.NewFolderFailed" xml:space="preserve">
+    <value>新建文件夹失败：{0}</value>
+  </data>
+  <data name="Status.NewFileFailed" xml:space="preserve">
+    <value>新建文件失败：{0}</value>
+  </data>
+  <data name="Dialog.RenameTitle" xml:space="preserve">
+    <value>重命名</value>
+  </data>
+  <data name="Dialog.RenamePrompt" xml:space="preserve">
+    <value>为「{0}」输入新名称</value>
+  </data>
+  <data name="Status.RenameFailed" xml:space="preserve">
+    <value>重命名失败：{0}</value>
+  </data>
+  <data name="Status.Renamed" xml:space="preserve">
+    <value>已重命名为「{0}」</value>
+  </data>
+  <data name="Dialog.DeleteItem" xml:space="preserve">
+    <value>「{0}」</value>
+  </data>
+  <data name="Dialog.DeleteItems" xml:space="preserve">
+    <value>这 {0} 项</value>
+  </data>
+  <data name="Dialog.DeleteConfirmPermanent" xml:space="preserve">
+    <value>永久删除{0}？&#13;&#10;&#13;&#10;永久删除不进回收站，无法撤销。</value>
+  </data>
+  <data name="Dialog.DeleteConfirmRecycle" xml:space="preserve">
+    <value>将{0}移到回收站？</value>
+  </data>
+  <data name="Dialog.DeleteTitle" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Dialog.DeleteTitlePermanent" xml:space="preserve">
+    <value>永久删除</value>
+  </data>
+  <data name="Status.Deleting" xml:space="preserve">
+    <value>正在删除…</value>
+  </data>
+  <data name="Status.DeletingPermanent" xml:space="preserve">
+    <value>正在永久删除…</value>
+  </data>
+  <data name="Status.DeletedCount" xml:space="preserve">
+    <value>已删除 {0} 项</value>
+  </data>
+  <data name="Status.DeleteFailed" xml:space="preserve">
+    <value>删除失败：{0}</value>
+  </data>
+  <data name="Status.CutCount" xml:space="preserve">
+    <value>已剪切 {0} 项</value>
+  </data>
+  <data name="Status.CopiedCount" xml:space="preserve">
+    <value>已复制 {0} 项</value>
+  </data>
+  <data name="Status.Moving" xml:space="preserve">
+    <value>正在移动…</value>
+  </data>
+  <data name="Status.Copying" xml:space="preserve">
+    <value>正在复制…</value>
+  </data>
+  <data name="Status.MoveFailed" xml:space="preserve">
+    <value>移动失败：{0}</value>
+  </data>
+  <data name="Status.CopyFailed" xml:space="preserve">
+    <value>复制失败：{0}</value>
+  </data>
+  <data name="Status.PartialFailed" xml:space="preserve">
+    <value>完成 {0} 项，{1} 项失败：{2}</value>
+  </data>
+  <data name="Status.MovedCount" xml:space="preserve">
+    <value>已移动 {0} 项</value>
+  </data>
+  <data name="Status.PathsCopied" xml:space="preserve">
+    <value>已复制 {0} 个完整路径</value>
+  </data>
+  <data name="Status.CopyPathFailed" xml:space="preserve">
+    <value>复制路径失败</value>
+  </data>
+  <data name="Properties.Title" xml:space="preserve">
+    <value>属性</value>
+  </data>
+  <data name="Properties.MultiSummary" xml:space="preserve">
+    <value>共 {0} 项&#13;&#10;总计大小：{1}</value>
+  </data>
+  <data name="Properties.FolderSizeUnknown" xml:space="preserve">
+    <value>文件夹（大小不计）</value>
+  </data>
+  <data name="Properties.EntryDetail" xml:space="preserve">
+    <value>名称：{0}&#13;&#10;位置：{1}&#13;&#10;类型：{2}&#13;&#10;大小：{3}&#13;&#10;修改时间：{4}</value>
+  </data>
+  <data name="Hint.PathNotFound" xml:space="preserve">
+    <value>路径不存在：{0}</value>
+  </data>
+
+  <!-- 命令标题（命令面板/提示用；菜单用 Menu.* 那组） -->
+  <data name="Command.GoUp" xml:space="preserve">
+    <value>上级</value>
+  </data>
+  <data name="Command.GoBack" xml:space="preserve">
+    <value>后退</value>
+  </data>
+  <data name="Command.GoForward" xml:space="preserve">
+    <value>前进</value>
+  </data>
+  <data name="Command.Refresh" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="Command.CycleTheme" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="Command.ViewDetails" xml:space="preserve">
+    <value>详细信息视图</value>
+  </data>
+  <data name="Command.ViewList" xml:space="preserve">
+    <value>列表视图</value>
+  </data>
+  <data name="Command.OpenSettings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="Command.FocusAddress" xml:space="preserve">
+    <value>定位地址栏</value>
+  </data>
+  <data name="Command.Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="Command.NewFolder" xml:space="preserve">
+    <value>新建文件夹</value>
+  </data>
+  <data name="Command.NewFile" xml:space="preserve">
+    <value>新建文本文档</value>
+  </data>
+  <data name="Command.Rename" xml:space="preserve">
+    <value>重命名</value>
+  </data>
+  <data name="Command.Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Command.DeletePermanent" xml:space="preserve">
+    <value>永久删除</value>
+  </data>
+  <data name="Command.Copy" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="Command.Cut" xml:space="preserve">
+    <value>剪切</value>
+  </data>
+  <data name="Command.Paste" xml:space="preserve">
+    <value>粘贴</value>
+  </data>
+  <data name="Command.CopyPath" xml:space="preserve">
+    <value>复制完整路径</value>
+  </data>
+  <data name="Command.Properties" xml:space="preserve">
+    <value>属性</value>
+  </data>
+  <data name="Command.More" xml:space="preserve">
+    <value>更多操作</value>
+  </data>
+  <data name="Command.SelectAll" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="Hint.DragMoveTo" xml:space="preserve">
+    <value>移动到「{0}」</value>
+  </data>
+  <data name="Hint.DragCopyTo" xml:space="preserve">
+    <value>复制到「{0}」</value>
+  </data>
+</root>

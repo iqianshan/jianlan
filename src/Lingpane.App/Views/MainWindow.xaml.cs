@@ -16,6 +16,8 @@ using Lingpane.Core.Diagnostics;
 using Lingpane.Core.FileSystem;
 using Lingpane.Core.Settings;
 
+using Lingpane.Core.Localization;
+
 namespace Lingpane.App.Views;
 
 public partial class MainWindow : Window
@@ -62,7 +64,7 @@ public partial class MainWindow : Window
         _commands.Register(new AppCommand
         {
             Id = CommandIds.GoUp,
-            Title = "上级",
+            TitleFactory = () => Strings.Command_GoUp,
             Gesture = "Alt+↑",
             CanExecute = CanGoUp,
             Execute = GoUp,
@@ -70,7 +72,7 @@ public partial class MainWindow : Window
         _commands.Register(new AppCommand
         {
             Id = CommandIds.GoBack,
-            Title = "后退",
+            TitleFactory = () => Strings.Command_GoBack,
             Gesture = "Alt+←",
             CanExecute = () => !_viewModel.IsLoading && _viewModel.CanGoBack,
             Execute = () => _ = _viewModel.GoBackAsync(),
@@ -78,7 +80,7 @@ public partial class MainWindow : Window
         _commands.Register(new AppCommand
         {
             Id = CommandIds.GoForward,
-            Title = "前进",
+            TitleFactory = () => Strings.Command_GoForward,
             Gesture = "Alt+→",
             CanExecute = () => !_viewModel.IsLoading && _viewModel.CanGoForward,
             Execute = () => _ = _viewModel.GoForwardAsync(),
@@ -86,7 +88,7 @@ public partial class MainWindow : Window
         _commands.Register(new AppCommand
         {
             Id = CommandIds.Refresh,
-            Title = "刷新",
+            TitleFactory = () => Strings.Command_Refresh,
             Gesture = "F5",
             CanExecute = () => !_viewModel.IsLoading,
             Execute = () => _ = _viewModel.RefreshAsync(),
@@ -94,7 +96,7 @@ public partial class MainWindow : Window
         _commands.Register(new AppCommand
         {
             Id = CommandIds.CycleTheme,
-            Title = "主题",
+            TitleFactory = () => Strings.Command_CycleTheme,
             // 不能用 Ctrl+T / Ctrl+Shift+T：docs/shortcuts.md 已把它们分配给标签页
             Gesture = "Ctrl+Shift+D",
             Execute = () => App.CycleTheme(),
@@ -102,28 +104,28 @@ public partial class MainWindow : Window
         _commands.Register(new AppCommand
         {
             Id = CommandIds.ViewDetails,
-            Title = "详细信息视图",
+            TitleFactory = () => Strings.Command_ViewDetails,
             Gesture = "Ctrl+Shift+1",
             Execute = () => _viewModel.SetViewMode(DefaultViewKind.Details),
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.ViewList,
-            Title = "列表视图",
+            TitleFactory = () => Strings.Command_ViewList,
             Gesture = "Ctrl+Shift+2",
             Execute = () => _viewModel.SetViewMode(DefaultViewKind.List),
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.OpenSettings,
-            Title = "设置",
+            TitleFactory = () => Strings.Command_OpenSettings,
             Gesture = "Ctrl+,",
             Execute = OpenSettings,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.FocusAddress,
-            Title = "定位地址栏",
+            TitleFactory = () => Strings.Command_FocusAddress,
             Gesture = "Ctrl+L",
             Execute = BeginAddressEdit,
         });
@@ -133,90 +135,90 @@ public partial class MainWindow : Window
         _commands.Register(new AppCommand
         {
             Id = CommandIds.OpenItem,
-            Title = "打开",
+            TitleFactory = () => Strings.Command_Open,
             Execute = OpenSelection,
             CanExecute = HasSingleSelection,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.NewFolder,
-            Title = "新建文件夹",
+            TitleFactory = () => Strings.Command_NewFolder,
             Execute = () => _ = NewFolderAsync(),
             CanExecute = CanCreateInCurrentDirectory,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.NewFile,
-            Title = "新建文本文档",
+            TitleFactory = () => Strings.Command_NewFile,
             Execute = () => _ = NewFileAsync(),
             CanExecute = CanCreateInCurrentDirectory,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.Rename,
-            Title = "重命名",
+            TitleFactory = () => Strings.Command_Rename,
             Execute = () => _ = RenameSelectionAsync(),
             CanExecute = HasSingleSelection,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.Delete,
-            Title = "删除",
+            TitleFactory = () => Strings.Command_Delete,
             Execute = () => _ = DeleteSelectionAsync(permanent: false),
             CanExecute = HasSelection,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.DeletePermanent,
-            Title = "永久删除",
+            TitleFactory = () => Strings.Command_DeletePermanent,
             Execute = () => _ = DeleteSelectionAsync(permanent: true),
             CanExecute = HasSelection,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.CopyItems,
-            Title = "复制",
+            TitleFactory = () => Strings.Command_Copy,
             Execute = () => CopySelection(cut: false),
             CanExecute = HasSelection,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.CutItems,
-            Title = "剪切",
+            TitleFactory = () => Strings.Command_Cut,
             Execute = () => CopySelection(cut: true),
             CanExecute = HasSelection,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.Paste,
-            Title = "粘贴",
+            TitleFactory = () => Strings.Command_Paste,
             Execute = () => _ = PasteAsync(),
             CanExecute = CanPaste,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.CopyPath,
-            Title = "复制完整路径",
+            TitleFactory = () => Strings.Command_CopyPath,
             Execute = CopyPathSelection,
             CanExecute = HasSelection,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.Properties,
-            Title = "属性",
+            TitleFactory = () => Strings.Command_Properties,
             Execute = ShowProperties,
             CanExecute = HasSelection,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.ShowContextMenu,
-            Title = "更多操作",
+            TitleFactory = () => Strings.Command_More,
             Execute = ShowContextMenu,
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.SelectAll,
-            Title = "全选",
+            TitleFactory = () => Strings.Command_SelectAll,
             Execute = SelectAllItems,
             CanExecute = () => !_viewModel.IsLoading && FileList.Items.Count > 0,
         });
@@ -744,7 +746,7 @@ public partial class MainWindow : Window
                 EndAddressEdit();
                 if (!string.IsNullOrWhiteSpace(target) && !Directory.Exists(target))
                 {
-                    _viewModel.SetHint($"路径不存在：{target}");
+                    _viewModel.SetHint(string.Format(Strings.Hint_PathNotFound, target));
                     return;
                 }
 

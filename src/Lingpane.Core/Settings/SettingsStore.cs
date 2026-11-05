@@ -1,3 +1,4 @@
+// i18n-ignore-file：本文件的中文字符串只进日志/诊断输出，不进界面，不参与翻译。
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;

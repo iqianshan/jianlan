@@ -7,4 +7,10 @@
     <AssemblyName>Lingpane.Core</AssemblyName>
   </PropertyGroup>
 
+  <!--
+    资源文件保持默认的 EmbeddedResource 处理；强类型访问器由 tools/i18n/gen-strings.py
+    生成到 Localization/Strings.g.cs 并提交（生成物入版本库，IDE 才可跳转）。
+    不用 MSBuild 内置的 StronglyTyped 生成：它产出 internal 类，App 项目访问不到。
+  -->
+
 </Project>

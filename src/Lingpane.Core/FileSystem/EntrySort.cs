@@ -1,5 +1,7 @@
 using System.Globalization;
 
+using Lingpane.Core.Localization;
+
 namespace Lingpane.Core.FileSystem;
 
 /// <summary>
@@ -113,12 +115,13 @@ public readonly record struct EntrySort(Settings.SortFieldKind Field, bool Desce
 
     public string DisplayName => Field switch
     {
-        Settings.SortFieldKind.Date => "修改日期",
-        Settings.SortFieldKind.Size => "大小",
-        Settings.SortFieldKind.Type => "类型",
-        _ => "名称",
+        Settings.SortFieldKind.Date => Strings.Column_DateModified,
+        Settings.SortFieldKind.Size => Strings.Column_Size,
+        Settings.SortFieldKind.Type => Strings.Column_Type,
+        _ => Strings.Column_Name,
     };
 
+    /// <summary>调试输出用。降序/升序也走资源，避免英文界面下日志里混着中文。</summary>
     public override string ToString()
-        => string.Create(CultureInfo.InvariantCulture, $"{DisplayName} {(Descending ? "降序" : "升序")}");
+        => $"{DisplayName} {(Descending ? Strings.Sort_Descending : Strings.Sort_Ascending)}";
 }

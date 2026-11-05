@@ -22,8 +22,8 @@
     <AssemblyVersion>0.1.0.0</AssemblyVersion>
     <FileVersion>0.1.0.0</FileVersion>
 
-    <!-- 只保留英文附属资源：减少发布体积与首帧前的资源探测 -->
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- 保留中英两套附属资源。只写 en 会把 zh-Hans 卫星程序集裁掉，切中文后一片英文 -->
+    <SatelliteResourceLanguages>en;zh-Hans</SatelliteResourceLanguages>
 
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <EnableDefaultNoneItems>false</EnableDefaultNoneItems>

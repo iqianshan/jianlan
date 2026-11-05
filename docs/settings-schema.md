@@ -17,6 +17,10 @@
 {
   "schemaVersion": 1,
 
+  "general": {
+    "language": "auto"          // auto（跟随系统安装语言）| zh-Hans | en
+  },
+
   "appearance": {
     "theme": "system",          // system | light | dark
     "fontSizePt": null,         // null = 跟随系统；8–24 整数
@@ -64,6 +68,7 @@
 
 | 字段 | 约束 | 越界处理 |
 |---|---|---|
+| `language` | `auto` / `zh-Hans` / `en` 三值 | 无法识别的值按 `auto` 处理，不报错（手改坏了不至于起不来） |
 | `theme` | 三值枚举，且系统高对比度开启时强制 `HighContrast` | 回落 `system` |
 | `fontSizePt` | `null` 或 8–24 整数 | 超范围夹取到边界 |
 | `fontFamily` | 必须存在于系统字体列表 | 不存在则回落默认栈，不报错 |
@@ -84,6 +89,8 @@
 2. 解析失败 → 使用默认值，把原文件重命名为 `settings.json.bak`，记一条警告日志
 3. 未知字段 → 忽略但**保留**（写回时原样带回，避免降级版本吃掉新字段）
 4. 读取必须在首帧之后或后台线程；首帧前只读 `session` 与 `appearance` 两组
+5. `general.language` 在读完设置后、创建视图模型前立即应用（启动埋点 `i18n`，约 1ms）：
+   视图模型构造期就会取文案，晚于它应用会让列头/侧栏停在上一次的语言
 
 **写入**
 

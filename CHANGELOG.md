@@ -42,6 +42,11 @@
 - 目录变更监听：`FileSystemWatcher` + 400ms 去抖，外部改动自动刷新并按路径恢复选中
 - `Ctrl+A` 全选、菜单键打开上下文菜单
 - `--keydebug` 按键诊断：把每条按键消息写入 `logs/keydebug.log`，默认关闭
+- 多语言基建（FR-10.4）：`Strings.resx`（英文中性）+ `Strings.zh-Hans.resx`，
+  `{loc:Tr Key=...}` 绑到索引器实现**不重启切换**（实测 52ms）；设置页新增「语言」下拉，
+  写入 `settings.json` 的 `general.language`，跟随系统时按系统安装语言判断
+- 主界面、右键菜单、命令标题、状态栏、文件操作与错误提示全部走资源键；
+  `tools/i18n/gen-strings.py` 生成强类型访问器，`check-keys.py` 校验键一致性与残留硬编码
 
 ### 变更
 
@@ -51,6 +56,14 @@
 - 大图标视图暂不提供：该视图需要虚拟化换行面板，未实现前万项目录会创建万个容器，
   与"启动快、稳定"的硬目标冲突。`settings.json` 中的 `grid` 会在启动时回落到列表视图
 - 设置写盘失败改为写 `logs/app.log`（`E4002`），不再只进调试输出
+
+### 变更
+
+- `AppCommand.Title` 增加 `TitleFactory`：init-only 的标题没法跟着语言变，
+  命令标题改为按当前语言解析（`ResolveTitle()`）
+- `FileEntry.TypeText` 去掉缓存：文案随语言变化，缓存会让已显示过的行停在旧语言
+- `Directory.Build.props` 的 `SatelliteResourceLanguages` 由 `en` 改为 `en;zh-Hans`，
+  否则中文卫星程序集会被裁掉
 
 ### 修复
 

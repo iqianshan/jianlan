@@ -1,3 +1,4 @@
+// i18n-ignore-file：本文件的中文字符串只进日志/诊断输出，不进界面，不参与翻译。
 namespace Lingpane.Core.Commands;
 
 /// <summary>
@@ -39,8 +40,17 @@ public sealed class AppCommand
 {
     public required string Id { get; init; }
 
-    /// <summary>界面显示名，如"刷新"。</summary>
-    public required string Title { get; init; }
+    /// <summary>
+    /// 界面显示名，如"刷新"。用 <see cref="TitleFactory"/> 时以工厂结果为准，
+    /// 这样切换语言后新读取到的名字就是新语言的（多语言落地方案见 docs/i18n.md）。
+    /// </summary>
+    public string Title { get; init; } = string.Empty;
+
+    /// <summary>命令标题的文案工厂。设置后 <see cref="Title"/> 被忽略。</summary>
+    public Func<string>? TitleFactory { get; init; }
+
+    /// <summary>取当前语言下的显示名。</summary>
+    public string ResolveTitle() => TitleFactory?.Invoke() ?? Title;
 
     /// <summary>快捷键的显示文本（仅用于提示，真正的绑定在界面层），如 "F5"。</summary>
     public string? Gesture { get; init; }

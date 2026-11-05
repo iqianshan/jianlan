@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:conv="clr-namespace:Lingpane.App.Converters"
+        xmlns:loc="clr-namespace:Lingpane.App.Localization"
         Title="{Binding TitleText}"
         Height="720" Width="1100"
         MinHeight="480" MinWidth="720"
@@ -72,19 +73,19 @@
                     <Button Style="{StaticResource Button.Toolbar}"
                             Command="{Binding BackCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                             Content="←"
-                            ToolTip="后退（Alt+←）"/>
+                            ToolTip="{loc:Tr Key=Toolbar.Back}"/>
                     <Button Style="{StaticResource Button.Toolbar}"
                             Command="{Binding ForwardCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                             Content="→"
-                            ToolTip="前进（Alt+→）"/>
+                            ToolTip="{loc:Tr Key=Toolbar.Forward}"/>
                     <Button Style="{StaticResource Button.Toolbar}"
                             Command="{Binding UpCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                             Content="↑"
-                            ToolTip="上级目录（Alt+↑）"/>
+                            ToolTip="{loc:Tr Key=Toolbar.Up}"/>
                     <Button Style="{StaticResource Button.Toolbar}"
                             Command="{Binding RefreshCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                             Content="⟳"
-                            ToolTip="刷新（F5）"/>
+                            ToolTip="{loc:Tr Key=Toolbar.Refresh}"/>
                 </StackPanel>
 
                 <!-- 地址栏：面包屑 ↔ 可编辑完整路径（Ctrl+L 或点击空白处切换） -->
@@ -139,19 +140,19 @@
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Style="{StaticResource ViewButton.Details}"
                             Command="{Binding DetailsCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                            Content="详细"
-                            ToolTip="详细信息视图（Ctrl+Shift+1）"/>
+                            Content="{loc:Tr Key=Toolbar.Details}"
+                            ToolTip="{loc:Tr Key=Toolbar.Details.Tip}"/>
                     <Button Style="{StaticResource ViewButton.List}"
                             Command="{Binding ListViewCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                            Content="列表"
-                            ToolTip="列表视图（Ctrl+Shift+2）"/>
+                            Content="{loc:Tr Key=Toolbar.List}"
+                            ToolTip="{loc:Tr Key=Toolbar.List.Tip}"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Style="{StaticResource Button.Toolbar}"
                             Command="{Binding SettingsCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                            Content="设置"
-                            ToolTip="打开设置（Ctrl+,）"/>
+                            Content="{loc:Tr Key=Toolbar.Settings}"
+                            ToolTip="{loc:Tr Key=Toolbar.Settings.Tip}"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -229,7 +230,7 @@
                                 Content="{Binding NameHeader}"
                                 Tag="Name"
                                 Click="OnSortClick"
-                                ToolTip="按名称排序"/>
+                                ToolTip="{loc:Tr Key=Sort.ByName}"/>
                         <Button Grid.Column="3"
                                 x:Name="DateHeaderButton"
                                 Style="{StaticResource Button.Header}"
@@ -237,7 +238,7 @@
                                 Content="{Binding DateHeader}"
                                 Tag="Date"
                                 Click="OnSortClick"
-                                ToolTip="按修改日期排序"/>
+                                ToolTip="{loc:Tr Key=Sort.ByDateModified}"/>
                         <Thumb Grid.Column="3"
                                Style="{StaticResource Thumb.ColumnResize}"
                                Tag="Column.Date.Width"
@@ -250,7 +251,7 @@
                                 Content="{Binding TypeHeader}"
                                 Tag="Type"
                                 Click="OnSortClick"
-                                ToolTip="按类型排序"/>
+                                ToolTip="{loc:Tr Key=Sort.ByType}"/>
                         <Thumb Grid.Column="4"
                                Style="{StaticResource Thumb.ColumnResize}"
                                Tag="Column.Type.Width"
@@ -264,7 +265,7 @@
                                 Tag="Size"
                                 Click="OnSortClick"
                                 HorizontalContentAlignment="Right"
-                                ToolTip="按大小排序"/>
+                                ToolTip="{loc:Tr Key=Sort.BySize}"/>
                         <Thumb Grid.Column="5"
                                Style="{StaticResource Thumb.ColumnResize}"
                                Tag="Column.Size.Width"
@@ -299,41 +300,41 @@
                                          Opened="OnContextMenuOpened"
                                          DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
                                 <MenuItem Style="{StaticResource MenuItem.Default}"
-                                          Header="打开"
+                                          Header="{loc:Tr Key=Menu.Open}"
                                           Command="{Binding OpenItemCommand}"/>
                                 <Separator Style="{StaticResource Menu.Separator}"/>
                                 <MenuItem Style="{StaticResource MenuItem.Default}"
-                                          Header="新建文件夹"
+                                          Header="{loc:Tr Key=Menu.NewFolder}"
                                           Command="{Binding NewFolderCommand}"/>
                                 <MenuItem Style="{StaticResource MenuItem.Default}"
-                                          Header="新建文本文档"
+                                          Header="{loc:Tr Key=Menu.NewTextFile}"
                                           Command="{Binding NewFileCommand}"/>
                                 <MenuItem Style="{StaticResource MenuItem.Default}"
-                                          Header="重命名"
+                                          Header="{loc:Tr Key=Menu.Rename}"
                                           Command="{Binding RenameCommand}"/>
                                 <Separator Style="{StaticResource Menu.Separator}"/>
                                 <MenuItem Style="{StaticResource MenuItem.Default}"
-                                          Header="复制"
+                                          Header="{loc:Tr Key=Menu.Copy}"
                                           Command="{Binding CopyItemsCommand}"/>
                                 <MenuItem Style="{StaticResource MenuItem.Default}"
-                                          Header="剪切"
+                                          Header="{loc:Tr Key=Menu.Cut}"
                                           Command="{Binding CutItemsCommand}"/>
                                 <MenuItem Style="{StaticResource MenuItem.Default}"
-                                          Header="粘贴"
+                                          Header="{loc:Tr Key=Menu.Paste}"
                                           Command="{Binding PasteCommand}"/>
                                 <Separator Style="{StaticResource Menu.Separator}"/>
                                 <MenuItem Style="{StaticResource MenuItem.Default}"
-                                          Header="删除"
+                                          Header="{loc:Tr Key=Menu.Delete}"
                                           Command="{Binding DeleteCommand}"/>
                                 <MenuItem Style="{StaticResource MenuItem.Default}"
-                                          Header="永久删除"
+                                          Header="{loc:Tr Key=Menu.DeletePermanent}"
                                           Command="{Binding DeletePermanentCommand}"/>
                                 <Separator Style="{StaticResource Menu.Separator}"/>
                                 <MenuItem Style="{StaticResource MenuItem.Default}"
-                                          Header="复制完整路径"
+                                          Header="{loc:Tr Key=Menu.CopyPath}"
                                           Command="{Binding CopyPathCommand}"/>
                                 <MenuItem Style="{StaticResource MenuItem.Default}"
-                                          Header="属性"
+                                          Header="{loc:Tr Key=Menu.Properties}"
                                           Command="{Binding PropertiesCommand}"/>
                             </ContextMenu>
                         </ListBox.ContextMenu>
@@ -356,7 +357,7 @@
                                IsHitTestVisible="False">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Secondary}">
-                                <Setter Property="Text" Value="此文件夹为空"/>
+                                <Setter Property="Text" Value="{loc:Tr Key=Empty.Folder}"/>
                                 <Setter Property="Visibility" Value="Collapsed"/>
                                 <Style.Triggers>
                                     <!-- 加载完成且无条目 → 显示；后面的触发器优先级更高，用它挡住启动瞬间 -->
@@ -368,7 +369,7 @@
                                         <Setter Property="Visibility" Value="Visible"/>
                                     </MultiDataTrigger>
                                     <DataTrigger Binding="{Binding HasNavigationError}" Value="True">
-                                        <Setter Property="Text" Value="无法访问此文件夹"/>
+                                        <Setter Property="Text" Value="{loc:Tr Key=Empty.Inaccessible}"/>
                                     </DataTrigger>
                                     <MultiDataTrigger>
                                         <MultiDataTrigger.Conditions>

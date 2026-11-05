@@ -2,6 +2,8 @@ using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Globalization;
 
+using Lingpane.Core.Localization;
+
 namespace Lingpane.Core.FileSystem;
 
 /// <summary>
@@ -33,7 +35,7 @@ public sealed class FileEntry : INotifyPropertyChanged
     private string? _fullPath;
     private string? _sizeText;
     private string? _dateText;
-    private string? _typeText;
+    // 类型文本曾经缓存在 _typeText，因支持运行时切换语言已去掉缓存（见 TypeText）
 
     public FileEntry(string name, string parentPath, bool isDirectory, long size, DateTime lastWriteTime,
         bool isHidden = false)
@@ -101,17 +103,18 @@ public sealed class FileEntry : INotifyPropertyChanged
     public string DateText => _dateText ??= FormatDate(LastWriteTime, DateTime.Now.Year);
 
     /// <summary>
-    /// 类型列文本。按需计算：只有真正显示出来的行才会分配这个字符串，
-    /// 未滚动到的条目一个字节都不占（万项目录的内存口径要求）。
+    /// 类型列文本。**不缓存**：文案随界面语言变化，缓存会让切换语言后已显示过的行停在旧语言。
+    /// 代价可忽略——只有真正渲染出来的行才会取这个属性（虚拟化，通常 30 行内），
+    /// 未滚动到的条目一次都不会调用。
     /// </summary>
-    public string TypeText => _typeText ??= ResolveTypeText();
+    public string TypeText => ResolveTypeText();
 
     private string ResolveTypeText()
     {
-        if (IsDirectory) return "文件夹";
+        if (IsDirectory) return Strings.Type_Folder;
 
         int dot = Name.LastIndexOf('.');
-        if (dot <= 0 || dot == Name.Length - 1) return "文件";
+        if (dot <= 0 || dot == Name.Length - 1) return Strings.Type_File;
 
         // 扩展名大写更符合 Windows 习惯（.TXT 而非 .txt）
         return Name[dot..].ToUpperInvariant();

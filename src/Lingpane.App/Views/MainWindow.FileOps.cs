@@ -6,6 +6,8 @@ using System.Windows.Input;
 using Lingpane.App.Services;
 using Lingpane.Core.FileSystem;
 
+using Lingpane.Core.Localization;
+
 namespace Lingpane.App.Views;
 
 /// <summary>
@@ -37,7 +39,7 @@ public partial class MainWindow
         }
         catch (Exception ex) when (ex is Win32Exception or IOException or UnauthorizedAccessException)
         {
-            _viewModel.SetStatus($"无法打开「{entry.Name}」：{ex.Message}");
+            _viewModel.SetStatus(string.Format(Strings.Status_OpenItemFailed, entry.Name));
         }
     }
 
@@ -48,7 +50,7 @@ public partial class MainWindow
 
         if (!FileOperations.TryCreateFolder(directory, null, out string created, out string? error))
         {
-            _viewModel.SetStatus("新建文件夹失败：" + error);
+            _viewModel.SetStatus(string.Format(Strings.Status_NewFolderFailed, error));
             return;
         }
 
@@ -65,7 +67,7 @@ public partial class MainWindow
 
         if (!FileOperations.TryCreateFile(directory, null, out string created, out string? error))
         {
-            _viewModel.SetStatus("新建文件失败：" + error);
+            _viewModel.SetStatus(string.Format(Strings.Status_NewFileFailed, error));
             return;
         }
 
@@ -87,8 +89,8 @@ public partial class MainWindow
 
         string? name = TextPromptWindow.Ask(
             this,
-            "重命名",
-            $"为「{entry.Name}」输入新名称",
+            Strings.Dialog_RenameTitle,
+            string.Format(Strings.Dialog_RenamePrompt, entry.Name),
             entry.Name,
             value => FileOperations.TryValidateName(value, out string? error) ? null : error,
             selectStem: !entry.IsDirectory);
@@ -97,12 +99,12 @@ public partial class MainWindow
 
         if (!FileOperations.TryRename(entry.FullPath, name, out string renamedPath, out string? renameError))
         {
-            _viewModel.SetStatus("重命名失败：" + renameError);
+            _viewModel.SetStatus(string.Format(Strings.Status_RenameFailed, renameError));
             return;
         }
 
         await RefreshAndSelectAsync([renamedPath]);
-        _viewModel.SetStatus($"已重命名为「{Path.GetFileName(renamedPath)}」");
+        _viewModel.SetStatus(string.Format(Strings.Status_Renamed, Path.GetFileName(renamedPath)));
     }
 
     private async Task DeleteSelectionAsync(bool permanent)
@@ -110,16 +112,19 @@ public partial class MainWindow
         var items = _viewModel.SelectedEntries;
         if (items.Count == 0) return;
 
-        string what = items.Count == 1 ? $"「{items[0].Name}」" : $"这 {items.Count} 项";
+        string what = items.Count == 1
+            ? string.Format(Strings.Dialog_DeleteItem, items[0].Name)
+            : string.Format(Strings.Dialog_DeleteItems, items.Count);
 
         // 永久删除无论如何都要确认；普通删除看设置（默认开）
         if (permanent || App.Settings.Behavior.ConfirmDelete)
         {
             string question = permanent
-                ? $"永久删除{what}？\n\n永久删除不进回收站，无法撤销。"
-                : $"将{what}移到回收站？";
+                ? string.Format(Strings.Dialog_DeleteConfirmPermanent, what)
+                : string.Format(Strings.Dialog_DeleteConfirmRecycle, what);
 
-            if (MessageBox.Show(this, question, permanent ? "永久删除" : "删除",
+            if (MessageBox.Show(this, question,
+                    permanent ? Strings.Dialog_DeleteTitlePermanent : Strings.Dialog_DeleteTitle,
                     MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
             {
                 return;
@@ -130,8 +135,10 @@ public partial class MainWindow
 
         await RunOperationAsync(
             () => FileOperations.DeleteAsync(paths, permanent),
-            permanent ? "正在永久删除…" : "正在删除…",
-            result => result.Ok ? $"已删除 {result.Succeeded} 项" : $"删除失败：{result.Error}");
+            permanent ? Strings.Status_DeletingPermanent : Strings.Status_Deleting,
+            result => result.Ok
+                ? string.Format(Strings.Status_DeletedCount, result.Succeeded)
+                : string.Format(Strings.Status_DeleteFailed, result.Error));
 
         await RefreshAndSelectAsync([]);
     }
@@ -142,7 +149,7 @@ public partial class MainWindow
         if (items.Count == 0) return;
 
         FileClipboard.Set(items.Select(i => i.FullPath).ToArray(), cut);
-        _viewModel.SetStatus(cut ? $"已剪切 {items.Count} 项" : $"已复制 {items.Count} 项");
+        _viewModel.SetStatus(string.Format(cut ? Strings.Status_CutCount : Strings.Status_CopiedCount, items.Count));
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -158,12 +165,12 @@ public partial class MainWindow
 
         var result = await RunOperationAsync(
             () => cut ? FileOperations.MoveAsync(paths, directory) : FileOperations.CopyAsync(paths, directory),
-            cut ? "正在移动…" : "正在复制…",
+            cut ? Strings.Status_Moving : Strings.Status_Copying,
             r => !r.Ok
-                ? $"{(cut ? "移动" : "复制")}失败：{r.Error}"
+                ? string.Format(cut ? Strings.Status_MoveFailed : Strings.Status_CopyFailed, r.Error)
                 : r.Failed > 0
-                    ? $"完成 {r.Succeeded} 项，{r.Failed} 项失败：{r.Error}"
-                    : $"已{(cut ? "移动" : "复制")} {r.Succeeded} 项");
+                    ? string.Format(Strings.Status_PartialFailed, r.Succeeded, r.Failed, r.Error)
+                    : string.Format(cut ? Strings.Status_MovedCount : Strings.Status_CopiedCount, r.Succeeded));
 
         if (cut && result.Ok) FileClipboard.Clear();
 
@@ -181,12 +188,12 @@ public partial class MainWindow
         try
         {
             Clipboard.SetText(string.Join(Environment.NewLine, items.Select(i => i.FullPath)));
-            _viewModel.SetStatus($"已复制 {items.Count} 个完整路径");
+            _viewModel.SetStatus(string.Format(Strings.Status_PathsCopied, items.Count));
         }
         catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or ArgumentException)
         {
             // 剪贴板被其他程序占用时 SetText 会抛 COMException，不能让它冒泡
-            _viewModel.SetStatus("复制路径失败：" + ex.Message);
+            _viewModel.SetStatus(Strings.Status_CopyPathFailed);
         }
     }
 
@@ -199,19 +206,20 @@ public partial class MainWindow
         {
             long total = items.Sum(i => i.Size);
             MessageBox.Show(this,
-                $"共 {items.Count} 项\n总计大小：{FileEntry.FormatSizeText(total)}",
-                "属性", MessageBoxButton.OK, MessageBoxImage.Information);
+                string.Format(Strings.Properties_MultiSummary, items.Count, FileEntry.FormatSizeText(total)),
+                Strings.Properties_Title, MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
         var entry = items[0];
-        string size = entry.IsDirectory ? "文件夹（大小不计）" : FileEntry.FormatSizeText(entry.Size);
+        string size = entry.IsDirectory ? Strings.Properties_FolderSizeUnknown : FileEntry.FormatSizeText(entry.Size);
         string parent = Path.GetDirectoryName(entry.FullPath) ?? _viewModel.CurrentPath;
 
         MessageBox.Show(this,
-            $"名称：{entry.Name}\n位置：{parent}\n类型：{entry.TypeText}\n大小：{size}\n" +
-            $"修改时间：{entry.LastWriteTime:yyyy-MM-dd HH:mm:ss}",
-            "属性", MessageBoxButton.OK, MessageBoxImage.Information);
+            string.Format(Strings.Properties_EntryDetail,
+                entry.Name, parent, entry.TypeText, size,
+                entry.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.CurrentCulture)),
+            Strings.Properties_Title, MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     /// <summary>
@@ -232,7 +240,7 @@ public partial class MainWindow
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _viewModel.SetStatus("操作失败：" + ex.Message);
+            _viewModel.SetStatus(string.Format(Strings.Status_OperationFailed, ex.Message));
             return FileOpResult.Failure(ex.Message);
         }
         finally

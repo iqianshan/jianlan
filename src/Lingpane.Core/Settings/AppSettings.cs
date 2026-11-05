@@ -45,6 +45,8 @@ public sealed class AppSettings
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
+    public GeneralSettings General { get; set; } = new();
+
     public AppearanceSettings Appearance { get; set; } = new();
 
     public BehaviorSettings Behavior { get; set; } = new();
@@ -64,11 +66,14 @@ public sealed class AppSettings
     /// </summary>
     public void Normalize()
     {
+        General ??= new GeneralSettings();
         Appearance ??= new AppearanceSettings();
         Behavior ??= new BehaviorSettings();
         Privacy ??= new PrivacySettings();
         Session ??= new SessionSettings();
         Layout ??= new LayoutSettings();
+
+        if (!GeneralSettings.IsKnownLanguage(General.Language)) General.Language = GeneralSettings.LanguageAuto;
 
         if (!Enum.IsDefined(Appearance.Theme)) Appearance.Theme = ThemeKind.System;
         if (!Enum.IsDefined(Appearance.Density)) Appearance.Density = DensityKind.Comfortable;
@@ -109,6 +114,30 @@ public sealed class AppSettings
         if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0) return fallback;
         return Math.Clamp(value, MinColumnWidth, MaxColumnWidth);
     }
+}
+
+/// <summary>
+/// 应用级设置（与外观/行为分开：这些项与界面渲染无关，改完不影响布局）。
+/// 见 docs/settings-schema.md §4。
+/// </summary>
+public sealed class GeneralSettings
+{
+    public const string LanguageAuto = "auto";
+    public const string LanguageChinese = "zh-Hans";
+    public const string LanguageEnglish = "en";
+
+    /// <summary>
+    /// 界面语言。auto = 跟随系统安装语言；其余为显式指定。
+    /// 用字符串而不是枚举：settings.json 是给人看的，zh-Hans 比数字好懂，
+    /// 且新增语言不需要改枚举定义。
+    /// </summary>
+    public string Language { get; set; } = LanguageAuto;
+
+    [JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
+
+    public static bool IsKnownLanguage(string? value)
+        => value is LanguageAuto or LanguageChinese or LanguageEnglish;
 }
 
 public sealed class AppearanceSettings

@@ -1,3 +1,4 @@
+// i18n-ignore-file：本文件的中文字符串只进日志/诊断输出，不进界面，不参与翻译。
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -113,6 +114,19 @@ public partial class MainWindow
         catch (Exception ex)
         {
             r.Error = ex.ToString();
+        }
+
+        // 语言切换验证（AC-11 第 1 条：不重启、无闪烁、<200ms）。
+        // 探针先按 settings 里的语言显示窗口，再在窗口已渲染后切一次，
+        // 外部截图看到的就是"同一次进程内换语言"的结果。
+        string? switchLanguage = Environment.GetEnvironmentVariable("LINGPANE_PERF_LANG");
+        if (!string.IsNullOrEmpty(switchLanguage))
+        {
+            var watch = Stopwatch.StartNew();
+            Core.Localization.LocalizationService.Instance.Apply(switchLanguage);
+            await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+            r.LanguageSwitchMs = (long)watch.Elapsed.TotalMilliseconds;
+            r.LanguageAfterSwitch = Core.Localization.LocalizationService.Instance.Culture.Name;
         }
 
         r.CompletedAt = DateTime.Now;
@@ -369,6 +383,13 @@ internal sealed class PerfProbeResult
     public List<ResourceSample>? Samples { get; set; }
 
     public string? Error { get; set; }
+
+    /// <summary>探针内切语言耗时（毫秒）。未设置 LINGPANE_PERF_LANG 时为 null。</summary>
+    public long? LanguageSwitchMs { get; set; }
+
+    /// <summary>切换后的界面语言，用于确认切换真的生效。</summary>
+    public string? LanguageAfterSwitch { get; set; }
+
     public DateTime CompletedAt { get; set; }
 }
 
