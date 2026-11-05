@@ -74,6 +74,7 @@ public static class DirectoryEnumerator
         try
         {
             entries = Read(path, sort);
+            if (entries.Count == 0) ThrowIfRootUnreadable(path);
             error = null;
             return true;
         }
@@ -92,6 +93,7 @@ public static class DirectoryEnumerator
         try
         {
             entries = ReadSorted(path);
+            if (entries.Count == 0) ThrowIfRootUnreadable(path);
             error = null;
             return true;
         }
@@ -102,5 +104,20 @@ public static class DirectoryEnumerator
             error = ex.Message;
             return false;
         }
+    }
+
+    /// <summary>
+    /// <see cref="Options"/> 里的 IgnoreInaccessible 会连"根目录本身打不开"一起吞掉，
+    /// 返回 0 项——界面于是显示成一个空目录，用户无从判断是真空还是被拒（AC-05 S3 实测）。
+    /// 空结果时用默认选项再探一次根目录：默认 EnumerationOptions.Compatible 不忽略不可访问，
+    /// 会如实抛出 UnauthorizedAccessException。
+    ///
+    /// 只在 0 项时多这一次系统调用，万项目录的枚举耗时不受影响；
+    /// 保留 IgnoreInaccessible=true 是为了枚举途中子项被删除时不至于整表失败。
+    /// </summary>
+    private static void ThrowIfRootUnreadable(string path)
+    {
+        using var probe = Directory.EnumerateFileSystemEntries(path).GetEnumerator();
+        probe.MoveNext();
     }
 }

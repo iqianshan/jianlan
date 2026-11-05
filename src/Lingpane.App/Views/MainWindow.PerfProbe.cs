@@ -50,6 +50,14 @@ public partial class MainWindow
 
             r.ItemCount = _viewModel.Entries.Count;
             r.EnumerateMs = _viewModel.LastEnumerateMs;
+
+            // 打不开的目录会返回 0 项，单看 ItemCount 与"空目录"无法区分。
+            // AC-05 的边界场景正是靠这个字段判断"优雅失败"还是"静默空表"。
+            r.NavigateError = _viewModel.LastNavigationError;
+
+            // 状态栏是用户唯一能看到的失败提示，截图在窗口较高时会被裁掉底部，
+            // 探针直接把文本带出来，验收脚本据此核对文案。
+            r.StatusText = _viewModel.StatusText;
             r.NavigateReturnMs = Math.Round(sw.Elapsed.TotalMilliseconds, 1);
 
             // 首屏：导航完成 → 列表完成一次排版与绘制
@@ -109,6 +117,13 @@ public partial class MainWindow
 
         r.CompletedAt = DateTime.Now;
         WriteResult(r);
+
+        // 诊断停留：AC-05/AC-06 需要看清提示文案与版式，探针默认跑完即退，窗口一闪而过。
+        // 环境变量而不是命令行参数，避免正常用户的启动参数里多出一种语义。
+        if (int.TryParse(Environment.GetEnvironmentVariable("LINGPANE_PERF_HOLD"), out int hold) && hold > 0)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(Math.Min(hold, 60)));
+        }
 
         Application.Current.Shutdown();
     }
@@ -301,6 +316,12 @@ internal sealed class PerfProbeResult
 {
     public string Target { get; set; } = string.Empty;
     public int ItemCount { get; set; }
+
+    /// <summary>导航失败原因（null 表示目录成功打开）。边界场景验收据此区分"空目录"与"打不开"。</summary>
+    public string? NavigateError { get; set; }
+
+    /// <summary>导航完成后状态栏实际显示的文字。</summary>
+    public string? StatusText { get; set; }
 
     /// <summary>WPF 渲染层级：2 硬件加速 / 1 部分加速 / 0 软件渲染。非 2 时内存与帧率均不可比。</summary>
     public int RenderTier { get; set; }

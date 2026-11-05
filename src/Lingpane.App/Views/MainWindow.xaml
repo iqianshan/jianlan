@@ -349,13 +349,14 @@
                         </ListBox.Style>
                     </ListBox>
 
-                    <!-- 空目录提示：只在加载完成且无条目时出现，且不吃鼠标事件 -->
+                    <!-- 空目录提示：只在加载完成且无条目时出现，且不吃鼠标事件。
+                         打不开的目录同样是 0 项，此时必须换成"无法访问"，否则会和状态栏互相矛盾。 -->
                     <TextBlock HorizontalAlignment="Center"
                                VerticalAlignment="Center"
-                               Text="此文件夹为空"
                                IsHitTestVisible="False">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Secondary}">
+                                <Setter Property="Text" Value="此文件夹为空"/>
                                 <Setter Property="Visibility" Value="Collapsed"/>
                                 <Style.Triggers>
                                     <!-- 加载完成且无条目 → 显示；后面的触发器优先级更高，用它挡住启动瞬间 -->
@@ -366,6 +367,9 @@
                                         </MultiDataTrigger.Conditions>
                                         <Setter Property="Visibility" Value="Visible"/>
                                     </MultiDataTrigger>
+                                    <DataTrigger Binding="{Binding HasNavigationError}" Value="True">
+                                        <Setter Property="Text" Value="无法访问此文件夹"/>
+                                    </DataTrigger>
                                     <MultiDataTrigger>
                                         <MultiDataTrigger.Conditions>
                                             <Condition Binding="{Binding Entries.Count}" Value="0"/>

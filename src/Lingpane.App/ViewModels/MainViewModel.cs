@@ -33,6 +33,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _statusText = "就绪";
     private string _selectionText = string.Empty;
     private string _hintText = string.Empty;
+    private string? _lastNavigationError;
     private bool _isLoading;
     private bool _isAddressEditing;
     private DefaultViewKind _viewMode;
@@ -201,6 +202,22 @@ public sealed class MainViewModel : INotifyPropertyChanged
     /// <summary>最近一次目录枚举耗时，供性能核对。</summary>
     public long LastEnumerateMs { get; private set; }
 
+    /// <summary>
+    /// 最近一次导航失败的原因；成功导航或开始新导航时清空。
+    /// 界面只在状态栏显示，验收脚本（--perf-probe）也读它判断"是空目录还是打不开"。
+    /// </summary>
+    public string? LastNavigationError
+    {
+        get => _lastNavigationError;
+        private set
+        {
+            if (Set(ref _lastNavigationError, value)) Raise(nameof(HasNavigationError));
+        }
+    }
+
+    /// <summary>列表为空时用来区分"真空目录"与"打不开"，避免空态文案误导用户。</summary>
+    public bool HasNavigationError => !string.IsNullOrEmpty(_lastNavigationError);
+
     /// <summary>当前目录条目总数（未过滤），用于状态栏与测试。</summary>
     public int TotalCount => _all.Count;
 
@@ -228,6 +245,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         if (result.Ok)
         {
+            LastNavigationError = null;
             _all = result.List;
             if (recordHistory) _history.Push(target);
 
@@ -244,14 +262,61 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
         else
         {
+            // 原始消息保留给日志与诊断（探针读它判断是否失败），
+            // 界面只显示人话——.NET 的异常文本是英文且带路径，直接贴出来不合格
+            // （docs/logging.md §6：用户提示不得出现堆栈、错误码、英文异常消息）。
+            LastNavigationError = result.Error ?? "未知错误";
+
+            string code = MapFsErrorCode(result.Error);
+            Diagnostics.AppLog.Warn("nav.open", code, $"{target} · {result.Error}");
+
             _all = [];
             Entries = [];
             CurrentPath = target;
+            AddressText = target;
             Breadcrumbs = Breadcrumb.Build(target);
-            StatusText = $"无法打开：{result.Error}";
+            StatusText = "无法打开：" + DescribeNavigationError(code);
         }
 
         IsLoading = false;
+    }
+
+    /// <summary>错误码 → 用户可读原因。文案要能被 i18n 抽走，不拼接原始异常文本。</summary>
+    private static string DescribeNavigationError(string code) => code switch
+    {
+        "E1002" => "没有访问权限",
+        "E1003" => "设备未就绪，请检查磁盘是否插好或网络是否连通",
+        "E1004" => "路径过长，超出系统限制",
+        _ => "找不到此位置",
+    };
+
+    /// <summary>
+    /// 把枚举异常文本映射成 logging.md §4 的错误码。认不出来时归到 E1001（路径不可用），
+    /// 不为了"看起来精确"而硬猜一个更细的码。
+    /// </summary>
+    private static string MapFsErrorCode(string? message)
+    {
+        if (string.IsNullOrEmpty(message)) return "E1001";
+
+        if (message.Contains("拒绝访问", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("denied", StringComparison.OrdinalIgnoreCase))
+        {
+            return "E1002";
+        }
+
+        if (message.Contains("设备未就绪", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("device is not ready", StringComparison.OrdinalIgnoreCase))
+        {
+            return "E1003";
+        }
+
+        if (message.Contains("过长", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("too long", StringComparison.OrdinalIgnoreCase))
+        {
+            return "E1004";
+        }
+
+        return "E1001";
     }
 
     /// <summary>刷新当前目录。不产生新的历史记录，否则连按 F5 会堆满后退栈。</summary>

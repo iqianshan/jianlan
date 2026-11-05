@@ -69,6 +69,21 @@ public class DirectoryEnumeratorTests : IDisposable
     }
 
     [Fact]
+    public void TryReadSorted_空目录返回成功而不是失败()
+    {
+        // 0 项时会额外探一次根目录可读性（区分"空目录"与"打不开"），
+        // 这里守住它不会把真正的空目录误判成错误。
+        string empty = Path.Combine(_root, "empty-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(empty);
+
+        bool ok = DirectoryEnumerator.TryReadSorted(empty, out var entries, out string? error);
+
+        Assert.True(ok);
+        Assert.Null(error);
+        Assert.Empty(entries);
+    }
+
+    [Fact]
     public void ReadSorted_记录文件大小()
     {
         File.WriteAllText(Path.Combine(_root, "data.bin"), new string('x', 2048));

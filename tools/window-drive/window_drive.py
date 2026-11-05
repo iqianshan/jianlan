@@ -221,6 +221,59 @@ def main() -> int:
         print(f"已发送 {combo}")
         return 0
 
+    if action == "screenshot":
+        # 抓窗口位图存 BMP（不依赖 PIL）。用 PrintWindow + PW_RENDERFULLCONTENT，
+        # 否则 WPF 的硬件加速内容会抓成一片空白。
+        out = sys.argv[3] if len(sys.argv) > 3 else "window.bmp"
+        left, top, width, height = get_rect(hwnd)
+        gdi32 = ctypes.WinDLL("gdi32", use_last_error=True)
+
+        hdc = user32.GetWindowDC(hwnd)
+        mem = gdi32.CreateCompatibleDC(hdc)
+        bmp = gdi32.CreateCompatibleBitmap(hdc, width, height)
+        old = gdi32.SelectObject(mem, bmp)
+        ok = user32.PrintWindow(hwnd, mem, 2)
+        if not ok:
+            print("PrintWindow 失败，退回 BitBlt")
+            gdi32.BitBlt(mem, 0, 0, width, height, hdc, 0, 0, 0x00CC0020)
+
+        class BITMAPINFOHEADER(ctypes.Structure):
+            _fields_ = [
+                ("biSize", wt.DWORD), ("biWidth", ctypes.c_long), ("biHeight", ctypes.c_long),
+                ("biPlanes", wt.WORD), ("biBitCount", wt.WORD), ("biCompression", wt.DWORD),
+                ("biSizeImage", wt.DWORD), ("biXPelsPerMeter", ctypes.c_long),
+                ("biYPelsPerMeter", ctypes.c_long), ("biClrUsed", wt.DWORD), ("biClrImportant", wt.DWORD),
+            ]
+
+        header = BITMAPINFOHEADER()
+        header.biSize = ctypes.sizeof(BITMAPINFOHEADER)
+        header.biWidth = width
+        header.biHeight = height
+        header.biPlanes = 1
+        header.biBitCount = 32
+        header.biCompression = 0  # BI_RGB
+
+        stride = width * 4
+        buf = ctypes.create_string_buffer(stride * height)
+        got = gdi32.GetDIBits(mem, bmp, 0, height, buf, ctypes.byref(header), 0)
+
+        gdi32.SelectObject(mem, old)
+        gdi32.DeleteObject(bmp)
+        gdi32.DeleteDC(mem)
+        user32.ReleaseDC(hwnd, hdc)
+
+        if got == 0:
+            print("GetDIBits 失败")
+            return 1
+
+        import struct
+        info = struct.pack("<IiiHHIIiiII", 40, width, height, 1, 32, 0, stride * height, 0, 0, 0, 0)
+        file_header = struct.pack("<2sIHHI", b"BM", 14 + 40 + len(buf), 0, 0, 54)
+        with open(out, "wb") as f:
+            f.write(file_header + info + buf.raw)
+        print(f"已保存 {out}（{width}x{height}）")
+        return 0
+
     print(f"未知动作：{action}")
     return 2
 
