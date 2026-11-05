@@ -47,6 +47,8 @@
   写入 `settings.json` 的 `general.language`，跟随系统时按系统安装语言判断
 - 主界面、右键菜单、命令标题、状态栏、文件操作与错误提示全部走资源键；
   `tools/i18n/gen-strings.py` 生成强类型访问器，`check-keys.py` 校验键一致性与残留硬编码
+- 设置页全部文案走资源键（46 个新键：分节标题、外观/行为/隐私各项、关于页、
+  字体回落与操作反馈），`check-keys.py` 残留硬编码由 58 处降为 **0**
 
 ### 变更
 
@@ -67,6 +69,8 @@
 
 ### 修复
 
+- 英文界面下设置页两条提示被省略号截断（"applies to this session o…"）：`Text.FieldHint`
+  只设了外边距、不换行。改为按宽度换行（`TextWrapping="Wrap"` + `TextTrimming="None"`）
 - 窗口尺寸记忆从未生效：窗口关闭后 `Application.MainWindow` 被 WPF 置空，
   而保存发生在 `OnExit`，因此每轮都在第一步返回。改为在 `Closing` 时取值并保留窗口引用
 - `Ctrl+,` 打不开设置：三轮定位后的结论是**按键到不了窗口的派发层**——注入 `WM_KEYDOWN` 能触发，

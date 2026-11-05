@@ -25,10 +25,10 @@
                 BorderBrush="{DynamicResource Brush.Border.Hairline}"
                 BorderThickness="0,0,0,1">
             <StackPanel>
-                <TextBlock Style="{StaticResource Text.Title}" Text="设置"/>
+                <TextBlock Style="{StaticResource Text.Title}" Text="{loc:Tr Key=Toolbar.Settings}"/>
                 <TextBlock Margin="0,4,0,0"
                            Style="{StaticResource Text.Caption}"
-                           Text="修改即时生效并保存；标注「下次启动」的项除外。"/>
+                           Text="{loc:Tr Key=Settings.Subtitle}"/>
             </StackPanel>
         </Border>
 
@@ -52,26 +52,26 @@
                 </StackPanel>
 
                 <!-- ══ 外观 ══ -->
-                <TextBlock Style="{StaticResource Text.SectionTitle}" Text="外观"/>
+                <TextBlock Style="{StaticResource Text.SectionTitle}" Text="{loc:Tr Key=Settings.Section.Appearance}"/>
 
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="主题"/>
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Appearance.Theme}"/>
                     <ComboBox x:Name="ThemeCombo"
                               Style="{StaticResource ComboBox.Default}"
                               SelectionChanged="OnThemeChanged">
-                        <ComboBoxItem Content="跟随系统"/>
-                        <ComboBoxItem Content="浅色"/>
-                        <ComboBoxItem Content="深色"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Theme.FollowSystem}"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Theme.Light}"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Theme.Dark}"/>
                     </ComboBox>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="界面字体"/>
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Appearance.Font}"/>
                     <ComboBox x:Name="FontCombo"
                               Width="300"
                               Style="{StaticResource ComboBox.Default}"
                               SelectionChanged="OnFontChanged"
-                              ToolTip="只列出系统已安装字体；程序不自带字体文件">
+                              ToolTip="{loc:Tr Key=Settings.Appearance.Font.Tip}">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
                                 <!-- 用该字体自身渲染名称作为预览（FR-5.1.5） -->
@@ -84,29 +84,29 @@
                 </StackPanel>
                 <TextBlock x:Name="FontHint"
                            Style="{StaticResource Text.FieldHint}"
-                           Text="仅系统已安装字体，不支持导入"/>
+                           Text="{loc:Tr Key=Settings.Appearance.Font.Hint}"/>
 
                 <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="字号"/>
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Appearance.FontSize}"/>
                     <StackPanel Orientation="Horizontal">
                         <Button Style="{StaticResource Button.Toolbar}"
                                 Content="−"
                                 Click="OnFontSizeDown"
-                                ToolTip="减小 1pt"/>
+                                ToolTip="{loc:Tr Key=Settings.Appearance.FontSize.Decrease}"/>
                         <TextBlock x:Name="FontSizeText"
                                    Width="72"
                                    VerticalAlignment="Center"
                                    TextAlignment="Center"
                                    Style="{StaticResource Text.Base}"
-                                   Text="跟随系统"/>
+                                   Text="{loc:Tr Key=Settings.Appearance.FontSize.FollowSystem}"/>
                         <Button Style="{StaticResource Button.Toolbar}"
                                 Content="+"
                                 Click="OnFontSizeUp"
-                                ToolTip="增大 1pt"/>
+                                ToolTip="{loc:Tr Key=Settings.Appearance.FontSize.Increase}"/>
                         <CheckBox x:Name="FollowSystemFontCheck"
                                   Margin="12,0,0,0"
                                   Style="{StaticResource CheckBox.Default}"
-                                  Content="跟随系统"
+                                  Content="{loc:Tr Key=Settings.Appearance.FontSize.FollowSystem}"
                                   VerticalAlignment="Center"
                                   Checked="OnFollowSystemFontChanged"
                                   Unchecked="OnFollowSystemFontChanged"/>
@@ -114,69 +114,69 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Margin="0,12,0,12">
-                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="界面密度"/>
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Appearance.Density}"/>
                     <ComboBox x:Name="DensityCombo"
                               Style="{StaticResource ComboBox.Default}"
                               SelectionChanged="OnDensityChanged">
-                        <ComboBoxItem Content="舒适"/>
-                        <ComboBoxItem Content="紧凑"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Appearance.Density.Comfortable}"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Appearance.Density.Compact}"/>
                     </ComboBox>
                 </StackPanel>
 
                 <CheckBox x:Name="ShowNavCheck"
                           Margin="0,0,0,10"
                           Style="{StaticResource CheckBox.Default}"
-                          Content="显示左侧导航栏"
+                          Content="{loc:Tr Key=Settings.Appearance.ShowNav}"
                           Checked="OnShowNavChanged"
                           Unchecked="OnShowNavChanged"/>
 
                 <CheckBox x:Name="ShowStatusCheck"
                           Margin="0,0,0,16"
                           Style="{StaticResource CheckBox.Default}"
-                          Content="显示底部状态栏"
+                          Content="{loc:Tr Key=Settings.Appearance.ShowStatus}"
                           Checked="OnShowStatusChanged"
                           Unchecked="OnShowStatusChanged"/>
 
                 <!-- ══ 行为 ══ -->
-                <TextBlock Style="{StaticResource Text.SectionTitle}" Text="行为"/>
+                <TextBlock Style="{StaticResource Text.SectionTitle}" Text="{loc:Tr Key=Settings.Section.Behavior}"/>
 
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="默认视图"/>
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Behavior.DefaultView}"/>
                     <ComboBox x:Name="ViewCombo"
                               Style="{StaticResource ComboBox.Default}"
                               SelectionChanged="OnDefaultViewChanged">
-                        <ComboBoxItem Content="详细信息"/>
-                        <ComboBoxItem Content="列表"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Behavior.View.Details}"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Behavior.View.List}"/>
                     </ComboBox>
                 </StackPanel>
-                <TextBlock Style="{StaticResource Text.FieldHint}" Text="下次启动时生效"/>
+                <TextBlock Style="{StaticResource Text.FieldHint}" Text="{loc:Tr Key=Settings.Behavior.NextLaunch}"/>
 
                 <StackPanel Orientation="Horizontal" Margin="0,12,0,4">
-                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="默认排序"/>
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Behavior.DefaultSort}"/>
                     <ComboBox x:Name="SortCombo"
                               Style="{StaticResource ComboBox.Default}"
                               SelectionChanged="OnDefaultSortChanged">
-                        <ComboBoxItem Content="名称"/>
-                        <ComboBoxItem Content="修改日期"/>
-                        <ComboBoxItem Content="类型"/>
-                        <ComboBoxItem Content="大小"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Column.Name}"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Column.DateModified}"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Column.Type}"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Column.Size}"/>
                     </ComboBox>
                 </StackPanel>
-                <TextBlock Style="{StaticResource Text.FieldHint}" Text="下次启动时生效；列头点击只在本次会话内有效"/>
+                <TextBlock Style="{StaticResource Text.FieldHint}" Text="{loc:Tr Key=Settings.Behavior.SortHint}"/>
 
                 <StackPanel Orientation="Horizontal" Margin="0,12,0,12">
-                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="排序方式"/>
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Behavior.SortMode}"/>
                     <CheckBox x:Name="DescendingCheck"
                               Margin="0,0,20,0"
                               VerticalAlignment="Center"
                               Style="{StaticResource CheckBox.Default}"
-                              Content="降序"
+                              Content="{loc:Tr Key=Sort.Descending}"
                               Checked="OnSortOptionChanged"
                               Unchecked="OnSortOptionChanged"/>
                     <CheckBox x:Name="FoldersFirstCheck"
                               VerticalAlignment="Center"
                               Style="{StaticResource CheckBox.Default}"
-                              Content="文件夹优先"
+                              Content="{loc:Tr Key=Settings.Behavior.FoldersFirst}"
                               Checked="OnSortOptionChanged"
                               Unchecked="OnSortOptionChanged"/>
                 </StackPanel>
@@ -184,44 +184,44 @@
                 <CheckBox x:Name="ShowHiddenCheck"
                           Margin="0,0,0,10"
                           Style="{StaticResource CheckBox.Default}"
-                          Content="显示隐藏文件"
+                          Content="{loc:Tr Key=Settings.Behavior.ShowHidden}"
                           Checked="OnShowHiddenChanged"
                           Unchecked="OnShowHiddenChanged"/>
 
                 <CheckBox x:Name="ShowExtensionsCheck"
                           Margin="0,0,0,10"
                           Style="{StaticResource CheckBox.Default}"
-                          Content="显示文件扩展名"
+                          Content="{loc:Tr Key=Settings.Behavior.ShowExtensions}"
                           Checked="OnShowExtensionsChanged"
                           Unchecked="OnShowExtensionsChanged"/>
 
                 <CheckBox x:Name="ConfirmDeleteCheck"
                           Margin="0,0,0,16"
                           Style="{StaticResource CheckBox.Default}"
-                          Content="删除前确认"
+                          Content="{loc:Tr Key=Settings.Behavior.ConfirmDelete}"
                           Checked="OnConfirmDeleteChanged"
                           Unchecked="OnConfirmDeleteChanged"/>
 
                 <!-- ══ 隐私 ══ -->
-                <TextBlock Style="{StaticResource Text.SectionTitle}" Text="隐私"/>
+                <TextBlock Style="{StaticResource Text.SectionTitle}" Text="{loc:Tr Key=Settings.Section.Privacy}"/>
 
                 <CheckBox x:Name="RememberPathCheck"
                           Margin="0,0,0,4"
                           Style="{StaticResource CheckBox.Default}"
-                          Content="记住上次打开的目录"
+                          Content="{loc:Tr Key=Settings.Privacy.RememberPath}"
                           Checked="OnRememberPathChanged"
                           Unchecked="OnRememberPathChanged"/>
                 <TextBlock Style="{StaticResource Text.FieldHint}"
-                           Text="只保存在本机 settings.json，不上传；关闭后下次启动回到「文档」"/>
+                           Text="{loc:Tr Key=Settings.Privacy.RememberPath.Hint}"/>
 
                 <Button Margin="0,12,0,16"
                         HorizontalAlignment="Left"
                         Style="{StaticResource Button.Toolbar}"
-                        Content="清空已记录的路径"
+                        Content="{loc:Tr Key=Settings.Privacy.ClearPath}"
                         Click="OnClearRecentPath"/>
 
                 <!-- ══ 关于 ══ -->
-                <TextBlock Style="{StaticResource Text.SectionTitle}" Text="关于"/>
+                <TextBlock Style="{StaticResource Text.SectionTitle}" Text="{loc:Tr Key=Settings.Section.About}"/>
                 <TextBlock x:Name="AboutText"
                            Style="{StaticResource Text.Caption.Wrap}"
                            Text=""/>
@@ -244,16 +244,16 @@
 
                 <Button Grid.Column="0"
                         Style="{StaticResource Button.Toolbar}"
-                        Content="重置外观"
+                        Content="{loc:Tr Key=Settings.ResetAppearance}"
                         Click="OnResetAppearance"
-                        ToolTip="字体与字号恢复系统默认"/>
+                        ToolTip="{loc:Tr Key=Settings.ResetAppearance.Tip}"/>
                 <Button Grid.Column="1"
                         Style="{StaticResource Button.Toolbar}"
-                        Content="打开数据目录"
+                        Content="{loc:Tr Key=Settings.OpenDataDir}"
                         Click="OnOpenDataDir"/>
                 <Button Grid.Column="3"
                         Style="{StaticResource Button.Toolbar}"
-                        Content="关闭"
+                        Content="{loc:Tr Key=Common.Close}"
                         Click="OnClose"/>
             </Grid>
         </Border>

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -6,6 +7,7 @@ using System.Windows.Media;
 using Lingpane.App.Design;
 using Lingpane.App.Typography;
 using Lingpane.Core.Diagnostics;
+using Lingpane.Core.Localization;
 using Lingpane.Core.Settings;
 
 namespace Lingpane.App.Views;
@@ -32,11 +34,11 @@ public partial class SettingsWindow : Window
         LoadSettingsIntoUi();
         _loading = false;
 
-        AboutText.Text =
-            $"Lingpane 预览版（M1）\n" +
-            $"运行时：.NET {Environment.Version}\n" +
-            $"数据目录：{AppPaths.Root}\n" +
-            $"开源许可：Apache-2.0";
+        AboutText.Text = string.Format(
+            CultureInfo.CurrentCulture,
+            Strings.Settings_About_Content,
+            Environment.Version,
+            AppPaths.Root);
 
         Loaded += async (_, _) => await LoadFontsAsync();
     }
@@ -101,7 +103,7 @@ public partial class SettingsWindow : Window
         _fonts = await FontCatalog.LoadAsync();
 
         // 第一项固定为"默认字体"，让用户能显式回到默认栈
-        var options = new List<FontOption> { new("（默认字体）", null!) };
+        var options = new List<FontOption> { new(Strings.Settings_Appearance_Font_Default, null!) };
         options.AddRange(_fonts);
 
         FontCombo.ItemsSource = options;
@@ -113,7 +115,10 @@ public partial class SettingsWindow : Window
             if (!string.IsNullOrEmpty(Settings.Appearance.FontFamily))
             {
                 // FONT-03：换机器后字体可能不存在，回落默认但要让用户知道
-                FontHint.Text = $"原字体「{Settings.Appearance.FontFamily}」不可用，已回落默认字体";
+                FontHint.Text = string.Format(
+                    CultureInfo.CurrentCulture,
+                    Strings.Settings_Appearance_Font_Fallback,
+                    Settings.Appearance.FontFamily);
             }
         }
         else
@@ -198,7 +203,10 @@ public partial class SettingsWindow : Window
     {
         FontSizeText.Text = Settings.Appearance.FontSizePt is int pt
             ? $"{pt} pt"
-            : $"跟随系统（{FontScaleService.Current.Points:0} pt）";
+            : string.Format(
+                CultureInfo.CurrentCulture,
+                Strings.Settings_Appearance_FontSize_FollowSystemValue,
+                FontScaleService.Current.Points);
     }
 
     private void OnResetAppearance(object sender, RoutedEventArgs e)
@@ -215,7 +223,7 @@ public partial class SettingsWindow : Window
 
         FontScaleService.ResetToDefault();
         UpdateFontSizeText();
-        FontHint.Text = "已恢复系统默认字体与字号";
+        FontHint.Text = Strings.Settings_ResetAppearance_Done;
         App.SaveSettings();
     }
 
@@ -309,7 +317,7 @@ public partial class SettingsWindow : Window
     {
         Settings.Session.LastPath = null;
         App.SaveSettings();
-        FontHint.Text = "已清空记录的路径";
+        FontHint.Text = Strings.Settings_Privacy_Cleared;
     }
 
     // ── 其他 ────────────────────────────────────────────────────────────────
@@ -327,7 +335,12 @@ public partial class SettingsWindow : Window
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
-            MessageBox.Show(this, $"无法打开数据目录：{ex.Message}", "Lingpane", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(
+                this,
+                string.Format(CultureInfo.CurrentCulture, Strings.Settings_OpenDataDir_Failed, ex.Message),
+                "Lingpane",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
         }
     }
 

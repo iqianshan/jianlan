@@ -448,7 +448,8 @@ public partial class MainWindow : Window
     }
 
     private void OpenSettings()
-    {        // 单例：重复点"设置"不应叠出多个窗口
+    {
+        // 单例：重复点"设置"不应叠出多个窗口
         if (Application.Current.Windows.OfType<SettingsWindow>().FirstOrDefault() is { } existing)
         {
             existing.Activate();
@@ -559,7 +560,7 @@ public partial class MainWindow : Window
         // 这条一定要落盘——它决定了用户报告的"按了没反应"到底怪谁。
         // 成功路径不写盘（每次激活都会走这里），失败才留痕。
         int error = Marshal.GetLastWin32Error();
-        Diagnostics.AppLog.Warn("hotkey.register", "E7001", $"Ctrl+, 注册失败 err={error}");
+        Diagnostics.AppLog.Warn("hotkey.register", "E7001", $"Ctrl+, 注册失败 err={error}");  // i18n-ignore：只进 app.log
         if (KeyDebug) WriteKeyLog($"hotkey register FAILED err={error}");
     }
 

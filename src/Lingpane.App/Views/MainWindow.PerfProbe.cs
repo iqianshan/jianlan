@@ -117,16 +117,33 @@ public partial class MainWindow
         }
 
         // 语言切换验证（AC-11 第 1 条：不重启、无闪烁、<200ms）。
-        // 探针先按 settings 里的语言显示窗口，再在窗口已渲染后切一次，
+        // 探针先按 settings 里的语言显示窗口，再在窗口已渲染后切换，
         // 外部截图看到的就是"同一次进程内换语言"的结果。
+        // 支持逗号分隔的多次切换（如 "zh-Hans,en,zh-Hans"）：只切一次测不出第二次是否
+        // 因为绑定逐层失效重算而变慢，AC-11 要求的是连续 3 次都达标。
         string? switchLanguage = Environment.GetEnvironmentVariable("LINGPANE_PERF_LANG");
         if (!string.IsNullOrEmpty(switchLanguage))
         {
-            var watch = Stopwatch.StartNew();
-            Core.Localization.LocalizationService.Instance.Apply(switchLanguage);
-            await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
-            r.LanguageSwitchMs = (long)watch.Elapsed.TotalMilliseconds;
-            r.LanguageAfterSwitch = Core.Localization.LocalizationService.Instance.Culture.Name;
+            string[] languages = switchLanguage.Split(
+                new[] { ',', ';' },
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            r.LanguageSwitchMsList = new List<long>(languages.Length);
+            foreach (string language in languages)
+            {
+                var watch = Stopwatch.StartNew();
+                Core.Localization.LocalizationService.Instance.Apply(language);
+                await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
+                long elapsed = (long)watch.Elapsed.TotalMilliseconds;
+
+                r.LanguageSwitchMsList.Add(elapsed);
+                r.LanguageSwitchMs = elapsed;
+                r.LanguageAfterSwitch = Core.Localization.LocalizationService.Instance.Culture.Name;
+            }
+
+            // 取一条真实资源值，证明切换后索引器确实返回新语言的文案，
+            // 而不是只有 Culture 变了、绑定没重取。
+            r.LanguageSampleText = Core.Localization.Strings.Menu_NewFolder;
         }
 
         r.CompletedAt = DateTime.Now;
@@ -386,6 +403,12 @@ internal sealed class PerfProbeResult
 
     /// <summary>探针内切语言耗时（毫秒）。未设置 LINGPANE_PERF_LANG 时为 null。</summary>
     public long? LanguageSwitchMs { get; set; }
+
+    /// <summary>连续切换时每次的耗时（毫秒），顺序与 LINGPANE_PERF_LANG 一致。</summary>
+    public List<long>? LanguageSwitchMsList { get; set; }
+
+    /// <summary>切换后索引器取到的样本文案，证明资源层真的换了语言。</summary>
+    public string? LanguageSampleText { get; set; }
 
     /// <summary>切换后的界面语言，用于确认切换真的生效。</summary>
     public string? LanguageAfterSwitch { get; set; }

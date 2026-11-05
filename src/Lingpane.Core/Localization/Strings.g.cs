@@ -456,4 +456,146 @@ public static class Strings
     public static string Hint_DragCopyTo => LocalizationService.Instance.Get("Hint.DragCopyTo");
     // 含占位符：string.Format(Strings.Hint_DragCopyTo, ...)
 
+    /// <summary>Changes take effect immediately and are saved, except items marked “next launch”.</summary>
+    public static string Settings_Subtitle => LocalizationService.Instance.Get("Settings.Subtitle");
+
+    /// <summary>Appearance</summary>
+    public static string Settings_Section_Appearance => LocalizationService.Instance.Get("Settings.Section.Appearance");
+
+    /// <summary>Behavior</summary>
+    public static string Settings_Section_Behavior => LocalizationService.Instance.Get("Settings.Section.Behavior");
+
+    /// <summary>Privacy</summary>
+    public static string Settings_Section_Privacy => LocalizationService.Instance.Get("Settings.Section.Privacy");
+
+    /// <summary>About</summary>
+    public static string Settings_Section_About => LocalizationService.Instance.Get("Settings.Section.About");
+
+    /// <summary>Theme</summary>
+    public static string Settings_Appearance_Theme => LocalizationService.Instance.Get("Settings.Appearance.Theme");
+
+    /// <summary>Follow system</summary>
+    public static string Settings_Theme_FollowSystem => LocalizationService.Instance.Get("Settings.Theme.FollowSystem");
+
+    /// <summary>Light</summary>
+    public static string Settings_Theme_Light => LocalizationService.Instance.Get("Settings.Theme.Light");
+
+    /// <summary>Dark</summary>
+    public static string Settings_Theme_Dark => LocalizationService.Instance.Get("Settings.Theme.Dark");
+
+    /// <summary>Interface font</summary>
+    public static string Settings_Appearance_Font => LocalizationService.Instance.Get("Settings.Appearance.Font");
+
+    /// <summary>Lists installed fonts only; no font files are bundled.</summary>
+    public static string Settings_Appearance_Font_Tip => LocalizationService.Instance.Get("Settings.Appearance.Font.Tip");
+
+    /// <summary>Installed fonts only; importing is not supported</summary>
+    public static string Settings_Appearance_Font_Hint => LocalizationService.Instance.Get("Settings.Appearance.Font.Hint");
+
+    /// <summary>(Default font)</summary>
+    public static string Settings_Appearance_Font_Default => LocalizationService.Instance.Get("Settings.Appearance.Font.Default");
+
+    /// <summary>Font “{0}” is unavailable; reverted to the default.</summary>
+    public static string Settings_Appearance_Font_Fallback => LocalizationService.Instance.Get("Settings.Appearance.Font.Fallback");
+    // 含占位符：string.Format(Strings.Settings_Appearance_Font_Fallback, ...)
+
+    /// <summary>Size</summary>
+    public static string Settings_Appearance_FontSize => LocalizationService.Instance.Get("Settings.Appearance.FontSize");
+
+    /// <summary>Decrease by 1 pt</summary>
+    public static string Settings_Appearance_FontSize_Decrease => LocalizationService.Instance.Get("Settings.Appearance.FontSize.Decrease");
+
+    /// <summary>Increase by 1 pt</summary>
+    public static string Settings_Appearance_FontSize_Increase => LocalizationService.Instance.Get("Settings.Appearance.FontSize.Increase");
+
+    /// <summary>Follow system</summary>
+    public static string Settings_Appearance_FontSize_FollowSystem => LocalizationService.Instance.Get("Settings.Appearance.FontSize.FollowSystem");
+
+    /// <summary>Follow system ({0:0} pt)</summary>
+    public static string Settings_Appearance_FontSize_FollowSystemValue => LocalizationService.Instance.Get("Settings.Appearance.FontSize.FollowSystemValue");
+    // 含占位符：string.Format(Strings.Settings_Appearance_FontSize_FollowSystemValue, ...)
+
+    /// <summary>Density</summary>
+    public static string Settings_Appearance_Density => LocalizationService.Instance.Get("Settings.Appearance.Density");
+
+    /// <summary>Comfortable</summary>
+    public static string Settings_Appearance_Density_Comfortable => LocalizationService.Instance.Get("Settings.Appearance.Density.Comfortable");
+
+    /// <summary>Compact</summary>
+    public static string Settings_Appearance_Density_Compact => LocalizationService.Instance.Get("Settings.Appearance.Density.Compact");
+
+    /// <summary>Show left navigation pane</summary>
+    public static string Settings_Appearance_ShowNav => LocalizationService.Instance.Get("Settings.Appearance.ShowNav");
+
+    /// <summary>Show bottom status bar</summary>
+    public static string Settings_Appearance_ShowStatus => LocalizationService.Instance.Get("Settings.Appearance.ShowStatus");
+
+    /// <summary>Default view</summary>
+    public static string Settings_Behavior_DefaultView => LocalizationService.Instance.Get("Settings.Behavior.DefaultView");
+
+    /// <summary>Details</summary>
+    public static string Settings_Behavior_View_Details => LocalizationService.Instance.Get("Settings.Behavior.View.Details");
+
+    /// <summary>List</summary>
+    public static string Settings_Behavior_View_List => LocalizationService.Instance.Get("Settings.Behavior.View.List");
+
+    /// <summary>Takes effect on next launch</summary>
+    public static string Settings_Behavior_NextLaunch => LocalizationService.Instance.Get("Settings.Behavior.NextLaunch");
+
+    /// <summary>Default sort</summary>
+    public static string Settings_Behavior_DefaultSort => LocalizationService.Instance.Get("Settings.Behavior.DefaultSort");
+
+    /// <summary>Takes effect on next launch; clicking a column header applies to this session only</summary>
+    public static string Settings_Behavior_SortHint => LocalizationService.Instance.Get("Settings.Behavior.SortHint");
+
+    /// <summary>Sort order</summary>
+    public static string Settings_Behavior_SortMode => LocalizationService.Instance.Get("Settings.Behavior.SortMode");
+
+    /// <summary>Folders first</summary>
+    public static string Settings_Behavior_FoldersFirst => LocalizationService.Instance.Get("Settings.Behavior.FoldersFirst");
+
+    /// <summary>Show hidden files</summary>
+    public static string Settings_Behavior_ShowHidden => LocalizationService.Instance.Get("Settings.Behavior.ShowHidden");
+
+    /// <summary>Show file extensions</summary>
+    public static string Settings_Behavior_ShowExtensions => LocalizationService.Instance.Get("Settings.Behavior.ShowExtensions");
+
+    /// <summary>Confirm before deleting</summary>
+    public static string Settings_Behavior_ConfirmDelete => LocalizationService.Instance.Get("Settings.Behavior.ConfirmDelete");
+
+    /// <summary>Remember the last opened folder</summary>
+    public static string Settings_Privacy_RememberPath => LocalizationService.Instance.Get("Settings.Privacy.RememberPath");
+
+    /// <summary>Stored only in the local settings.json and never uploaded. When off, the next launch opens Documents.</summary>
+    public static string Settings_Privacy_RememberPath_Hint => LocalizationService.Instance.Get("Settings.Privacy.RememberPath.Hint");
+
+    /// <summary>Clear recorded paths</summary>
+    public static string Settings_Privacy_ClearPath => LocalizationService.Instance.Get("Settings.Privacy.ClearPath");
+
+    /// <summary>Recorded paths cleared</summary>
+    public static string Settings_Privacy_Cleared => LocalizationService.Instance.Get("Settings.Privacy.Cleared");
+
+    /// <summary>Lingpane Preview (M1) Runtime: .NET {0} Data folder: {1} License: Apache-2.0</summary>
+    public static string Settings_About_Content => LocalizationService.Instance.Get("Settings.About.Content");
+    // 含占位符：string.Format(Strings.Settings_About_Content, ...)
+
+    /// <summary>Close</summary>
+    public static string Common_Close => LocalizationService.Instance.Get("Common.Close");
+
+    /// <summary>Reset appearance</summary>
+    public static string Settings_ResetAppearance => LocalizationService.Instance.Get("Settings.ResetAppearance");
+
+    /// <summary>Restore the default font and size</summary>
+    public static string Settings_ResetAppearance_Tip => LocalizationService.Instance.Get("Settings.ResetAppearance.Tip");
+
+    /// <summary>Default font and size restored</summary>
+    public static string Settings_ResetAppearance_Done => LocalizationService.Instance.Get("Settings.ResetAppearance.Done");
+
+    /// <summary>Open data folder</summary>
+    public static string Settings_OpenDataDir => LocalizationService.Instance.Get("Settings.OpenDataDir");
+
+    /// <summary>Cannot open the data folder: {0}</summary>
+    public static string Settings_OpenDataDir_Failed => LocalizationService.Instance.Get("Settings.OpenDataDir.Failed");
+    // 含占位符：string.Format(Strings.Settings_OpenDataDir_Failed, ...)
+
 }

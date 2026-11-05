@@ -10,6 +10,7 @@
 """
 
 import ctypes
+import os
 import ctypes.wintypes as wt
 import sys
 import time
@@ -41,11 +42,14 @@ def _enable_dpi_awareness() -> None:
 _enable_dpi_awareness()
 
 
-def find_window(pid: int) -> int:
-    """返回该进程面积最大的可见顶层窗口句柄（主窗口），找不到返回 0。
+def find_window(pid: int, title: str | None = None) -> int:
+    """返回该进程面积最大的可见顶层窗口句柄，找不到返回 0。
 
     不能取"第一个"：WPF 进程除主窗口外还会有小的辅助窗口（如输入法候选、
     隐藏的 tooltip 宿主），先遇到的往往只有几十像素。
+
+    title 非空时只考虑标题包含该子串的窗口——设置页、对话框都比主窗口小，
+    按面积取永远拿不到它们。走查靠 `WD_TITLE` 环境变量指定（见 main）。
     """
     found = []
 
@@ -54,6 +58,11 @@ def find_window(pid: int) -> int:
         owner = wt.DWORD()
         user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
         if owner.value == pid and user32.IsWindowVisible(hwnd):
+            if title:
+                buf = ctypes.create_unicode_buffer(512)
+                user32.GetWindowTextW(hwnd, buf, 512)
+                if title.lower() not in buf.value.lower():
+                    return True
             _, _, width, height = get_rect(hwnd)
             if width >= 200 and height >= 200:
                 found.append((width * height, hwnd))
@@ -94,7 +103,7 @@ def main() -> int:
     pid = int(sys.argv[1])
     action = sys.argv[2]
 
-    hwnd = find_window(pid)
+    hwnd = find_window(pid, os.environ.get("WD_TITLE"))
     if not hwnd:
         print(f"未找到 pid={pid} 的可见窗口")
         return 1
@@ -255,6 +264,21 @@ def main() -> int:
 
         time.sleep(0.6)
         print(f"已发送 {combo}")
+        return 0
+
+    if action == "wheel":
+        # 面板滚动：AC-06/AC-11 走查要看设置页底部，Click 只能点到可见区域内的控件。
+        # delta 正数向上、负数向下，120 为一格（Windows 标准滚轮步长）。
+        delta = int(sys.argv[3])
+        times = int(sys.argv[4]) if len(sys.argv) > 4 else 1
+        left, top, width, height = get_rect(hwnd)
+        user32.SetCursorPos(left + width // 2, top + height // 2)
+        time.sleep(0.15)
+        for _ in range(max(1, times)):
+            user32.mouse_event(0x0800, 0, 0, ctypes.c_ulong(delta & 0xFFFFFFFF), 0)
+            time.sleep(0.06)
+        time.sleep(0.6)
+        print(f"已滚动 {delta} x{times}")
         return 0
 
     if action == "screenshot":

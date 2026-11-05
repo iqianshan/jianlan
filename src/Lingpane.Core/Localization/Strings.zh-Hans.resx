@@ -443,4 +443,142 @@
   <data name="Hint.DragCopyTo" xml:space="preserve">
     <value>复制到「{0}」</value>
   </data>
+  <data name="Settings.Subtitle" xml:space="preserve">
+    <value>修改即时生效并保存；标注「下次启动」的项除外。</value>
+  </data>
+  <data name="Settings.Section.Appearance" xml:space="preserve">
+    <value>外观</value>
+  </data>
+  <data name="Settings.Section.Behavior" xml:space="preserve">
+    <value>行为</value>
+  </data>
+  <data name="Settings.Section.Privacy" xml:space="preserve">
+    <value>隐私</value>
+  </data>
+  <data name="Settings.Section.About" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="Settings.Appearance.Theme" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="Settings.Theme.FollowSystem" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="Settings.Theme.Light" xml:space="preserve">
+    <value>浅色</value>
+  </data>
+  <data name="Settings.Theme.Dark" xml:space="preserve">
+    <value>深色</value>
+  </data>
+  <data name="Settings.Appearance.Font" xml:space="preserve">
+    <value>界面字体</value>
+  </data>
+  <data name="Settings.Appearance.Font.Tip" xml:space="preserve">
+    <value>只列出系统已安装字体；程序不自带字体文件</value>
+  </data>
+  <data name="Settings.Appearance.Font.Hint" xml:space="preserve">
+    <value>仅系统已安装字体，不支持导入</value>
+  </data>
+  <data name="Settings.Appearance.Font.Default" xml:space="preserve">
+    <value>（默认字体）</value>
+  </data>
+  <data name="Settings.Appearance.Font.Fallback" xml:space="preserve">
+    <value>原字体「{0}」不可用，已回落默认字体</value>
+  </data>
+  <data name="Settings.Appearance.FontSize" xml:space="preserve">
+    <value>字号</value>
+  </data>
+  <data name="Settings.Appearance.FontSize.Decrease" xml:space="preserve">
+    <value>减小 1pt</value>
+  </data>
+  <data name="Settings.Appearance.FontSize.Increase" xml:space="preserve">
+    <value>增大 1pt</value>
+  </data>
+  <data name="Settings.Appearance.FontSize.FollowSystem" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="Settings.Appearance.FontSize.FollowSystemValue" xml:space="preserve">
+    <value>跟随系统（{0:0} pt）</value>
+  </data>
+  <data name="Settings.Appearance.Density" xml:space="preserve">
+    <value>界面密度</value>
+  </data>
+  <data name="Settings.Appearance.Density.Comfortable" xml:space="preserve">
+    <value>舒适</value>
+  </data>
+  <data name="Settings.Appearance.Density.Compact" xml:space="preserve">
+    <value>紧凑</value>
+  </data>
+  <data name="Settings.Appearance.ShowNav" xml:space="preserve">
+    <value>显示左侧导航栏</value>
+  </data>
+  <data name="Settings.Appearance.ShowStatus" xml:space="preserve">
+    <value>显示底部状态栏</value>
+  </data>
+  <data name="Settings.Behavior.DefaultView" xml:space="preserve">
+    <value>默认视图</value>
+  </data>
+  <data name="Settings.Behavior.View.Details" xml:space="preserve">
+    <value>详细信息</value>
+  </data>
+  <data name="Settings.Behavior.View.List" xml:space="preserve">
+    <value>列表</value>
+  </data>
+  <data name="Settings.Behavior.NextLaunch" xml:space="preserve">
+    <value>下次启动时生效</value>
+  </data>
+  <data name="Settings.Behavior.DefaultSort" xml:space="preserve">
+    <value>默认排序</value>
+  </data>
+  <data name="Settings.Behavior.SortHint" xml:space="preserve">
+    <value>下次启动时生效；列头点击只在本次会话内有效</value>
+  </data>
+  <data name="Settings.Behavior.SortMode" xml:space="preserve">
+    <value>排序方式</value>
+  </data>
+  <data name="Settings.Behavior.FoldersFirst" xml:space="preserve">
+    <value>文件夹优先</value>
+  </data>
+  <data name="Settings.Behavior.ShowHidden" xml:space="preserve">
+    <value>显示隐藏文件</value>
+  </data>
+  <data name="Settings.Behavior.ShowExtensions" xml:space="preserve">
+    <value>显示文件扩展名</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmDelete" xml:space="preserve">
+    <value>删除前确认</value>
+  </data>
+  <data name="Settings.Privacy.RememberPath" xml:space="preserve">
+    <value>记住上次打开的目录</value>
+  </data>
+  <data name="Settings.Privacy.RememberPath.Hint" xml:space="preserve">
+    <value>只保存在本机 settings.json，不上传；关闭后下次启动回到「文档」</value>
+  </data>
+  <data name="Settings.Privacy.ClearPath" xml:space="preserve">
+    <value>清空已记录的路径</value>
+  </data>
+  <data name="Settings.Privacy.Cleared" xml:space="preserve">
+    <value>已清空记录的路径</value>
+  </data>
+  <data name="Settings.About.Content" xml:space="preserve">
+    <value>Lingpane 预览版（M1）&#10;运行时：.NET {0}&#10;数据目录：{1}&#10;开源许可：Apache-2.0</value>
+  </data>
+  <data name="Common.Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Settings.ResetAppearance" xml:space="preserve">
+    <value>重置外观</value>
+  </data>
+  <data name="Settings.ResetAppearance.Tip" xml:space="preserve">
+    <value>字体与字号恢复系统默认</value>
+  </data>
+  <data name="Settings.ResetAppearance.Done" xml:space="preserve">
+    <value>已恢复系统默认字体与字号</value>
+  </data>
+  <data name="Settings.OpenDataDir" xml:space="preserve">
+    <value>打开数据目录</value>
+  </data>
+  <data name="Settings.OpenDataDir.Failed" xml:space="preserve">
+    <value>无法打开数据目录：{0}</value>
+  </data>
 </root>

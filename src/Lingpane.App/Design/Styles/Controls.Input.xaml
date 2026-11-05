@@ -166,6 +166,10 @@
 
     <Style x:Key="Text.FieldHint" TargetType="TextBlock" BasedOn="{StaticResource Text.Caption}">
         <Setter Property="Margin" Value="128,4,0,0"/>
+        <!-- 英文提示比中文长 30–50%，单行必然被省略号截断（AC-11）。
+             换行而不是加宽：提示本来就是补充信息，两行比横向撑破布局更可接受。 -->
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="TextTrimming" Value="None"/>
     </Style>
 
 </ResourceDictionary>
