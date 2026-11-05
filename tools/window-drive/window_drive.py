@@ -237,6 +237,38 @@ def main() -> int:
         print(" | ".join(titles))
         return 0
 
+    if action == "rect":
+        # 取任意 hwnd 的屏幕矩形。用途：右键菜单是独立 Popup HWND，
+        # 菜单项的点击位置只能按这个矩形算（按主窗口坐标猜一定会错，
+        # 菜单贴边时 WPF 会把它翻到光标的另一侧）。
+        # 参数可以是 hwnd 十进制，也可以是 "small"——取该进程最小的那个可见窗口。
+        who = sys.argv[3] if len(sys.argv) > 3 else "small"
+        if who == "small":
+            found = []
+
+            @ctypes.WINFUNCTYPE(wt.BOOL, wt.HWND, wt.LPARAM)
+            def enum_small(h, _):
+                owner = wt.DWORD()
+                user32.GetWindowThreadProcessId(h, ctypes.byref(owner))
+                if owner.value == pid and user32.IsWindowVisible(h):
+                    _, _, width, height = get_rect(h)
+                    if width > 40 and height > 20 and h != hwnd:
+                        found.append((width * height, h))
+                return True
+
+            user32.EnumWindows(enum_small, 0)
+            if not found:
+                print("没有更小的可见窗口")
+                return 1
+            found.sort()
+            target = found[0][1]
+        else:
+            target = int(who, 0)
+
+        left, top, width, height = get_rect(target)
+        print(f"hwnd={target} left={left} top={top} width={width} height={height}")
+        return 0
+
     if action == "click":
         # 直接向窗口投递鼠标消息：不需要抢前台，坐标是客户区像素
         x, y = int(sys.argv[3]), int(sys.argv[4])
@@ -250,13 +282,52 @@ def main() -> int:
         print(f"已点击客户区 ({x},{y})")
         return 0
 
+    if action == "lclick":
+        # 真实左键单击。click 走 PostMessage，只能命中目标窗口自己的控件；
+        # 右键菜单、下拉框是独立 Popup HWND，必须用真实鼠标事件——坐标是屏幕像素。
+        # 参数用客户区坐标，内部换算（和 click/rclick 统一，脚本里不必记两套基准）。
+        x, y = int(sys.argv[3]), int(sys.argv[4])
+        vis_left, vis_top, _, _ = get_visible_rect(hwnd)
+        _bring_to_front(user32, hwnd)
+        user32.SetCursorPos(vis_left + x, vis_top + y)
+        time.sleep(0.25)
+        user32.mouse_event(0x0002, 0, 0, 0, 0)   # LEFTDOWN
+        time.sleep(0.08)
+        user32.mouse_event(0x0004, 0, 0, 0, 0)   # LEFTUP
+        time.sleep(0.9)
+        print(f"已真实单击客户区 ({x},{y})")
+        return 0
+
+    if action == "dclick":
+        # 双击。**不能用 PostMessage 合成**：WPF 的 MouseDoubleClick 走的是
+        # WM_LBUTTONDBLCLK，而这条消息只有窗口类带 CS_DBLCLKS 且由系统根据真实
+        # 输入判定"两次点击落在双击时间内"才会生成——投递两条 WM_LBUTTONDOWN
+        # 只会得到两次单击。所以这里和 drag 一样用真实鼠标事件。
+        # 坐标是客户区像素（和 click 一致），内部换算成屏幕坐标。
+        x, y = int(sys.argv[3]), int(sys.argv[4])
+        vis_left, vis_top, _, _ = get_visible_rect(hwnd)
+        _bring_to_front(user32, hwnd)
+        user32.SetCursorPos(vis_left + x, vis_top + y)
+        time.sleep(0.25)
+        for _ in range(2):
+            user32.mouse_event(0x0002, 0, 0, 0, 0)   # LEFTDOWN
+            time.sleep(0.04)
+            user32.mouse_event(0x0004, 0, 0, 0, 0)   # LEFTUP
+            time.sleep(0.06)                          # 远小于 GetDoubleClickTime()
+        time.sleep(0.9)
+        print(f"已双击客户区 ({x},{y})")
+        return 0
+
     if action == "rclick":
         # 右键菜单：ContextMenu 只响应 WM_RBUTTONUP，且 WPF 会等一个 200ms 左右
         # 的"双击判定窗口"再弹，所以这里的人工延时不能省。
         # 用真实鼠标事件而不是 PostMessage：WPF 的 ContextMenu 打开前会检查
         # 鼠标按键状态（GetKeyState），投递的消息没有真实按键状态，菜单不弹。
         x, y = int(sys.argv[3]), int(sys.argv[4])
-        left, top, _, _ = get_rect(hwnd)
+        # 必须用**可见区域**原点，不能用 GetWindowRect：后者含 DWM 的隐形边框，
+        # 左边比可见区域多 8px（实测 rect=360 而 visible=368）。差这 8px，
+        # 点分隔条会落进左边列表——菜单弹出来的是"打开/复制/删除"，不是分隔条那三项。
+        left, top, _, _ = get_visible_rect(hwnd)
         # 真实鼠标事件只会送到前台窗口，抢前台不能只靠 SetForegroundWindow（见 helper）
         _bring_to_front(user32, hwnd)
         user32.SetCursorPos(left + x, top + y)
@@ -344,6 +415,9 @@ def main() -> int:
             "ctrl+shift+n": (0x11, 0xA0, 0x4E),
             "ctrl+shift+m": (0x11, 0xA0, 0x4D),
             "ctrl+shift+d": (0x11, 0xA0, 0x44),
+            # 双窗格（FR-3）：F3 与 Ctrl+Shift+E 同效
+            "f3": (0x72,),
+            "ctrl+shift+e": (0x11, 0xA0, 0x45),
             "alt+up": (0x12, 0x26),
             "alt+left": (0x12, 0x25),
             "alt+right": (0x12, 0x27),
@@ -432,6 +506,24 @@ def main() -> int:
             time.sleep(0.06)
         time.sleep(0.6)
         print(f"已滚动 {delta} x{times}")
+        return 0
+
+    if action == "sendkey":
+        # 直接投递 WM_KEYDOWN/WM_KEYUP，不经过真实键盘。
+        #
+        # 用途：锁屏、远程会话断开、窗口抢不到前台时，keys（真实按键）会把事件送错窗口，
+        # 而窗口自己的 WM_KEYDOWN 钩子照样能收到投递的消息。
+        # 限制：**只对无修饰键有效**——程序里的修饰键读的是 Keyboard.Modifiers（真实键盘状态），
+        # 投递的消息不会改变它，所以 Ctrl+X 这类组合仍要用 keys。
+        vk = int(sys.argv[3], 0)
+        scan = user32.MapVirtualKeyW(vk, 0)
+        down = 1 | (scan << 16)
+        up = down | (1 << 30) | (1 << 31)
+        user32.PostMessageW(hwnd, 0x0100, vk, down)   # WM_KEYDOWN
+        time.sleep(0.05)
+        user32.PostMessageW(hwnd, 0x0101, vk, up)     # WM_KEYUP
+        time.sleep(0.6)
+        print(f"已投递按键 vk=0x{vk:02X}")
         return 0
 
     if action == "front":

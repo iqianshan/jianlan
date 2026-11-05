@@ -5,11 +5,12 @@ using Lingpane.Core.Settings;
 namespace Lingpane.App.ViewModels;
 
 /// <summary>
-/// 标签集合（FR-2）。持有一到多个 <see cref="PaneViewModel"/> 与"当前是哪个"。
+/// 标签集合（FR-2）。持有一到多个 <see cref="TabViewModel"/>（每个标签内含 1–2 个窗格）
+/// 与"当前是哪个"。
 ///
-/// 为什么视图模型保活、视图只有一份：每个标签的路径、历史、选中项、滚动位置
+/// 为什么视图模型保活、视图壳只有一份：每个标签的路径、历史、选中项、滚动位置
 /// 都活在视图模型里，切换标签只是把同一个 <c>PaneView</c> 重新绑到另一份视图模型
-/// （见 PaneView.Attach）。这样 20 个标签不会堆 20 套工具栏/列表控件树——
+/// （见 PaneView.Attach）。这样 12 个标签不会堆 12 套工具栏/列表控件树——
 /// 需求给的单标签视图壳预算是 3MB，一套控件树就吃掉大半。
 ///
 /// 本类只管"有哪些标签、谁是当前的"，不碰界面：切换动作通过
@@ -24,7 +25,7 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     private readonly Func<string> _defaultPath;
     private readonly Stack<string> _closed = [];
 
-    private PaneViewModel? _active;
+    private TabViewModel? _active;
 
     /// <param name="settings">应用设置，新建标签时交给视图模型。</param>
     /// <param name="defaultPath">
@@ -40,14 +41,14 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>活动标签变化：(旧, 新)。宿主据此重新绑定视图与窗口标题。</summary>
-    public event Action<PaneViewModel?, PaneViewModel?>? ActiveChanged;
+    public event Action<TabViewModel?, TabViewModel?>? ActiveChanged;
 
     /// <summary>关掉了最后一个标签且设置为"关闭窗口"（FR-2.8）。</summary>
     public event Action? CloseWindowRequested;
 
-    public ObservableCollection<PaneViewModel> Tabs { get; } = [];
+    public ObservableCollection<TabViewModel> Tabs { get; } = [];
 
-    public PaneViewModel? Active
+    public TabViewModel? Active
     {
         get => _active;
         private set
@@ -59,14 +60,13 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     }
 
     /// <summary>新建标签并激活（FR-2.1）。<paramref name="path"/> 为空时用默认目录。</summary>
-    public PaneViewModel Add(string? path = null, bool activate = true)
+    public TabViewModel Add(string? path = null, bool activate = true)
     {
-        var tab = new PaneViewModel(_settings);
-
         string target = string.IsNullOrWhiteSpace(path) ? _defaultPath() : path;
+
         // 不在这里导航：调用方（`+` 按钮、Ctrl+T、会话恢复）时机各不相同，
         // 统一由宿主在激活后决定"现在读盘还是等激活再读"。
-        tab.PreparePendingPath(target);
+        var tab = new TabViewModel(_settings, target);
 
         Tabs.Add(tab);
         if (activate) Activate(tab);
@@ -75,19 +75,18 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     }
 
     /// <summary>恢复会话用：只建标签、只记路径，不读盘也不激活。</summary>
-    public PaneViewModel AddPending(string path)
+    public TabViewModel AddPending(string path)
     {
-        var tab = new PaneViewModel(_settings);
-        tab.PreparePendingPath(path);
+        var tab = new TabViewModel(_settings, path);
         Tabs.Add(tab);
         return tab;
     }
 
-    public void Activate(PaneViewModel? tab)
+    public void Activate(TabViewModel? tab)
     {
         if (tab is null || !Tabs.Contains(tab)) return;
 
-        PaneViewModel? previous = _active;
+        TabViewModel? previous = _active;
         if (ReferenceEquals(previous, tab)) return;
 
         if (previous is not null) previous.IsTabActive = false;
@@ -130,7 +129,7 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     /// 关闭一个标签（FR-2.3 / FR-2.8）。关的是最后一个时两种去处：
     /// 回到默认目录（默认），或关窗口（设置项）。
     /// </summary>
-    public void Close(PaneViewModel? tab)
+    public void Close(TabViewModel? tab)
     {
         if (tab is null) return;
 
@@ -143,8 +142,8 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
             {
                 // 不销毁这个标签，只把它送回默认目录：用户刚关掉的是"这个地方"，
                 // 不是"这个窗口"。历史栈保留，Alt+← 还能回退到刚才关掉的目录。
-                RememberClosed(tab.CurrentPath);
-                _ = tab.NavigateAsync(_defaultPath());
+                RememberClosed(tab.Primary.CurrentPath);
+                _ = tab.Primary.NavigateAsync(_defaultPath());
                 return;
             }
 
@@ -152,7 +151,7 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
             return;
         }
 
-        RememberClosed(tab.CurrentPath);
+        RememberClosed(tab.Primary.CurrentPath);
 
         bool wasActive = ReferenceEquals(_active, tab);
         Tabs.RemoveAt(index);
@@ -167,13 +166,13 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     }
 
     /// <summary>关闭其他（FR-2.12）。</summary>
-    public void CloseOthers(PaneViewModel? keep)
+    public void CloseOthers(TabViewModel? keep)
     {
         if (keep is null || !Tabs.Contains(keep)) return;
 
-        foreach (PaneViewModel tab in Tabs.Where(t => !ReferenceEquals(t, keep)).ToList())
+        foreach (TabViewModel tab in Tabs.Where(t => !ReferenceEquals(t, keep)).ToList())
         {
-            RememberClosed(tab.CurrentPath);
+            RememberClosed(tab.Primary.CurrentPath);
             Tabs.Remove(tab);
         }
 
@@ -182,16 +181,16 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     }
 
     /// <summary>关闭右侧（FR-2.12）。关的是当前最后一个时什么都不做。</summary>
-    public void CloseToRight(PaneViewModel? tab)
+    public void CloseToRight(TabViewModel? tab)
     {
         if (tab is null) return;
 
         int index = Tabs.IndexOf(tab);
         if (index < 0 || index == Tabs.Count - 1) return;
 
-        foreach (PaneViewModel right in Tabs.Skip(index + 1).ToList())
+        foreach (TabViewModel right in Tabs.Skip(index + 1).ToList())
         {
-            RememberClosed(right.CurrentPath);
+            RememberClosed(right.Primary.CurrentPath);
             Tabs.Remove(right);
         }
 
@@ -219,14 +218,25 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
         if (_closed.Count == 0) return;
 
         string path = _closed.Pop();
-        PaneViewModel tab = Add(path, activate: true);
-        _ = tab.NavigateAsync(path);
+        TabViewModel tab = Add(path, activate: true);
+        _ = tab.Primary.NavigateAsync(path);
     }
 
     /// <summary>退出时写进会话的路径列表（空的标签不写，否则下次启动多出一个没内容的标签）。</summary>
     public List<string> SnapshotPaths()
-        => Tabs.Select(t => t.CurrentPath)
+        => Tabs.Select(t => t.Primary.CurrentPath)
                .Where(p => !string.IsNullOrWhiteSpace(p))
+               .Take(SessionSettings.MaxTabs)
+               .ToList();
+
+    /// <summary>
+    /// 第二窗格路径，与 <see cref="SnapshotPaths"/> 等长（没有第二窗格的位置写空串）。
+    /// 两个列表必须一起取：分两次遍历可能因为期间有人关了标签而对不齐。
+    /// </summary>
+    public List<string> SnapshotSecondPaths()
+        => Tabs.Select(t => t.SnapshotPaths())
+               .Where(p => !string.IsNullOrWhiteSpace(p.Primary))
+               .Select(p => p.Secondary)
                .Take(SessionSettings.MaxTabs)
                .ToList();
 

@@ -81,6 +81,26 @@
     <value>Copy path</value>
   </data>
 
+  <data name="Command_ToggleSplit" xml:space="preserve">
+    <value>Toggle second pane</value>
+  </data>
+
+  <data name="Command_FocusOtherPane" xml:space="preserve">
+    <value>Focus the other pane</value>
+  </data>
+
+  <data name="Split.Menu.Horizontal" xml:space="preserve">
+    <value>Split left / right</value>
+  </data>
+
+  <data name="Split.Menu.Vertical" xml:space="preserve">
+    <value>Split top / bottom</value>
+  </data>
+
+  <data name="Split.Menu.Reset" xml:space="preserve">
+    <value>Reset to 50:50</value>
+  </data>
+
   <data name="Menu.Open" xml:space="preserve">
     <value>Open</value>
   </data>

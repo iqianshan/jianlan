@@ -37,6 +37,12 @@ public partial class MainWindow : Window
     private bool _flushed;
 
     /// <summary>
+    /// 双窗格是否开启（FR-3.3）。形态是窗口级而不是标签级：开着分屏切标签，
+    /// 新标签也该是分屏；否则"切个标签分屏就没了"会被当成 bug。
+    /// </summary>
+    private bool _splitEnabled;
+
+    /// <summary>
     /// 首帧之后才允许读盘（P1 首帧优先）。标签切换时的懒加载要靠它区分
     /// "启动期还没开始"与"运行期用户切过去了"。
     /// </summary>
@@ -53,8 +59,10 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        // 标签集合归窗口：双窗格上线后两个窗格共用同一排标签，
+        // 标签集合归窗口：两个窗格共用同一排标签（一个标签 = 一对窗格），
         // 标签不能属于某一边。浏览区的视图模型由它创建、由窗格 Attach。
+        _splitEnabled = App.Settings.Layout.SplitEnabled;
+
         _tabs = new TabHostViewModel(App.Settings, ResolveStartPath);
         _tabs.ActiveChanged += OnActiveTabChanged;
         _tabs.CloseWindowRequested += Close;
@@ -85,9 +93,19 @@ public partial class MainWindow : Window
         ThemeCommand = new CommandAdapter(_commands.Get(CommandIds.CycleTheme));
 
         RegisterTabCommands();
+        RegisterSplitCommands();
 
-        // 窗格工具栏上的设置按钮走这里：窗格只发意图，窗口负责 Show
+        // 窗格工具栏上的设置按钮走这里：窗格只发意图，窗口负责 Show。
+        // 两个窗格都要订阅——分屏后右边那颗按钮也是真的。
         Pane.SettingsRequested += OpenSettings;
+        Pane2.SettingsRequested += OpenSettings;
+
+        // 哪个窗格的列表拿到焦点，哪个就是活动窗格（FR-3.5）。
+        Pane.Activated += OnPaneActivated;
+        Pane2.Activated += OnPaneActivated;
+
+        // 分屏的行列先摆好：此时还没有标签，只是把两列/两行的宽度归位
+        ApplySplitLayout();
         StartupTrace.Mark("cmd");
 
         // 快捷键不用 Window.InputBindings：KeyGesture 对 , 这类 OEM 键的匹配依赖布局，
@@ -116,12 +134,24 @@ public partial class MainWindow : Window
             // 会话恢复（FR-2.11）：只记路径与活动位置，不记滚动与选中
             List<string> paths = _tabs.SnapshotPaths();
             App.Settings.Session.Tabs = paths;
+            App.Settings.Session.TabSecondPaths = _tabs.SnapshotSecondPaths();
             App.Settings.Session.ActiveTabIndex = Math.Clamp(_tabs.ActiveIndex, 0, Math.Max(0, paths.Count - 1));
         };
     }
 
-    /// <summary>本窗口的浏览区视图模型（= 当前活动标签）。窗格在切换时附加，此后恒不为 null。</summary>
-    private PaneViewModel Vm => Pane.ViewModel!;
+    /// <summary>当前标签。窗口构造期已有标签，因此这里恒不为 null。</summary>
+    private TabViewModel Tab => _tabs.Active
+        ?? throw new InvalidOperationException("窗口还没有活动标签：RestoreTabs 必须先跑一次。");  // i18n-ignore：开发者异常，不进界面
+
+    /// <summary>命令与快捷键作用的窗格视图模型 = 当前标签里焦点所在的那个窗格。</summary>
+    private PaneViewModel Vm => Tab.ActivePane;
+
+    /// <summary>命令与快捷键作用的视图 = 焦点窗格对应的那个 PaneView。</summary>
+    private PaneView ActiveView => ViewFor(Tab.ActivePane);
+
+    /// <summary>某个窗格视图模型对应的视图。第二窗格未开时一律回主窗格。</summary>
+    private PaneView ViewFor(PaneViewModel pane)
+        => Tab.Secondary is { } second && ReferenceEquals(pane, second) ? Pane2 : Pane;
 
     // ── 标签页（FR-2） ──────────────────────────────────────────────────────
 
@@ -145,7 +175,17 @@ public partial class MainWindow : Window
             return;
         }
 
-        foreach (string path in saved) _tabs.AddPending(path);
+        for (int i = 0; i < saved.Count; i++)
+        {
+            TabViewModel tab = _tabs.AddPending(saved[i]);
+
+            // 第二窗格只记路径：窗格本身等"这个标签被激活且开着分屏"时才建，
+            // 否则启动时就把 12 个标签的另一半全建出来，首帧预算立刻见底。
+            if (i < session.TabSecondPaths.Count && Directory.Exists(session.TabSecondPaths[i]))
+            {
+                tab.PrepareSecondaryPending(session.TabSecondPaths[i]);
+            }
+        }
 
         _tabs.ActivateAt(Math.Clamp(session.ActiveTabIndex, 0, saved.Count - 1));
     }
@@ -202,23 +242,305 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>双窗格命令（FR-3.3）。开关是窗口级的：它不是某个标签的属性。</summary>
+    private void RegisterSplitCommands()
+    {
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.ToggleSplit,
+            TitleFactory = () => Strings.Command_ToggleSplit,
+            Gesture = "F3",
+            Execute = ToggleSplit,
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.FocusOtherPane,
+            TitleFactory = () => Strings.Command_FocusOtherPane,
+            Gesture = "F6",
+            CanExecute = () => _splitEnabled && Tab.Secondary is not null,
+            Execute = FocusOtherPane,
+        });
+    }
+
     /// <summary>
-    /// 活动标签变了：把唯一那份浏览区重新绑到新的视图模型。
+    /// 活动标签变了：把两个窗格视图重新绑到新标签的那一对视图模型。
     /// 滚动位置与选中项在 <see cref="PaneView.Attach"/> 里前后搬移。
     /// </summary>
-    private void OnActiveTabChanged(PaneViewModel? previous, PaneViewModel? current)
+    private void OnActiveTabChanged(TabViewModel? previous, TabViewModel? current)
     {
         if (current is null) return;
 
-        Pane.Attach(current);
+        BindTab(current);
 
-        // 窗口标题与导航栏的绑定都挂在窗口 DataContext 上，跟着活动标签走
-        DataContext = current;
-
-        SyncNavSelection(current.CurrentPath);
+        // 窗口标题与导航栏的绑定都挂在窗口 DataContext 上，跟着焦点窗格走
+        DataContext = current.ActivePane;
+        SyncNavSelection(current.ActivePane.CurrentPath);
 
         // 首帧之前不读盘：启动时由 OnLoaded 开始第一次导航（P1 首帧优先）
-        if (_started && current.HasPendingContent) _ = NavigateTabAsync(current);
+        if (_started) _ = LoadPanesAsync(current);
+    }
+
+    /// <summary>把一个标签的一到两份视图模型绑到对应的窗格视图上。</summary>
+    private void BindTab(TabViewModel tab)
+    {
+        Pane.Attach(tab.Primary);
+
+        if (_splitEnabled)
+        {
+            // 第二窗格第一次分屏时按"上次的路径 → 主窗格当前目录"建；建完立刻可见
+            PaneViewModel second = tab.EnsureSecondary(tab.Primary.CurrentPath);
+            Pane2.Attach(second);
+            Pane2.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            Pane2.Visibility = Visibility.Collapsed;
+        }
+
+        RefreshPaneFocus();
+    }
+
+    /// <summary>按需加载：只导航还没读过盘的窗格（半开的第二窗格也算）。</summary>
+    private static async Task LoadPanesAsync(TabViewModel tab)
+    {
+        if (tab.Primary.HasPendingContent) await NavigateTabAsync(tab.Primary);
+        if (tab.Secondary is { HasPendingContent: true } second) await NavigateTabAsync(second);
+    }
+
+    // ── 双窗格（FR-3） ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// F3 / Ctrl+Shift+E：开关第二窗格（FR-3.3）。
+    ///
+    /// 开：只为**当前标签**建第二窗格，其余标签等被激活时再建——12 个标签各配一个
+    /// 空壳窗格，等于把双窗格的内存预算花在看不见的地方。
+    /// 关：反过来，把所有标签的第二窗格都丢掉，只留路径。
+    /// </summary>
+    private void ToggleSplit()
+    {
+        _splitEnabled = !_splitEnabled;
+        App.Settings.Layout.SplitEnabled = _splitEnabled;
+
+        if (_splitEnabled)
+        {
+            BindTab(Tab);
+            ApplySplitLayout();
+            if (_started) _ = LoadPanesAsync(Tab);
+        }
+        else
+        {
+            foreach (TabViewModel tab in _tabs.Tabs) tab.DropSecondary();
+
+            // Release 而不是只隐藏：视图继续挂着被丢弃的视图模型，内存就白省了
+            Pane2.Release();
+            Pane2.Visibility = Visibility.Collapsed;
+            ApplySplitLayout();
+
+            // 关掉第二窗格后焦点回主窗格（FR-3.3）
+            Tab.ActivatePane(0);
+            DataContext = Tab.ActivePane;
+            SyncNavSelection(Tab.ActivePane.CurrentPath);
+            Pane.FocusList();
+        }
+
+        RefreshPaneFocus();
+
+        // 同上：只按一下 F3 就关窗口时，退出兜底路径会判定"什么都没改"，分屏开关就丢了
+        App.SaveSettings();
+    }
+
+    /// <summary>
+    /// 按当前形态摆 3×3 网格：左右分屏用列 0/1/2，上下分屏用行 0/1/2，不用的一维归零。
+    /// 两种形态共用同一套行列定义，分屏条与窗格的 Grid 定位在这里改——
+    /// 为左右/上下各写一套 XAML 会让"分隔条拖拽、双击复位"这类逻辑跟着重复一遍。
+    /// </summary>
+    private void ApplySplitLayout()
+    {
+        bool vertical = App.Settings.Layout.SplitVertical;
+        double ratio = Math.Clamp(
+            App.Settings.Layout.SplitRatio, AppSettings.MinSplitRatio, AppSettings.MaxSplitRatio);
+
+        double gutter = ColumnSplitter.Width;
+        if (double.IsNaN(gutter) || gutter <= 0) gutter = 6;
+
+        // 先全部归零，再按当前形态铺开：上一种形态留下的宽度不清掉会挤在一起
+        SplitterColumn.Width = new GridLength(0);
+        SecondColumn.Width = new GridLength(0);
+        SplitterRow.Height = new GridLength(0);
+        SecondRow.Height = new GridLength(0);
+
+        Grid.SetColumn(Pane, 0);
+        Grid.SetRow(Pane, 0);
+        Grid.SetColumnSpan(Pane, 1);
+        Grid.SetRowSpan(Pane, 1);
+
+        Grid.SetColumn(Pane2, 2);
+        Grid.SetRow(Pane2, 0);
+        Grid.SetColumnSpan(Pane2, 1);
+        Grid.SetRowSpan(Pane2, 1);
+
+        if (!_splitEnabled)
+        {
+            FirstColumn.Width = new GridLength(1, GridUnitType.Star);
+            FirstRow.Height = new GridLength(1, GridUnitType.Star);
+            ColumnSplitter.Visibility = Visibility.Collapsed;
+            RowSplitter.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        if (vertical)
+        {
+            FirstColumn.Width = new GridLength(1, GridUnitType.Star);
+            FirstRow.Height = new GridLength(ratio, GridUnitType.Star);
+            SplitterRow.Height = new GridLength(gutter);
+            SecondRow.Height = new GridLength(1 - ratio, GridUnitType.Star);
+
+            // 上下分屏时两个窗格都横跨三列（列 1、2 宽度为 0，只为复用同一套定义）。
+            // 列号必须显式归 0：从左右分屏切过来时它还在列 2 上，而列 2 此刻宽度是 0，
+            // 跨列又从 2 开始数，结果就是"第二个窗格有高度、没宽度"，画面一片空白。
+            Grid.SetColumn(Pane, 0);
+            Grid.SetColumnSpan(Pane, 3);
+            Grid.SetColumn(Pane2, 0);
+            Grid.SetColumnSpan(Pane2, 3);
+            Grid.SetRow(Pane2, 2);
+
+            RowSplitter.Visibility = Visibility.Visible;
+            ColumnSplitter.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            FirstRow.Height = new GridLength(1, GridUnitType.Star);
+            FirstColumn.Width = new GridLength(ratio, GridUnitType.Star);
+            SplitterColumn.Width = new GridLength(gutter);
+            SecondColumn.Width = new GridLength(1 - ratio, GridUnitType.Star);
+
+            ColumnSplitter.Visibility = Visibility.Visible;
+            RowSplitter.Visibility = Visibility.Collapsed;
+        }
+
+        if (KeyDebug) LogSplitLayout();
+    }
+
+    /// <summary>
+    /// 分屏网格的实际几何。构造函数里 ApplySplitLayout 跑在布局之前，ActualWidth 全是 0，
+    /// 单看那一行会误判成"分隔条没占位"。首帧渲染后（OnContentRendered）再打一次才有意义。
+    /// </summary>
+    private void LogSplitLayout()
+    {
+        WriteKeyLog($"split vertical={App.Settings.Layout.SplitVertical} enabled={_splitEnabled} " +
+                    $"ratio={App.Settings.Layout.SplitRatio:0.###} " +
+                    $"col={FirstColumn.ActualWidth:0.#}/{ColumnSplitter.ActualWidth:0.#}/{SecondColumn.ActualWidth:0.#} " +
+                    $"row={FirstRow.ActualHeight:0.#}/{RowSplitter.ActualHeight:0.#}/{SecondRow.ActualHeight:0.#} " +
+                    $"host={PaneHost.ActualWidth:0.#}x{PaneHost.ActualHeight:0.#}");
+
+        // 分隔条中心的**屏幕坐标**：走查脚本要在这里落鼠标。
+        // 从截图反推这个点不可靠——DPI 缩放、DWM 隐形边框、PrintWindow 的裁剪
+        // 三者叠加后，同一行像素在不同窗口尺寸下换算出的屏幕点能差几十像素。
+        foreach ((string name, GridSplitter splitter) in
+                 new[] { ("col", ColumnSplitter), ("row", RowSplitter) })
+        {
+            if (!splitter.IsVisible || splitter.ActualWidth <= 0 || splitter.ActualHeight <= 0) continue;
+
+            Point p = splitter.PointToScreen(
+                new Point(splitter.ActualWidth / 2, splitter.ActualHeight / 2));
+            WriteKeyLog($"splitter {name} screen={p.X:0},{p.Y:0} " +
+                        $"size={splitter.ActualWidth:0.#}x{splitter.ActualHeight:0.#}");
+        }
+    }
+
+    /// <summary>
+    /// 拖动结束才落盘比例：跟每个拖动事件写文件等于每帧一次磁盘 IO（列宽也是同一个道理）。
+    /// </summary>
+    private void OnSplitterDragCompleted(object sender, DragCompletedEventArgs e)
+    {
+        bool vertical = App.Settings.Layout.SplitVertical;
+        double first = vertical ? FirstRow.ActualHeight : FirstColumn.ActualWidth;
+        double second = vertical ? SecondRow.ActualHeight : SecondColumn.ActualWidth;
+        double total = first + second;
+        if (total <= 0) return;
+
+        App.Settings.Layout.SplitRatio = Math.Clamp(
+            first / total, AppSettings.MinSplitRatio, AppSettings.MaxSplitRatio);
+
+        // 归一成星号比例：留成像素值的话，窗口拉宽只有一侧在长
+        ApplySplitLayout();
+
+        // 必须当场落盘，不能等退出时那条"尺寸变了才存"的兜底路径：
+        // 用户只拖了一下分隔条就关窗口，窗口尺寸、最后目录、标签都没变，
+        // PersistWindowState 会判定"没改过"直接返回，比例就丢了。
+        // 一次拖拽一次写，与列宽（OnColumnResizeDone）同一套规矩。
+        App.SaveSettings();
+    }
+
+    private void OnSplitterDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        ResetSplitRatio();
+    }
+
+    /// <summary>双击分隔条回到 50:50（FR-3.4）。</summary>
+    private void ResetSplitRatio()
+    {
+        App.Settings.Layout.SplitRatio = AppSettings.DefaultSplitRatio;
+        ApplySplitLayout();
+        App.SaveSettings();
+    }
+
+    private void OnSplitHorizontal(object sender, RoutedEventArgs e) => SetSplitOrientation(vertical: false);
+
+    private void OnSplitVertical(object sender, RoutedEventArgs e) => SetSplitOrientation(vertical: true);
+
+    private void OnSplitReset(object sender, RoutedEventArgs e) => ResetSplitRatio();
+
+    /// <summary>左右 ↔ 上下（FR-3.1）。入口挂在分隔条的右键菜单上：不占键位，也在手边。</summary>
+    private void SetSplitOrientation(bool vertical)
+    {
+        App.Settings.Layout.SplitVertical = vertical;
+        ApplySplitLayout();
+        App.SaveSettings();
+    }
+
+    /// <summary>某个窗格的列表拿到焦点：它成为命令目标（FR-3.5）。</summary>
+    private void OnPaneActivated(PaneView view)
+    {
+        if (!_splitEnabled || view.ViewModel is not { } pane)
+        {
+            RefreshPaneFocus();
+            return;
+        }
+
+        Tab.SetActivePane(pane);
+
+        // 导航栏与窗口标题跟着焦点窗格走，否则"左窗格选中桌面、标题显示右窗格"会分不清
+        DataContext = pane;
+        SyncNavSelection(pane.CurrentPath);
+        RefreshPaneFocus();
+    }
+
+    /// <summary>
+    /// 焦点包边只在分屏时画：单窗格时全窗口就一个浏览区，包个框只是多一条线。
+    /// 颜色是 1px <c>Brush.Border.Strong</c>（ui-guidelines 规则 10.2）。
+    /// </summary>
+    private void RefreshPaneFocus()
+    {
+        bool split = _splitEnabled && Tab.Secondary is not null;
+
+        Pane.SetActive(split && ReferenceEquals(Tab.ActivePane, Tab.Primary), outline: split);
+        Pane2.SetActive(split && ReferenceEquals(Tab.ActivePane, Tab.Secondary), outline: split);
+    }
+
+    /// <summary>Tab 键在两个窗格之间换焦点（FR-3.5）。列表内换选中项走方向键。</summary>
+    private void FocusOtherPane()
+    {
+        if (!_splitEnabled || Tab.Secondary is not { } second) return;
+
+        PaneViewModel target = ReferenceEquals(Tab.ActivePane, second) ? Tab.Primary : second;
+
+        Tab.SetActivePane(target);
+        DataContext = target;
+        SyncNavSelection(target.CurrentPath);
+        RefreshPaneFocus();
+        ViewFor(target).FocusList();
     }
 
     /// <summary>
@@ -266,7 +588,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        Pane.NavigateTo(path);
+        ActiveView.NavigateTo(path);
     }
 
     // ── 与设置页的接口 ──────────────────────────────────────────────────────
@@ -274,10 +596,11 @@ public partial class MainWindow : Window
     // 因此这里保留两个转发方法，让设置页不必知道窗格的存在。
 
     /// <inheritdoc cref="PaneView.CaptureScrollAnchor"/>
-    public (int Index, double Offset) CaptureScrollAnchor() => Pane.CaptureScrollAnchor();
+    public (int Index, double Offset) CaptureScrollAnchor() => ActiveView.CaptureScrollAnchor();
 
     /// <inheritdoc cref="PaneView.RestoreScrollAnchor"/>
-    public void RestoreScrollAnchor((int Index, double Offset) anchor) => Pane.RestoreScrollAnchor(anchor);
+    public void RestoreScrollAnchor((int Index, double Offset) anchor)
+        => ActiveView.RestoreScrollAnchor(anchor);
 
     /// <summary>设置改动后重新套用受影响的界面状态（不重建窗口）。</summary>
     public void ApplySettingsToUi()
@@ -292,12 +615,14 @@ public partial class MainWindow : Window
         // 导航栏底部的占位条跟随状态栏：状态栏隐藏时它也不该留着一条空横线
         NavStatusSpacer.Visibility = s.Appearance.ShowStatusBar ? Visibility.Visible : Visibility.Collapsed;
 
+        // 状态栏与列宽在两个窗格各有一份，都要套一遍
         Pane.ApplyAppearance(s);
+        Pane2.ApplyAppearance(s);
 
         if (KeyDebug)
         {
             WriteKeyLog($"ui statusBar={s.Appearance.ShowStatusBar} " +
-                        $"visibility={Pane.StatusBarVisibility} " +
+                        $"visibility={ActiveView.StatusBarVisibility} " +
                         $"statusText=\"{Vm.StatusText}\"");
         }
     }
@@ -451,7 +776,7 @@ public partial class MainWindow : Window
 
         int vk = wParam.ToInt32();
         ModifierKeys modifiers = Keyboard.Modifiers & RelevantModifiers;
-        bool listFocused = Pane.IsListFocused;
+        bool listFocused = ActiveView.IsListFocused;
 
         if (KeyDebug)
         {
@@ -469,8 +794,24 @@ public partial class MainWindow : Window
             }
         }
 
-        // 无修饰键只在列表有焦点时接管：焦点在按钮上按 Enter 应触发按钮，而不是"打开选中项"
-        if (modifiers == ModifierKeys.None && !listFocused) return IntPtr.Zero;
+        // 分屏时 Tab 在两窗格之间换焦点（FR-3.5）：列表内换选中项用方向键，
+        // Tab 让给"换窗格"，否则分屏之后没法纯键盘切换。
+        //
+        // 这条分支留在钩子里只是兜底：实测真实按键与投递的 WM_KEYDOWN 都到不了这里
+        // （见 OnPreviewKeyDown 的说明），真正生效的是那条路径。
+        if (_splitEnabled && vk == Input.KeyBindings.Vk.Tab && modifiers == ModifierKeys.None
+            && ActiveView.IsListFocused)
+        {
+            handled = true;
+            Dispatcher.BeginInvoke(DispatcherPriority.Input, FocusOtherPane);
+            return IntPtr.Zero;
+        }
+
+        // 无修饰键只在列表有焦点时接管：焦点在按钮上按 Enter 应触发按钮，而不是"打开选中项"。
+        // 功能键（F3 分屏）例外——它不产生文本、也不该由某个按钮"拥有"，
+        // 焦点停在工具栏按钮上时按 F3 仍然要能分屏。
+        bool functionKey = vk is Input.KeyBindings.Vk.F3 or Input.KeyBindings.Vk.F6;
+        if (modifiers == ModifierKeys.None && !listFocused && !functionKey) return IntPtr.Zero;
 
         if (!Input.KeyBindings.TryMatchVirtualKey(vk, out string commandId)) return IntPtr.Zero;
 
@@ -484,12 +825,28 @@ public partial class MainWindow : Window
         return IntPtr.Zero;
     }
 
-    /// <summary>兜底：没有物理键的合成输入（自动化脚本等）不会经过 WM_KEYDOWN 匹配。</summary>
+    /// <summary>
+    /// 快捷键的**实际**入口。
+    ///
+    /// 设计上主入口是 WM_KEYDOWN 钩子（避开输入法改写 Key），但实测真实按键与
+    /// <c>PostMessage</c> 投递的 WM_KEYDOWN 都只走到这里：<c>--keydebug</c> 日志里
+    /// 只有 <c>preview key=…</c>、从来没有 <c>vk=…</c>；而同一只钩子收得到
+    /// <c>WM_HOTKEY</c>（Ctrl+, 走系统热键，日志正常），所以钩子本身是活的，
+    /// 是 WPF 的键盘输入链路在钩子之前把 WM_KEYDOWN 处理掉了。
+    ///
+    /// 结论：凡是只写在钩子里的键都不会生效——Tab 换窗格就踩过这个坑。
+    /// 新键位要么进 KeyBindings（两条路径都认），要么在这里单独处理。
+    /// </summary>
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (Keyboard.FocusedElement is TextBoxBase) return;
 
-        if (KeyDebug) WriteKeyLog($"preview key={e.Key} sys={e.SystemKey} ime={e.ImeProcessedKey}");
+        if (KeyDebug)
+        {
+            WriteKeyLog($"preview key={e.Key} sys={e.SystemKey} ime={e.ImeProcessedKey} " +
+                        $"listFocus={ActiveView.IsListFocused} " +
+                        $"focus={Keyboard.FocusedElement?.GetType().Name ?? "null"}");
+        }
 
         Key key = e.Key switch
         {
@@ -498,6 +855,17 @@ public partial class MainWindow : Window
             Key.DeadCharProcessed => e.DeadCharProcessedKey,
             _ => e.Key,
         };
+
+        // 分屏时 Tab 在两窗格之间换焦点（FR-3.5）。不给 KeyBindings 注册：
+        // 它只在分屏时才有意义，登记成全局键位会让单窗格下的 Tab 也被吞掉。
+        if (_splitEnabled && key == Key.Tab && Keyboard.Modifiers == ModifierKeys.None
+            && ActiveView.IsListFocused)
+        {
+            if (KeyDebug) WriteKeyLog("  preview -> pane.focusOther");
+            e.Handled = true;
+            FocusOtherPane();
+            return;
+        }
 
         if (!Input.KeyBindings.TryMatchKey(key, out string commandId)) return;
 
@@ -516,9 +884,9 @@ public partial class MainWindow : Window
     /// </summary>
     private void Dispatch(string commandId)
     {
-        if (Pane.HasCommand(commandId))
+        if (ActiveView.HasCommand(commandId))
         {
-            Pane.TryInvoke(commandId);
+            ActiveView.TryInvoke(commandId);
             return;
         }
 
@@ -551,6 +919,8 @@ public partial class MainWindow : Window
     {
         StartupTrace.Mark("firstframe");
         Pane.LogColumnLayout();
+        if (KeyDebug && _splitEnabled) LogSplitLayout();
+        if (_splitEnabled) Pane2.LogColumnLayout();
         FlushOnce();
     }
 
@@ -578,8 +948,8 @@ public partial class MainWindow : Window
 
         try
         {
-            // 只导航当前标签；其余标签保持 pending，切过去时才枚举
-            await NavigateTabAsync(Vm);
+            // 只导航当前标签（分屏时两个窗格都导航）；其余标签保持 pending，切过去时才枚举
+            await LoadPanesAsync(Tab);
             StartupTrace.Mark("firstcontent");
             FlushOnce();
         }

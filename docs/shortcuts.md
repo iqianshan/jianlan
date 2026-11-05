@@ -104,10 +104,25 @@
 
 | 快捷键 | 动作 |
 |---|---|
-| `Tab` | 切换焦点窗格 |
-| `F6` | 切换焦点窗格（与 `Tab` 等价，兼容 Total Commander 习惯） |
-| `Ctrl + \` | 开/关右侧窗格 |
-| `Ctrl + Shift + ←/→` | 把选中项移动到另一窗格 |
+| `F3` | 开/关第二窗格（FR-3.3）。关闭后焦点回主窗格 |
+| `Ctrl + Shift + E` | 同 `F3`。给键盘党的第二条路，`F3` 被别的程序占住时可用 |
+| `Tab` | 切换焦点窗格（列表有焦点时。方向键在列表内换选中项，Tab 让给"换窗格"） |
+| `F6` | 切换焦点窗格（与 `Tab` 等价，兼容资源管理器/Total Commander 习惯） |
+
+鼠标：
+
+| 操作 | 动作 |
+|---|---|
+| 拖动分隔条 | 改比例（0.15–0.85），拖完即落盘 |
+| 双击分隔条 | 复位 50:50 |
+| 右键分隔条 | 左右分屏 / 上下分屏 / 恢复 50:50 |
+
+分屏形态（`splitEnabled` / `splitRatio` / `splitVertical`）是**窗口级**的：切标签不会把分屏切没了，
+每个标签各自带一对窗格（ADR-0009）。
+
+> `Ctrl + \`（开关右窗格）与 `Ctrl + Shift + →`（把当前路径设为另一窗格的目标，FR-3.9，P2）
+> 在设计稿里出现过，**均未实现**：前者被 `F3` 取代（`Ctrl+\` 在多数中文输入法下会被占用），
+> 后者属 P2。
 
 ## 6. 标签色（M2）
 
@@ -132,10 +147,14 @@
 `Ctrl+T` `Ctrl+W` `Ctrl+Shift+T` `Ctrl+Tab` `Ctrl+1…9` `Alt+←→↑` `Backspace` `Ctrl+L`
 `F5` `Ctrl+R` `Ctrl+D` `Ctrl+H` `Ctrl+Shift+1…3` `Ctrl+Shift+D` `Ctrl+,` `Ctrl+滚轮` `F11` `Ctrl+B` `Enter`
 `Ctrl+A/C/X/V` `Delete` `Shift+Delete` `F2` `Ctrl+Shift+N` `Ctrl+Shift+M` `Alt+Enter` `Ctrl+Shift+C`
-`Tab` `F6` `Ctrl+\` `Alt+1…8,0` `Ctrl+,` `F1` `Alt+F4` `Ctrl+Shift+W`
+`Tab` `F3` `F6` `Ctrl+Shift+E` `Alt+1…8,0` `Ctrl+,` `F1` `Alt+F4` `Ctrl+Shift+W`
 
 实现要求：
 
 - 键位集中定义在 `Lingpane.App/Input/KeyBindings.cs`，禁止在 XAML 的 `InputBindings` 里散写
 - 快捷键表与 `docs/shortcuts.md` 必须同源，改一处即改两处
 - 所有快捷键动作必须同时存在于右键菜单或工具栏，不做"只有快捷键才知道"的功能
+- **新键位必须进 `KeyBindings`**：设计上的主入口是 `WM_KEYDOWN` 钩子（避开输入法改写 Key），
+  但实测真实按键与投递的 `WM_KEYDOWN` 都到不了钩子，只有 `OnPreviewKeyDown` 那条兜底路径
+  收得到（`Ctrl+,` 走系统热键 `WM_HOTKEY`，是唯一的例外）。只写在钩子里的键位等于没接——
+  `Tab` 换窗格就踩过这个坑，详见 `docs/pane-refactor.md` §9.4

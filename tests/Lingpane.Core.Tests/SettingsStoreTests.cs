@@ -182,4 +182,56 @@ public sealed class SettingsStoreTests : IDisposable
 
         Assert.Equal(AppSettings.DefaultColumnSizeWidth, settings.Layout.ColumnSizeWidth, 3);
     }
+
+    [Theory]
+    [InlineData(0.01, AppSettings.MinSplitRatio)]       // 太窄 → 夹到下限
+    [InlineData(0.99, AppSettings.MaxSplitRatio)]       // 太宽 → 夹到上限
+    [InlineData(0.35, 0.35)]                            // 合法值原样保留
+    public void 分屏比例越界被夹取(double stored, double expected)
+    {
+        var settings = new AppSettings();
+        settings.Layout.SplitRatio = stored;
+
+        settings.Normalize();
+
+        Assert.Equal(expected, settings.Layout.SplitRatio, 3);
+    }
+
+    [Fact]
+    public void 分屏比例为NaN时回落默认()
+    {
+        var settings = new AppSettings();
+        settings.Layout.SplitRatio = double.NaN;
+
+        settings.Normalize();
+
+        Assert.Equal(AppSettings.DefaultSplitRatio, settings.Layout.SplitRatio, 3);
+    }
+
+    [Fact]
+    public void 第二窗格路径与标签数量对齐()
+    {
+        var settings = new AppSettings();
+        settings.Session.Tabs = [@"C:\a", @"C:\b", @"C:\c"];
+        settings.Session.TabSecondPaths = [@"D:\x"];   // 手改文件时少写了几条
+
+        settings.Normalize();
+
+        // 平行数组必须等长，否则读的人要自己判错位；缺的位置补空串表示"没开分屏"
+        Assert.Equal(3, settings.Session.TabSecondPaths.Count);
+        Assert.Equal(@"D:\x", settings.Session.TabSecondPaths[0]);
+        Assert.Equal(string.Empty, settings.Session.TabSecondPaths[2]);
+    }
+
+    [Fact]
+    public void 第二窗格路径多出的部分被截断()
+    {
+        var settings = new AppSettings();
+        settings.Session.Tabs = [@"C:\a"];
+        settings.Session.TabSecondPaths = [@"D:\x", @"D:\y"];
+
+        settings.Normalize();
+
+        Assert.Single(settings.Session.TabSecondPaths);
+    }
 }

@@ -66,6 +66,21 @@ public static class Strings
     /// <summary>Copy path</summary>
     public static string Tab_Menu_CopyPath => LocalizationService.Instance.Get("Tab.Menu.CopyPath");
 
+    /// <summary>Toggle second pane</summary>
+    public static string Command_ToggleSplit => LocalizationService.Instance.Get("Command_ToggleSplit");
+
+    /// <summary>Focus the other pane</summary>
+    public static string Command_FocusOtherPane => LocalizationService.Instance.Get("Command_FocusOtherPane");
+
+    /// <summary>Split left / right</summary>
+    public static string Split_Menu_Horizontal => LocalizationService.Instance.Get("Split.Menu.Horizontal");
+
+    /// <summary>Split top / bottom</summary>
+    public static string Split_Menu_Vertical => LocalizationService.Instance.Get("Split.Menu.Vertical");
+
+    /// <summary>Reset to 50:50</summary>
+    public static string Split_Menu_Reset => LocalizationService.Instance.Get("Split.Menu.Reset");
+
     /// <summary>Open</summary>
     public static string Menu_Open => LocalizationService.Instance.Get("Menu.Open");
 

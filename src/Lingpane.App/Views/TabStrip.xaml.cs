@@ -56,7 +56,7 @@ public partial class TabStrip : UserControl
     // FR-2.5 要求标签溢出时横向滚动。Ctrl+Tab 切到第 12 个标签时，
     // 如果它正好在可视区外，用户看到的画面是"什么都没变"——必须主动滚过去。
 
-    private void OnActiveChanged(PaneViewModel? previous, PaneViewModel? current)
+    private void OnActiveChanged(TabViewModel? previous, TabViewModel? current)
     {
         if (current is null) return;
 
@@ -67,7 +67,7 @@ public partial class TabStrip : UserControl
         });
     }
 
-    private FrameworkElement? FindContainer(PaneViewModel tab)
+    private FrameworkElement? FindContainer(TabViewModel tab)
         => TabItems.ItemContainerGenerator.ContainerFromItem(tab) as FrameworkElement;
 
     // ── 新建 / 关闭 / 菜单 ──────────────────────────────────────────────────
@@ -77,30 +77,38 @@ public partial class TabStrip : UserControl
     private void OnTabCloseClick(object sender, RoutedEventArgs e)
     {
         e.Handled = true;
-        if (sender is FrameworkElement { DataContext: PaneViewModel tab }) _host?.Close(tab);
+        if (sender is FrameworkElement { DataContext: TabViewModel tab }) _host?.Close(tab);
     }
 
     private void OnTabCloseOthers(object sender, RoutedEventArgs e)
     {
         e.Handled = true;
-        if (sender is FrameworkElement { DataContext: PaneViewModel tab }) _host?.CloseOthers(tab);
+        if (sender is FrameworkElement { DataContext: TabViewModel tab }) _host?.CloseOthers(tab);
     }
 
     private void OnTabCloseRight(object sender, RoutedEventArgs e)
     {
         e.Handled = true;
-        if (sender is FrameworkElement { DataContext: PaneViewModel tab }) _host?.CloseToRight(tab);
+        if (sender is FrameworkElement { DataContext: TabViewModel tab }) _host?.CloseToRight(tab);
     }
 
     private void OnTabCopyPath(object sender, RoutedEventArgs e)
     {
         e.Handled = true;
-        if (sender is not FrameworkElement { DataContext: PaneViewModel tab }) return;
-        if (string.IsNullOrEmpty(tab.CurrentPath)) return;
+        if (sender is not FrameworkElement { DataContext: TabViewModel tab }) return;
+
+        // 分屏时"复制路径"给两条路径，中间换行：单独给一边的信息不完整，
+        // 而用户复制路径多半是要粘到别处做定位，两条都给才够用。
+        (string primary, string secondary) = tab.SnapshotPaths();
+        if (string.IsNullOrEmpty(primary)) return;
+
+        string text = string.IsNullOrEmpty(secondary)
+            ? primary
+            : $"{primary}{Environment.NewLine}{secondary}";
 
         try
         {
-            Clipboard.SetText(tab.CurrentPath);
+            Clipboard.SetText(text);
         }
         catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or InvalidOperationException)
         {
@@ -115,7 +123,7 @@ public partial class TabStrip : UserControl
     {
         _dragFrom = -1;
 
-        if (sender is not FrameworkElement { DataContext: PaneViewModel tab }) return;
+        if (sender is not FrameworkElement { DataContext: TabViewModel tab }) return;
 
         // 点在关闭按钮上：切换留给按钮自己，这里不抢先
         if (FindAncestor<Button>(e.OriginalSource) is not null) return;
@@ -130,7 +138,7 @@ public partial class TabStrip : UserControl
     {
         // 中键关闭（FR-2.3）
         if (e.ChangedButton != MouseButton.Middle) return;
-        if (sender is not FrameworkElement { DataContext: PaneViewModel tab }) return;
+        if (sender is not FrameworkElement { DataContext: TabViewModel tab }) return;
 
         e.Handled = true;
         _host?.Close(tab);

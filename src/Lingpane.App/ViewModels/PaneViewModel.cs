@@ -39,7 +39,6 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     private string? _lastNavigationError;
     private bool _isLoading;
     private bool _isAddressEditing;
-    private bool _isTabActive;
     private DefaultViewKind _viewMode;
     private EntrySort _sort;
     private IReadOnlyList<NavItem> _quickAccess = [];
@@ -156,16 +155,9 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     /// </summary>
     public string TabTooltip => string.IsNullOrEmpty(_currentPath) ? Strings.Application_Name : _currentPath;
 
-    /// <summary>本标签是否为当前标签。标签栏据此区分活动/非活动配色。</summary>
-    public bool IsTabActive
-    {
-        get => _isTabActive;
-        set => Set(ref _isTabActive, value);
-    }
-
     /// <summary>
-    /// 会话恢复出"只有路径、还没读盘"的标签（FR-2.11）。
-    /// 非活动标签不枚举目录：二十个标签各读一万项，启动就不是 700ms 的事了。
+    /// 会话恢复出"只有路径、还没读盘"的窗格（FR-2.11）。
+    /// 非活动标签不枚举目录：十二个标签各读一万项，启动就不是 700ms 的事了。
     /// 激活时由宿主看这个标记决定要不要真的导航。
     /// </summary>
     public bool HasPendingContent { get; private set; }

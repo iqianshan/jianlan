@@ -56,13 +56,17 @@
     "windowMaximized": false,
     "lastPath": null,
     "tabs": [],                 // 顺序即标签顺序；最多 12 条（SessionSettings.MaxTabs）
-    "activeTabIndex": 0         // 恢复后激活第几个标签
+    "activeTabIndex": 0,        // 恢复后激活第几个标签
+    "tabSecondPaths": []        // 与 tabs 平行等长；空串 = 该标签没开分屏（ADR-0009）
   },
 
   "layout": {
     "columnDateWidth": 110,     // 56–400
     "columnTypeWidth": 110,     // 56–400
-    "columnSizeWidth": 90       // 56–400
+    "columnSizeWidth": 90,      // 56–400
+    "splitEnabled": false,      // 双窗格开关，窗口级（FR-3.3）
+    "splitRatio": 0.5,          // 第一窗格占比，0.15–0.85
+    "splitVertical": false      // false = 左右，true = 上下（FR-3.1）
   }
 }
 ```
@@ -81,13 +85,19 @@
 | `windowWidth/Height` | ≥ 最小窗口尺寸 | 夹取 |
 | `session.tabs` | 每条为非空路径；最多 12 条 | 空串剔除；超出截断到前 12 条 |
 | `session.activeTabIndex` | 0 ≤ 索引 < `tabs.length` | 夹取 |
+| `session.tabSecondPaths` | 与 `tabs` 等长；每条为空串或非空路径 | 短了补空串、长了截断（补齐而不是补 `null`：`null` 会把"没开分屏"和"没写这个字段"混成一种） |
 | `columnDate/Type/SizeWidth` | 56–400（单位：DIP） | 夹取；`0`、`NaN`、`Infinity` 回落默认值 |
+| `splitRatio` | 0.15–0.85 | 夹取；`NaN`/`Infinity` 回落 0.5。夹到 0.15 以下等于把一个窗格压成 0 宽，没有意义 |
 
 > **路径合法性不在归一化里判**：盘符可能暂时不在（U 盘没插），判了就把标签吃掉。
 > 恢复时按 `Directory.Exists` 过滤（`MainWindow.RestoreTabs`），宁少一个标签，不留死标签。
 >
 > 名称列是星号列（宽度随窗口伸缩），因此**没有**对应字段，也不参与拖拽。
 > 列宽只在拖拽结束时落盘一次，不跟随每个拖动事件写文件。
+>
+> `splitEnabled` / `splitRatio` / `splitVertical` 三者都是**用户动作当场落盘**
+> （`F3`、拖完分隔条、双击复位、右键改方向），不走"退出时尺寸变了才存"的兜底路径：
+> 那条路径的判据里没有这三项，只拖一下分隔条就关窗口会把比例丢掉。
 
 ## 4. 读写规则
 

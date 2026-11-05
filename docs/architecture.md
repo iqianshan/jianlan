@@ -68,6 +68,7 @@ Loaded
 | 不使用 DI 容器 | 对象图深度为 1，容器初始化 20–30ms 不值得 | [ADR-0004](adr/0004-no-di-container.md) |
 | 收藏书签存 JSON 不建库 | 500 条以内约 60KB，读取 <5ms | FR-7 |
 | 内存分档 150/185/230 MB | WPF 框架底 81MB 吃掉 120MB 阈值的 68% | [ADR-0002](adr/0002-memory-budget.md) |
+| 标签 = 一对窗格 | 顶部只有一条标签栏时 `Ctrl+数字` 的归属才可定义；分屏是窗口形态，切标签不该把它切没了 | [ADR-0009](adr/0009-tab-holds-a-pane-pair.md) |
 
 ## 5. 线程模型
 

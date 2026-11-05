@@ -1,7 +1,7 @@
 # 浏览区重构（PaneView）
 
-- 状态：**S1 / S2 / S3 已完成**（2026-11-05），S4（双窗格）待做
-- 关联：FR-2 多标签、FR-3 双窗格、ADR-0008（内存重新标定）
+- 状态：**S1 / S2 / S3 / S4 已完成**（2026-11-05）
+- 关联：FR-2 多标签、FR-3 双窗格、ADR-0008（内存重新标定）、ADR-0009（标签 = 一对窗格）
 
 ---
 
@@ -56,7 +56,7 @@ PaneView（UserControl，浏览区）
 | **S1** | 机械抽出 `PaneView`；`MainViewModel` → `PaneViewModel` | 仅布局（见 §4） | ✅ 完成 |
 | **S2** | 命令表搬进 `PaneView`；快捷键两段路由 | 无 | ✅ 完成 |
 | **S3** | 标签栏（VM 保活、View 只留活动那份） | 新增标签栏 | ✅ 完成 |
-| **S4** | 双窗格（两列 PaneHost、焦点描边、跨窗格拖放） | 新增分屏 | 待做 |
+| **S4** | 双窗格（两列 PaneHost、焦点描边、跨窗格拖放） | 新增分屏 | ✅ 完成 |
 
 每步都要求：编译 0 警告、119 单测通过、i18n 三项检查 OK、截图对比。
 
@@ -264,6 +264,31 @@ S3 走查（2026-11-05，截图在 `D:\ac05\ac06\`）：
 | 会话恢复 | 三个标签 + `activeTabIndex=1` 落盘；重启后标签与活动项原样回来，窗口尺寸也还原（1100×760 物理 / 880×608 DIP） | `r-2-restored.bmp` |
 | 中键关闭 / `Ctrl+Shift+T` 重开 | 中键点标签 2 关闭，重开回到原目录 | `t-6-midclose.bmp`、`t-7-reopen.bmp` |
 
+S4 走查（2026-11-05，截图在 `D:\ac05\ac06\`）：
+
+| 项 | 结果 | 图 |
+|---|---|---|
+| `F3` 开分屏 | 左右两栏各有完整工具栏/列头/列表/状态栏，比例 0.5；左窗格文件名可见 | `p4-1-split.bmp`（锁屏态）、`u4-1-baseline.bmp` |
+| 右窗格独立导航 | 焦点在右，单实例转交 `D:\ac05\visual` → 只有右栏变，标题跟着变成 `visual` | `q4-3-right-navigated.bmp` |
+| 关分屏 | `F3` 关：`Pane2.Release()`，焦点回主窗格，路径留着（再开还是 `visual`） | `q4-5-split-off.bmp` |
+| 分隔条拖拽 → 比例落盘 | 0.5 拖到 0.28：包边位置 703 → 496，`settings.json` 的 `splitRatio` = 0.2807 | `u4-2-dragged.bmp` |
+| 比例持久化 + 还原 | 重启后仍是 0.28（包边位置 496 一致） | `u4-3-restored.bmp` |
+| 双击复位 50:50 | 包边 496 → 703，`splitRatio` 回到 0.5 | `u4-4-after-dclick.bmp` |
+| 上下分屏（右键菜单第 2 项） | 菜单 210×112 三项，切后 `splitVertical=true`，上下各半 | `u5-5-split-v.bmp` |
+| 上下分屏拖拽 / 双击复位 | 分隔条屏幕 y 610 → 490（拖 120px 生效），双击回 610 | `u6-1-vdragged.bmp`、`u6-2-vreset.bmp` |
+| 切回左右分屏（菜单第 1 项） | 菜单点在分隔条上弹出（262×138），选第 1 项后 `splitVertical=false` | `u5-6-back-h.bmp` |
+| 焦点包边 | 像素扫描：主窗格活动时 `#FF3A3A42` 出现在 x=186/682，右窗格活动时只在 x=689 | `s4-1/2-primary/secondary-focus.bmp` |
+| `F6` / `Tab` 换焦点 | 标题 `t01` → `visual` → `t07` → `t01`；Tab 同样来回（需列表有焦点） | `s4-1…4`、`u7-4-tab-back.bmp` |
+| 跨窗格拖放：同盘移动 | 左 `D:\ac05\dnd\src` 拖到右 `dst`：`a.txt` 从 src 消失、出现在 dst | `u7-2-after-drag.bmp` |
+| 跨窗格拖放：跨盘复制 | 左 `D:` 拖到右 `C:\…\Temp\ac05-dnd`：`a.txt` 两边都在 | `u9-1-cross-volume.bmp` |
+| 双窗格视图模式各自独立 | `F6` 到右窗格按 `Ctrl+Shift+2` → 右栏变列表（无列头），左栏仍是详细 | `u8-2-right-list.bmp`、`u8-3-both-list.bmp` |
+| 会话恢复带回第二路径 | `tabSecondPaths: ["D:\\ac05\\visual"]` 落盘，重启后右窗格仍是该目录 | `u10-1-startup-pane.bmp` |
+| 编译 / 单测 / i18n | 0 错误；125 单测通过；i18n 三项 OK | — |
+
+**未验通**：`Ctrl` / `Shift` 强制改效果（拖拽全程要按住修饰键，`window_drive` 只能在拖之前按键，
+中途按住无效）。逻辑在 `PaneView.DragDrop.ResolveExternalDropEffect`，与"从资源管理器拖入"共用同一条分支，
+后者在 0.1.0 已验过。
+
 ## 8. 已知欠账
 
 | 项 | 现状 | 建议 |
@@ -272,4 +297,89 @@ S3 走查（2026-11-05，截图在 `D:\ac05\ac06\`）：
 | 「+」与最后一个可见标签贴死 | 标签右滑时紧挨「+」，无留白 | 给 ScrollViewer 加等于按钮宽度的右侧 padding |
 | 满额后 `Ctrl+T` 静默 | 到 12 个上限后按键无反馈 | 状态栏提示「最多 12 个标签」，或复用 toast |
 | 走查工具链 | `screenshot`（PrintWindow 只画目标窗口）抓不到右键菜单 | 已补 `capture`（BitBlt 屏幕矩形）与 `front`（抢前台），见 `tools/window-drive/window_drive.py` |
+| 快捷键的主入口其实是"兜底"那条 | `--keydebug` 里只有 `preview key=…`、从来没有 `vk=…`：WM_KEYDOWN 到不了 `HwndSource` 钩子（同一只钩子收得到 `Ctrl+,` 的 `WM_HOTKEY`，说明钩子本身是活的）。所以**只写在钩子里的键位不会生效**，Tab 换窗格踩过这个坑（见 §9.4） | 新键位一律进 `KeyBindings`（两条路径都认）；必须在钩子里做的要同时在 `OnPreviewKeyDown` 补一份 |
+| 第二窗格只在被激活时创建 | 开分屏后切到一个从没分屏过的标签，右窗格要先建 VM 再枚举，有一帧空白 | 若被报为体验问题，改成"开分屏时给前 N 个标签预建" |
+| `Ctrl`/`Shift` 强制改拖放效果未验 | 见 §7 末 | 手动按住修饰键拖一次即可，或给 `window_drive` 加 `keysdown`/`keysup` |
+
+## 9. S4 做了什么
+
+### 9.1 标签长出一对窗格
+
+`TabViewModel` 是 S4 唯一新增的类型，把"一个标签"从"一个浏览区"提升为"一对浏览区"：
+
+| 成员 | 语义 |
+|---|---|
+| `Primary` | 必有。关分屏后剩下的那个 |
+| `Secondary` | 分屏时才有，懒创建（开分屏只为当前标签建） |
+| `ActivePane` | 命令目标。焦点换到哪个窗格就是哪个 |
+| `DisplayName` | **跟随 `ActivePane`**，不是跟随 `Primary` |
+| `EnsureSecondary(fallback)` | 取路径优先级：上次留下的 `_secondaryPath` → 调用方给的兜底 → 主窗格当前目录 |
+| `DropSecondary()` | 只丢视图、只留路径。12 个标签各留一个空壳窗格等于把内存预算花在看不见的地方 |
+| `SnapshotPaths()` | 一次取回 `(主, 副)`，两个字符串必须成对拿 |
+
+`TabHostViewModel.Tabs` 的元素类型随之从 `PaneViewModel` 改成 `TabViewModel`，
+窗口里所有 `_tabs.Active` 的用法都多了一层 `.ActivePane`。取舍理由见 ADR-0009。
+
+### 9.2 3×3 网格复用一个 XAML
+
+`PaneHost` 固定 3 列 3 行：左右分屏用列 0/1/2，上下分屏用行 0/1/2，不用的一维宽高归零。
+`ApplySplitLayout` 只改 `Grid.SetColumn/SetRow`、`ColumnSpan/RowSpan` 与三行列宽，
+不为两种形态各写一套分隔条与子元素摆放。
+
+省下的不只是 XAML：拖拽、双击复位、右键改方向、命中测试全部只有一份实现。
+
+踩到的坑（`ApplySplitLayout` 里已写注释）：**上下分屏必须显式 `Grid.SetColumn(x, 0)`**。
+从左右分屏切过来时窗格还挂在列 2 上，而列 2 此刻宽度是 0，`ColumnSpan=3` 又从列 2 起数，
+结果是"有高度、没宽度"的一片空白。
+
+### 9.3 焦点包边只在分屏时画
+
+`PaneView.SetActive(active, outline)` 两个参数分开：`active` 表示"我是命令目标"，
+`outline` 表示"要不要画框"。宿主只在分屏时把 `outline` 打开——
+单窗格时全窗口就一个浏览区，包个框只是多一条线。
+
+包边是 1px `Brush.Border.Strong`（深色主题 `#FF3A3A42`）。走查时肉眼几乎看不出差别，
+改用像素扫描确认：主窗格活动时该颜色出现在 x=186 / 682，右窗格活动时只出现在 x=689。
+
+### 9.4 Tab 换焦点：钩子收不到键，改走预览路径
+
+`--keydebug` 日志里只有 `preview key=Tab`，没有 `vk=0x09`。真实按键与 `PostMessage`
+投递的 `WM_KEYDOWN` 都到不了 `HwndSource` 钩子——WPF 的键盘输入链路在钩子之前处理掉了它。
+同一只钩子收得到 `Ctrl+,` 的 `WM_HOTKEY`（走 `RegisterHotKey`），所以钩子本身是活的。
+
+其他快捷键没受影响，因为 `KeyBindings` 同时能按 `Key` 匹配，`OnPreviewKeyDown` 兜住了；
+而 Tab 只写在钩子里（用 VK 判），于是分屏后按 Tab 毫无反应。
+
+修法：把 Tab 的判断搬进 `OnPreviewKeyDown`。**不进 `KeyBindings`**——
+Tab 只在分屏时有意义，登记成全局键位会让单窗格下的 Tab 也被吞掉（列表里没法用 Tab 移出焦点）。
+
+### 9.5 响应式列先缩后折
+
+窗格宽度不够时，原来的逻辑是直接按 大小 → 类型 → 日期 折叠。双窗格把这个问题的门槛从
+"窗口很窄"变成"一直"：任何一次分屏都只有半窗宽。
+
+改成两段：先把**超过默认值**的列逐个缩回默认（保住这一列），仍放不下才折叠。
+折叠只是把 `Column.*.Width` 令牌置 0，用户拖过的宽度留在 `settings.json` 里不动，
+窄窗格里折掉的列，窗口一拉宽就回来了。
+
+顺带修了一个真 bug：首次布局时 `ActualWidth` 是 `NaN`，`paneWidth <= 0` 的判断漏掉了它，
+三列被一次性折光、文件名整列消失（日志 `columns pane=NaN … shown=False/False/False`）。
+
+### 9.6 分屏设置当场落盘
+
+`Layout.SplitEnabled / SplitRatio / SplitVertical` 都走 `App.SaveSettings()` 立即写盘，
+不等退出时那条"窗口尺寸变了才存"的兜底路径。
+
+原因：兜底路径的判据是"尺寸、最后目录、标签有没有变"。用户只拖了一下分隔条就关窗口，
+这三样都没变，`PersistWindowState` 直接返回，比例就丢了（走查时实测：重启后仍是 0.5）。
+一次拖拽一次写，和列宽（`OnColumnResizeDone`）同一套规矩。
+
+### 9.7 跨窗格拖放没有专门代码
+
+两个 `PaneView` 各有一套拖放处理，落点按**接收方自己的 `CurrentPath`** 解析。
+所以"从左窗格拖到右窗格"和"从资源管理器拖进来"走的是同一条路，
+同盘移动、跨盘复制、拖到文件夹行、拒绝拖进自身子目录全部自动成立。
+
+验证：同盘 `D:\ac05\dnd\src → dst` 是移动（源消失），跨盘 `D:\… → C:\…\Temp` 是复制（两边都在）。
+
 

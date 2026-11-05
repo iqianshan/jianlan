@@ -40,6 +40,7 @@ public partial class PaneView : UserControl
         InitializeComponent();
         RegisterCommands();
         Unloaded += OnPaneUnloaded;
+        SizeChanged += OnPaneSizeChanged;
     }
 
     /// <summary>本窗格的视图模型。附加前为 null，所有绑定静默为空，不会抛异常。</summary>
@@ -167,15 +168,51 @@ public partial class PaneView : UserControl
     /// <summary>窗格被点中（键盘焦点进入列表）时触发，宿主据此切换"活动窗格"。</summary>
     public event Action<PaneView>? Activated;
 
-    /// <summary>是否为当前活动窗格。双窗格上线后用于区分焦点与命令目标。</summary>
+    /// <summary>是否为当前活动窗格。分屏时用于区分命令目标与焦点包边。</summary>
     public bool IsActive { get; private set; }
 
-    /// <summary>由宿主设置活动态。单窗格阶段始终为 true。</summary>
-    public void SetActive(bool active)
+    /// <summary>宿主是否要求画焦点包边（只在分屏时）。</summary>
+    private bool _outline;
+
+    /// <summary>
+    /// 由宿主设置活动态。<paramref name="outline"/> 只在宿主明确传值时更新——
+    /// 列表自己拿到焦点时调的是 <c>SetActive(true)</c>，不能因此把包边关掉。
+    /// </summary>
+    public void SetActive(bool active, bool? outline = null)
     {
+        if (outline is bool value) _outline = value;
+        OutlineHost.BorderThickness = active && _outline ? new Thickness(1) : new Thickness(0);
+
         if (IsActive == active) return;
+
         IsActive = active;
         if (active) Activated?.Invoke(this);
+    }
+
+    /// <summary>
+    /// 解除与视图模型的绑定。关分屏时用：只把视图 <c>Visibility</c> 设成 Collapsed
+    /// 的话，DataContext 还指着那份被丢弃的视图模型，内存省不下来。
+    /// </summary>
+    public void Release()
+    {
+        if (_viewModel is { } previous)
+        {
+            SaveViewState(previous);
+            previous.NavigationCompleted -= StartWatching;
+            previous.NavigationCompleted -= ScheduleFolderIcons;
+            StopWatching();
+        }
+
+        _viewModel = null;
+        DataContext = null;
+        OutlineHost.BorderThickness = new Thickness(0);
+    }
+
+    /// <summary>把键盘焦点交给列表（Tab 在两窗格间切换用，FR-3.5）。</summary>
+    public void FocusList()
+    {
+        FileList.Focus();
+        if (FileList.SelectedIndex < 0 && FileList.Items.Count > 0) FileList.SelectedIndex = 0;
     }
 
     private void OnFileListGotFocus(object sender, KeyboardFocusChangedEventArgs e) => SetActive(true);
@@ -202,17 +239,74 @@ public partial class PaneView : UserControl
     // 令牌写在窗格自己的 Resources 里而不是 App 级：双窗格时两个窗格的可用宽度
     // 不同，各自持有一份可以避免一格的拖拽影响另一格。
 
-    private void ApplyColumnWidths()
+    /// <summary>
+    /// 窗格窄到放不下三列时的收缩顺序：**先缩回默认宽度，再按 大小 → 类型 → 日期 折叠**
+    /// （ui-guidelines A-05：先扩列宽，再折叠列，最后才允许省略）。
+    ///
+    /// 双窗格把这个问题的出现门槛从"窗口很窄"变成了"一直"：1100px 窗口分屏后每栏约 460px，
+    /// 三列按用户拖过的宽度（比如 220+156+113）会把名称列挤成 0——文件名整个看不见。
+    ///
+    /// 为什么先缩再折：用户把日期列拖到 220 是为了看完整时间戳，但"看完整时间戳"的
+    /// 优先级低于"看得见文件名"；缩回默认 110 还能保住这一列，直接折掉就一点信息都没了。
+    /// 折叠只是把令牌置 0，设置里的宽度不动，拉宽窗口就回来。
+    /// </summary>
+    private void ApplyResponsiveColumns(double paneWidth)
     {
+        if (paneWidth <= 0 || double.IsNaN(paneWidth)) return;
+
         AppSettings s = App.Settings;
-        Resources["Column.Date.Width"] = s.Layout.ColumnDateWidth;
-        Resources["Column.Type.Width"] = s.Layout.ColumnTypeWidth;
-        Resources["Column.Size.Width"] = s.Layout.ColumnSizeWidth;
+
+        // 名称列至少要留这么多，否则不如把这列折掉换给文件名
+        const double NameMinWidth = 150;
+        const double Padding = 44;          // 列头左右各 8 + 行内边距 + 图标槽位
+
+        double available = paneWidth - Padding;
+
+        double[] widths = [s.Layout.ColumnDateWidth, s.Layout.ColumnTypeWidth, s.Layout.ColumnSizeWidth];
+        double[] defaults = [AppSettings.DefaultColumnDateWidth, AppSettings.DefaultColumnTypeWidth, AppSettings.DefaultColumnSizeWidth];
+        bool[] shown = [true, true, true];
+
+        double Fixed() => shown.Select((on, i) => on ? widths[i] : 0).Sum();
+
+        // ① 缩：把"超过默认值"的列逐个缩回默认，缩到名称列放得下为止
+        while (Fixed() > available - NameMinWidth)
+        {
+            int widest = -1;
+            for (int i = 0; i < widths.Length; i++)
+            {
+                if (!shown[i] || widths[i] <= defaults[i]) continue;
+                if (widest < 0 || widths[i] - defaults[i] > widths[widest] - defaults[widest]) widest = i;
+            }
+
+            if (widest < 0) break;
+            widths[widest] = defaults[widest];
+        }
+
+        // ② 折：从最不重要的列开始丢，日期留到最后
+        foreach (int i in new[] { 2, 1, 0 })
+        {
+            if (Fixed() <= available - NameMinWidth) break;
+            shown[i] = false;
+        }
+
+        Resources["Column.Date.Width"] = shown[0] ? widths[0] : 0d;
+        Resources["Column.Type.Width"] = shown[1] ? widths[1] : 0d;
+        Resources["Column.Size.Width"] = shown[2] ? widths[2] : 0d;
 
         if (MainWindow.KeyDebug)
         {
-            MainWindow.WriteKeyLog($"columns in={s.Layout.ColumnDateWidth}/{s.Layout.ColumnTypeWidth}/{s.Layout.ColumnSizeWidth}");
+            MainWindow.WriteKeyLog(
+                $"columns pane={paneWidth:0} in={s.Layout.ColumnDateWidth}/{s.Layout.ColumnTypeWidth}/{s.Layout.ColumnSizeWidth} " +
+                $"out={widths[0]:0}/{widths[1]:0}/{widths[2]:0} shown={shown[0]}/{shown[1]}/{shown[2]}");
         }
+    }
+
+    private void ApplyColumnWidths() => ApplyResponsiveColumns(ActualWidth);
+
+    /// <summary>窗格变窄/变宽要重新决定哪些列还放得下（分屏、拖分隔条、拉窗口都会触发）。</summary>
+    private void OnPaneSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (e.WidthChanged) ApplyResponsiveColumns(e.NewSize.Width);
     }
 
     /// <summary>布局诊断：列头实际宽度与可视位置，确认"列被裁掉"还是"列不存在"。</summary>

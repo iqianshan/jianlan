@@ -108,10 +108,37 @@ public sealed class AppSettings
 
         Session.ActiveTabIndex = Math.Clamp(Session.ActiveTabIndex, 0, Math.Max(0, Session.Tabs.Count - 1));
 
+        // 第二窗格路径与 Tabs 是平行数组：长度必须与 Tabs 一致，
+        // 否则读的人要自己判错位。这里补齐/截断，空串表示"这个标签没开分屏"。
+        Session.TabSecondPaths ??= [];
+        if (Session.TabSecondPaths.Count < Session.Tabs.Count)
+        {
+            // 补空串而不是补 null：null 会把"没开分屏"和"没写这个字段"混成一种，
+            // 下游一律按空串判，少一个分支。
+            Session.TabSecondPaths.AddRange(
+                Enumerable.Repeat(string.Empty, Session.Tabs.Count - Session.TabSecondPaths.Count));
+        }
+        else if (Session.TabSecondPaths.Count > Session.Tabs.Count)
+        {
+            Session.TabSecondPaths = Session.TabSecondPaths.Take(Session.Tabs.Count).ToList();
+        }
+
         Layout.ColumnDateWidth = ClampColumn(Layout.ColumnDateWidth, DefaultColumnDateWidth);
         Layout.ColumnTypeWidth = ClampColumn(Layout.ColumnTypeWidth, DefaultColumnTypeWidth);
         Layout.ColumnSizeWidth = ClampColumn(Layout.ColumnSizeWidth, DefaultColumnSizeWidth);
+
+        if (double.IsNaN(Layout.SplitRatio) || double.IsInfinity(Layout.SplitRatio))
+        {
+            Layout.SplitRatio = DefaultSplitRatio;
+        }
+
+        Layout.SplitRatio = Math.Clamp(Layout.SplitRatio, MinSplitRatio, MaxSplitRatio);
     }
+
+    /// <summary>分屏比例的上下限：低于 15% 的那一栏连列头都放不下，等于"分了个看不见的屏"。</summary>
+    public const double MinSplitRatio = 0.15;
+    public const double MaxSplitRatio = 0.85;
+    public const double DefaultSplitRatio = 0.5;
 
     public const double MinColumnWidth = 56;
     public const double MaxColumnWidth = 400;
@@ -236,6 +263,15 @@ public sealed class SessionSettings
     /// <summary>下次启动时激活第几个标签（0 起始）。恢复失败时回落第一个。</summary>
     public int ActiveTabIndex { get; set; }
 
+    /// <summary>
+    /// 每个标签第二窗格的路径（FR-3.2 会话恢复）。与 <see cref="Tabs"/> 平行、等长：
+    /// 下标 i 对应第 i 个标签，空串表示该标签只有单窗格。
+    ///
+    /// 为什么用平行数组而不是把 Tabs 改成对象数组：改结构要写迁移、要让旧版本读得回来；
+    /// 平行数组只是"多一个字段"，归一化里补齐长度就不会错位（见 Normalize）。
+    /// </summary>
+    public List<string> TabSecondPaths { get; set; } = [];
+
     /// <summary>会话恢复的标签数上限。再多也只是把启动拖慢，捡不回来的价值很低。</summary>
     public const int MaxTabs = 12;
 
@@ -254,6 +290,15 @@ public sealed class LayoutSettings
     public double ColumnTypeWidth { get; set; } = AppSettings.DefaultColumnTypeWidth;
 
     public double ColumnSizeWidth { get; set; } = AppSettings.DefaultColumnSizeWidth;
+
+    /// <summary>双窗格是否开启（FR-3.3）。关掉窗口再打开时保持上次的形态。</summary>
+    public bool SplitEnabled { get; set; }
+
+    /// <summary>第一窗格占的比例（0.15–0.85，默认 0.5）。分隔条拖完才落盘。</summary>
+    public double SplitRatio { get; set; } = AppSettings.DefaultSplitRatio;
+
+    /// <summary>true = 上下分割，false = 左右分割（FR-3.1，默认左右）。</summary>
+    public bool SplitVertical { get; set; }
 
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }

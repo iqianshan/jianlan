@@ -50,7 +50,12 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid>
+    <!-- 焦点包边（FR-3.5）。只在分屏时由宿主打开：单窗格包个框除了多一条线没有别的信息。
+         BorderThickness 由 PaneView.SetActive 切换，颜色是 1px Brush.Border.Strong（ui-guidelines 规则 10.2）。 -->
+    <Border x:Name="OutlineHost"
+            BorderThickness="0"
+            BorderBrush="{DynamicResource Brush.Border.Strong}">
+        <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -390,5 +395,6 @@
                            Text="{Binding SelectionText}"/>
             </Grid>
         </Border>
-    </Grid>
+        </Grid>
+    </Border>
 </UserControl>

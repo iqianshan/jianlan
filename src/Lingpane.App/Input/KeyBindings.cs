@@ -60,6 +60,12 @@ internal static class KeyBindings
         new(Key.D8, Vk.D8, ModifierKeys.Control, CommandIds.GotoTab(8), "8"),
         new(Key.D9, Vk.D9, ModifierKeys.Control, CommandIds.LastTab, "9"),
 
+        // 双窗格（§8）。F3 与资源管理器的分屏习惯一致，Ctrl+Shift+E 是给键盘党的另一条路。
+        // F6 换焦点窗格：资源管理器里 F6 就是在导航栏/内容/预览之间轮换焦点，用户不用重新学。
+        new(Key.F3, Vk.F3, ModifierKeys.None, CommandIds.ToggleSplit, "F3"),
+        new(Key.F6, Vk.F6, ModifierKeys.None, CommandIds.FocusOtherPane, "F6"),
+        new(Key.E, Vk.E, ModifierKeys.Control | ModifierKeys.Shift, CommandIds.ToggleSplit, "E"),
+
         // 导航（§2）
         new(Key.Up, Vk.Up, ModifierKeys.Alt, CommandIds.GoUp, "↑"),
         new(Key.Left, Vk.Left, ModifierKeys.Alt, CommandIds.GoBack, "←"),
@@ -198,7 +204,10 @@ internal static class KeyBindings
         public const int Y = 0x59;
         public const int Z = 0x5A;
         public const int Apps = 0x5D;
+        public const int E = 0x45;
         public const int F2 = 0x71;
+        public const int F3 = 0x72;
+        public const int F6 = 0x75;
         public const int F5 = 0x74;
         public const int OemComma = 0xBC;
     }

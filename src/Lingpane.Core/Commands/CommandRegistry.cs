@@ -41,6 +41,11 @@ public static class CommandIds
 
     /// <summary>Ctrl+1…8 跳转。<paramref name="n"/> 为 1 起始的序号。</summary>
     public static string GotoTab(int n) => $"tab.goto{n}";
+
+    // 双窗格（FR-3）。窗口级：分屏是窗口形态，不是某个标签的属性——
+    // 开着分屏切标签，新标签也照样是分屏，否则"切个标签分屏就没了"会被当成 bug。
+    public const string ToggleSplit = "pane.toggleSplit";
+    public const string FocusOtherPane = "pane.focusOther";
 }
 
 /// <summary>

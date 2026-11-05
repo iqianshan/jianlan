@@ -75,6 +75,26 @@
     <value>复制路径</value>
   </data>
 
+  <data name="Command_ToggleSplit" xml:space="preserve">
+    <value>切换第二窗格</value>
+  </data>
+
+  <data name="Command_FocusOtherPane" xml:space="preserve">
+    <value>切换焦点窗格</value>
+  </data>
+
+  <data name="Split.Menu.Horizontal" xml:space="preserve">
+    <value>左右分屏</value>
+  </data>
+
+  <data name="Split.Menu.Vertical" xml:space="preserve">
+    <value>上下分屏</value>
+  </data>
+
+  <data name="Split.Menu.Reset" xml:space="preserve">
+    <value>恢复 50:50</value>
+  </data>
+
   <data name="Menu.Open" xml:space="preserve">
     <value>打开</value>
   </data>
