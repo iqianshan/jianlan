@@ -324,42 +324,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
     }
 
     /// <summary>错误码 → 用户可读原因。文案要能被 i18n 抽走，不拼接原始异常文本。</summary>
-    private static string DescribeNavigationError(string code) => code switch
-    {
-        "E1002" => Strings.Error_AccessDenied,
-        "E1003" => Strings.Error_DeviceNotReady,
-        "E1004" => Strings.Error_PathTooLong,
-        _ => Strings.Error_PathNotFound,
-    };
+    private static string DescribeNavigationError(string code) => FsErrors.DescribeForNavigation(code);
 
     /// <summary>
     /// 把枚举异常文本映射成 logging.md §4 的错误码。认不出来时归到 E1001（路径不可用），
     /// 不为了"看起来精确"而硬猜一个更细的码。
     /// </summary>
-    private static string MapFsErrorCode(string? message)
-    {
-        if (string.IsNullOrEmpty(message)) return "E1001";
-
-        if (message.Contains("拒绝访问", StringComparison.OrdinalIgnoreCase) ||  // i18n-ignore：识别系统异常文本，不是文案
-            message.Contains("denied", StringComparison.OrdinalIgnoreCase))
-        {
-            return "E1002";
-        }
-
-        if (message.Contains("设备未就绪", StringComparison.OrdinalIgnoreCase) ||  // i18n-ignore：识别系统异常文本，不是文案
-            message.Contains("device is not ready", StringComparison.OrdinalIgnoreCase))
-        {
-            return "E1003";
-        }
-
-        if (message.Contains("过长", StringComparison.OrdinalIgnoreCase) ||  // i18n-ignore：识别系统异常文本，不是文案
-            message.Contains("too long", StringComparison.OrdinalIgnoreCase))
-        {
-            return "E1004";
-        }
-
-        return "E1001";
-    }
+    private static string MapFsErrorCode(string? message) => FsErrors.CodeOf(message);
 
     /// <summary>刷新当前目录。不产生新的历史记录，否则连按 F5 会堆满后退栈。</summary>
     public Task RefreshAsync()
@@ -501,7 +472,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public void ReportError(Exception ex)
     {
         IsLoading = false;
-        StatusText = string.Format(Strings.Status_OperationFailed, ex.Message);
+
+        // 异常原文跟随系统语言，不能进界面（见 FsErrors 的说明），只写日志
+        string code = FsErrors.CodeOf(ex);
+        Diagnostics.AppLog.Warn("ops.report", code, $"{ex.GetType().Name}: {ex.Message}");
+        StatusText = string.Format(Strings.Status_OperationFailed, FsErrors.DescribeForOperation(code));
     }
 
     private static List<NavItem> BuildQuickAccess()

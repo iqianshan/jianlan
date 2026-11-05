@@ -95,7 +95,7 @@ public partial class MainWindow
 
         bool move = effect == DragDropEffects.Move;
 
-        var result = await RunOperationAsync(
+        var (result, text) = await RunOperationAsync(
             () => move
                 ? FileOperations.MoveAsync(sources, target)
                 : FileOperations.CopyAsync(sources, target),
@@ -107,6 +107,9 @@ public partial class MainWindow
                     : string.Format(move ? Strings.Status_MovedCount : Strings.Status_CopiedCount, r.Succeeded));
 
         if (result.Succeeded > 0) await RefreshAndSelectAsync([]);
+
+        // 失败原因不能被随后的刷新覆盖
+        if (!result.Ok || result.Failed > 0) _viewModel.SetStatus(text);
     }
 
     /// <summary>判定外部拖入的目标目录与效果。<paramref name="target"/> 为 null 表示不允许放下。</summary>

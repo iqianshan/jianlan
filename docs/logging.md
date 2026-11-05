@@ -48,7 +48,7 @@
 
 | 段 | 域 | 已登记 | 写入点 |
 |---|---|---|---|
-| `E1xxx` | 文件系统 | `E1001` 路径不存在 · `E1002` 无权限 · `E1003` 设备未就绪 · `E1004` 路径过长 | `MainViewModel.NavigateAsync` → `nav.open` |
+| `E1xxx` | 文件系统 | `E1001` 路径不存在 · `E1002` 无权限 · `E1003` 设备未就绪 · `E1004` 路径过长 · `E1005` 文件被占用 · `E1006` 磁盘空间不足 · `E1007` 删除被拒（原因判不细） | `MainViewModel.NavigateAsync` → `nav.open`；`FileOperations` → `fs.createFolder` / `fs.createFile` / `fs.rename` / `fs.copy` / `fs.move` / `fs.delete` |
 | `E2xxx` | Shell 互操作 | `E2001` 图标提取失败 · `E2002` 右键菜单失败 · `E2003` 属性页失败 | `MainWindow.Icons` → `icons.resolve` |
 | `E3xxx` | 标签存储 | 预留（0.2.0） | — |
 | `E4xxx` | 设置 | `E4001` 解析失败 · `E4002` 写入失败 · `E4003` 版本过高 | `App` → `settings.load` / `settings.save` |
@@ -88,3 +88,14 @@ TaskScheduler.UnobservedTaskException      → 记录 + 标记已观察
 | 致命错误 | 模态对话框 + "打开日志目录"按钮 | `CRT` |
 
 用户提示**不得**出现堆栈、错误码原文、英文异常消息。错误码只在日志里。
+
+**实现约束**：运行时抛出的 `Exception.Message` 来自 .NET 自带资源，跟随**系统语言**，
+不受应用内切换的界面语言影响。实测中文界面下曾出现半句中文半句英文：
+
+```
+新建文件夹失败：Access to the path 'D:\ac05\aclnowrite\新建文件夹' is denied.
+```
+
+所以凡是异常原因进界面的地方，都必须先经 `Core/FileSystem/FsErrors` 归类成错误码，
+界面显示该码对应的译文，原始消息连同码一起写 `app.log`。`LogSink` 是 Core 写日志的出口
+（依赖方向 App → Core，由 `App` 启动时装配）。

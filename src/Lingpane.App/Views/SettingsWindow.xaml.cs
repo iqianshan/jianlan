@@ -7,6 +7,7 @@ using System.Windows.Media;
 using Lingpane.App.Design;
 using Lingpane.App.Typography;
 using Lingpane.Core.Diagnostics;
+using Lingpane.Core.FileSystem;
 using Lingpane.Core.Localization;
 using Lingpane.Core.Settings;
 
@@ -335,10 +336,15 @@ public partial class SettingsWindow : Window
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
+            // 异常原文跟随系统语言，不进界面（见 FsErrors）
+            string code = FsErrors.CodeOf(ex);
+            Diagnostics.AppLog.Warn("settings.openDataDir", code, $"{ex.GetType().Name}: {ex.Message}");
+
             ConfirmWindow.Notify(
                 this,
                 Strings.Application_Name,
-                string.Format(CultureInfo.CurrentCulture, Strings.Settings_OpenDataDir_Failed, ex.Message));
+                string.Format(CultureInfo.CurrentCulture, Strings.Settings_OpenDataDir_Failed,
+                    FsErrors.DescribeForOperation(code)));
         }
     }
 

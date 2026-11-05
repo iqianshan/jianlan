@@ -260,10 +260,6 @@ public static class Strings
     /// <summary>Operation cancelled</summary>
     public static string Error_Cancelled => LocalizationService.Instance.Get("Error.Cancelled");
 
-    /// <summary>Delete failed (Shell error 0x{0})</summary>
-    public static string Error_DeleteFailedShell => LocalizationService.Instance.Get("Error.DeleteFailedShell");
-    // 含占位符：string.Format(Strings.Error_DeleteFailedShell, ...)
-
     /// <summary>Cannot open "{0}"</summary>
     public static string Status_OpenItemFailed => LocalizationService.Instance.Get("Status.OpenItemFailed");
     // 含占位符：string.Format(Strings.Status_OpenItemFailed, ...)
@@ -603,5 +599,14 @@ public static class Strings
 
     /// <summary>No</summary>
     public static string Dialog_No => LocalizationService.Instance.Get("Dialog.No");
+
+    /// <summary>The file is in use by another program</summary>
+    public static string Error_InUse => LocalizationService.Instance.Get("Error.InUse");
+
+    /// <summary>Not enough space on the target drive</summary>
+    public static string Error_DiskFull => LocalizationService.Instance.Get("Error.DiskFull");
+
+    /// <summary>Could not delete the item — it may be in use, or you may not have permission</summary>
+    public static string Error_DeleteRefused => LocalizationService.Instance.Get("Error.DeleteRefused");
 
 }

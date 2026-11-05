@@ -122,7 +122,9 @@ def main() -> int:
         return 1
 
     if action == "info":
-        print(f"hwnd={hwnd} rect={get_rect(hwnd)}")
+        # 两个矩形都输出：裁剪参数是相对"可见区域"（去掉 DWM 阴影）算的，
+        # 只给外框会引起越界——最大化窗口的外框上下各多 9px 阴影。
+        print(f"hwnd={hwnd} rect={get_rect(hwnd)} visible={get_visible_rect(hwnd)}")
         return 0
 
     if action == "size":
@@ -256,6 +258,7 @@ def main() -> int:
             "ctrl+shift+2": (0x11, 0xA0, 0x32),
             "ctrl+shift+n": (0x11, 0xA0, 0x4E),
             "ctrl+shift+m": (0x11, 0xA0, 0x4D),
+            "ctrl+shift+d": (0x11, 0xA0, 0x44),
             "alt+up": (0x12, 0x26),
             "alt+left": (0x12, 0x25),
             "alt+right": (0x12, 0x27),
@@ -281,17 +284,33 @@ def main() -> int:
         target_thread = user32.GetWindowThreadProcessId(hwnd, None)
         current_thread = kernel32.GetCurrentThreadId()
 
-        attached = user32.AttachThreadInput(current_thread, target_thread, True)
+        # 前台锁（SPI_GETFOREGROUNDLOCKTIMEOUT）：目标进程不是调用者的子进程时
+        # SetForegroundWindow 会被直接拒绝，按键就静默发给了别人。
+        # 三步依次加强，任一步成功即可：
+        #   1) AttachThreadInput 把当前线程挂到目标线程，再抢前台；
+        #   2) 同时挂到"当前前台窗口"的线程——前台锁就是被它占着；
+        #   3) SwitchToThisWindow，老 API 不受前台锁限制。
+        fg = user32.GetForegroundWindow()
+        fg_thread = user32.GetWindowThreadProcessId(fg, None) if fg else 0
+        attaches = [t for t in {fg_thread, target_thread} if t]
+        for t in attaches:
+            user32.AttachThreadInput(current_thread, t, True)
         try:
             user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+            user32.BringWindowToTop(hwnd)
             ok = user32.SetForegroundWindow(hwnd)
             user32.SetFocus(hwnd)
-            time.sleep(0.3)
+            time.sleep(0.2)
+            if user32.GetForegroundWindow() != hwnd:
+                user32.SwitchToThisWindow(hwnd, True)
+                time.sleep(0.3)
         finally:
-            user32.AttachThreadInput(current_thread, target_thread, False)
+            for t in attaches:
+                user32.AttachThreadInput(current_thread, t, False)
 
-        if not ok:
-            print("前台切换失败，快捷键可能未送达")
+        actual = user32.GetForegroundWindow()
+        if actual != hwnd:
+            print(f"前台切换失败（当前前台 {actual}，目标 {hwnd}），快捷键可能未送达")
 
         for vk in keys:
             user32.keybd_event(vk, 0, 0, 0)

@@ -92,6 +92,10 @@ public partial class App : Application
         // 进程内最早的可控埋点位置
         StartupTrace.Begin();
 
+        // Core 不能引用 App（依赖方向），写日志的出口在这里装配。
+        // 不装配也不报错，只是 Core 侧的文件操作日志会静默丢失。
+        Core.Diagnostics.LogSink.Write = Diagnostics.AppLog.Warn;
+
         // 崩溃记录要在任何业务代码之前挂上，否则启动期异常会静默消失
         Diagnostics.CrashLogger.Attach(this);
     }

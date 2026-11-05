@@ -8,6 +8,7 @@ namespace Lingpane.Core.Tests;
 /// 注意：<see cref="LocalizationService"/> 是单例且会改进程级 CultureInfo，
 /// 每个用例结束都恢复成英文，避免影响同进程内的其它测试。
 /// </summary>
+[Collection(LocalizationCollection.Name)]
 public sealed class LocalizationTests : IDisposable
 {
     public LocalizationTests() => LocalizationService.Instance.Apply(LocalizationService.English);

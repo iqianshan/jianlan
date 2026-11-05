@@ -2,6 +2,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 
 using System.Globalization;
+using Lingpane.Core.Diagnostics;
 using Lingpane.Core.Localization;
 
 namespace Lingpane.Core.FileSystem;
@@ -123,7 +124,7 @@ public static class FileOperations
         }
         catch (Exception ex) when (IsExpected(ex))
         {
-            error = ex.Message;
+            error = DescribeFailure(ex, "fs.createFolder", directory);
             createdPath = string.Empty;
             return false;
         }
@@ -160,7 +161,7 @@ public static class FileOperations
         }
         catch (Exception ex) when (IsExpected(ex))
         {
-            error = ex.Message;
+            error = DescribeFailure(ex, "fs.createFile", directory);
             createdPath = string.Empty;
             return false;
         }
@@ -223,7 +224,7 @@ public static class FileOperations
         }
         catch (Exception ex) when (IsExpected(ex))
         {
-            error = ex.Message;
+            error = DescribeFailure(ex, "fs.rename", path);
             return false;
         }
     }
@@ -247,7 +248,8 @@ public static class FileOperations
             }
             catch (Exception ex)
             {
-                tcs.SetResult(FileOpResult.Failure(ex.Message));
+                tcs.SetResult(FileOpResult.Failure(
+                    DescribeFailure(ex, "fs.delete", string.Join(", ", existing))));
             }
         })
         {
@@ -308,7 +310,7 @@ public static class FileOperations
             catch (Exception ex) when (IsExpected(ex))
             {
                 failed++;
-                firstError ??= ex.Message;
+                firstError ??= DescribeFailure(ex, "fs.copy", source);
             }
         }
 
@@ -380,11 +382,44 @@ public static class FileOperations
             catch (Exception ex) when (IsExpected(ex))
             {
                 failed++;
-                firstError ??= ex.Message;
+                firstError ??= DescribeFailure(ex, "fs.move", source);
             }
         }
 
         return new FileOpResult(failed == 0, ok, failed, firstError);
+    }
+
+    /// <summary>
+    /// 删除失败后推断原因，返回错误码；判不出来返回 null。
+    ///
+    /// 做法是回到文件本身试开一次（只读句柄不改内容），用异常区分"被占用"与"没权限"。
+    /// 目录不探测：判删除权限需要真写/真删，代价远大于收益，直接走通用文案。
+    /// </summary>
+    private static string? DiagnoseDeleteFailure(IReadOnlyList<string> paths)
+    {
+        foreach (string path in paths)
+        {
+            if (Directory.Exists(path)) continue;
+
+            try
+            {
+                using var handle = File.OpenHandle(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (IOException io) when ((io.HResult & 0xFFFF) is 32 or 33)   // 共享冲突 / 锁冲突
+            {
+                return FsErrors.InUse;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return FsErrors.AccessDenied;
+            }
+            catch (Exception ex) when (IsExpected(ex))
+            {
+                // 其它情况（文件已不在、路径过长等）无法归因，交给通用文案
+            }
+        }
+
+        return null;
     }
 
     private static void CopyDirectory(string source, string destination)
@@ -431,6 +466,17 @@ public static class FileOperations
         => ex is IOException or UnauthorizedAccessException or ArgumentException
             or NotSupportedException or System.Security.SecurityException;
 
+    /// <summary>
+    /// 异常 → 用户可读原因。原文只进 app.log：运行时异常消息跟随系统语言，
+    /// 直接显示会出现"中文界面里夹一句英文"（见 <see cref="FsErrors"/>）。
+    /// </summary>
+    private static string DescribeFailure(Exception ex, string eventName, string context)
+    {
+        string code = FsErrors.CodeOf(ex);
+        LogSink.Warn(eventName, code, $"{context} · {ex.GetType().Name}: {ex.Message}");
+        return FsErrors.DescribeForOperation(code);
+    }
+
     // ── 回收站（Shell）──────────────────────────────────────────────────────
 
     private const uint FO_DELETE = 0x0003;
@@ -467,7 +513,16 @@ public static class FileOperations
 
             if (code != 0)
             {
-                return new FileOpResult(false, 0, paths.Length, string.Format(CultureInfo.CurrentCulture, Strings.Error_DeleteFailedShell, code.ToString("X", CultureInfo.InvariantCulture)));
+                // SHFileOperation 的返回码混了 DE_* 与 Win32 两段，部分值未文档化，
+                // 直接怼给用户（"删除失败（Shell 错误 0x78）"）既看不懂也不该看
+                // （docs/logging.md §6：界面不得出现错误码）。十六进制码进日志，
+                // 界面按能判定的原因给一句人话。
+                string? reason = DiagnoseDeleteFailure(paths);
+                LogSink.Warn("fs.delete", reason ?? FsErrors.DeleteRefused,
+                    $"shell=0x{code.ToString("X", CultureInfo.InvariantCulture)} · {string.Join(", ", paths)}");
+
+                return new FileOpResult(false, 0, paths.Length,
+                    reason is null ? Strings.Error_DeleteRefused : FsErrors.DescribeForOperation(reason));
             }
 
             return FileOpResult.Success(paths.Length);

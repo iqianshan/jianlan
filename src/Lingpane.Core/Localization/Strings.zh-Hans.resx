@@ -268,9 +268,6 @@
   <data name="Error.Cancelled" xml:space="preserve">
     <value>操作已取消</value>
   </data>
-  <data name="Error.DeleteFailedShell" xml:space="preserve">
-    <value>删除失败（Shell 错误 0x{0}）</value>
-  </data>
 
   <!-- 文件操作与对话框 -->
   <data name="Status.OpenItemFailed" xml:space="preserve">
@@ -586,5 +583,14 @@
   </data>
   <data name="Dialog.No" xml:space="preserve">
     <value>否</value>
+  </data>
+  <data name="Error.InUse" xml:space="preserve">
+    <value>文件正被其他程序占用</value>
+  </data>
+  <data name="Error.DiskFull" xml:space="preserve">
+    <value>目标磁盘空间不足</value>
+  </data>
+  <data name="Error.DeleteRefused" xml:space="preserve">
+    <value>无法删除该项：可能正在被使用，或没有删除权限</value>
   </data>
 </root>

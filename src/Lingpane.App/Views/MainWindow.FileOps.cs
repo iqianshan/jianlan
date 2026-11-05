@@ -133,14 +133,18 @@ public partial class MainWindow
 
         string[] paths = items.Select(i => i.FullPath).ToArray();
 
-        await RunOperationAsync(
+        var (result, text) = await RunOperationAsync(
             () => FileOperations.DeleteAsync(paths, permanent),
             permanent ? Strings.Status_DeletingPermanent : Strings.Status_Deleting,
-            result => result.Ok
-                ? string.Format(Strings.Status_DeletedCount, result.Succeeded)
-                : string.Format(Strings.Status_DeleteFailed, result.Error));
+            r => r.Ok
+                ? string.Format(Strings.Status_DeletedCount, r.Succeeded)
+                : string.Format(Strings.Status_DeleteFailed, r.Error));
 
         await RefreshAndSelectAsync([]);
+
+        // 刷新会用新目录的统计重算状态栏，把失败原因覆盖掉——用户只看到"1 项"，
+        // 根本不知道删除失败。失败结果必须重新写回去。
+        if (!result.Ok) _viewModel.SetStatus(text);
     }
 
     private void CopySelection(bool cut)
@@ -163,7 +167,7 @@ public partial class MainWindow
         string[] paths = FileClipboard.Paths.ToArray();
         bool cut = FileClipboard.IsCut;
 
-        var result = await RunOperationAsync(
+        var (result, text) = await RunOperationAsync(
             () => cut ? FileOperations.MoveAsync(paths, directory) : FileOperations.CopyAsync(paths, directory),
             cut ? Strings.Status_Moving : Strings.Status_Copying,
             r => !r.Ok
@@ -178,6 +182,9 @@ public partial class MainWindow
         await RefreshAndSelectAsync(paths
             .Select(p => Path.Join(directory, Path.GetFileName(p)))
             .ToArray());
+
+        // 同删除：全量失败或部分失败的原因不能被刷新覆盖
+        if (!result.Ok || result.Failed > 0) _viewModel.SetStatus(text);
     }
 
     private void CopyPathSelection()
@@ -224,10 +231,11 @@ public partial class MainWindow
 
     /// <summary>
     /// 执行一次会改动磁盘的操作：期间暂停目录监听（否则自己的写操作会反复触发刷新），
-    /// 结束后统一把结果写进状态栏。
+    /// 结束后统一把结果写进状态栏。返回结果与结果文案——调用方刷新目录后要按需重写，
+    /// 因为刷新会重算状态栏并把这里的文案覆盖掉。
     /// </summary>
-    private async Task<FileOpResult> RunOperationAsync(Func<Task<FileOpResult>> operation,
-        string runningText, Func<FileOpResult, string> resultText)
+    private async Task<(FileOpResult Result, string Text)> RunOperationAsync(
+        Func<Task<FileOpResult>> operation, string runningText, Func<FileOpResult, string> resultText)
     {
         _suppressWatcher = true;
         _viewModel.SetStatus(runningText);
@@ -235,13 +243,20 @@ public partial class MainWindow
         try
         {
             var result = await operation();
-            _viewModel.SetStatus(resultText(result));
-            return result;
+            string text = resultText(result);
+            _viewModel.SetStatus(text);
+            return (result, text);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _viewModel.SetStatus(string.Format(Strings.Status_OperationFailed, ex.Message));
-            return FileOpResult.Failure(ex.Message);
+            // 异常原文跟随系统语言，只进日志；界面给译文（FsErrors 有说明）
+            string code = FsErrors.CodeOf(ex);
+            Diagnostics.AppLog.Warn("ops.run", code, $"{ex.GetType().Name}: {ex.Message}");
+
+            string reason = FsErrors.DescribeForOperation(code);
+            string text = string.Format(Strings.Status_OperationFailed, reason);
+            _viewModel.SetStatus(text);
+            return (FileOpResult.Failure(reason), text);
         }
         finally
         {

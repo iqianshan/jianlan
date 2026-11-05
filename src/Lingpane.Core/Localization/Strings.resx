@@ -281,9 +281,6 @@
   <data name="Error.Cancelled" xml:space="preserve">
     <value>Operation cancelled</value>
   </data>
-  <data name="Error.DeleteFailedShell" xml:space="preserve">
-    <value>Delete failed (Shell error 0x{0})</value>
-  </data>
 
   <!-- 文件操作与对话框 -->
   <data name="Status.OpenItemFailed" xml:space="preserve">
@@ -599,5 +596,14 @@
   </data>
   <data name="Dialog.No" xml:space="preserve">
     <value>No</value>
+  </data>
+  <data name="Error.InUse" xml:space="preserve">
+    <value>The file is in use by another program</value>
+  </data>
+  <data name="Error.DiskFull" xml:space="preserve">
+    <value>Not enough space on the target drive</value>
+  </data>
+  <data name="Error.DeleteRefused" xml:space="preserve">
+    <value>Could not delete the item — it may be in use, or you may not have permission</value>
   </data>
 </root>
