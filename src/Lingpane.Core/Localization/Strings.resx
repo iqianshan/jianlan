@@ -59,11 +59,17 @@
   <data name="Toolbar.Settings.Tip" xml:space="preserve">
     <value>Open settings (Ctrl+,)</value>
   </data>
+  <data name="Toolbar.Split.Tip" xml:space="preserve">
+    <value>Toggle split view (F3)</value>
+  </data>
 
   <!-- 右键菜单 -->
   <!-- 标签页（FR-2） -->
   <data name="Tab.New.Tip" xml:space="preserve">
     <value>New tab (Ctrl+T)</value>
+  </data>
+  <data name="Tab.New.FullTip" xml:space="preserve">
+    <value>Tab limit reached — close one first</value>
   </data>
   <data name="Tab.Close.Tip" xml:space="preserve">
     <value>Close tab (Ctrl+W)</value>
@@ -335,6 +341,9 @@
   <data name="Status.NewFolderFailed" xml:space="preserve">
     <value>Could not create folder: {0}</value>
   </data>
+  <data name="Status.TabLimit" xml:space="preserve">
+    <value>At most {0} tabs — close one first</value>
+  </data>
   <data name="Status.NewFileFailed" xml:space="preserve">
     <value>Could not create file: {0}</value>
   </data>
@@ -501,6 +510,9 @@
   </data>
   <data name="Settings.Subtitle" xml:space="preserve">
     <value>Changes take effect immediately and are saved, except items marked “next launch”.</value>
+  </data>
+  <data name="Settings.Section.Tabs" xml:space="preserve">
+    <value>Tabs</value>
   </data>
   <data name="Settings.Section.Appearance" xml:space="preserve">
     <value>Appearance</value>

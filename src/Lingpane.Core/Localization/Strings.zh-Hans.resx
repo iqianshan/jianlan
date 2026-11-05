@@ -54,10 +54,16 @@
   <data name="Toolbar.Settings.Tip" xml:space="preserve">
     <value>打开设置（Ctrl+,）</value>
   </data>
+  <data name="Toolbar.Split.Tip" xml:space="preserve">
+    <value>切换双窗格（F3）</value>
+  </data>
 
   <!-- 标签页（FR-2） -->
   <data name="Tab.New.Tip" xml:space="preserve">
     <value>新建标签页（Ctrl+T）</value>
+  </data>
+  <data name="Tab.New.FullTip" xml:space="preserve">
+    <value>已达标签页上限，请先关闭一个</value>
   </data>
   <data name="Tab.Close.Tip" xml:space="preserve">
     <value>关闭标签页（Ctrl+W）</value>
@@ -322,6 +328,9 @@
   <data name="Status.NewFolderFailed" xml:space="preserve">
     <value>新建文件夹失败：{0}</value>
   </data>
+  <data name="Status.TabLimit" xml:space="preserve">
+    <value>最多 {0} 个标签页，请先关闭一个</value>
+  </data>
   <data name="Status.NewFileFailed" xml:space="preserve">
     <value>新建文件失败：{0}</value>
   </data>
@@ -488,6 +497,9 @@
   </data>
   <data name="Settings.Subtitle" xml:space="preserve">
     <value>修改即时生效并保存；标注「下次启动」的项除外。</value>
+  </data>
+  <data name="Settings.Section.Tabs" xml:space="preserve">
+    <value>标签页</value>
   </data>
   <data name="Settings.Section.Appearance" xml:space="preserve">
     <value>外观</value>

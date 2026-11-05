@@ -177,6 +177,38 @@ public partial class PaneView : UserControl
     /// <summary>是否为当前活动窗格。分屏时用于区分命令目标与焦点包边。</summary>
     public bool IsActive { get; private set; }
 
+    /// <summary>
+    /// 分屏是否开着。由宿主（MainWindow.ToggleSplit）写入，工具栏上的分屏按钮据此显示选中态。
+    ///
+    /// 为什么用依赖属性而不是直接改按钮的 Background：按钮的样式里要用 <c>DataTrigger</c> 读它，
+    /// 普通 CLR 属性不会通知绑定；而拿代码去改背景色，主题一换（Light/Dark 是 DynamicResource）
+    /// 就恢复不了。依赖属性是这两件事同时成立的最短路径。
+    /// </summary>
+    public static readonly DependencyProperty IsSplitActiveProperty =
+        DependencyProperty.Register(
+            nameof(IsSplitActive), typeof(bool), typeof(PaneView), new PropertyMetadata(false));
+
+    public bool IsSplitActive
+    {
+        get => (bool)GetValue(IsSplitActiveProperty);
+        set => SetValue(IsSplitActiveProperty, value);
+    }
+
+    /// <summary>
+    /// 是否显示工具栏上的分屏按钮。只有主窗格显示：
+    /// 开关本身是窗口级的，两颗按钮同时出现会让人以为两个窗格能各分各的。
+    /// </summary>
+    public bool ShowSplitButton
+    {
+        get => SplitButton.Visibility == Visibility.Visible;
+        set
+        {
+            Visibility visibility = value ? Visibility.Visible : Visibility.Collapsed;
+            SplitButton.Visibility = visibility;
+            SplitDivider.Visibility = visibility;
+        }
+    }
+
     /// <summary>宿主是否要求画焦点包边（只在分屏时）。</summary>
     private bool _outline;
 
@@ -345,6 +377,22 @@ public partial class PaneView : UserControl
             Point p = thumb.PointToScreen(new Point(0, 0));
             MainWindow.WriteKeyLog($"layout thumb {thumb.Tag}: x={p.X:0.#} y={p.Y:0.#} " +
                         $"w={thumb.ActualWidth:0.#} h={thumb.ActualHeight:0.#}");
+        }
+
+        // 工具栏按钮的屏幕中心。走查脚本点这些按钮时不能靠截图反推：
+        // 截图是 DIP 空间的 PrintWindow 位图，注入的是物理像素，中间隔着缩放系数，
+        // 差一个百分点就能把"点分屏"变成"点列表"。
+        foreach ((string tag, Button button) in new[]
+                 {
+                     ("details", DetailsButton), ("list", ListButton), ("split", SplitButton),
+                 })
+        {
+            if (button is null) continue;
+
+            Point center = button.PointToScreen(
+                new Point(button.ActualWidth / 2, button.ActualHeight / 2));
+            MainWindow.WriteKeyLog($"anchor {tag} screen={center.X:0.#},{center.Y:0.#} " +
+                        $"w={button.ActualWidth:0.#} visible={button.Visibility}");
         }
     }
 

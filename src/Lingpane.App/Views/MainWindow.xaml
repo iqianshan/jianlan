@@ -49,43 +49,74 @@
             <views:TabStrip x:Name="TabBar"/>
         </Border>
 
-        <!-- 常用目录（FR-1.1）。
-             宽度取内容宽度并夹在 184–320 之间（AC-06 走查修正）：
-             原来写死 184，英文 24pt 下 "Documents / Downloads" 比栏宽还长，
-             被 ListBox 直接切掉、连省略号都没有。改为随内容增长，
-             中文与常规字号下内容不足 184，宽度与原来完全一致。 -->
-        <ListBox x:Name="QuickAccessList"
-                 Grid.Column="0"
-                 Grid.Row="1"
-                 Width="Auto"
-                 MinWidth="{DynamicResource Size.Nav.Width.Default}"
-                 MaxWidth="{DynamicResource Size.Nav.Width.Max}"
-                 Style="{StaticResource Nav.Surface}"
-                 ItemsSource="{Binding QuickAccess}"
-                 SelectionChanged="OnQuickAccessSelectionChanged">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <!-- 用两列 Grid 而不是横向 StackPanel：StackPanel 横向测量时给子项无限宽，
-                         TextTrimming 永远不触发，文字只会被硬裁。 -->
-                    <Grid Margin="{StaticResource Padding.NavItem}"
-                          VerticalAlignment="Center">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0"
-                                   Margin="0,0,8,0"
+        <!-- 侧栏：常用目录（FR-1.1）在上，设置在下。
+             设置属于窗口/应用级，放进窗格工具栏会在分屏时变成两颗
+             （两个 PaneView 各挂一颗），所以它的位置只能是侧栏这种"全局只有一处"的地方。 -->
+        <Grid Grid.Column="0" Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- 常用目录（FR-1.1）。
+                 宽度取内容宽度并夹在 184–320 之间（AC-06 走查修正）：
+                 原来写死 184，英文 24pt 下 "Documents / Downloads" 比栏宽还长，
+                 被 ListBox 直接切掉、连省略号都没有。改为随内容增长，
+                 中文与常规字号下内容不足 184，宽度与原来完全一致。 -->
+            <ListBox x:Name="QuickAccessList"
+                     Grid.Row="0"
+                     Width="Auto"
+                     MinWidth="{DynamicResource Size.Nav.Width.Default}"
+                     MaxWidth="{DynamicResource Size.Nav.Width.Max}"
+                     Style="{StaticResource Nav.Surface}"
+                     ItemsSource="{Binding QuickAccess}"
+                     SelectionChanged="OnQuickAccessSelectionChanged">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <!-- 用两列 Grid 而不是横向 StackPanel：StackPanel 横向测量时给子项无限宽，
+                             TextTrimming 永远不触发，文字只会被硬裁。 -->
+                        <Grid Margin="{StaticResource Padding.NavItem}"
+                              VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Margin="0,0,8,0"
+                                       Style="{StaticResource Text.Glyph}"
+                                       Text="{Binding Glyph}"/>
+                            <TextBlock Grid.Column="1"
+                                       Style="{StaticResource Text.Nav}"
+                                       Text="{Binding Name}"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- 设置入口（FR-5.1）。放在侧栏底部，与浏览器的习惯一致；
+                 上边框把它和导航列表分开，视觉上属于"侧栏的另一半"而非列表末尾的多一行。 -->
+            <Border Grid.Row="1"
+                    Background="{DynamicResource Brush.Surface.Sidebar}"
+                    BorderBrush="{DynamicResource Brush.Border.Hairline}"
+                    BorderThickness="0,1,0,0"
+                    Padding="0,6">
+                <Button x:Name="SettingsButton"
+                        Style="{StaticResource Button.NavCommand}"
+                        Click="OnSettingsButtonClick"
+                        ToolTip="{loc:Tr Key=Toolbar.Settings.Tip}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Margin="0,0,10,0"
+                                   VerticalAlignment="Center"
                                    Style="{StaticResource Text.Glyph}"
-                                   Text="{Binding Glyph}"/>
-                        <TextBlock Grid.Column="1"
-                                   Style="{StaticResource Text.Nav}"
-                                   Text="{Binding Name}"
-                                   TextTrimming="CharacterEllipsis"
-                                   VerticalAlignment="Center"/>
-                    </Grid>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+                                   Text="&#xE713;"/>
+                        <TextBlock VerticalAlignment="Center"
+                                   Text="{loc:Tr Key=Toolbar.Settings}"/>
+                    </StackPanel>
+                </Button>
+            </Border>
+        </Grid>
 
         <Border Grid.Column="1" Grid.Row="1" Grid.RowSpan="2" Background="{DynamicResource Brush.Border.Hairline}"/>
 

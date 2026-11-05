@@ -204,19 +204,31 @@
         </ScrollViewer>
 
         <!-- 新建标签（FR-2.1）。放在滚动区之外，标签再多也点得到。
-             到 12 个上限时按钮变灰：`+` 点了没反应比给一句提示更让人困惑 -->
+             到 12 个上限时按钮变灰：`+` 点了没反应比给一句提示更让人困惑。
+             灰掉的按钮默认不弹提示，所以显式打开 ShowOnDisabled——
+             否则用户只知道"点不动"，不知道为什么。 -->
         <Button x:Name="NewTabButton"
                 Grid.Column="1"
                 Width="{DynamicResource Size.Tab.Height}"
                 Height="{DynamicResource Size.Tab.Height}"
-                Style="{StaticResource Button.Toolbar}"
-                Margin="0"
                 Padding="0"
                 FontFamily="{DynamicResource Font.Family.Icon}"
                 IsEnabled="{Binding CanAdd}"
                 Content="&#xE710;"
                 Click="OnNewTabClick"
-                ToolTip="{loc:Tr Key=Tab.New.Tip}"/>
+                ToolTipService.ShowOnDisabled="True">
+            <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource Button.Toolbar}">
+                    <Setter Property="Margin" Value="0"/>
+                    <Setter Property="ToolTip" Value="{loc:Tr Key=Tab.New.Tip}"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding CanAdd}" Value="False">
+                            <Setter Property="ToolTip" Value="{loc:Tr Key=Tab.New.FullTip}"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
+        </Button>
 
         <!-- 拖拽排序的插入指示（FR-2.6）：2px 竖线，不参与命中测试 -->
         <Canvas Grid.ColumnSpan="2" IsHitTestVisible="False">

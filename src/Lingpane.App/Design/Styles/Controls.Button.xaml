@@ -2,6 +2,52 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--
+        侧栏底部命令（设置）。
+
+        为什么不复用 Button.Toolbar：那个是 32px 见方的图标按钮，横排时靠 Margin 拉开距离；
+        放在整条侧栏底部会变成一小块孤零零的方块，与上面的导航项（整行高亮）不是一套语言。
+        这里做整宽 + 左对齐 + 图标/文字，悬停底色与 Nav.Item 对齐。
+
+        模板里用了一层透明 Grid 兜底：Border 只有 4px 外边距，不铺满的话
+        整宽按钮的左侧 4px 与右侧 4px 点不上，用户会觉得"按钮右边差一点"。
+    -->
+    <Style x:Key="Button.NavCommand" TargetType="Button">
+        <Setter Property="Height" Value="{DynamicResource Size.Row.Comfortable}"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Padding" Value="8,0,8,0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Body}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Inset}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid Background="Transparent">
+                        <Border x:Name="Bd"
+                                Margin="4,0,4,0"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="{StaticResource CornerRadius.Control}"/>
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="Center"
+                                          Margin="{TemplateBinding Padding}"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Surface.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Surface.Pressed}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
         工具栏按钮。规则同列表：颜色一律 DynamicResource（主题切换即时生效），
         尺寸与圆角一律取 DesignTokens，不写字面量（界面实现规则 §15.3）。
     -->

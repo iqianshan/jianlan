@@ -48,8 +48,14 @@ public static class Strings
     /// <summary>Open settings (Ctrl+,)</summary>
     public static string Toolbar_Settings_Tip => LocalizationService.Instance.Get("Toolbar.Settings.Tip");
 
+    /// <summary>Toggle split view (F3)</summary>
+    public static string Toolbar_Split_Tip => LocalizationService.Instance.Get("Toolbar.Split.Tip");
+
     /// <summary>New tab (Ctrl+T)</summary>
     public static string Tab_New_Tip => LocalizationService.Instance.Get("Tab.New.Tip");
+
+    /// <summary>Tab limit reached — close one first</summary>
+    public static string Tab_New_FullTip => LocalizationService.Instance.Get("Tab.New.FullTip");
 
     /// <summary>Close tab (Ctrl+W)</summary>
     public static string Tab_Close_Tip => LocalizationService.Instance.Get("Tab.Close.Tip");
@@ -307,6 +313,10 @@ public static class Strings
     public static string Status_NewFolderFailed => LocalizationService.Instance.Get("Status.NewFolderFailed");
     // 含占位符：string.Format(Strings.Status_NewFolderFailed, ...)
 
+    /// <summary>At most {0} tabs — close one first</summary>
+    public static string Status_TabLimit => LocalizationService.Instance.Get("Status.TabLimit");
+    // 含占位符：string.Format(Strings.Status_TabLimit, ...)
+
     /// <summary>Could not create file: {0}</summary>
     public static string Status_NewFileFailed => LocalizationService.Instance.Get("Status.NewFileFailed");
     // 含占位符：string.Format(Strings.Status_NewFileFailed, ...)
@@ -493,6 +503,9 @@ public static class Strings
 
     /// <summary>Changes take effect immediately and are saved, except items marked “next launch”.</summary>
     public static string Settings_Subtitle => LocalizationService.Instance.Get("Settings.Subtitle");
+
+    /// <summary>Tabs</summary>
+    public static string Settings_Section_Tabs => LocalizationService.Instance.Get("Settings.Section.Tabs");
 
     /// <summary>Appearance</summary>
     public static string Settings_Section_Appearance => LocalizationService.Instance.Get("Settings.Section.Appearance");

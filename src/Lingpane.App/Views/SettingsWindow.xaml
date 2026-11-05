@@ -124,16 +124,6 @@
                     </ComboBox>
                 </StackPanel>
 
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Appearance.TabStrip}"/>
-                    <ComboBox x:Name="TabStripCombo"
-                              Style="{StaticResource ComboBox.Default}"
-                              SelectionChanged="OnTabStripPositionChanged">
-                        <ComboBoxItem Content="{loc:Tr Key=Settings.Appearance.TabStrip.Top}"/>
-                        <ComboBoxItem Content="{loc:Tr Key=Settings.Appearance.TabStrip.Bottom}"/>
-                    </ComboBox>
-                </StackPanel>
-
                 <CheckBox x:Name="ShowNavCheck"
                           Margin="0,0,0,10"
                           Style="{StaticResource CheckBox.Default}"
@@ -147,6 +137,41 @@
                           Content="{loc:Tr Key=Settings.Appearance.ShowStatus}"
                           Checked="OnShowStatusChanged"
                           Unchecked="OnShowStatusChanged"/>
+
+                <!-- ══ 标签页 ══
+                     这三项原先分散在"外观"和"行为"两处，且"文件夹在新标签页打开"排在
+                     行为分组的最末，要滚过整屏才看得到。标签相关的偏好集中放这里，
+                     用户问"双击为什么不新开标签"时，第一屏就能自己找到答案。 -->
+                <TextBlock Style="{StaticResource Text.SectionTitle}" Text="{loc:Tr Key=Settings.Section.Tabs}"/>
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Appearance.TabStrip}"/>
+                    <ComboBox x:Name="TabStripCombo"
+                              Style="{StaticResource ComboBox.Default}"
+                              SelectionChanged="OnTabStripPositionChanged">
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Appearance.TabStrip.Top}"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Appearance.TabStrip.Bottom}"/>
+                    </ComboBox>
+                </StackPanel>
+
+                <CheckBox x:Name="OpenFolderInNewTabCheck"
+                          Margin="0,0,0,4"
+                          Style="{StaticResource CheckBox.Default}"
+                          Content="{loc:Tr Key=Settings.Behavior.OpenFolderInNewTab}"
+                          Checked="OnOpenFolderInNewTabChanged"
+                          Unchecked="OnOpenFolderInNewTabChanged"/>
+                <TextBlock Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Behavior.OpenFolderInNewTab.Hint}"/>
+
+                <CheckBox x:Name="BackgroundTabCheck"
+                          Margin="0,12,0,4"
+                          Style="{StaticResource CheckBox.Default}"
+                          Content="{loc:Tr Key=Settings.Behavior.OpenNewTabInBackground}"
+                          Checked="OnOpenNewTabInBackgroundChanged"
+                          Unchecked="OnOpenNewTabInBackgroundChanged"/>
+                <TextBlock Margin="0,0,0,16"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Behavior.OpenNewTabInBackground.Hint}"/>
 
                 <!-- ══ 行为 ══ -->
                 <TextBlock Style="{StaticResource Text.SectionTitle}" Text="{loc:Tr Key=Settings.Section.Behavior}"/>
@@ -212,25 +237,6 @@
                           Content="{loc:Tr Key=Settings.Behavior.ConfirmDelete}"
                           Checked="OnConfirmDeleteChanged"
                           Unchecked="OnConfirmDeleteChanged"/>
-
-                <CheckBox x:Name="OpenFolderInNewTabCheck"
-                          Margin="0,0,0,4"
-                          Style="{StaticResource CheckBox.Default}"
-                          Content="{loc:Tr Key=Settings.Behavior.OpenFolderInNewTab}"
-                          Checked="OnOpenFolderInNewTabChanged"
-                          Unchecked="OnOpenFolderInNewTabChanged"/>
-                <TextBlock Style="{StaticResource Text.FieldHint}"
-                           Text="{loc:Tr Key=Settings.Behavior.OpenFolderInNewTab.Hint}"/>
-
-                <CheckBox x:Name="BackgroundTabCheck"
-                          Margin="0,12,0,4"
-                          Style="{StaticResource CheckBox.Default}"
-                          Content="{loc:Tr Key=Settings.Behavior.OpenNewTabInBackground}"
-                          Checked="OnOpenNewTabInBackgroundChanged"
-                          Unchecked="OnOpenNewTabInBackgroundChanged"/>
-                <TextBlock Margin="0,0,0,16"
-                           Style="{StaticResource Text.FieldHint}"
-                           Text="{loc:Tr Key=Settings.Behavior.OpenNewTabInBackground.Hint}"/>
 
                 <!-- ══ 隐私 ══ -->
                 <TextBlock Style="{StaticResource Text.SectionTitle}" Text="{loc:Tr Key=Settings.Section.Privacy}"/>

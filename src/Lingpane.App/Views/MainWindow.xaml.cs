@@ -96,10 +96,10 @@ public partial class MainWindow : Window
         RegisterTabCommands();
         RegisterSplitCommands();
 
-        // 窗格工具栏上的设置按钮走这里：窗格只发意图，窗口负责 Show。
-        // 两个窗格都要订阅——分屏后右边那颗按钮也是真的。
-        Pane.SettingsRequested += OpenSettings;
-        Pane2.SettingsRequested += OpenSettings;
+        // 分屏开关：工具栏那颗按钮在窗格里，真正的开关在窗口（FR-3.3）。
+        // 只有主窗格显示按钮——分屏是窗口形态，两颗按钮会看起来像"两个窗格各分各的"。
+        Pane.SplitToggleRequested += ToggleSplit;
+        Pane2.ShowSplitButton = false;
 
         // 哪个窗格的列表拿到焦点，哪个就是活动窗格（FR-3.5）。
         Pane.Activated += OnPaneActivated;
@@ -219,7 +219,7 @@ public partial class MainWindow : Window
         {
             Id = CommandIds.NewTab,
             Gesture = "Ctrl+T",
-            Execute = () => _tabs.Add(),
+            Execute = NewTab,
         });
         _commands.Register(new AppCommand
         {
@@ -266,6 +266,21 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Ctrl+T：新开一个标签（FR-2.1）。
+    ///
+    /// 到 12 个上限（FR-2.5）时**必须说话**：`+` 按钮此刻只是变灰，键盘用户看不到那一点变化，
+    /// 于是"按了没反应"会被直接理解成"标签功能坏了"。状态栏那句提示是这里唯一能给的反馈，
+    /// 它会被下一次导航覆盖，但足够回答"我刚才那下为什么没生效"。
+    /// </summary>
+    private void NewTab()
+    {
+        if (_tabs.Add() is not null) return;
+
+        Vm.SetStatus(string.Format(Strings.Status_TabLimit, SessionSettings.MaxTabs));
+        AppLog.Warn("tab.limit", "E6002", $"已达 {SessionSettings.MaxTabs} 个标签，Ctrl+T 不新建");  // i18n-ignore：只进 app.log
+    }
+
+    /// <summary>
     /// 把某个目录开进新标签（FR-2.10）。<paramref name="background"/> 为 true 时只建不切，
     /// 让用户连续开一批目录而不离开当前位置。
     ///
@@ -277,6 +292,9 @@ public partial class MainWindow : Window
     {
         if (_tabs.Add(path, activate: !background) is not null) return;
 
+        // 状态栏必须出声：满额时"双击文件夹没开新标签"与"双击坏了"在用户眼里一样。
+        // 提示落在这个窗格自己的状态栏上——分屏时右边点的那一下，提示就该在右边。
+        source.ViewModel?.SetStatus(string.Format(Strings.Status_TabLimit, SessionSettings.MaxTabs));
         AppLog.Warn("tab.limit", "E6002", $"已达 {SessionSettings.MaxTabs} 个标签，改为在当前窗格导航：{path}");  // i18n-ignore：只进 app.log
         source.NavigateTo(path);
     }
@@ -383,9 +401,21 @@ public partial class MainWindow : Window
         }
 
         RefreshPaneFocus();
+        SyncSplitButton();
 
         // 同上：只按一下 F3 就关窗口时，退出兜底路径会判定"什么都没改"，分屏开关就丢了
         App.SaveSettings();
+    }
+
+    /// <summary>
+    /// 把分屏状态同步到工具栏按钮的选中态。
+    /// 三个入口（F3 / Ctrl+Shift+E / 工具栏按钮）最后都落到 <see cref="ToggleSplit"/>，
+    /// 所以只在那一处收口就够；启动与设置变更时由 <see cref="ApplySettingsToUi"/> 再叫一次。
+    /// </summary>
+    private void SyncSplitButton()
+    {
+        Pane.IsSplitActive = _splitEnabled;
+        Pane2.IsSplitActive = _splitEnabled;
     }
 
     /// <summary>
@@ -676,6 +706,9 @@ public partial class MainWindow : Window
         // 标签栏位置（FR-2.4）：设置页改完立即生效，不用重启
         ApplyTabStripPosition();
 
+        // 分屏按钮的选中态跟着设置走（会话里可能本来就是开着的）
+        SyncSplitButton();
+
         // 状态栏与列宽在两个窗格各有一份，都要套一遍
         Pane.ApplyAppearance(s);
         Pane2.ApplyAppearance(s);
@@ -700,6 +733,9 @@ public partial class MainWindow : Window
         var window = new SettingsWindow { Owner = this };
         window.Show();
     }
+
+    /// <summary>侧栏底部的设置按钮。与 Ctrl+, 走同一条路。</summary>
+    private void OnSettingsButtonClick(object sender, RoutedEventArgs e) => OpenSettings();
 
     // ── 快捷键 ──────────────────────────────────────────────────────────────
 
@@ -982,7 +1018,22 @@ public partial class MainWindow : Window
         Pane.LogColumnLayout();
         if (KeyDebug && _splitEnabled) LogSplitLayout();
         if (_splitEnabled) Pane2.LogColumnLayout();
+        if (KeyDebug) LogWindowAnchors();
         FlushOnce();
+    }
+
+    /// <summary>
+    /// 走查用：上报窗口级按钮的屏幕中心（设置按钮在侧栏底部，不属于任何窗格）。
+    /// 截图反推坐标不可靠——capture 出来的位图与客户区之间存在缩放偏移，
+    /// 实测"图像 x=597"对应"客户区 x=657"，差 60px 足以把点击落到隔壁按钮上。
+    /// </summary>
+    private void LogWindowAnchors()
+    {
+        Point center = SettingsButton.PointToScreen(
+            new Point(SettingsButton.ActualWidth / 2, SettingsButton.ActualHeight / 2));
+
+        WriteKeyLog($"anchor settings screen={center.X:0.#},{center.Y:0.#} " +
+                    $"w={SettingsButton.ActualWidth:0.#} h={SettingsButton.ActualHeight:0.#}");
     }
 
     /// <summary>窗口加载后异步读目录：先出窗口，再出内容（P1 首帧优先）。</summary>

@@ -26,7 +26,7 @@ public partial class PaneView
     public CommandAdapter RefreshCommand { get; private set; } = null!;
     public CommandAdapter DetailsCommand { get; private set; } = null!;
     public CommandAdapter ListViewCommand { get; private set; } = null!;
-    public CommandAdapter SettingsCommand { get; private set; } = null!;
+    public CommandAdapter ToggleSplitCommand { get; private set; } = null!;
     public CommandAdapter OpenItemCommand { get; private set; } = null!;
     public CommandAdapter NewFolderCommand { get; private set; } = null!;
     public CommandAdapter NewFileCommand { get; private set; } = null!;
@@ -39,8 +39,8 @@ public partial class PaneView
     public CommandAdapter CopyPathCommand { get; private set; } = null!;
     public CommandAdapter PropertiesCommand { get; private set; } = null!;
 
-    /// <summary>请求打开设置窗口。设置是应用级的，窗格只负责把意图告诉宿主。</summary>
-    public event Action? SettingsRequested;
+    /// <summary>请求开关第二窗格。分屏是窗口形态，窗格只把意图告诉宿主（FR-3.3）。</summary>
+    public event Action? SplitToggleRequested;
 
     internal CommandRegistry Commands => _commands;
 
@@ -106,13 +106,15 @@ public partial class PaneView
             Execute = BeginAddressEdit,
         });
 
-        // 设置按钮在窗格工具栏上，但窗口是应用级的。窗格只发请求，不自己 Show 窗口。
-        _commands.Register(new AppCommand
+        // 分屏开关按钮。**故意不进 _commands 注册表**：F3 已经由窗口表处理，
+        // 同一个 Id 出现在窗格表里会让 Dispatch 的"先窗格后窗口"规则多出一条
+        // 语义相同的岔路，排查时反而分不清按 F3 走的是哪一条。
+        // 这里只做一个纯粹的按钮适配器，出口仍是宿主的那一个 ToggleSplit。
+        ToggleSplitCommand = new CommandAdapter(new AppCommand
         {
-            Id = CommandIds.OpenSettings,
-            TitleFactory = () => Strings.Command_OpenSettings,
-            Gesture = "Ctrl+,",
-            Execute = () => SettingsRequested?.Invoke(),
+            Id = CommandIds.ToggleSplit + ".button",   // 不进注册表，Id 仅用于诊断
+            TitleFactory = () => Strings.Command_ToggleSplit,
+            Execute = () => SplitToggleRequested?.Invoke(),
         });
 
         // 文件操作。可执行性由选中状态与当前目录决定，
@@ -214,7 +216,6 @@ public partial class PaneView
         RefreshCommand = new CommandAdapter(_commands.Get(CommandIds.Refresh));
         DetailsCommand = new CommandAdapter(_commands.Get(CommandIds.ViewDetails));
         ListViewCommand = new CommandAdapter(_commands.Get(CommandIds.ViewList));
-        SettingsCommand = new CommandAdapter(_commands.Get(CommandIds.OpenSettings));
         OpenItemCommand = new CommandAdapter(_commands.Get(CommandIds.OpenItem));
         NewFolderCommand = new CommandAdapter(_commands.Get(CommandIds.NewFolder));
         NewFileCommand = new CommandAdapter(_commands.Get(CommandIds.NewFile));
