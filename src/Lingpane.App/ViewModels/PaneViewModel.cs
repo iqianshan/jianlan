@@ -39,6 +39,7 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     private string? _lastNavigationError;
     private bool _isLoading;
     private bool _isAddressEditing;
+    private bool _isTabActive;
     private DefaultViewKind _viewMode;
     private EntrySort _sort;
     private IReadOnlyList<NavItem> _quickAccess = [];
@@ -128,8 +129,60 @@ public sealed class PaneViewModel : INotifyPropertyChanged
         {
             if (!Set(ref _currentPath, value)) return;
             Raise(nameof(TitleText));
+            Raise(nameof(DisplayName));
+            Raise(nameof(TabTooltip));
         }
     }
+
+    /// <summary>
+    /// 标签页标题（FR-2.7）：只取当前目录名，不带应用名。
+    /// 没有目录时（启动瞬间、标签刚建还没导航）显示应用名，避免标签上是空白。
+    /// </summary>
+    public string DisplayName
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(_currentPath)) return Strings.Application_Name;
+
+            string name = Path.GetFileName(Path.TrimEndingDirectorySeparator(_currentPath));
+            return string.IsNullOrEmpty(name) ? _currentPath : name;
+        }
+    }
+
+    /// <summary>
+    /// 标签页悬浮提示：**整条路径**，不是"上级目录"。
+    /// 需求（FR-2.7）只要求同名目录能区分，给全路径是同一种信息且更直接；
+    /// 用户真正想确认的往往是"这是 C 盘那份还是 D 盘那份"。
+    /// </summary>
+    public string TabTooltip => string.IsNullOrEmpty(_currentPath) ? Strings.Application_Name : _currentPath;
+
+    /// <summary>本标签是否为当前标签。标签栏据此区分活动/非活动配色。</summary>
+    public bool IsTabActive
+    {
+        get => _isTabActive;
+        set => Set(ref _isTabActive, value);
+    }
+
+    /// <summary>
+    /// 会话恢复出"只有路径、还没读盘"的标签（FR-2.11）。
+    /// 非活动标签不枚举目录：二十个标签各读一万项，启动就不是 700ms 的事了。
+    /// 激活时由宿主看这个标记决定要不要真的导航。
+    /// </summary>
+    public bool HasPendingContent { get; private set; }
+
+    /// <summary>只设置路径与标题，不读盘。激活这个标签时才会真正枚举。</summary>
+    public void PreparePendingPath(string path)
+    {
+        CurrentPath = path;
+        AddressText = path;
+        Breadcrumbs = Breadcrumb.Build(path);
+        HasPendingContent = true;
+    }
+
+    /// <summary>视图切换出去时要保住的两样东西：滚动位置与选中项。</summary>
+    public (int Index, double Offset) ScrollAnchor { get; set; }
+
+    public IReadOnlyList<string> SelectedPaths { get; set; } = [];
 
     /// <summary>
     /// 窗口标题：显示当前目录名，任务栏与 Alt+Tab 里才分得清开了哪个目录。
@@ -270,6 +323,9 @@ public sealed class PaneViewModel : INotifyPropertyChanged
 
         string target = path.Trim().Trim('"');
         int token = ++_navigationToken;
+
+        // 已经为首屏读过盘，pending 的使命结束（无论成败）
+        HasPendingContent = false;
 
         IsLoading = true;
         StatusText = Strings.Status_Loading;

@@ -43,6 +43,23 @@ internal static class KeyBindings
         // 应用（§7）
         new(Key.OemComma, Vk.OemComma, ModifierKeys.Control, CommandIds.OpenSettings, ","),
 
+        // 标签页（§1）。Ctrl+Tab 在 WPF 里同样是 WM_KEYDOWN(VK_TAB)+Ctrl，
+        // 与浏览器一致；Ctrl+1…8 跳到第 N 个，Ctrl+9 跳最后一个（不是第 9 个）。
+        new(Key.T, Vk.T, ModifierKeys.Control, CommandIds.NewTab, "T"),
+        new(Key.W, Vk.W, ModifierKeys.Control, CommandIds.CloseTab, "W"),
+        new(Key.T, Vk.T, ModifierKeys.Control | ModifierKeys.Shift, CommandIds.ReopenTab, "T"),
+        new(Key.Tab, Vk.Tab, ModifierKeys.Control, CommandIds.NextTab, "Tab"),
+        new(Key.Tab, Vk.Tab, ModifierKeys.Control | ModifierKeys.Shift, CommandIds.PreviousTab, "Tab"),
+        new(Key.D1, Vk.D1, ModifierKeys.Control, CommandIds.GotoTab(1), "1"),
+        new(Key.D2, Vk.D2, ModifierKeys.Control, CommandIds.GotoTab(2), "2"),
+        new(Key.D3, Vk.D3, ModifierKeys.Control, CommandIds.GotoTab(3), "3"),
+        new(Key.D4, Vk.D4, ModifierKeys.Control, CommandIds.GotoTab(4), "4"),
+        new(Key.D5, Vk.D5, ModifierKeys.Control, CommandIds.GotoTab(5), "5"),
+        new(Key.D6, Vk.D6, ModifierKeys.Control, CommandIds.GotoTab(6), "6"),
+        new(Key.D7, Vk.D7, ModifierKeys.Control, CommandIds.GotoTab(7), "7"),
+        new(Key.D8, Vk.D8, ModifierKeys.Control, CommandIds.GotoTab(8), "8"),
+        new(Key.D9, Vk.D9, ModifierKeys.Control, CommandIds.LastTab, "9"),
+
         // 导航（§2）
         new(Key.Up, Vk.Up, ModifierKeys.Alt, CommandIds.GoUp, "↑"),
         new(Key.Left, Vk.Left, ModifierKeys.Alt, CommandIds.GoBack, "←"),
@@ -152,6 +169,7 @@ internal static class KeyBindings
     internal static class Vk
     {
         public const int Back = 0x08;
+        public const int Tab = 0x09;
         public const int Enter = 0x0D;
         public const int Up = 0x26;
         public const int Left = 0x25;
@@ -159,6 +177,13 @@ internal static class KeyBindings
         public const int Delete = 0x2E;
         public const int D1 = 0x31;
         public const int D2 = 0x32;
+        public const int D3 = 0x33;
+        public const int D4 = 0x34;
+        public const int D5 = 0x35;
+        public const int D6 = 0x36;
+        public const int D7 = 0x37;
+        public const int D8 = 0x38;
+        public const int D9 = 0x39;
         public const int A = 0x41;
         public const int C = 0x43;
         public const int D = 0x44;
@@ -166,7 +191,9 @@ internal static class KeyBindings
         public const int M = 0x4D;
         public const int N = 0x4E;
         public const int R = 0x52;
+        public const int T = 0x54;
         public const int V = 0x56;
+        public const int W = 0x57;
         public const int X = 0x58;
         public const int Y = 0x59;
         public const int Z = 0x5A;

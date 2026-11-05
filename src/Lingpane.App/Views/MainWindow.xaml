@@ -14,12 +14,13 @@
         TextOptions.TextHintingMode="Fixed">
 
     <!--
-        窗口壳。只负责"窗口"这一层：导航栏、快捷键、热键、设置、会话。
+        窗口壳。只负责"窗口"这一层：标签栏、导航栏、快捷键、热键、设置、会话。
         浏览区（工具栏 + 地址栏 + 列头 + 列表 + 状态栏）整体下沉到 PaneView，
         原因见 PaneView.xaml.cs 的注释。
 
-        当前是单窗格形态；标签栏（FR-2）与双窗格（FR-3）接入时，
-        这里会多一行标签栏，PaneHost 会换成能容纳两个 pane 的 Grid。
+        标签栏（FR-2）横跨整窗：标签是窗口级的，不属于某个窗格；
+        下面的浏览区只有一份，切标签 = 把它重新绑到另一份视图模型。
+        双窗格（FR-3）接入时，Pane 会换成能容纳两个 pane 的 Grid。
     -->
 
     <Grid>
@@ -29,10 +30,19 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
+            <!-- 标签栏 -->
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <!-- 与窗格状态栏等高的占位：让导航栏底部的分隔线与状态栏上边框连成一条 -->
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Grid.ColumnSpan="3"
+                Background="{DynamicResource Brush.Surface.Window}"
+                BorderBrush="{DynamicResource Brush.Border.Hairline}"
+                BorderThickness="0,0,0,1">
+            <views:TabStrip x:Name="TabBar"/>
+        </Border>
 
         <!-- 常用目录（FR-1.1）。
              宽度取内容宽度并夹在 184–320 之间（AC-06 走查修正）：
@@ -41,7 +51,7 @@
              中文与常规字号下内容不足 184，宽度与原来完全一致。 -->
         <ListBox x:Name="QuickAccessList"
                  Grid.Column="0"
-                 Grid.Row="0"
+                 Grid.Row="1"
                  Width="Auto"
                  MinWidth="{DynamicResource Size.Nav.Width.Default}"
                  MaxWidth="{DynamicResource Size.Nav.Width.Max}"
@@ -72,17 +82,17 @@
             </ListBox.ItemTemplate>
         </ListBox>
 
-        <Border Grid.Column="1" Grid.RowSpan="2" Background="{DynamicResource Brush.Border.Hairline}"/>
+        <Border Grid.Column="1" Grid.Row="1" Grid.RowSpan="2" Background="{DynamicResource Brush.Border.Hairline}"/>
 
         <!-- 导航栏底部的状态栏等高占位（见上面 RowDefinitions 的注释） -->
         <Border x:Name="NavStatusSpacer"
-                Grid.Column="0" Grid.Row="1"
+                Grid.Column="0" Grid.Row="2"
                 Height="{DynamicResource Size.StatusBar.Height}"
                 Background="{DynamicResource Brush.Surface.Window}"
                 BorderBrush="{DynamicResource Brush.Border.Hairline}"
                 BorderThickness="0,1,0,0"/>
 
         <!-- 浏览区。宿主注入视图模型，见 MainWindow 构造函数。 -->
-        <views:PaneView x:Name="Pane" Grid.Column="2" Grid.RowSpan="2"/>
+        <views:PaneView x:Name="Pane" Grid.Column="2" Grid.Row="1" Grid.RowSpan="2"/>
     </Grid>
 </Window>

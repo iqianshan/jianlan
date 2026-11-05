@@ -30,6 +30,17 @@ public static class CommandIds
     public const string Properties = "file.properties";
     public const string ShowContextMenu = "file.contextMenu";
     public const string SelectAll = "file.selectAll";
+
+    // 标签页（FR-2）。窗口级：标签集合属于窗口，不属于某个窗格。
+    public const string NewTab = "tab.new";
+    public const string CloseTab = "tab.close";
+    public const string ReopenTab = "tab.reopen";
+    public const string NextTab = "tab.next";
+    public const string PreviousTab = "tab.previous";
+    public const string LastTab = "tab.last";
+
+    /// <summary>Ctrl+1…8 跳转。<paramref name="n"/> 为 1 起始的序号。</summary>
+    public static string GotoTab(int n) => $"tab.goto{n}";
 }
 
 /// <summary>

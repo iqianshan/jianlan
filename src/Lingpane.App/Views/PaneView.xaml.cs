@@ -5,6 +5,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
+using System.Windows.Threading;
 using Lingpane.App.ViewModels;
 using Lingpane.Core.Diagnostics;
 using Lingpane.Core.FileSystem;
@@ -23,10 +24,12 @@ namespace Lingpane.App.Views;
 /// 每个方法里再判一次，而每加一个功能就多一处需要判的地方。
 ///
 /// 现阶段的边界（与 MainWindow 的分工）：
-///   · 窗口级：快捷键钩子、系统热键、设置窗口、导航栏、会话保存、启动计时
+///   · 窗口级：标签栏、快捷键钩子、系统热键、设置窗口、导航栏、会话保存、启动计时
 ///   · 窗格级：本文件及 PaneView.*.cs 的全部内容
-/// 命令表暂时还在窗口上（PaneView 的按钮用 AncestorType=Window 取命令），
-/// 下一步会随"焦点窗格"概念一起搬进来，那时命令天然作用于自己所属的窗格。
+///
+/// 一个 PaneView 在多标签下会被复用：切标签时宿主再调一次 <see cref="Attach"/>，
+/// 把视图重新绑到另一份 PaneViewModel。所以本类里凡是从视图模型派生的状态，
+/// 都不能假设"整个窗口生命周期内只对应一份"。
 /// </summary>
 public partial class PaneView : UserControl
 {
@@ -53,16 +56,112 @@ public partial class PaneView : UserControl
     /// <summary>
     /// 绑定视图模型。由宿主（窗口或标签容器）在构造完窗格后调用，
     /// 而不是在构造函数里自己 new——窗格的 VM 由谁创建、创建几个，是宿主的决定。
+    ///
+    /// **切换标签就是再调一次**：视图只有一份，换的是它绑的那份视图模型。
+    /// 因此这里要负责把"属于上一位的"状态收走（滚动位置、选中项、目录监听），
+    /// 再把"属于下一位的"放回去。收放不对，切标签就会出现列表跳回顶部、
+    /// 监听盯着上一个目录这类问题。
     /// </summary>
     public void Attach(PaneViewModel viewModel)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
+        if (ReferenceEquals(_viewModel, viewModel)) return;
+
+        if (_viewModel is { } previous)
+        {
+            SaveViewState(previous);
+            previous.NavigationCompleted -= StartWatching;
+            previous.NavigationCompleted -= ScheduleFolderIcons;
+            StopWatching();
+        }
 
         _viewModel = viewModel;
         DataContext = viewModel;
 
         // 列宽要在首帧前就位，否则会看到一次"默认宽度 → 记忆宽度"的跳动
         ApplyColumnWidths();
+
+        // 监听与图标补充挂在视图模型上：它们的目标是"这个窗格正在看的目录"
+        viewModel.NavigationCompleted += StartWatching;
+        viewModel.NavigationCompleted += ScheduleFolderIcons;
+
+        RestoreViewState(viewModel);
+    }
+
+    // ── 切标签时要搬走的视图状态 ────────────────────────────────────────────
+    //
+    // 只搬两样：滚动位置与选中项。视图模式、排序、列宽都不是"每个标签一份"——
+    // 它们来自设置，属于整个应用；标签之间不一致反而会让用户以为设置丢了。
+
+    private bool _restoringState;
+
+    private void SaveViewState(PaneViewModel viewModel)
+    {
+        viewModel.ScrollAnchor = CaptureScrollAnchor();
+
+        if (FileList.SelectedItems.Count == 0)
+        {
+            viewModel.SelectedPaths = [];
+            return;
+        }
+
+        var paths = new List<string>(FileList.SelectedItems.Count);
+        foreach (object item in FileList.SelectedItems)
+        {
+            if (item is FileEntry entry) paths.Add(entry.FullPath);
+        }
+
+        viewModel.SelectedPaths = paths;
+    }
+
+    private void RestoreViewState(PaneViewModel viewModel)
+    {
+        RestoreSelection(viewModel, viewModel.SelectedPaths);
+
+        // 滚动要等布局跑完：ItemsSource 刚换过，此刻 ScrollViewer 的 extent 还是旧的，
+        // 直接 ScrollToVerticalOffset 会被夹到 0，表现为"切回来列表在顶部"。
+        (int Index, double Offset) anchor = viewModel.ScrollAnchor;
+        if (anchor.Index <= 0 && anchor.Offset <= 0) return;
+
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+        {
+            // 期间用户可能又切走了：只还原"当前仍然绑着的那份"的位置
+            if (ReferenceEquals(_viewModel, viewModel)) RestoreScrollAnchor(anchor);
+        });
+    }
+
+    private void RestoreSelection(PaneViewModel viewModel, IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return;
+
+        _restoringState = true;
+        try
+        {
+            FileList.SelectedItems.Clear();
+
+            foreach (string path in paths)
+            {
+                if (viewModel.FindByPath(path) is { } entry) FileList.SelectedItems.Add(entry);
+            }
+        }
+        finally
+        {
+            _restoringState = false;
+        }
+
+        // 逐项 Add 的中间状态不结算，这里统一算一次，省掉 N 次命令可用性刷新
+        long total = 0;
+        var selected = new List<FileEntry>(FileList.SelectedItems.Count);
+        foreach (object item in FileList.SelectedItems)
+        {
+            if (item is not FileEntry entry) continue;
+            selected.Add(entry);
+            total += entry.Size;
+        }
+
+        viewModel.SetSelection(selected.Count, total);
+        viewModel.SetSelectedEntries(selected);
+        CommandManager.InvalidateRequerySuggested();
     }
 
     /// <summary>窗格被点中（键盘焦点进入列表）时触发，宿主据此切换"活动窗格"。</summary>
@@ -382,7 +481,8 @@ public partial class PaneView : UserControl
 
     private void OnFileSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_viewModel is null) return;
+        // 还原选中项时逐项 Add 会触发多次，统一在 RestoreSelection 末尾结算一次
+        if (_restoringState || _viewModel is null) return;
 
         long total = 0;
         int count = 0;

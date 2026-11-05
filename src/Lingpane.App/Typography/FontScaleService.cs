@@ -64,6 +64,9 @@ public static class FontScaleService
         res["Size.Row.Header"] = m.HeaderHeight;
         res["Size.Nav.Item.Height"] = m.NavItemHeight;
         res["Size.Tab.Height"] = m.TabHeight;
+        res["Size.Tab.MinWidth"] = m.TabMinWidth;
+        res["Size.Tab.MaxWidth"] = m.TabMaxWidth;
+        res["Size.Tab.Title.MaxWidth"] = m.TabTitleMaxWidth;
         res["Size.TitleBar.Height"] = m.TitleBarHeight;
         res["Size.Toolbar.Height"] = m.ToolbarHeight;
         res["Size.StatusBar.Height"] = m.StatusBarHeight;

@@ -30,6 +30,9 @@ public sealed record FontMetrics(
     double ColumnDateWidth,
     double ColumnTypeWidth,
     double ColumnSizeWidth,
+    double TabMinWidth,
+    double TabMaxWidth,
+    double TabTitleMaxWidth,
     double FieldLabelWidth,
     double ComboPaddingLeft,
     double ComboArrowWidth,
@@ -94,6 +97,14 @@ public sealed record FontMetrics(
             ColumnDateWidth: Even(110d * s),
             ColumnTypeWidth: Even(110d * s),
             ColumnSizeWidth: Even(90d * s),
+            // 标签页宽度同样跟着字号走（ui-guidelines 规则 3.x：Size.Tab.* 随动）。
+            // 只放大高度不放大宽度，24pt 下每个标签都是"文…"，等于没有标题。
+            TabMinWidth: Math.Max(100d, Even(100d * s)),
+            TabMaxWidth: Math.Max(200d, Even(200d * s)),
+            // 标题可用宽度 = 标签最大宽度 − 图标 − 关闭按钮 − 内边距。
+            // 单独给 TextBlock 而不只给标签容器：横向 StackPanel 测量子项时给的是无限宽，
+            // 容器的 MaxWidth 只会把内容硬裁掉（不给省略号），必须让 TextBlock 自己知道上限。
+            TabTitleMaxWidth: Math.Max(64d, Even(200d * s) - Even(72d * s)),
             // 设置页左侧标签列。原来是写死的 120，24pt 下"界面语言"被压成"界面…"（AC-06）
             FieldLabelWidth: Even(120d * s),
             // 下拉框内边距：右侧要留出箭头的位置。写死 10/28 时 24pt 下

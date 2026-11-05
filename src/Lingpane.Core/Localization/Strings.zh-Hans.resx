@@ -55,6 +55,26 @@
     <value>打开设置（Ctrl+,）</value>
   </data>
 
+  <!-- 标签页（FR-2） -->
+  <data name="Tab.New.Tip" xml:space="preserve">
+    <value>新建标签页（Ctrl+T）</value>
+  </data>
+  <data name="Tab.Close.Tip" xml:space="preserve">
+    <value>关闭标签页（Ctrl+W）</value>
+  </data>
+  <data name="Tab.Menu.Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Tab.Menu.CloseOthers" xml:space="preserve">
+    <value>关闭其他标签页</value>
+  </data>
+  <data name="Tab.Menu.CloseRight" xml:space="preserve">
+    <value>关闭右侧标签页</value>
+  </data>
+  <data name="Tab.Menu.CopyPath" xml:space="preserve">
+    <value>复制路径</value>
+  </data>
+
   <data name="Menu.Open" xml:space="preserve">
     <value>打开</value>
   </data>

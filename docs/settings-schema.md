@@ -40,7 +40,8 @@
     "confirmDelete": true,
     "doubleClickOpens": true,
     "openFolderInNewTab": false,
-    "restoreLastSession": true
+    "restoreLastSession": true,
+    "closeLastTabToHome": true  // 关掉最后一个标签时回默认目录，而不是关窗口（FR-2.8）
   },
 
   "privacy": {
@@ -53,7 +54,9 @@
     "windowWidth": 1100,
     "windowHeight": 720,
     "windowMaximized": false,
-    "lastPath": null
+    "lastPath": null,
+    "tabs": [],                 // 顺序即标签顺序；最多 12 条（SessionSettings.MaxTabs）
+    "activeTabIndex": 0         // 恢复后激活第几个标签
   },
 
   "layout": {
@@ -76,8 +79,13 @@
 | `historyLimit` | 0–500 | 夹取 |
 | `cacheLimitMb` | 64–4096 | 夹取 |
 | `windowWidth/Height` | ≥ 最小窗口尺寸 | 夹取 |
+| `session.tabs` | 每条为非空路径；最多 12 条 | 空串剔除；超出截断到前 12 条 |
+| `session.activeTabIndex` | 0 ≤ 索引 < `tabs.length` | 夹取 |
 | `columnDate/Type/SizeWidth` | 56–400（单位：DIP） | 夹取；`0`、`NaN`、`Infinity` 回落默认值 |
 
+> **路径合法性不在归一化里判**：盘符可能暂时不在（U 盘没插），判了就把标签吃掉。
+> 恢复时按 `Directory.Exists` 过滤（`MainWindow.RestoreTabs`），宁少一个标签，不留死标签。
+>
 > 名称列是星号列（宽度随窗口伸缩），因此**没有**对应字段，也不参与拖拽。
 > 列宽只在拖拽结束时落盘一次，不跟随每个拖动事件写文件。
 

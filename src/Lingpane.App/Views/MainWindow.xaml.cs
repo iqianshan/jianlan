@@ -33,7 +33,17 @@ namespace Lingpane.App.Views;
 public partial class MainWindow : Window
 {
     private readonly CommandRegistry _commands = new();
+    private readonly TabHostViewModel _tabs;
     private bool _flushed;
+
+    /// <summary>
+    /// 首帧之后才允许读盘（P1 首帧优先）。标签切换时的懒加载要靠它区分
+    /// "启动期还没开始"与"运行期用户切过去了"。
+    /// </summary>
+    private bool _started;
+
+    /// <summary>正在按当前目录同步导航栏高亮：此时的选择变化不是用户操作。</summary>
+    private bool _syncingNavSelection;
 
     // 窗口级命令只有这些。窗格级命令（刷新、文件操作、视图切换）
     // 在 PaneView 自己的表里，见 PaneView.Commands.cs。
@@ -43,10 +53,14 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
-        // 视图模型由窗口建、交给窗格用。反过来（窗格自己 new）会让
-        // "谁是所有者、什么时候创建、双窗格建几个"散落在窗格内部。
-        Pane.Attach(new PaneViewModel(App.Settings));
-        DataContext = Pane.ViewModel;
+        // 标签集合归窗口：双窗格上线后两个窗格共用同一排标签，
+        // 标签不能属于某一边。浏览区的视图模型由它创建、由窗格 Attach。
+        _tabs = new TabHostViewModel(App.Settings, ResolveStartPath);
+        _tabs.ActiveChanged += OnActiveTabChanged;
+        _tabs.CloseWindowRequested += Close;
+        TabBar.Host = _tabs;
+
+        RestoreTabs();
         StartupTrace.Mark("vm");
         StartupTrace.Mark("xaml");
 
@@ -70,6 +84,8 @@ public partial class MainWindow : Window
 
         ThemeCommand = new CommandAdapter(_commands.Get(CommandIds.CycleTheme));
 
+        RegisterTabCommands();
+
         // 窗格工具栏上的设置按钮走这里：窗格只发意图，窗口负责 Show
         Pane.SettingsRequested += OpenSettings;
         StartupTrace.Mark("cmd");
@@ -78,15 +94,14 @@ public partial class MainWindow : Window
         // 实测 Ctrl+, 不触发。改为一张显式表 + PreviewKeyDown 派发，见 Input/KeyBindings.cs。
         PreviewKeyDown += OnPreviewKeyDown;
 
-        // 目录一换就换监听目标
-        Vm.NavigationCompleted += Pane.StartWatching;
-        Vm.NavigationCompleted += Pane.ScheduleFolderIcons;
+        // 目录监听的订阅在 PaneView.Attach 里——监听的目标是"当前窗格正在看的目录"，
+        // 跟着视图模型走，不再由窗口替它挂。
 
         Loaded += OnLoaded;
         ContentRendered += OnContentRendered;
         CompositionTarget.Rendering += OnFirstRender;
 
-        // 记录最后目录供下次启动使用。这个处理器先于 App 的保存处理器执行，
+        // 记录最后目录与标签列表供下次启动使用。这个处理器先于 App 的保存处理器执行，
         // 因此退出时写到盘上的是本窗口刚更新的值。
         Closing += (_, _) =>
         {
@@ -97,14 +112,162 @@ public partial class MainWindow : Window
             {
                 App.Settings.Session.LastPath = Vm.CurrentPath;
             }
+
+            // 会话恢复（FR-2.11）：只记路径与活动位置，不记滚动与选中
+            List<string> paths = _tabs.SnapshotPaths();
+            App.Settings.Session.Tabs = paths;
+            App.Settings.Session.ActiveTabIndex = Math.Clamp(_tabs.ActiveIndex, 0, Math.Max(0, paths.Count - 1));
         };
     }
 
-    /// <summary>本窗口的浏览区视图模型。窗格在构造函数里附加，此后恒不为 null。</summary>
+    /// <summary>本窗口的浏览区视图模型（= 当前活动标签）。窗格在切换时附加，此后恒不为 null。</summary>
     private PaneViewModel Vm => Pane.ViewModel!;
 
-    /// <summary>供单实例转交使用：把已打开的窗口切到指定目录。</summary>
-    public void NavigateTo(string path) => Pane.NavigateTo(path);
+    // ── 标签页（FR-2） ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// 建立初始标签。会话恢复的全部读盘动作都在这里避开：只给路径、不枚举目录，
+    /// 非活动标签一直懒到被激活才读（FR-2.11「不阻塞首帧」的实质）。
+    /// 12 个标签的构造成本是 12 个对象 + 12 次 <c>Directory.Exists</c>。
+    /// </summary>
+    private void RestoreTabs()
+    {
+        SessionSettings session = App.Settings.Session;
+
+        List<string> saved = App.Settings.Behavior.RestoreLastSession
+            ? session.Tabs.Where(Directory.Exists).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
+            : [];
+
+        if (saved.Count == 0)
+        {
+            // 没有可恢复的会话，或恢复项全已失效：开一个默认目录的标签
+            _tabs.Activate(_tabs.AddPending(ResolveStartPath()));
+            return;
+        }
+
+        foreach (string path in saved) _tabs.AddPending(path);
+
+        _tabs.ActivateAt(Math.Clamp(session.ActiveTabIndex, 0, saved.Count - 1));
+    }
+
+    private void RegisterTabCommands()
+    {
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.NewTab,
+            Gesture = "Ctrl+T",
+            Execute = () => _tabs.Add(),
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.CloseTab,
+            Gesture = "Ctrl+W",
+            Execute = () => _tabs.Close(_tabs.Active),
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.ReopenTab,
+            Gesture = "Ctrl+Shift+T",
+            Execute = _tabs.ReopenClosed,
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.NextTab,
+            Gesture = "Ctrl+Tab",
+            Execute = _tabs.ActivateNext,
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.PreviousTab,
+            Gesture = "Ctrl+Shift+Tab",
+            Execute = _tabs.ActivatePrevious,
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.LastTab,
+            Gesture = "Ctrl+9",
+            Execute = _tabs.ActivateLast,
+        });
+
+        // Ctrl+1…8：跳到第 N 个。Ctrl+9 是"最后一个"，不参与这个循环。
+        for (int n = 1; n <= 8; n++)
+        {
+            int index = n - 1;
+            _commands.Register(new AppCommand
+            {
+                Id = CommandIds.GotoTab(n),
+                Gesture = $"Ctrl+{n}",
+                Execute = () => _tabs.ActivateAt(index),
+            });
+        }
+    }
+
+    /// <summary>
+    /// 活动标签变了：把唯一那份浏览区重新绑到新的视图模型。
+    /// 滚动位置与选中项在 <see cref="PaneView.Attach"/> 里前后搬移。
+    /// </summary>
+    private void OnActiveTabChanged(PaneViewModel? previous, PaneViewModel? current)
+    {
+        if (current is null) return;
+
+        Pane.Attach(current);
+
+        // 窗口标题与导航栏的绑定都挂在窗口 DataContext 上，跟着活动标签走
+        DataContext = current;
+
+        SyncNavSelection(current.CurrentPath);
+
+        // 首帧之前不读盘：启动时由 OnLoaded 开始第一次导航（P1 首帧优先）
+        if (_started && current.HasPendingContent) _ = NavigateTabAsync(current);
+    }
+
+    /// <summary>
+    /// 让导航栏的高亮跟上当前目录。
+    /// 切标签换了目录，但导航栏的选中项还是上一个标签留下的那一条——
+    /// 看起来像是"导航栏指向 A，列表显示 B"。
+    /// </summary>
+    private void SyncNavSelection(string path)
+    {
+        if (!App.Settings.Appearance.ShowNavPane) return;
+
+        _syncingNavSelection = true;
+        try
+        {
+            QuickAccessList.SelectedItem = QuickAccessList.Items
+                .OfType<NavItem>()
+                .FirstOrDefault(item => string.Equals(item.Path, path, StringComparison.OrdinalIgnoreCase));
+        }
+        finally
+        {
+            _syncingNavSelection = false;
+        }
+    }
+
+    /// <summary>只读盘、不改历史栈的首次导航（懒加载标签与启动首屏共用）。</summary>
+    private static async Task NavigateTabAsync(PaneViewModel tab)
+    {
+        try
+        {
+            await tab.NavigateAsync(tab.CurrentPath);
+        }
+        catch (Exception ex)
+        {
+            tab.ReportError(ex);
+        }
+    }
+
+    /// <summary>供单实例转交使用：把当前标签切到指定目录。</summary>
+    public void NavigateTo(string path)
+    {
+        // 首屏还没起来时转交请求先到：直接改当前标签的待办路径
+        if (!_started && Vm.HasPendingContent)
+        {
+            Vm.PreparePendingPath(path);
+            return;
+        }
+
+        Pane.NavigateTo(path);
+    }
 
     // ── 与设置页的接口 ──────────────────────────────────────────────────────
     // 设置页只认 MainWindow，不认 PaneView。字号变化要按"项目索引"还原滚动位置，
@@ -410,9 +573,13 @@ public partial class MainWindow : Window
             return;
         }
 
+        // 从这里开始，切换标签才允许读盘
+        _started = true;
+
         try
         {
-            await Vm.NavigateAsync(ResolveStartPath());
+            // 只导航当前标签；其余标签保持 pending，切过去时才枚举
+            await NavigateTabAsync(Vm);
             StartupTrace.Mark("firstcontent");
             FlushOnce();
         }
@@ -424,6 +591,9 @@ public partial class MainWindow : Window
 
     private async void OnQuickAccessSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        // 切标签时同步高亮会走到这里：那是"跟着目录改高亮"，不是"用户点了导航项"
+        if (_syncingNavSelection) return;
+
         if (QuickAccessList.SelectedItem is not NavItem item) return;
         if (string.Equals(item.Path, Vm.CurrentPath, StringComparison.OrdinalIgnoreCase)) return;
 

@@ -108,7 +108,8 @@ public static void ApplyTheme(string name)
 | 区域 | 尺寸（10pt 基准） | token | 字号变化时 |
 |---|---|---|---|
 | 标题栏高度 | 40 | `Size.TitleBar.Height` | 随动 |
-| 标签页高度 | 30，最小宽 100，最大宽 200 | `Size.Tab.*` | 随动 |
+| 标签页高度 | 30（行高 + 10） | `Size.Tab.Height` | 随动 |
+| 标签页宽度 | 最小 100 / 最大 200，标题可用宽 = 最大宽 − 72（图标 + 关闭按钮 + 内边距） | `Size.Tab.MinWidth` / `Size.Tab.MaxWidth` / `Size.Tab.Title.MaxWidth` | 随动 |
 | 工具栏高度 | 48 | `Size.Toolbar.Height` | 随动 |
 | 导航栏宽度 | 下限 184（`Size.Nav.Width.Default`），上限 320（`Size.Nav.Width.Max`） | `Size.Nav.Width.*` | 不缩放，但**按内容取宽**：内容不足 184 时等于 184 |
 | 导航项高度 | 28 → 与行高一致 | `Size.Nav.Item.Height` | 随动 |
@@ -468,6 +469,7 @@ public static void ApplyTheme(string name)
 | `Font.LineHeight.Caption` / `Body` / `Row` | 各自字号 × 1.45 / 1.667 / 1.538 |
 | `Size.Row.Comfortable` / `Compact` / `Active` | 行高 + 行内余量，取偶数，有下限 |
 | `Size.Row.Header` / `Nav.Item.Height` / `Tab.Height` | 同上 |
+| `Size.Tab.MinWidth` / `MaxWidth` / `Title.MaxWidth` | 基准宽 × 比例取偶数；标题可用宽由最大宽减去图标、关闭按钮与内边距（72）得出，下限 64 |
 | `Size.TitleBar.Height` / `Toolbar.Height` / `StatusBar.Height` | 同上 |
 | `Column.Name.MinWidth` / `Date` / `Type` / `Size` | 基准列宽 × 比例，取偶数 |
 | `Font.Scale` | 只读系数 |

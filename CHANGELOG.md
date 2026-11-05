@@ -24,6 +24,16 @@
 
 ### 新增
 
+- **标签页（FR-2）**：窗口顶部新增标签栏，`Ctrl+T` 新建、`Ctrl+W` 关闭、`Ctrl+Shift+T` 恢复
+  最近关闭（上限 10 条）、`Ctrl+Tab` / `Ctrl+Shift+Tab` 循环、`Ctrl+1…8` 跳转、`Ctrl+9` 跳末尾。
+  中键关闭、拖动调整顺序、标签过多时滚轮横向滚动、右键菜单（关闭 / 关闭其他 / 关闭右侧 / 复制路径）
+- **标签状态保活**（`docs/pane-refactor.md` §6）：每个标签各有一份 `PaneViewModel`，切换时只
+  换绑一个 `PaneView`，不重建控件树；滚动位置按项目索引、选中项按路径随标签一起搬回来。
+  单个视图壳约 3 MB，12 个标签不会各建一套工具栏与列表
+- **会话恢复带上标签**：`session.tabs` / `session.activeTabIndex` 落盘，重启后标签顺序与活动项
+  原样回来；恢复只给路径不枚举目录，激活时才读盘
+- **关掉最后一个标签回默认目录**（`behavior.closeLastTabToHome`，默认开）：不销毁标签、不关窗口，
+  历史栈保留，还能后退回去
 - 目录枚举（`FileSystemEnumerable`，无 `string[]` 全量分配）
 - 系统图标提取：按扩展名查询，滚动期间零磁盘 IO
 - 列表虚拟化（`Recycling` + `Pixel` 滚动）

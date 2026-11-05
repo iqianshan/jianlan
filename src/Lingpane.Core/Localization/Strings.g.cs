@@ -48,6 +48,24 @@ public static class Strings
     /// <summary>Open settings (Ctrl+,)</summary>
     public static string Toolbar_Settings_Tip => LocalizationService.Instance.Get("Toolbar.Settings.Tip");
 
+    /// <summary>New tab (Ctrl+T)</summary>
+    public static string Tab_New_Tip => LocalizationService.Instance.Get("Tab.New.Tip");
+
+    /// <summary>Close tab (Ctrl+W)</summary>
+    public static string Tab_Close_Tip => LocalizationService.Instance.Get("Tab.Close.Tip");
+
+    /// <summary>Close</summary>
+    public static string Tab_Menu_Close => LocalizationService.Instance.Get("Tab.Menu.Close");
+
+    /// <summary>Close other tabs</summary>
+    public static string Tab_Menu_CloseOthers => LocalizationService.Instance.Get("Tab.Menu.CloseOthers");
+
+    /// <summary>Close tabs to the right</summary>
+    public static string Tab_Menu_CloseRight => LocalizationService.Instance.Get("Tab.Menu.CloseRight");
+
+    /// <summary>Copy path</summary>
+    public static string Tab_Menu_CopyPath => LocalizationService.Instance.Get("Tab.Menu.CopyPath");
+
     /// <summary>Open</summary>
     public static string Menu_Open => LocalizationService.Instance.Get("Menu.Open");
 

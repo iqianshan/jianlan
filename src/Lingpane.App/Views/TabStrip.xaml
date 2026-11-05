@@ -1,0 +1,207 @@
+<UserControl x:Class="Lingpane.App.Views.TabStrip"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Lingpane.App.Localization"
+             Height="{DynamicResource Size.Tab.Height}"
+             Background="{DynamicResource Brush.Surface.Window}"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             PreviewMouseMove="OnStripMouseMove"
+             PreviewMouseLeftButtonUp="OnStripMouseLeftButtonUp"
+             TextOptions.TextFormattingMode="Display"
+             TextOptions.TextRenderingMode="ClearType"
+             TextOptions.TextHintingMode="Fixed">
+
+    <!--
+        标签栏（FR-2）。宽度随窗口，标签超出时横向滚动、不换行（FR-2.5）。
+
+        视图只有这一份，标签多寡不影响它：切换标签是把同一个 PaneView 重新绑到
+        另一份视图模型，见 PaneView.Attach。所以这里的列表项只有"图标 + 标题 + 关闭"，
+        不承载任何内容区。
+    -->
+
+    <UserControl.Resources>
+        <!-- 标签上的关闭按钮：18px 见方，比工具栏按钮矮，不然会把标签顶高 -->
+        <Style x:Key="TabClose" TargetType="Button">
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
+            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Ring}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="{StaticResource CornerRadius.Control}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Surface.Pressed}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 溢出滚动：滚动条隐藏，靠滚轮与"活动标签自动滚入视野" -->
+        <ScrollViewer x:Name="Scroller"
+                      Grid.Column="0"
+                      HorizontalScrollBarVisibility="Hidden"
+                      VerticalScrollBarVisibility="Disabled"
+                      CanContentScroll="False"
+                      PreviewMouseWheel="OnStripMouseWheel">
+            <ItemsControl x:Name="TabItems" ItemsSource="{Binding Tabs}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border x:Name="TabRoot"
+                                MinWidth="{DynamicResource Size.Tab.MinWidth}"
+                                Height="{DynamicResource Size.Tab.Height}"
+                                BorderBrush="{DynamicResource Brush.Border.Hairline}"
+                                BorderThickness="0,0,1,0"
+                                PreviewMouseLeftButtonDown="OnTabMouseLeftButtonDown"
+                                PreviewMouseDown="OnTabMouseDown">
+                            <!-- 默认底色写在样式里而不是元素属性上：
+                                 元素上的本地值优先级高于样式触发器，会让活动态永远不生效 -->
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Style.Triggers>
+                                        <!-- 悬停在前、活动在后：两个同时成立时活动态覆盖悬停 -->
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource Brush.Surface.Hover}"/>
+                                        </Trigger>
+                                        <DataTrigger Binding="{Binding IsTabActive}" Value="True">
+                                            <Setter Property="Background" Value="{DynamicResource Brush.Surface.Content}"/>
+                                            <Setter Property="BorderThickness" Value="0"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+
+                            <Grid>
+                                <!-- 活动标签指示：标签下方 2px 线（ui-guidelines §6） -->
+                                <Border x:Name="ActiveIndicator"
+                                        Height="2"
+                                        VerticalAlignment="Bottom"
+                                        Background="{DynamicResource Brush.Accent.Default}">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsTabActive}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                </Border>
+
+                                <Grid Margin="8,0,4,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Column="0"
+                                               Margin="0,0,6,0"
+                                               Style="{StaticResource Text.Glyph}"
+                                               Text="&#xE8B7;"/>
+
+                                    <!-- 标题宽度上限落在 TextBlock 上：
+                                         横向 StackPanel 测量子项时给的是无限宽，容器的
+                                         MaxWidth 只会把内容硬裁掉，不给省略号 -->
+                                    <TextBlock Grid.Column="1"
+                                               MaxWidth="{DynamicResource Size.Tab.Title.MaxWidth}"
+                                               Text="{Binding DisplayName}"
+                                               ToolTip="{Binding TabTooltip}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Tab}">
+                                                <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsTabActive}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+                                    <Button Grid.Column="2"
+                                            Margin="6,0,0,0"
+                                            Style="{StaticResource TabClose}"
+                                            Click="OnTabCloseClick"
+                                            ToolTip="{loc:Tr Key=Tab.Close.Tip}">
+                                        <TextBlock FontFamily="{DynamicResource Font.Family.Icon}"
+                                                   FontSize="{DynamicResource Font.Size.Caption}"
+                                                   Text="&#xE711;"
+                                                   VerticalAlignment="Center"/>
+                                    </Button>
+                                </Grid>
+                            </Grid>
+
+                            <Border.ContextMenu>
+                                <ContextMenu Style="{StaticResource ContextMenu.Default}">
+                                    <MenuItem Style="{StaticResource MenuItem.Default}"
+                                              Header="{loc:Tr Key=Tab.Menu.Close}"
+                                              Click="OnTabCloseClick"/>
+                                    <MenuItem Style="{StaticResource MenuItem.Default}"
+                                              Header="{loc:Tr Key=Tab.Menu.CloseOthers}"
+                                              Click="OnTabCloseOthers"/>
+                                    <MenuItem Style="{StaticResource MenuItem.Default}"
+                                              Header="{loc:Tr Key=Tab.Menu.CloseRight}"
+                                              Click="OnTabCloseRight"/>
+                                    <Separator Style="{StaticResource Menu.Separator}"/>
+                                    <MenuItem Style="{StaticResource MenuItem.Default}"
+                                              Header="{loc:Tr Key=Tab.Menu.CopyPath}"
+                                              Click="OnTabCopyPath"/>
+                                </ContextMenu>
+                            </Border.ContextMenu>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- 新建标签（FR-2.1）。放在滚动区之外，标签再多也点得到 -->
+        <Button x:Name="NewTabButton"
+                Grid.Column="1"
+                Width="{DynamicResource Size.Tab.Height}"
+                Height="{DynamicResource Size.Tab.Height}"
+                Style="{StaticResource Button.Toolbar}"
+                Margin="0"
+                Padding="0"
+                FontFamily="{DynamicResource Font.Family.Icon}"
+                Content="&#xE710;"
+                Click="OnNewTabClick"
+                ToolTip="{loc:Tr Key=Tab.New.Tip}"/>
+
+        <!-- 拖拽排序的插入指示（FR-2.6）：2px 竖线，不参与命中测试 -->
+        <Canvas Grid.ColumnSpan="2" IsHitTestVisible="False">
+            <Rectangle x:Name="DropIndicator"
+                       Width="2"
+                       Height="{DynamicResource Size.Tab.Height}"
+                       Fill="{DynamicResource Brush.Accent.Default}"
+                       Visibility="Collapsed"/>
+        </Canvas>
+    </Grid>
+</UserControl>

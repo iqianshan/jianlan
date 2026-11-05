@@ -35,6 +35,9 @@ public partial class App : Application
     /// <summary>读入时的"最后目录"，用来判断本次会话有没有产生需要落盘的改动。</summary>
     private static string? _loadedLastPath;
 
+    /// <summary>读入时的标签列表，判断口径同上。</summary>
+    private static List<string> _loadedTabs = [];
+
     /// <summary>首次启动命令行里带的目录，优先于上次打开的目录。null 表示没带。</summary>
     public static string? StartupDirectory { get; private set; }
 
@@ -143,6 +146,7 @@ public partial class App : Application
         SettingsReadOnly = loaded.IsReadOnly;
         SettingsWarning = loaded.Warning;
         _loadedLastPath = Settings.Session.LastPath;
+        _loadedTabs = [.. Settings.Session.Tabs];
         if (loaded.Warning is not null)
         {
             Diagnostics.AppLog.Warn("settings.load", "E4001", loaded.Warning);
@@ -263,7 +267,12 @@ public partial class App : Application
         var s = Settings.Session;
         // 最后目录由窗口在 Closing 中写入；只要它与读入时不同，也属于"用户改动过"，需要落盘
         bool samePath = string.Equals(s.LastPath, _loadedLastPath, StringComparison.Ordinal);
-        if (s.WindowWidth == width && s.WindowHeight == height && s.WindowMaximized == maximized && samePath)
+
+        // 标签列表同理：开着三个标签、但没换目录、也没改窗口大小，仍然要记住标签
+        bool sameTabs = s.Tabs.SequenceEqual(_loadedTabs, StringComparer.OrdinalIgnoreCase);
+
+        if (s.WindowWidth == width && s.WindowHeight == height && s.WindowMaximized == maximized
+            && samePath && sameTabs)
         {
             return;
         }
@@ -276,6 +285,7 @@ public partial class App : Application
         {
             SettingsStore.Save(Settings, isReadOnly: SettingsReadOnly);
             _loadedLastPath = s.LastPath;
+            _loadedTabs = [.. s.Tabs];
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

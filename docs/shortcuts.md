@@ -7,6 +7,10 @@
 > `Ctrl+Shift+N`、`Ctrl+Shift+M`、`Ctrl+Shift+C`、`Alt+Enter`、菜单键（`VK_APPS`）已可用。
 > `Ctrl+Shift+3`（大图标）**不绑定**：该视图决定不做，见 `docs/adr/0005-large-icon-view.md`。
 >
+> **实现状态（M2 / S3）**：标签页 10 条（`Ctrl+T`、`Ctrl+W`、`Ctrl+Shift+T`、`Ctrl+Tab`、
+> `Ctrl+Shift+Tab`、`Ctrl+1…8`、`Ctrl+9`）已可用，全部走**窗口表**（标签集合属于窗口，
+> 不属于某个窗格，见 `docs/pane-refactor.md` §7）。
+>
 > **实现方式**：键位表在 `Lingpane.App/Input/KeyBindings.cs`，采用**三入口**：
 >
 > 1. `Ctrl + ,` 单独走**系统热键**：窗口激活时 `RegisterHotKey`，失活立即注销，
@@ -42,7 +46,15 @@
 | `Ctrl + Shift + Tab` | 上一个标签页 |
 | `Ctrl + 1…8` | 跳到第 N 个标签页 |
 | `Ctrl + 9` | 跳到最后一个标签页 |
-| `Ctrl + Shift + Tab`（在标签栏上） | 拖动调整顺序（M2） |
+
+标签栏的鼠标操作（不占键位，不写进键位表）：
+
+| 操作 | 效果 |
+|---|---|
+| 中键点击标签 | 关闭该标签页 |
+| 拖动标签 | 调整顺序（位移 < 6px 视为点击，避免手抖改序） |
+| 滚轮 | 标签超出宽度时横向滚动（标签多时自动把活动标签滚进视野） |
+| 右键标签 | 关闭 / 关闭其他标签页 / 关闭右侧标签页 / 复制路径 |
 
 ## 2. 导航
 

@@ -121,7 +121,10 @@ public partial class PaneView
 
     /// <summary>
     /// 窗格从可视树移除时收尾。原来是 Window.OnClosed，拆成 UserControl 后
-    /// 走 Unloaded——标签页关闭（FR-2.3）与窗口关闭都会走到这里。
+    /// 走 Unloaded——窗口关闭会走到这里。
+    ///
+    /// 注意：**切换标签不会走这里**。标签切换是重新 Attach 另一份视图模型，
+    /// 视图本身还在树上；收尾动作在 <see cref="Attach"/> 的开头完成。
     /// 加一次性保护：Unloaded 在重设父子关系时可能重复触发。
     /// </summary>
     private void OnPaneUnloaded(object sender, RoutedEventArgs e)
@@ -131,7 +134,10 @@ public partial class PaneView
 
         _debounceTimer?.Stop();
         StopWatching();
-        Vm.NavigationCompleted -= StartWatching;
-        Vm.NavigationCompleted -= ScheduleFolderIcons;
+
+        if (_viewModel is not { } vm) return;
+
+        vm.NavigationCompleted -= StartWatching;
+        vm.NavigationCompleted -= ScheduleFolderIcons;
     }
 }

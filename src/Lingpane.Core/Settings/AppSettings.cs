@@ -96,6 +96,18 @@ public sealed class AppSettings
         Session.WindowWidth = Math.Max(Session.WindowWidth, MinWindowWidth);
         Session.WindowHeight = Math.Max(Session.WindowHeight, MinWindowHeight);
 
+        // 会话标签：空值、空串与超量都归一到可直接使用的形态。
+        // 路径合法性不在归一化里判——盘符可能暂时不在（U 盘），判了就把标签吃掉，
+        // 真正导航时再失败并显示原因。
+        Session.Tabs ??= [];
+        Session.Tabs.RemoveAll(string.IsNullOrWhiteSpace);
+        if (Session.Tabs.Count > SessionSettings.MaxTabs)
+        {
+            Session.Tabs = Session.Tabs.Take(SessionSettings.MaxTabs).ToList();
+        }
+
+        Session.ActiveTabIndex = Math.Clamp(Session.ActiveTabIndex, 0, Math.Max(0, Session.Tabs.Count - 1));
+
         Layout.ColumnDateWidth = ClampColumn(Layout.ColumnDateWidth, DefaultColumnDateWidth);
         Layout.ColumnTypeWidth = ClampColumn(Layout.ColumnTypeWidth, DefaultColumnTypeWidth);
         Layout.ColumnSizeWidth = ClampColumn(Layout.ColumnSizeWidth, DefaultColumnSizeWidth);
@@ -183,6 +195,12 @@ public sealed class BehaviorSettings
 
     public bool RestoreLastSession { get; set; } = true;
 
+    /// <summary>
+    /// 关闭最后一个标签时的行为（FR-2.8）：true = 回到默认目录，false = 关闭窗口。
+    /// 默认回到默认目录——关掉整个窗口是破坏性操作，不该由"关掉最后一个标签"顺手完成。
+    /// </summary>
+    public bool CloseLastTabToHome { get; set; } = true;
+
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
 }
@@ -207,6 +225,19 @@ public sealed class SessionSettings
     public bool WindowMaximized { get; set; }
 
     public string? LastPath { get; set; }
+
+    /// <summary>
+    /// 退出时打开的标签页路径（FR-2.11）。只存路径，不存滚动位置与选中项——
+    /// 恢复的目标是"回到上次在看的目录"，不是逐像素复原现场。
+    /// 顺序即标签顺序，长度受 <see cref="MaxTabs"/> 限制。
+    /// </summary>
+    public List<string> Tabs { get; set; } = [];
+
+    /// <summary>下次启动时激活第几个标签（0 起始）。恢复失败时回落第一个。</summary>
+    public int ActiveTabIndex { get; set; }
+
+    /// <summary>会话恢复的标签数上限。再多也只是把启动拖慢，捡不回来的价值很低。</summary>
+    public const int MaxTabs = 12;
 
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }

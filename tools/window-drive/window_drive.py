@@ -108,6 +108,69 @@ def resolve_hwnd(pid: int) -> int:
     return find_window(pid, os.environ.get("WD_TITLE"), minimum)
 
 
+def _bring_to_front(user32, hwnd):
+    """把目标窗口抢到前台。
+
+    SetForegroundWindow 对"非子进程"会被前台锁直接拒绝，按键/鼠标事件就静默
+    发给了别的窗口。必须先把输入队列挂到目标线程（以及当前前台窗口的线程）上
+    再抢，失败再退回 SwitchToThisWindow。
+    """
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    target_thread = user32.GetWindowThreadProcessId(hwnd, None)
+    current_thread = kernel32.GetCurrentThreadId()
+    fg = user32.GetForegroundWindow()
+    fg_thread = user32.GetWindowThreadProcessId(fg, None) if fg else 0
+
+    attaches = [t for t in {fg_thread, target_thread} if t]
+    for t in attaches:
+        user32.AttachThreadInput(current_thread, t, True)
+    try:
+        user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+        user32.BringWindowToTop(hwnd)
+        user32.SetForegroundWindow(hwnd)
+        user32.SetFocus(hwnd)
+        time.sleep(0.2)
+        if user32.GetForegroundWindow() != hwnd:
+            user32.SwitchToThisWindow(hwnd, True)
+            time.sleep(0.3)
+    finally:
+        for t in attaches:
+            user32.AttachThreadInput(current_thread, t, False)
+
+
+class _BitmapInfoHeader(ctypes.Structure):
+    _fields_ = [
+        ("biSize", wt.DWORD), ("biWidth", ctypes.c_long), ("biHeight", ctypes.c_long),
+        ("biPlanes", wt.WORD), ("biBitCount", wt.WORD), ("biCompression", wt.DWORD),
+        ("biSizeImage", wt.DWORD), ("biXPelsPerMeter", ctypes.c_long),
+        ("biYPelsPerMeter", ctypes.c_long), ("biClrUsed", wt.DWORD), ("biClrImportant", wt.DWORD),
+    ]
+
+
+def _dib_bytes(gdi32, mem, bmp, width: int, height: int) -> bytes:
+    """从内存位图取像素，返回 bottom-up 的 BGRA 原始数据。"""
+    header = _BitmapInfoHeader()
+    header.biSize = ctypes.sizeof(_BitmapInfoHeader)
+    header.biWidth = width
+    header.biHeight = height
+    header.biPlanes = 1
+    header.biBitCount = 32
+    header.biCompression = 0  # BI_RGB
+
+    buf = ctypes.create_string_buffer(width * 4 * height)
+    got = gdi32.GetDIBits(mem, bmp, 0, height, buf, ctypes.byref(header), 0)
+    return buf.raw if got else b""
+
+
+def _write_bmp(out: str, width: int, height: int, raw: bytes) -> None:
+    import struct
+    stride = width * 4
+    info = struct.pack("<IiiHHIIiiII", 40, width, height, 1, 32, 0, stride * height, 0, 0, 0, 0)
+    file_header = struct.pack("<2sIHHI", b"BM", 14 + 40 + len(raw), 0, 0, 54)
+    with open(out, "wb") as f:
+        f.write(file_header + info + raw)
+
+
 def main() -> int:
     if len(sys.argv) < 3:
         print(__doc__)
@@ -194,9 +257,8 @@ def main() -> int:
         # 鼠标按键状态（GetKeyState），投递的消息没有真实按键状态，菜单不弹。
         x, y = int(sys.argv[3]), int(sys.argv[4])
         left, top, _, _ = get_rect(hwnd)
-        user32.BringWindowToTop(hwnd)
-        user32.SetForegroundWindow(hwnd)
-        time.sleep(0.2)
+        # 真实鼠标事件只会送到前台窗口，抢前台不能只靠 SetForegroundWindow（见 helper）
+        _bring_to_front(user32, hwnd)
         user32.SetCursorPos(left + x, top + y)
         time.sleep(0.25)
         user32.mouse_event(0x0008, 0, 0, 0, 0)   # RIGHTDOWN
@@ -204,6 +266,19 @@ def main() -> int:
         user32.mouse_event(0x0010, 0, 0, 0, 0)   # RIGHTUP
         time.sleep(1.0)
         print(f"已右键客户区 ({x},{y})")
+        return 0
+
+    if action == "mclick":
+        # 中键点击：标签页关闭（FR-2.3）等场景要用。同 click，投递消息不抢前台。
+        x, y = int(sys.argv[3]), int(sys.argv[4])
+        lparam = (y << 16) | (x & 0xFFFF)
+        user32.PostMessageW(hwnd, 0x0200, 0, lparam)        # WM_MOUSEMOVE
+        time.sleep(0.1)
+        user32.PostMessageW(hwnd, 0x0207, 0x0010, lparam)   # WM_MBUTTONDOWN, MK_MBUTTON
+        time.sleep(0.08)
+        user32.PostMessageW(hwnd, 0x0208, 0, lparam)        # WM_MBUTTONUP
+        time.sleep(0.8)
+        print(f"已中键点击客户区 ({x},{y})")
         return 0
 
     if action == "drag":
@@ -256,6 +331,16 @@ def main() -> int:
             "ctrl+l": (0x11, 0x4C),
             "ctrl+shift+1": (0x11, 0xA0, 0x31),
             "ctrl+shift+2": (0x11, 0xA0, 0x32),
+            # 标签页（FR-2）
+            "ctrl+t": (0x11, 0x54),
+            "ctrl+w": (0x11, 0x57),
+            "ctrl+shift+t": (0x11, 0xA0, 0x54),
+            "ctrl+tab": (0x11, 0x09),
+            "ctrl+shift+tab": (0x11, 0xA0, 0x09),
+            "ctrl+1": (0x11, 0x31),
+            "ctrl+2": (0x11, 0x32),
+            "ctrl+3": (0x11, 0x33),
+            "ctrl+9": (0x11, 0x39),
             "ctrl+shift+n": (0x11, 0xA0, 0x4E),
             "ctrl+shift+m": (0x11, 0xA0, 0x4D),
             "ctrl+shift+d": (0x11, 0xA0, 0x44),
@@ -331,16 +416,56 @@ def main() -> int:
     if action == "wheel":
         # 面板滚动：AC-06/AC-11 走查要看设置页底部，Click 只能点到可见区域内的控件。
         # delta 正数向上、负数向下，120 为一格（Windows 标准滚轮步长）。
+        # 第 5、6 个参数可选：<x> <y> 指定滚动位置（客户区 y 要自己加标题栏高度），
+        # 不传就落在窗口中心。滚轮落在哪个控件上决定滚谁——例如标签栏横向滚动
+        # 必须把光标放到标签条上，否则滚的是文件列表。
         delta = int(sys.argv[3])
         times = int(sys.argv[4]) if len(sys.argv) > 4 else 1
         left, top, width, height = get_rect(hwnd)
-        user32.SetCursorPos(left + width // 2, top + height // 2)
+        if len(sys.argv) >= 7:
+            user32.SetCursorPos(left + int(sys.argv[5]), top + int(sys.argv[6]))
+        else:
+            user32.SetCursorPos(left + width // 2, top + height // 2)
         time.sleep(0.15)
         for _ in range(max(1, times)):
             user32.mouse_event(0x0800, 0, 0, ctypes.c_ulong(delta & 0xFFFFFFFF), 0)
             time.sleep(0.06)
         time.sleep(0.6)
         print(f"已滚动 {delta} x{times}")
+        return 0
+
+    if action == "front":
+        # 抢到前台。capture 是 BitBlt 屏幕矩形，被别的窗口压着就会把别人拍进来；
+        # 拍之前先把它拎到最前。
+        _bring_to_front(user32, hwnd)
+        print(f"前台={user32.GetForegroundWindow()}（目标 {hwnd}）")
+        return 0
+
+    if action == "capture":
+        # 抓"屏幕上真正看到的那块矩形"，含右键菜单/下拉/Tooltip 等独立 HWND 的浮层。
+        # PrintWindow 只画目标窗口自身，WPF 的 ContextMenu 是另一个 Popup HWND，
+        # 用 screenshot 抓主窗口永远看不到菜单。
+        out = sys.argv[3] if len(sys.argv) > 3 else "capture.bmp"
+        left, top, width, height = get_visible_rect(hwnd)
+        gdi32 = ctypes.WinDLL("gdi32", use_last_error=True)
+
+        hdc = user32.GetDC(0)
+        mem = gdi32.CreateCompatibleDC(hdc)
+        bmp = gdi32.CreateCompatibleBitmap(hdc, width, height)
+        old = gdi32.SelectObject(mem, bmp)
+        gdi32.BitBlt(mem, 0, 0, width, height, hdc, left, top, 0x00CC0020)
+        raw = _dib_bytes(gdi32, mem, bmp, width, height)
+
+        gdi32.SelectObject(mem, old)
+        gdi32.DeleteObject(bmp)
+        gdi32.DeleteDC(mem)
+        user32.ReleaseDC(0, hdc)
+
+        if not raw:
+            print("GetDIBits 失败")
+            return 1
+        _write_bmp(out, width, height, raw)
+        print(f"已保存 {out}（{width}x{height}，屏幕区域 {left},{top}）")
         return 0
 
     if action == "screenshot":
@@ -362,32 +487,14 @@ def main() -> int:
             print("PrintWindow 失败，退回 BitBlt")
             gdi32.BitBlt(mem, 0, 0, width, height, hdc, 0, 0, 0x00CC0020)
 
-        class BITMAPINFOHEADER(ctypes.Structure):
-            _fields_ = [
-                ("biSize", wt.DWORD), ("biWidth", ctypes.c_long), ("biHeight", ctypes.c_long),
-                ("biPlanes", wt.WORD), ("biBitCount", wt.WORD), ("biCompression", wt.DWORD),
-                ("biSizeImage", wt.DWORD), ("biXPelsPerMeter", ctypes.c_long),
-                ("biYPelsPerMeter", ctypes.c_long), ("biClrUsed", wt.DWORD), ("biClrImportant", wt.DWORD),
-            ]
-
-        header = BITMAPINFOHEADER()
-        header.biSize = ctypes.sizeof(BITMAPINFOHEADER)
-        header.biWidth = width
-        header.biHeight = height
-        header.biPlanes = 1
-        header.biBitCount = 32
-        header.biCompression = 0  # BI_RGB
-
-        stride = width * 4
-        buf = ctypes.create_string_buffer(stride * height)
-        got = gdi32.GetDIBits(mem, bmp, 0, height, buf, ctypes.byref(header), 0)
+        buf_raw = _dib_bytes(gdi32, mem, bmp, width, height)
 
         gdi32.SelectObject(mem, old)
         gdi32.DeleteObject(bmp)
         gdi32.DeleteDC(mem)
         user32.ReleaseDC(hwnd, hdc)
 
-        if got == 0:
+        if not buf_raw:
             print("GetDIBits 失败")
             return 1
 
@@ -402,24 +509,20 @@ def main() -> int:
                 return 1
 
         x0, y0 = dx + off_x, dy + off_y
-        raw = buf.raw
+        raw = buf_raw
+        stride = width * 4
         if crop_w != width or crop_h != height or x0 or y0:
             # GetDIBits 给的是 bottom-up：文件里第一行是最底行
             top_row = height - y0 - crop_h
-            rows = [raw[(top_row + k) * stride + x0 * 4: (top_row + k) * stride + (x0 + crop_w) * 4]
-                    for k in range(crop_h)]
-            raw = b"".join(rows) if top_row >= 0 else raw
             if top_row < 0:
                 print(f"裁剪起点越界：top_row={top_row}")
                 return 1
+            rows = [raw[(top_row + k) * stride + x0 * 4: (top_row + k) * stride + (x0 + crop_w) * 4]
+                    for k in range(crop_h)]
+            raw = b"".join(rows)
             width, height = crop_w, crop_h
-            stride = width * 4
 
-        import struct
-        info = struct.pack("<IiiHHIIiiII", 40, width, height, 1, 32, 0, stride * height, 0, 0, 0, 0)
-        file_header = struct.pack("<2sIHHI", b"BM", 14 + 40 + len(raw), 0, 0, 54)
-        with open(out, "wb") as f:
-            f.write(file_header + info + raw)
+        _write_bmp(out, width, height, raw)
         print(f"已保存 {out}（{width}x{height}）")
         return 0
 
