@@ -35,25 +35,9 @@ public partial class MainWindow : Window
     private readonly CommandRegistry _commands = new();
     private bool _flushed;
 
-    public CommandAdapter UpCommand { get; }
-    public CommandAdapter BackCommand { get; }
-    public CommandAdapter ForwardCommand { get; }
-    public CommandAdapter RefreshCommand { get; }
+    // 窗口级命令只有这些。窗格级命令（刷新、文件操作、视图切换）
+    // 在 PaneView 自己的表里，见 PaneView.Commands.cs。
     public CommandAdapter ThemeCommand { get; }
-    public CommandAdapter DetailsCommand { get; }
-    public CommandAdapter ListViewCommand { get; }
-    public CommandAdapter SettingsCommand { get; }
-    public CommandAdapter OpenItemCommand { get; }
-    public CommandAdapter NewFolderCommand { get; }
-    public CommandAdapter NewFileCommand { get; }
-    public CommandAdapter RenameCommand { get; }
-    public CommandAdapter DeleteCommand { get; }
-    public CommandAdapter DeletePermanentCommand { get; }
-    public CommandAdapter CopyItemsCommand { get; }
-    public CommandAdapter CutItemsCommand { get; }
-    public CommandAdapter PasteCommand { get; }
-    public CommandAdapter CopyPathCommand { get; }
-    public CommandAdapter PropertiesCommand { get; }
 
     public MainWindow()
     {
@@ -66,40 +50,8 @@ public partial class MainWindow : Window
         StartupTrace.Mark("vm");
         StartupTrace.Mark("xaml");
 
-        // 命令在此集中注册：菜单、快捷键、工具栏按钮都从同一张表取，
-        // 避免同一功能在三处各写一份逻辑（ADR-0004 无容器，直接构造即可）。
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.GoUp,
-            TitleFactory = () => Strings.Command_GoUp,
-            Gesture = "Alt+↑",
-            CanExecute = Pane.CanGoUp,
-            Execute = Pane.GoUp,
-        });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.GoBack,
-            TitleFactory = () => Strings.Command_GoBack,
-            Gesture = "Alt+←",
-            CanExecute = () => Vm is { IsLoading: false, CanGoBack: true },
-            Execute = () => _ = Vm.GoBackAsync(),
-        });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.GoForward,
-            TitleFactory = () => Strings.Command_GoForward,
-            Gesture = "Alt+→",
-            CanExecute = () => Vm is { IsLoading: false, CanGoForward: true },
-            Execute = () => _ = Vm.GoForwardAsync(),
-        });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.Refresh,
-            TitleFactory = () => Strings.Command_Refresh,
-            Gesture = "F5",
-            CanExecute = () => !Vm.IsLoading,
-            Execute = () => _ = Vm.RefreshAsync(),
-        });
+        // 窗口级命令。窗格级的那二十条在 PaneView.Commands.cs 里，
+        // 因为它们读的是"当前目录"与"当前选中项"——双窗格下这两个状态各有一份。
         _commands.Register(new AppCommand
         {
             Id = CommandIds.CycleTheme,
@@ -110,145 +62,16 @@ public partial class MainWindow : Window
         });
         _commands.Register(new AppCommand
         {
-            Id = CommandIds.ViewDetails,
-            TitleFactory = () => Strings.Command_ViewDetails,
-            Gesture = "Ctrl+Shift+1",
-            Execute = () => Vm.SetViewMode(DefaultViewKind.Details),
-        });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.ViewList,
-            TitleFactory = () => Strings.Command_ViewList,
-            Gesture = "Ctrl+Shift+2",
-            Execute = () => Vm.SetViewMode(DefaultViewKind.List),
-        });
-        _commands.Register(new AppCommand
-        {
             Id = CommandIds.OpenSettings,
             TitleFactory = () => Strings.Command_OpenSettings,
             Gesture = "Ctrl+,",
             Execute = OpenSettings,
         });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.FocusAddress,
-            TitleFactory = () => Strings.Command_FocusAddress,
-            Gesture = "Ctrl+L",
-            Execute = Pane.BeginAddressEdit,
-        });
 
-        // 文件操作（M1 批 3）。可执行性由选中状态与当前目录决定，
-        // 右键菜单与快捷键共用这一份判断，不各写一遍。
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.OpenItem,
-            TitleFactory = () => Strings.Command_Open,
-            Execute = Pane.OpenSelection,
-            CanExecute = Pane.HasSingleSelection,
-        });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.NewFolder,
-            TitleFactory = () => Strings.Command_NewFolder,
-            Execute = () => _ = Pane.NewFolderAsync(),
-            CanExecute = Pane.CanCreateInCurrentDirectory,
-        });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.NewFile,
-            TitleFactory = () => Strings.Command_NewFile,
-            Execute = () => _ = Pane.NewFileAsync(),
-            CanExecute = Pane.CanCreateInCurrentDirectory,
-        });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.Rename,
-            TitleFactory = () => Strings.Command_Rename,
-            Execute = () => _ = Pane.RenameSelectionAsync(),
-            CanExecute = Pane.HasSingleSelection,
-        });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.Delete,
-            TitleFactory = () => Strings.Command_Delete,
-            Execute = () => _ = Pane.DeleteSelectionAsync(permanent: false),
-            CanExecute = Pane.HasSelection,
-        });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.DeletePermanent,
-            TitleFactory = () => Strings.Command_DeletePermanent,
-            Execute = () => _ = Pane.DeleteSelectionAsync(permanent: true),
-            CanExecute = Pane.HasSelection,
-        });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.CopyItems,
-            TitleFactory = () => Strings.Command_Copy,
-            Execute = () => Pane.CopySelection(cut: false),
-            CanExecute = Pane.HasSelection,
-        });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.CutItems,
-            TitleFactory = () => Strings.Command_Cut,
-            Execute = () => Pane.CopySelection(cut: true),
-            CanExecute = Pane.HasSelection,
-        });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.Paste,
-            TitleFactory = () => Strings.Command_Paste,
-            Execute = () => _ = Pane.PasteAsync(),
-            CanExecute = Pane.CanPaste,
-        });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.CopyPath,
-            TitleFactory = () => Strings.Command_CopyPath,
-            Execute = Pane.CopyPathSelection,
-            CanExecute = Pane.HasSelection,
-        });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.Properties,
-            TitleFactory = () => Strings.Command_Properties,
-            Execute = Pane.ShowProperties,
-            CanExecute = Pane.HasSelection,
-        });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.ShowContextMenu,
-            TitleFactory = () => Strings.Command_More,
-            Execute = Pane.ShowContextMenu,
-        });
-        _commands.Register(new AppCommand
-        {
-            Id = CommandIds.SelectAll,
-            TitleFactory = () => Strings.Command_SelectAll,
-            Execute = Pane.SelectAllItems,
-            CanExecute = () => !Vm.IsLoading && Pane.ItemCount > 0,
-        });
-
-        UpCommand = new CommandAdapter(_commands.Get(CommandIds.GoUp));
-        BackCommand = new CommandAdapter(_commands.Get(CommandIds.GoBack));
-        ForwardCommand = new CommandAdapter(_commands.Get(CommandIds.GoForward));
-        RefreshCommand = new CommandAdapter(_commands.Get(CommandIds.Refresh));
         ThemeCommand = new CommandAdapter(_commands.Get(CommandIds.CycleTheme));
-        DetailsCommand = new CommandAdapter(_commands.Get(CommandIds.ViewDetails));
-        ListViewCommand = new CommandAdapter(_commands.Get(CommandIds.ViewList));
-        SettingsCommand = new CommandAdapter(_commands.Get(CommandIds.OpenSettings));
-        OpenItemCommand = new CommandAdapter(_commands.Get(CommandIds.OpenItem));
-        NewFolderCommand = new CommandAdapter(_commands.Get(CommandIds.NewFolder));
-        NewFileCommand = new CommandAdapter(_commands.Get(CommandIds.NewFile));
-        RenameCommand = new CommandAdapter(_commands.Get(CommandIds.Rename));
-        DeleteCommand = new CommandAdapter(_commands.Get(CommandIds.Delete));
-        DeletePermanentCommand = new CommandAdapter(_commands.Get(CommandIds.DeletePermanent));
-        CopyItemsCommand = new CommandAdapter(_commands.Get(CommandIds.CopyItems));
-        CutItemsCommand = new CommandAdapter(_commands.Get(CommandIds.CutItems));
-        PasteCommand = new CommandAdapter(_commands.Get(CommandIds.Paste));
-        CopyPathCommand = new CommandAdapter(_commands.Get(CommandIds.CopyPath));
-        PropertiesCommand = new CommandAdapter(_commands.Get(CommandIds.Properties));
+
+        // 窗格工具栏上的设置按钮走这里：窗格只发意图，窗口负责 Show
+        Pane.SettingsRequested += OpenSettings;
         StartupTrace.Mark("cmd");
 
         // 快捷键不用 Window.InputBindings：KeyGesture 对 , 这类 OEM 键的匹配依赖布局，
@@ -455,7 +278,7 @@ public partial class MainWindow : Window
 
             if (KeyDebug) WriteKeyLog("wm_hotkey -> app.openSettings");
             handled = true;
-            Dispatcher.BeginInvoke(DispatcherPriority.Input, () => _commands.Invoke(CommandIds.OpenSettings));
+            Dispatcher.BeginInvoke(DispatcherPriority.Input, () => Dispatch(CommandIds.OpenSettings));
             return IntPtr.Zero;
         }
 
@@ -494,7 +317,7 @@ public partial class MainWindow : Window
         handled = true;
 
         // 消息泵里直接执行可能重入（命令会 Show 窗口），交回 Dispatcher 排队
-        Dispatcher.BeginInvoke(DispatcherPriority.Input, () => _commands.Invoke(commandId));
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, () => Dispatch(commandId));
         return IntPtr.Zero;
     }
 
@@ -518,11 +341,28 @@ public partial class MainWindow : Window
         if (KeyDebug) WriteKeyLog($"  preview -> {commandId}");
 
         e.Handled = true;
+        Dispatch(commandId);
+    }
+
+    /// <summary>
+    /// 快捷键派发。**先查窗格、再查窗口。**
+    ///
+    /// 判据是"这条命令注册在哪张表里"，不是"此刻能不能执行"——
+    /// 用可执行性判断会让 F5 在加载中被误判给窗口表（那里根本没有 F5），
+    /// 也会让"删除"在没有选中时落到别处。
+    /// </summary>
+    private void Dispatch(string commandId)
+    {
+        if (Pane.HasCommand(commandId))
+        {
+            Pane.TryInvoke(commandId);
+            return;
+        }
+
         _commands.Invoke(commandId);
     }
 
-    internal static void WriteKeyLog(string message)
-    {
+    internal static void WriteKeyLog(string message)    {
         try
         {
             Directory.CreateDirectory(AppPaths.LogsDir);

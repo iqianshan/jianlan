@@ -120,6 +120,10 @@ M0 阶段测得"关闭 IME 上下文创建"约省 500 ms，据此在启动阶段
 完整需求见 [`docs/requirements.md`](docs/requirements.md)，界面规范见 [`docs/ui-guidelines.md`](docs/ui-guidelines.md)。
 **未实现部分的完整盘点与逐项实现方案见 [`docs/m2-plan.md`](docs/m2-plan.md)**（0.1.0 收尾 5 天 + 0.2.0 约 6 周）。
 
+多标签与双窗格的前置重构见 [`docs/pane-refactor.md`](docs/pane-refactor.md)；
+彩色标签的存储方案复核见 [`docs/tags-storage.md`](docs/tags-storage.md)；
+内存门禁的现行口径见 [ADR-0008](docs/adr/0008-memory-baseline-recalibration.md)。
+
 ## 构建
 
 ```powershell

@@ -86,6 +86,12 @@ public sealed class CommandRegistry
             ? c
             : throw new KeyNotFoundException($"未注册的命令：{id}");
 
+    /// <summary>
+    /// 尝试取命令，不抛异常。多张命令表之间路由时用：
+    /// "窗格有没有这条命令"决定按键落到谁身上，而不是看它此刻可不可执行。
+    /// </summary>
+    public bool TryGet(string id, out AppCommand command) => _commands.TryGetValue(id, out command!);
+
     /// <summary>执行命令。不可执行时不抛异常，返回 false（快捷键应静默忽略，不弹错）。</summary>
     public bool Invoke(string id)
     {
