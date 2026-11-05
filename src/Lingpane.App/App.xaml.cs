@@ -159,6 +159,11 @@ public partial class App : Application
         FontScaleService.Apply(
             Settings.Appearance.FontSizePt,
             Settings.Appearance.Density == DensityKind.Compact);
+
+        // 字体族必须在这里也应用一次。此前只有设置页下拉框的选中回调会调它，
+        // 结果是重启后主窗口一直用默认字体，直到用户打开过一次设置页（AC-06 走查发现）。
+        // 这里按名字应用，不枚举系统字体——FontCatalog 明确不参与启动路径。
+        FontScaleService.ApplyFontFamilyByName(Settings.Appearance.FontFamily);
         StartupTrace.Mark("fontscale");
 
         var window = new MainWindow

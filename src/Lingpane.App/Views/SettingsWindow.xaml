@@ -26,8 +26,9 @@
                 BorderThickness="0,0,0,1">
             <StackPanel>
                 <TextBlock Style="{StaticResource Text.Title}" Text="{loc:Tr Key=Toolbar.Settings}"/>
+                <!-- 用可换行版本：24pt 下这句副标题比窗口宽，单行会被省略号截断（AC-06） -->
                 <TextBlock Margin="0,4,0,0"
-                           Style="{StaticResource Text.Caption}"
+                           Style="{StaticResource Text.Caption.Wrap}"
                            Text="{loc:Tr Key=Settings.Subtitle}"/>
             </StackPanel>
         </Border>
@@ -234,24 +235,28 @@
                 Background="{DynamicResource Brush.Surface.Window}"
                 BorderBrush="{DynamicResource Brush.Border.Hairline}"
                 BorderThickness="0,1,0,0">
+            <!--
+                三个按钮不放在同一行的四个自动列里：列宽都是 Auto，内容比窗口宽时
+                不会压缩也不会换行，只会把最右边的「关闭」推出窗口（英文 24pt 实测被切）。
+                左侧两个次要操作改用 WrapPanel，挤不下时折成两行。
+            -->
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <Button Grid.Column="0"
-                        Style="{StaticResource Button.Toolbar}"
-                        Content="{loc:Tr Key=Settings.ResetAppearance}"
-                        Click="OnResetAppearance"
-                        ToolTip="{loc:Tr Key=Settings.ResetAppearance.Tip}"/>
+                <WrapPanel Grid.Column="0" VerticalAlignment="Center">
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            Content="{loc:Tr Key=Settings.ResetAppearance}"
+                            Click="OnResetAppearance"
+                            ToolTip="{loc:Tr Key=Settings.ResetAppearance.Tip}"/>
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            Content="{loc:Tr Key=Settings.OpenDataDir}"
+                            Click="OnOpenDataDir"/>
+                </WrapPanel>
                 <Button Grid.Column="1"
-                        Style="{StaticResource Button.Toolbar}"
-                        Content="{loc:Tr Key=Settings.OpenDataDir}"
-                        Click="OnOpenDataDir"/>
-                <Button Grid.Column="3"
+                        VerticalAlignment="Bottom"
                         Style="{StaticResource Button.Toolbar}"
                         Content="{loc:Tr Key=Common.Close}"
                         Click="OnClose"/>

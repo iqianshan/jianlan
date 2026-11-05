@@ -12,102 +12,63 @@
     -->
     <sys:String x:Key="Theme.Name">HighContrast</sys:String>
 
-    <Color x:Key="Color.Surface.Window">{x:Static SystemColors.WindowColor}</Color>
-    <Color x:Key="Color.Surface.Content">{x:Static SystemColors.WindowColor}</Color>
-    <Color x:Key="Color.Surface.Sidebar">{x:Static SystemColors.WindowColor}</Color>
-    <Color x:Key="Color.Surface.Floating">{x:Static SystemColors.WindowColor}</Color>
-    <Color x:Key="Color.Surface.Interactive">{x:Static SystemColors.WindowColor}</Color>
-    <Color x:Key="Color.Surface.Hover">{x:Static SystemColors.HighlightColor}</Color>
-    <Color x:Key="Color.Surface.Pressed">{x:Static SystemColors.HighlightColor}</Color>
-    <Color x:Key="Color.Surface.Selected">{x:Static SystemColors.HighlightColor}</Color>
-    <Color x:Key="Color.Surface.SelectedInactive">{x:Static SystemColors.HighlightColor}</Color>
+    <!--
+        注意：本主题没有 Color.* 中间层，画刷直接用 {x:Static SystemColors.XxxColor} 上色。
+        原因是 <Color x:Key="...">{x:Static ...}</Color> 这种写法在 XAML 里非法——
+        <Color> 的文本内容会交给 ColorConverter 按字符串解析，结果是启动即抛
+        XamlParseException「无法从文本“{x:Static SystemColors.WindowColor}”创建 Color」，
+        崩溃日志里表现为 Theme 为 HighContrast、Show() 阶段挂掉。
+        {x:Static} 只能用在 Color 类型的“属性”上（如 SolidColorBrush.Color），
+        不能当元素内容。Color.* 目前没有外部消费者，只有本文件用来拼画刷，故直接省略。
+    -->
 
-    <Color x:Key="Color.Border.Window">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Border.Strong">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Border.Hairline">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Border.Focus">{x:Static SystemColors.HighlightColor}</Color>
+    <SolidColorBrush x:Key="Brush.Surface.Window" Color="{x:Static SystemColors.WindowColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Surface.Content" Color="{x:Static SystemColors.WindowColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Surface.Sidebar" Color="{x:Static SystemColors.WindowColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Surface.Floating" Color="{x:Static SystemColors.WindowColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Surface.Interactive" Color="{x:Static SystemColors.WindowColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Surface.Hover" Color="{x:Static SystemColors.HighlightColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Surface.Pressed" Color="{x:Static SystemColors.HighlightColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Surface.Selected" Color="{x:Static SystemColors.HighlightColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Surface.SelectedInactive" Color="{x:Static SystemColors.HighlightColor}" po:Freeze="True"/>
 
-    <Color x:Key="Color.Text.Primary">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Text.Secondary">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Text.Tertiary">{x:Static SystemColors.GrayTextColor}</Color>
-    <Color x:Key="Color.Text.Disabled">{x:Static SystemColors.GrayTextColor}</Color>
-    <Color x:Key="Color.Text.OnAccent">{x:Static SystemColors.HighlightTextColor}</Color>
-    <Color x:Key="Color.Text.OnSelected">{x:Static SystemColors.HighlightTextColor}</Color>
-    <Color x:Key="Color.Text.Link">{x:Static SystemColors.HotTrackColor}</Color>
+    <SolidColorBrush x:Key="Brush.Border.Window" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Border.Strong" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Border.Hairline" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Border.Focus" Color="{x:Static SystemColors.HighlightColor}" po:Freeze="True"/>
 
-    <Color x:Key="Color.Icon.Primary">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Icon.Secondary">{x:Static SystemColors.WindowTextColor}</Color>
+    <SolidColorBrush x:Key="Brush.Text.Primary" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Text.Secondary" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Text.Tertiary" Color="{x:Static SystemColors.GrayTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Text.Disabled" Color="{x:Static SystemColors.GrayTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Text.OnAccent" Color="{x:Static SystemColors.HighlightTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Text.OnSelected" Color="{x:Static SystemColors.HighlightTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Text.Link" Color="{x:Static SystemColors.HotTrackColor}" po:Freeze="True"/>
 
-    <Color x:Key="Color.Accent.Default">{x:Static SystemColors.HighlightColor}</Color>
-    <Color x:Key="Color.Accent.Hover">{x:Static SystemColors.HighlightColor}</Color>
-    <Color x:Key="Color.Accent.Pressed">{x:Static SystemColors.HighlightColor}</Color>
-    <Color x:Key="Color.Accent.Subtle">{x:Static SystemColors.HighlightColor}</Color>
+    <SolidColorBrush x:Key="Brush.Icon.Primary" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Icon.Secondary" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
 
-    <Color x:Key="Color.Status.Danger">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Status.Warning">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Status.Success">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Status.Info">{x:Static SystemColors.WindowTextColor}</Color>
+    <SolidColorBrush x:Key="Brush.Accent.Default" Color="{x:Static SystemColors.HighlightColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Accent.Hover" Color="{x:Static SystemColors.HighlightColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Accent.Pressed" Color="{x:Static SystemColors.HighlightColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Accent.Subtle" Color="{x:Static SystemColors.HighlightColor}" po:Freeze="True"/>
 
-    <Color x:Key="Color.Tag.Red">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Tag.Orange">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Tag.Yellow">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Tag.Green">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Tag.Blue">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Tag.Purple">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Tag.Gray">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Tag.Black">{x:Static SystemColors.WindowTextColor}</Color>
+    <SolidColorBrush x:Key="Brush.Status.Danger" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Status.Warning" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Status.Success" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Status.Info" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
 
-    <Color x:Key="Color.Scroll.Thumb">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Scroll.ThumbHover">{x:Static SystemColors.WindowTextColor}</Color>
-    <Color x:Key="Color.Overlay.Scrim">{x:Static SystemColors.ControlColor}</Color>
+    <SolidColorBrush x:Key="Brush.Tag.Red" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Tag.Orange" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Tag.Yellow" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Tag.Green" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Tag.Blue" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Tag.Purple" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Tag.Gray" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Tag.Black" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
 
-    <SolidColorBrush x:Key="Brush.Surface.Window" Color="{StaticResource Color.Surface.Window}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Surface.Content" Color="{StaticResource Color.Surface.Content}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Surface.Sidebar" Color="{StaticResource Color.Surface.Sidebar}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Surface.Floating" Color="{StaticResource Color.Surface.Floating}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Surface.Interactive" Color="{StaticResource Color.Surface.Interactive}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Surface.Hover" Color="{StaticResource Color.Surface.Hover}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Surface.Pressed" Color="{StaticResource Color.Surface.Pressed}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Surface.Selected" Color="{StaticResource Color.Surface.Selected}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Surface.SelectedInactive" Color="{StaticResource Color.Surface.SelectedInactive}" po:Freeze="True"/>
-
-    <SolidColorBrush x:Key="Brush.Border.Window" Color="{StaticResource Color.Border.Window}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Border.Strong" Color="{StaticResource Color.Border.Strong}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Border.Hairline" Color="{StaticResource Color.Border.Hairline}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Border.Focus" Color="{StaticResource Color.Border.Focus}" po:Freeze="True"/>
-
-    <SolidColorBrush x:Key="Brush.Text.Primary" Color="{StaticResource Color.Text.Primary}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Text.Secondary" Color="{StaticResource Color.Text.Secondary}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Text.Tertiary" Color="{StaticResource Color.Text.Tertiary}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Text.Disabled" Color="{StaticResource Color.Text.Disabled}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Text.OnAccent" Color="{StaticResource Color.Text.OnAccent}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Text.OnSelected" Color="{StaticResource Color.Text.OnSelected}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Text.Link" Color="{StaticResource Color.Text.Link}" po:Freeze="True"/>
-
-    <SolidColorBrush x:Key="Brush.Icon.Primary" Color="{StaticResource Color.Icon.Primary}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Icon.Secondary" Color="{StaticResource Color.Icon.Secondary}" po:Freeze="True"/>
-
-    <SolidColorBrush x:Key="Brush.Accent.Default" Color="{StaticResource Color.Accent.Default}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Accent.Hover" Color="{StaticResource Color.Accent.Hover}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Accent.Pressed" Color="{StaticResource Color.Accent.Pressed}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Accent.Subtle" Color="{StaticResource Color.Accent.Subtle}" po:Freeze="True"/>
-
-    <SolidColorBrush x:Key="Brush.Status.Danger" Color="{StaticResource Color.Status.Danger}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Status.Warning" Color="{StaticResource Color.Status.Warning}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Status.Success" Color="{StaticResource Color.Status.Success}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Status.Info" Color="{StaticResource Color.Status.Info}" po:Freeze="True"/>
-
-    <SolidColorBrush x:Key="Brush.Tag.Red" Color="{StaticResource Color.Tag.Red}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Tag.Orange" Color="{StaticResource Color.Tag.Orange}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Tag.Yellow" Color="{StaticResource Color.Tag.Yellow}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Tag.Green" Color="{StaticResource Color.Tag.Green}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Tag.Blue" Color="{StaticResource Color.Tag.Blue}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Tag.Purple" Color="{StaticResource Color.Tag.Purple}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Tag.Gray" Color="{StaticResource Color.Tag.Gray}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Tag.Black" Color="{StaticResource Color.Tag.Black}" po:Freeze="True"/>
-
-    <SolidColorBrush x:Key="Brush.Scroll.Thumb" Color="{StaticResource Color.Scroll.Thumb}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Scroll.ThumbHover" Color="{StaticResource Color.Scroll.ThumbHover}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Overlay.Scrim" Color="{StaticResource Color.Overlay.Scrim}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Scroll.Thumb" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Scroll.ThumbHover" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Overlay.Scrim" Color="{x:Static SystemColors.ControlColor}" po:Freeze="True"/>
 
 </ResourceDictionary>

@@ -29,7 +29,11 @@ public sealed record FontMetrics(
     double ColumnNameMinWidth,
     double ColumnDateWidth,
     double ColumnTypeWidth,
-    double ColumnSizeWidth)
+    double ColumnSizeWidth,
+    double FieldLabelWidth,
+    double ComboPaddingLeft,
+    double ComboArrowWidth,
+    double ComboArrowRight)
 {
     /// <summary>字号范围 8–24pt（FR-5.1.6）。</summary>
     public const double MinPoints = 8d;
@@ -89,7 +93,14 @@ public sealed record FontMetrics(
             ColumnNameMinWidth: Even(160d * s),
             ColumnDateWidth: Even(110d * s),
             ColumnTypeWidth: Even(110d * s),
-            ColumnSizeWidth: Even(90d * s));
+            ColumnSizeWidth: Even(90d * s),
+            // 设置页左侧标签列。原来是写死的 120，24pt 下"界面语言"被压成"界面…"（AC-06）
+            FieldLabelWidth: Even(120d * s),
+            // 下拉框内边距：右侧要留出箭头的位置。写死 10/28 时 24pt 下
+            // "简体中文"会顶到 ▾ 上（AC-06 走查发现）
+            ComboPaddingLeft: Even(10d * s),
+            ComboArrowWidth: Even(34d * s),
+            ComboArrowRight: Even(10d * s));
     }
 
     private static double Size(double basePx, double ratio, double min) =>

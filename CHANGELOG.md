@@ -69,6 +69,14 @@
 
 ### 修复
 
+- **高对比度模式下应用启动即崩溃**：`Theme.HighContrast.xaml` 用 41 条
+  `<Color x:Key="...">{x:Static SystemColors.XxxColor}</Color>` 取系统色，而 `<Color>` 的
+  元素文本走 `ColorConverter` 按字符串解析，不认标记扩展，启动即在 `Show()` 抛
+  `XamlParseException`。改为画刷直接 `Color="{x:Static ...}"`，并去掉高对比度字典的
+  `Color.*` 中间层
+- **重启后界面字体不生效**：`Appearance.FontFamily` 只在设置页下拉框选中时应用，启动路径
+  从未调 `ApplyFontFamily`，主窗口一直是默认字体，直到用户打开过一次设置页（FR-5.1.5）。
+  启动时按名字补一次应用，不枚举系统字体
 - **中文界面混入英文异常原文**：新建/重命名/复制/移动/删除失败时，状态栏是"资源键译文 +
   运行时异常原文"，而异常消息跟随系统语言，永久英文。新增 `FsErrors` 归类到
   `E1001`–`E1007`，界面只显示译文，原文进 `app.log`（`LogSink` 由 App 装配）
@@ -78,6 +86,15 @@
   判定"被占用/没权限"，判不出给通用文案，十六进制码只进日志
 - 英文界面下设置页两条提示被省略号截断（"applies to this session o…"）：`Text.FieldHint`
   只设了外边距、不换行。改为按宽度换行（`TextWrapping="Wrap"` + `TextTrimming="None"`）
+- 大字号下设置页标签被压成"界面…"：标签列宽写死 120，改为 `Size.FieldLabel.Width`（120 × 字号比例）
+- 大字号下下拉框文字顶到 ▾：`ComboBox` 模板的 `ContentPresenter` / 箭头外边距是字面量，
+  改为随字号缩放的 `Size.ComboContent.Margin` / `Size.ComboArrow.Margin`
+- 简体中文界面在 24pt 下副标题被省略号截断：改用可换行样式
+- 英文 24pt 下设置页"关闭"按钮被挤出窗口：底部操作栏列宽全为 `Auto` 时不会压缩也不会换行，
+  左侧两个次要操作改为 `WrapPanel` 折行，`Close` 单独右对齐
+- 英文 24pt 下导航栏 "Documents / Downloads" 被硬裁掉末尾字母（无省略号）：导航栏宽度写死 184，
+  改为按内容取宽并夹在 184–320；行模板由横向 `StackPanel` 换成两列 `Grid` + `TextTrimming`，
+  真正超长时以省略号收尾
 - 切换界面语言后，列表"类型"列停在旧语言：`TypeText` 虽不缓存，但绑定只在收到
   `PropertyChanged` 时重取。语言切换时批量通知一次（`FileEntry.RefreshTypeText`）
 - 英文界面里属性窗口与删除确认弹中文按钮（「确定」「是(Y)/否(N)」）：`MessageBox` 的按钮

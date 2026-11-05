@@ -73,6 +73,12 @@ public static class FontScaleService
         res["Column.Type.Width"] = m.ColumnTypeWidth;
         res["Column.Size.Width"] = m.ColumnSizeWidth;
 
+        // 表单标签列与紧随其后的提示缩进：一起缩放，否则 24pt 会截断、9pt 会拉开空隙
+        res["Size.FieldLabel.Width"] = m.FieldLabelWidth;
+        res["Size.FieldHint.Margin"] = new Thickness(m.FieldLabelWidth + 8, 4, 0, 0);
+        res["Size.ComboContent.Margin"] = new Thickness(m.ComboPaddingLeft, 0, m.ComboArrowWidth, 0);
+        res["Size.ComboArrow.Margin"] = new Thickness(0, 0, m.ComboArrowRight, 0);
+
         // Size.Icon.* 有意不写入：FONT-06 要求图标尺寸不随字号变化
 
         SelectedPoints = points is null ? null : Math.Round(m.Points, 2);
@@ -99,6 +105,14 @@ public static class FontScaleService
     }
 
     private static FontFamily? _defaultUiFamily;
+
+    /// <summary>
+    /// 按已保存的字体族名应用（启动路径专用，不枚举系统字体）。
+    /// 名字在本机不存在时 WPF 会按字体栈自行回落，这里不做判断；
+    /// 设置页 Resolve 时查不到会给 FONT-03 的回落提示。
+    /// </summary>
+    public static void ApplyFontFamilyByName(string? source) =>
+        ApplyFontFamily(string.IsNullOrWhiteSpace(source) ? null : new FontFamily(source));
 
     public static event EventHandler<FontFamily?>? UiFontChanged;
 

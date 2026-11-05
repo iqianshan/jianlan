@@ -50,13 +50,13 @@
                                 BorderThickness="{DynamicResource BorderThickness.Hairline}"
                                 CornerRadius="{StaticResource CornerRadius.Control}"/>
 
-                        <ContentPresenter Margin="10,0,28,0"
+                        <ContentPresenter Margin="{DynamicResource Size.ComboContent.Margin}"
                                           VerticalAlignment="Center"
                                           IsHitTestVisible="False"
                                           Content="{TemplateBinding SelectionBoxItem}"
                                           ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"/>
 
-                        <TextBlock Margin="0,0,10,0"
+                        <TextBlock Margin="{DynamicResource Size.ComboArrow.Margin}"
                                    HorizontalAlignment="Right"
                                    VerticalAlignment="Center"
                                    IsHitTestVisible="False"
@@ -158,14 +158,16 @@
         <Setter Property="Margin" Value="0,0,0,8"/>
     </Style>
 
-    <!-- 设置项标签：固定宽度，让右侧控件左边缘对齐 -->
+    <!-- 设置项标签：定宽，让右侧控件左边缘对齐。
+         宽度必须随字号缩放（FontMetrics.FieldLabelWidth）：写死 120 时 24pt 下
+         "界面语言"被截成"界面…"（AC-06 走查发现）。 -->
     <Style x:Key="Text.FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource Text.Base}">
-        <Setter Property="Width" Value="120"/>
+        <Setter Property="Width" Value="{DynamicResource Size.FieldLabel.Width}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
     </Style>
 
     <Style x:Key="Text.FieldHint" TargetType="TextBlock" BasedOn="{StaticResource Text.Caption}">
-        <Setter Property="Margin" Value="128,4,0,0"/>
+        <Setter Property="Margin" Value="{DynamicResource Size.FieldHint.Margin}"/>
         <!-- 英文提示比中文长 30–50%，单行必然被省略号截断（AC-11）。
              换行而不是加宽：提示本来就是补充信息，两行比横向撑破布局更可接受。 -->
         <Setter Property="TextWrapping" Value="Wrap"/>

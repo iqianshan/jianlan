@@ -59,7 +59,9 @@ public static void ApplyTheme(string name)
 }
 ```
 
-**规则 1.2**　三份主题字典的键集合必须完全一致（当前 83 个键）。新增颜色键时三份同步新增，否则切换主题会出现资源缺失而回退为默认黑字。
+**规则 1.2**　对外契约是三份主题字典的 **`Brush.*` + `Theme.Name` 键集合完全一致**（当前 42 个键），新增画刷时三份同步新增，否则切换主题会出现资源缺失而回退为默认黑字。
+
+> `Color.*`（41 个）只是浅色/深色两份字典内部的中间层，画刷以 `Color="{StaticResource Color.X}"` 引用，字典外无任何消费者。高对比度**不设这一层**：`<Color x:Key="...">{x:Static SystemColors.WindowColor}</Color>` 在 XAML 里非法（元素文本走 `ColorConverter` 按字符串解析，取不到 `x:Static`），`{x:Static}` 只能用在其值为 `Color` 的**属性**上。因此高对比度的画刷直接写 `Color="{x:Static SystemColors.XxxColor}"`，随系统配色方案（黑/白）变化。详见 `docs/ac06-visual-acceptance.md` §3.1。
 
 **规则 1.3**　所有 `SolidColorBrush` 必须带 `po:Freeze="True"`。不可冻结的画刷在 WPF 中会产生额外的变更通知开销，列表万行滚动时可见。
 
@@ -108,7 +110,7 @@ public static void ApplyTheme(string name)
 | 标题栏高度 | 40 | `Size.TitleBar.Height` | 随动 |
 | 标签页高度 | 30，最小宽 100，最大宽 200 | `Size.Tab.*` | 随动 |
 | 工具栏高度 | 48 | `Size.Toolbar.Height` | 随动 |
-| 导航栏宽度 | 默认 184，范围 160–320 | `Size.Nav.Width.*` | 不动 |
+| 导航栏宽度 | 下限 184（`Size.Nav.Width.Default`），上限 320（`Size.Nav.Width.Max`） | `Size.Nav.Width.*` | 不缩放，但**按内容取宽**：内容不足 184 时等于 184 |
 | 导航项高度 | 28 → 与行高一致 | `Size.Nav.Item.Height` | 随动 |
 | 列表表头高度 | 30 | `Size.Row.Header` | 随动 |
 | 列表行高（当前生效） | 32 | `Size.Row.Active` | 随动 |
@@ -410,7 +412,7 @@ public static void ApplyTheme(string name)
 | F-13 | 用 `SetWindowRgn` 硬裁圆角 | Win11 用 DWM，Win10 保持直角 |
 | F-14 | 界面 XAML 内联颜色与魔法数字 | 全部走 token |
 | F-15 | 用 `Opacity` 灰化非焦点窗格 | 1px 描边区分焦点 |
-| F-16 | 为功能新增视觉效果而新增颜色键 | 复用现有 83 键，新增须评审 |
+| F-16 | 为功能新增视觉效果而新增颜色键 | 复用现有 41 个画刷键，新增须评审 |
 
 ---
 
@@ -419,7 +421,7 @@ public static void ApplyTheme(string name)
 提交前逐条勾选，未勾选不予合并：
 
 - [ ] XAML 中无颜色字面量、无魔法数字（全局搜索 `#`、`Red`、`White` 与裸数字）
-- [ ] 新增颜色键三份主题字典已同步，键数一致（当前 83）
+- [ ] 新增画刷键三份主题字典已同步，`Brush.*` + `Theme.Name` 键数一致（当前 42）
 - [ ] 所有新增 `SolidColorBrush` 带 `po:Freeze="True"`
 - [ ] 新增控件只使用表格中定义的字号/字重，未出现 `Medium`/`SemiBold`
 - [ ] 数值列已开启 `Typography.NumeralAlignment="Tabular"` 且右对齐
@@ -429,7 +431,7 @@ public static void ApplyTheme(string name)
 - [ ] 字号相关属性（`FontSize` / `FontFamily` / `LineHeight` / 行高 / 列宽）全部 `DynamicResource`，未出现 `StaticResource`
 - [ ] 界面未单独覆盖 `FontSize`，全部套用 `Typography.xaml` 中的样式
 - [ ] 字号 9 / 14 / 24pt 三档各目视一遍：无裁切、无重叠、列不截断、滚动位置不跳
-- [ ] 三种主题目视检查：浅色、深色、高对比度下无文字不可读、无控件错位（AC-06）
+- [x] 三种主题目视检查：浅色、深色、高对比度下无文字不可读、无控件错位（AC-06，记录见 `docs/ac06-visual-acceptance.md`）
 - [ ] 键盘走一遍：Tab 顺序、焦点可见、Space/Enter 可操作
 - [ ] 冷启动复测（NF-08 门禁通过）
 
@@ -467,7 +469,9 @@ public static void ApplyTheme(string name)
 | `Font.Scale` | 只读系数 |
 | `Font.Family.UI` | 用户选择的字体族（无则保持默认栈） |
 
-**不随字号变化**：`Size.Icon.*`（FONT-06 明确要求图标尺寸不跟字号）、`Space.*`、`Padding.*`、`Size.Nav.Width.*`、`Size.ScrollBar.Thickness`、`Size.Splitter.Thickness`。
+**不随字号变化**：`Size.Icon.*`（FONT-06 明确要求图标尺寸不跟字号）、`Space.*`、`Padding.*`、`Size.ScrollBar.Thickness`、`Size.Splitter.Thickness`。
+
+**例外**：`Size.Nav.Width.*` 不是缩放，而是**上下限**——导航栏 `Width="Auto"` 取内容宽度并夹在 184–320 之间。写死 184 时英文 24pt 的 "Documents / Downloads" 会被硬裁掉最后几个字母（AC-06 实测），中文与常规字号下内容不足 184，宽度与写死时完全一致。
 
 ### 15.3 实现约束
 
@@ -502,7 +506,7 @@ public static void ApplyTheme(string name)
 
 ### 15.6 验收
 
-- 按 AC-06：**9 / 14 / 24pt 三档** × 浅色 / 深色 / 高对比度共 9 组，逐组检查：无裁切、无重叠、无控件错位、滚动位置不跳。
+- 按 AC-06：**9 / 14 / 24pt 三档** × 浅色 / 深色 / 高对比度共 9 组，逐组检查：无裁切、无重叠、无控件错位、滚动位置不跳。已走查完毕（9/9 PASS），记录见 `docs/ac06-visual-acceptance.md`；英文界面另测 14/24pt，发现两处只在英文大字号下暴露的缺陷（设置页底部按钮被挤出窗口、导航栏文字被硬裁）。
 - 自动化断言三条：行高 token 与行字号成正比；列宽之和与列表可视宽一致或正确触发横向滚动；切换耗时 <100ms。
 
 ---
@@ -520,7 +524,8 @@ public static void ApplyTheme(string name)
 | 动效 | `Duration.*`、`Easing.*`、`Motion.*` | 6 | Static |
 | 列宽 | `Column.*` | 4 | Dynamic |
 | 层级 | `ZIndex.*` | 3 | Static |
-| 颜色 | `Color.*` | 41 | Dynamic（经 `Brush.*` 间接使用） |
+| 颜色 | `Color.*` | 41 | Dynamic，仅浅色/深色内部中转；高对比度直接绑 `SystemColors` |
 | 画刷 | `Brush.*` | 41 | Dynamic |
 | **合计** | `DesignTokens.xaml` | **80** | — |
-| **合计** | 单个主题字典 | **83**（41 色 + 41 刷 + `Theme.Name`） | — |
+| **合计** | 浅色 / 深色字典 | **83**（41 色 + 41 刷 + `Theme.Name`） | — |
+| **合计** | 高对比度字典 | **42**（41 刷 + `Theme.Name`，无 `Color.*` 层） | — |

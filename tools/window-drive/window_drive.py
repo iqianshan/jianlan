@@ -263,6 +263,8 @@ def main() -> int:
             "alt+left": (0x12, 0x25),
             "alt+right": (0x12, 0x27),
             "f2": (0x71,),
+            "down": (0x28,),
+            "up": (0x26,),
             "alt+enter": (0x12, 0x0D),
             "f5": (0x74,),
             "delete": (0x2E,),

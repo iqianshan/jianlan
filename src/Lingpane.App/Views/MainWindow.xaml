@@ -165,24 +165,40 @@
             </Grid.ColumnDefinitions>
 
             <!-- 常用目录（FR-1.1） -->
+            <!--
+                宽度取内容宽度并夹在 184–320 之间（AC-06 走查修正）：
+                原来写死 184，英文 24pt 下 "Documents / Downloads" 比栏宽还长，
+                被 ListBox 直接切掉、连省略号都没有。改为随内容增长，
+                中文与常规字号下内容不足 184，宽度与原来完全一致。
+            -->
             <ListBox x:Name="QuickAccessList"
                      Grid.Column="0"
-                     Width="{DynamicResource Size.Nav.Width.Default}"
+                     Width="Auto"
+                     MinWidth="{DynamicResource Size.Nav.Width.Default}"
+                     MaxWidth="{DynamicResource Size.Nav.Width.Max}"
                      Style="{StaticResource Nav.Surface}"
                      ItemsSource="{Binding QuickAccess}"
                      SelectionChanged="OnQuickAccessSelectionChanged">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <StackPanel Orientation="Horizontal"
-                                    Margin="{StaticResource Padding.NavItem}"
-                                    VerticalAlignment="Center">
-                            <TextBlock Margin="0,0,8,0"
+                        <!-- 用两列 Grid 而不是横向 StackPanel：StackPanel 横向测量时给子项无限宽，
+                             TextTrimming 永远不触发，文字只会被硬裁。 -->
+                        <Grid Margin="{StaticResource Padding.NavItem}"
+                              VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Margin="0,0,8,0"
                                        Style="{StaticResource Text.Glyph}"
                                        Text="{Binding Glyph}"/>
-                            <TextBlock Style="{StaticResource Text.Nav}"
+                            <TextBlock Grid.Column="1"
+                                       Style="{StaticResource Text.Nav}"
                                        Text="{Binding Name}"
+                                       TextTrimming="CharacterEllipsis"
                                        VerticalAlignment="Center"/>
-                        </StackPanel>
+                        </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
