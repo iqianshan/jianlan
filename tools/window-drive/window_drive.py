@@ -15,8 +15,30 @@ import sys
 import time
 
 user32 = ctypes.WinDLL("user32", use_last_error=True)
+dwmapi = ctypes.WinDLL("dwmapi", use_last_error=True)
 
 WM_CLOSE = 0x0010
+DWMWA_EXTENDED_FRAME_BOUNDS = 9
+
+
+def _enable_dpi_awareness() -> None:
+    """声明本进程 DPI 感知。
+
+    不声明就会被系统按 96 DPI 逻辑坐标欺骗：GetWindowRect 返回缩小后的矩形，
+    而 PrintWindow 按物理像素绘制，于是截图右下角被裁掉一块（窗口越高缺得越多）。
+    """
+    try:
+        if user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4)):  # PER_MONITOR_AWARE_V2
+            return
+    except AttributeError:
+        pass
+    try:
+        user32.SetProcessDPIAware()
+    except AttributeError:
+        pass
+
+
+_enable_dpi_awareness()
 
 
 def find_window(pid: int) -> int:
@@ -48,6 +70,20 @@ def get_rect(hwnd: int):
     rect = wt.RECT()
     user32.GetWindowRect(hwnd, ctypes.byref(rect))
     return rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top
+
+
+def get_visible_rect(hwnd: int):
+    """窗口的可见边界（不含 DWM 阴影）。取不到就退回 GetWindowRect。"""
+    rect = wt.RECT()
+    try:
+        hr = dwmapi.DwmGetWindowAttribute(
+            wt.HWND(hwnd), DWMWA_EXTENDED_FRAME_BOUNDS, ctypes.byref(rect), ctypes.sizeof(rect)
+        )
+        if hr == 0 and rect.right > rect.left and rect.bottom > rect.top:
+            return rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top
+    except (AttributeError, OSError):
+        pass
+    return get_rect(hwnd)
 
 
 def main() -> int:
@@ -224,8 +260,11 @@ def main() -> int:
     if action == "screenshot":
         # 抓窗口位图存 BMP（不依赖 PIL）。用 PrintWindow + PW_RENDERFULLCONTENT，
         # 否则 WPF 的硬件加速内容会抓成一片空白。
+        # 第 4 个参数起可选：<x> <y> <w> <h> 按可见区域裁剪，用于只看某一条（如状态栏）。
         out = sys.argv[3] if len(sys.argv) > 3 else "window.bmp"
-        left, top, width, height = get_rect(hwnd)
+        win_left, win_top, win_w, win_h = get_rect(hwnd)
+        vis_left, vis_top, vis_w, vis_h = get_visible_rect(hwnd)
+        width, height = win_w, win_h
         gdi32 = ctypes.WinDLL("gdi32", use_last_error=True)
 
         hdc = user32.GetWindowDC(hwnd)
@@ -266,11 +305,35 @@ def main() -> int:
             print("GetDIBits 失败")
             return 1
 
+        # 先裁掉 DWM 阴影，得到"眼睛能看到的窗口"；再按请求的矩形二次裁剪。
+        dx, dy = vis_left - win_left, vis_top - win_top
+        crop_w, crop_h, off_x, off_y = vis_w, vis_h, 0, 0
+        if len(sys.argv) >= 7:
+            off_x, off_y = int(sys.argv[4]), int(sys.argv[5])
+            crop_w, crop_h = int(sys.argv[6]), int(sys.argv[7])
+            if off_x < 0 or off_y < 0 or off_x + crop_w > vis_w or off_y + crop_h > vis_h:
+                print(f"裁剪区域超出可见范围 {vis_w}x{vis_h}")
+                return 1
+
+        x0, y0 = dx + off_x, dy + off_y
+        raw = buf.raw
+        if crop_w != width or crop_h != height or x0 or y0:
+            # GetDIBits 给的是 bottom-up：文件里第一行是最底行
+            top_row = height - y0 - crop_h
+            rows = [raw[(top_row + k) * stride + x0 * 4: (top_row + k) * stride + (x0 + crop_w) * 4]
+                    for k in range(crop_h)]
+            raw = b"".join(rows) if top_row >= 0 else raw
+            if top_row < 0:
+                print(f"裁剪起点越界：top_row={top_row}")
+                return 1
+            width, height = crop_w, crop_h
+            stride = width * 4
+
         import struct
         info = struct.pack("<IiiHHIIiiII", 40, width, height, 1, 32, 0, stride * height, 0, 0, 0, 0)
-        file_header = struct.pack("<2sIHHI", b"BM", 14 + 40 + len(buf), 0, 0, 54)
+        file_header = struct.pack("<2sIHHI", b"BM", 14 + 40 + len(raw), 0, 0, 54)
         with open(out, "wb") as f:
-            f.write(file_header + info + buf.raw)
+            f.write(file_header + info + raw)
         print(f"已保存 {out}（{width}x{height}）")
         return 0
 

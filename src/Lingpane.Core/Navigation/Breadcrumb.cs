@@ -28,7 +28,9 @@ public static class Breadcrumb
             if (parts.Length < 2) return [];
 
             string root = @"\\" + parts[0] + @"\" + parts[1];
-            segments.Add(new BreadcrumbSegment(parts[0] + @"\" + parts[1], root));
+            // 显示保留 "\\" 前缀：丢掉之后 "192.0.2.1\share" 与盘符路径长得一样，
+            // 用户无从判断这是网络位置（标题栏是带前缀的，两处不一致更显突兀）。
+            segments.Add(new BreadcrumbSegment(@"\\" + parts[0] + @"\" + parts[1], root));
 
             string accumulated = root;
             for (int i = 2; i < parts.Length; i++)

@@ -539,6 +539,10 @@ public partial class MainWindow : Window
     {
         if (_hotkeyRegistered) return;
 
+        // 探针进程不注册：它是系统级热键，诊断期间抢走用户的 Ctrl+, 属于副作用。
+        // 顺带让 AC-05 的探针与用户实例并存时不再刷 E7001（err=1409 已被占用）。
+        if (ProbePath is not null) return;
+
         _hotkeyWindow = new WindowInteropHelper(this).Handle;
         if (_hotkeyWindow == IntPtr.Zero) return;
 

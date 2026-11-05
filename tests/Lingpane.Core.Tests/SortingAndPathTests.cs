@@ -150,7 +150,7 @@ public sealed class SortingAndPathTests
     {
         var segments = Breadcrumb.Build(@"\\nas\share\docs\2026");
 
-        Assert.Equal(["nas\\share", "docs", "2026"], segments.Select(s => s.Label));
+        Assert.Equal([@"\\nas\share", "docs", "2026"], segments.Select(s => s.Label));
         // 第一段必须是共享根，不能是 \\nas（点进去会无权限）
         Assert.Equal(@"\\nas\share", segments[0].FullPath);
         Assert.Equal(@"\\nas\share\docs", segments[1].FullPath);

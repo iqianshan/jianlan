@@ -40,7 +40,7 @@ public partial class MainWindow
         catch (Exception ex)
         {
             // 拿不到图标只是少个视觉细节，绝不能让浏览流程因此报错
-            Diagnostics.AppLog.Warn("icons.resolve", "E6001", ex.Message);
+            Diagnostics.AppLog.Warn("icons.resolve", "E2001", ex.Message);
             return;
         }
 
