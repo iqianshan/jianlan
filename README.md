@@ -118,6 +118,7 @@ M0 阶段测得"关闭 IME 上下文创建"约省 500 ms，据此在启动阶段
 完整清单见需求文档 §8.3。
 
 完整需求见 [`docs/requirements.md`](docs/requirements.md)，界面规范见 [`docs/ui-guidelines.md`](docs/ui-guidelines.md)。
+**未实现部分的完整盘点与逐项实现方案见 [`docs/m2-plan.md`](docs/m2-plan.md)**（0.1.0 收尾 5 天 + 0.2.0 约 6 周）。
 
 ## 构建
 
