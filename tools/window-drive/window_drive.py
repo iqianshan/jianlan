@@ -616,6 +616,35 @@ def main() -> int:
         print(f"已投递按键 vk=0x{vk:02X}")
         return 0
 
+    if action == "navkey":
+        # 真实按键，但**不抢前台**。给弹出层（右键菜单、下拉框）里的键盘导航用：
+        # keys 每次都会 SetForegroundWindow(主窗口) + SetFocus(主窗口)，
+        # 菜单一打开就把焦点拽回主窗口，随后的 ↓ 全被列表吃掉——
+        # 表现是"菜单开着，高亮项却没动，列表选中项反而在动"。
+        # 弹出层自己会抢前台，所以这里什么都不用做，直接发键即可。
+        vk = int(sys.argv[3], 0)
+        user32.keybd_event(vk, 0, 0, 0)
+        time.sleep(0.05)
+        user32.keybd_event(vk, 0, 2, 0)          # KEYEVENTF_KEYUP
+        time.sleep(0.25)
+        print(f"已发送按键 vk=0x{vk:02X}（不抢前台）")
+        return 0
+
+    if action == "sclick":
+        # 屏幕坐标真实单击，且**不抢前台**。给弹出层（右键菜单、下拉框）里的条目用：
+        # lclick/rclick 会先 SetForegroundWindow(主窗口)，浮动菜单在 owner 被激活时就关了，
+        # 点下去落在"菜单刚消失的位置"，表现为点了个寂寞。
+        # 坐标直接给屏幕像素，调用方从截图里读，不做换算。
+        x, y = int(sys.argv[3]), int(sys.argv[4])
+        user32.SetCursorPos(x, y)
+        time.sleep(0.25)
+        user32.mouse_event(0x0002, 0, 0, 0, 0)   # LEFTDOWN
+        time.sleep(0.08)
+        user32.mouse_event(0x0004, 0, 0, 0, 0)   # LEFTUP
+        time.sleep(0.9)
+        print(f"已屏幕单击 ({x},{y})（不抢前台）")
+        return 0
+
     if action == "front":
         # 抢到前台。capture 是 BitBlt 屏幕矩形，被别的窗口压着就会把别人拍进来；
         # 拍之前先把它拎到最前。

@@ -31,6 +31,9 @@ public static class CommandIds
     public const string ShowContextMenu = "file.contextMenu";
     public const string SelectAll = "file.selectAll";
 
+    // 文件夹大小（FR-6.16）。只有用户显式点菜单才会走到，没有任何自动触发路径。
+    public const string CalculateSize = "file.calculateSize";
+
     // 标签页（FR-2）。窗口级：标签集合属于窗口，不属于某个窗格。
     public const string NewTab = "tab.new";
     public const string CloseTab = "tab.close";

@@ -506,6 +506,22 @@ public partial class PaneView : UserControl
     internal bool HasSingleSelection()
         => _viewModel is { IsLoading: false } && _viewModel.SelectedEntries.Count == 1;
 
+    /// <summary>
+    /// 选中的项里至少有一个目录——「计算大小」的可执行条件。
+    /// 全选文件时置灰而不是隐藏：菜单项位置固定，用户才不会以为功能没了。
+    /// </summary>
+    internal bool HasSelectedFolder()
+    {
+        if (_viewModel is not { IsLoading: false }) return false;
+
+        foreach (var entry in _viewModel.SelectedEntries)
+        {
+            if (entry.IsDirectory) return true;
+        }
+
+        return false;
+    }
+
     internal bool CanCreateInCurrentDirectory()
         => _viewModel is { IsLoading: false } && !string.IsNullOrEmpty(_viewModel.CurrentPath);
 
@@ -670,6 +686,25 @@ public partial class PaneView : UserControl
     /// 键位提示静默为空——界面上看不出错，只能靠下面的日志兜底。
     /// </summary>
     private void OnContextMenuOpened(object sender, RoutedEventArgs e) => ApplyMenuGestures();
+
+    /// <summary>
+    /// 状态栏的「取消」（FR-6.16）。只发取消信号，收尾（复位行状态、给结论文案）
+    /// 仍由视图模型在扫描返回后统一做——两处都收尾会出现"取消后又被改回已完成"。
+    /// </summary>
+    private void OnCancelFolderSize(object sender, RoutedEventArgs e) => _viewModel?.CancelFolderSizeScan();
+
+    /// <summary>
+    /// 列表上的 Esc：正在算文件夹大小时取消（FR-6.16 的键盘入口）。
+    /// 只在计算中才吃这个键——平时 Esc 在文件列表上没有语义，不能顺手吞掉，
+    /// 否则以后给列表加的 Esc 行为会莫名失效。
+    /// </summary>
+    private void OnFileListKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape || _viewModel is not { IsCalculatingSize: true }) return;
+
+        _viewModel.CancelFolderSizeScan();
+        e.Handled = true;
+    }
 
     private void ApplyMenuGestures()
     {

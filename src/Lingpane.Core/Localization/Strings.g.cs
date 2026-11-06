@@ -409,6 +409,40 @@ public static class Strings
     /// <summary>Could not copy the path</summary>
     public static string Status_CopyPathFailed => LocalizationService.Instance.Get("Status.CopyPathFailed");
 
+    /// <summary>Calculating…</summary>
+    public static string Size_Computing => LocalizationService.Instance.Get("Size.Computing");
+
+    /// <summary>{0} folders</summary>
+    public static string Size_MultiTargets => LocalizationService.Instance.Get("Size.MultiTargets");
+    // 含占位符：string.Format(Strings.Size_MultiTargets, ...)
+
+    /// <summary>Calculate size</summary>
+    public static string Menu_CalculateSize => LocalizationService.Instance.Get("Menu.CalculateSize");
+
+    /// <summary>Total size of every file under this folder; runs only when you ask</summary>
+    public static string Menu_CalculateSize_Tip => LocalizationService.Instance.Get("Menu.CalculateSize.Tip");
+
+    /// <summary>Calculating {0}: {1} items scanned · {2}</summary>
+    public static string Status_SizeCalculating => LocalizationService.Instance.Get("Status.SizeCalculating");
+    // 含占位符：string.Format(Strings.Status_SizeCalculating, ...)
+
+    /// <summary>{0}: {1} ({2} files, {3} folders)</summary>
+    public static string Status_SizeDone => LocalizationService.Instance.Get("Status.SizeDone");
+    // 含占位符：string.Format(Strings.Status_SizeDone, ...)
+
+    /// <summary>{0} not finished ({1} items scanned): at least {2}</summary>
+    public static string Status_SizePartial => LocalizationService.Instance.Get("Status.SizePartial");
+    // 含占位符：string.Format(Strings.Status_SizePartial, ...)
+
+    /// <summary>Size calculation cancelled</summary>
+    public static string Status_SizeCanceled => LocalizationService.Instance.Get("Status.SizeCanceled");
+
+    /// <summary>Select a folder first</summary>
+    public static string Status_SizeNoFolder => LocalizationService.Instance.Get("Status.SizeNoFolder");
+
+    /// <summary>Cancel</summary>
+    public static string Common_Cancel => LocalizationService.Instance.Get("Common.Cancel");
+
     /// <summary>Properties</summary>
     public static string Properties_Title => LocalizationService.Instance.Get("Properties.Title");
 

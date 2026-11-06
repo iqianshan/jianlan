@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using Lingpane.App.Shell;
@@ -47,6 +48,15 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     private string _lastNavigationErrorCode = "E1001";
     private int _lastSelectionCount;
     private long _lastSelectionSize;
+
+    /// <summary>
+    /// 文件夹大小扫描（FR-6.16）。整个窗格同时只允许一个：
+    /// 用户连点两个文件夹时，旧任务取消、旧目标复位，否则它们会永远停在"计算中…"。
+    /// </summary>
+    private CancellationTokenSource? _sizeScanCts;
+    private List<FileEntry> _sizeScanTargets = [];
+    private bool _isCalculatingSize;
+    private string _sizeProgressText = string.Empty;
 
     /// <summary>导航序号：用于丢弃过期的异步枚举结果（快速连按时防止旧目录覆盖新目录）。</summary>
     private int _navigationToken;
@@ -319,6 +329,9 @@ public sealed class PaneViewModel : INotifyPropertyChanged
         // 已经为首屏读过盘，pending 的使命结束（无论成败）
         HasPendingContent = false;
 
+        // 换目录就把扫描停掉：结果只对当前目录的行有意义，留着跑只是白占 IO
+        CancelFolderSizeScan();
+
         IsLoading = true;
         StatusText = Strings.Status_Loading;
 
@@ -489,6 +502,162 @@ public sealed class PaneViewModel : INotifyPropertyChanged
 
     /// <summary>当前选中项。命令的可执行性判断与文件操作都用它，避免各处再从 ListBox 里捞。</summary>
     public IReadOnlyList<FileEntry> SelectedEntries { get; private set; } = [];
+
+    /// <summary>是否正在算文件夹大小。状态栏据此把"选中统计"换成进度与取消按钮。</summary>
+    public bool IsCalculatingSize
+    {
+        get => _isCalculatingSize;
+        private set => Set(ref _isCalculatingSize, value);
+    }
+
+    /// <summary>滚动更新的进度文字（已扫描项数 + 累计大小）。</summary>
+    public string SizeProgressText
+    {
+        get => _sizeProgressText;
+        private set => Set(ref _sizeProgressText, value);
+    }
+
+    /// <summary>取消当前扫描。写盘的是"已扫描的部分"，不是全部——调用方要如实标注。</summary>
+    public void CancelFolderSizeScan() => _sizeScanCts?.Cancel();
+
+    /// <summary>
+    /// 统计选中文件夹的大小（FR-6.16）。**唯一入口**：只由右键菜单「计算大小」调起，
+    /// 没有滚动、选中、计时器会走到这里——需求写明"严禁自动递归"。
+    ///
+    /// 多个文件夹逐个扫而不是并发：并发在机械盘与网络盘上互相拖慢，
+    /// 而用户对"一个一个出结果"的容忍度远高于"全都卡在计算中"。
+    /// </summary>
+    public async Task CalculateFolderSizesAsync(IReadOnlyList<FileEntry> targets)
+    {
+        List<FileEntry> folders = [];
+        foreach (var entry in targets)
+        {
+            if (entry.IsDirectory) folders.Add(entry);
+        }
+
+        if (folders.Count == 0)
+        {
+            // 选中的全是文件时大小列本来就有值，这里只是提醒"这命令对文件无意义"
+            SetStatus(Strings.Status_SizeNoFolder);
+            return;
+        }
+
+        // 单实例：只复位"还卡在计算中"的那几个。
+        // 不能一律 ClearFolderSize——那样用户先算 A、再算 B，A 刚算出的结果会被一起抹掉，
+        // 而"先算一个、再算旁边一个、对着看"正是这个功能最常见的用法。
+        CancelFolderSizeScan();
+        foreach (var entry in _sizeScanTargets)
+        {
+            if (entry.FolderSizeState == FolderSizeState.Computing) entry.ClearFolderSize();
+        }
+
+        _sizeScanTargets = folders;
+
+        var cts = new CancellationTokenSource();
+        _sizeScanCts = cts;
+        IsCalculatingSize = true;
+        SizeProgressText = string.Empty;
+
+        string scope = folders.Count == 1
+            ? folders[0].DisplayName
+            : string.Format(CultureInfo.CurrentCulture, Strings.Size_MultiTargets, folders.Count);
+
+        // Progress 在 UI 线程构造，回调才会回到 UI 线程改绑定属性
+        var progress = new Progress<FolderSizeProgress>(p =>
+        {
+            if (!ReferenceEquals(_sizeScanCts, cts)) return;
+
+            SizeProgressText = string.Format(
+                CultureInfo.CurrentCulture,
+                Strings.Status_SizeCalculating,
+                scope,
+                p.FileCount + p.FolderCount,
+                FileEntry.FormatSizeText(p.Bytes));
+        });
+
+        long totalBytes = 0;
+        long totalFiles = 0;
+        long totalFolders = 0;
+        long scannedItems = 0;
+        bool completed = true;
+        bool canceled = false;
+
+        try
+        {
+            foreach (var folder in folders)
+            {
+                folder.MarkFolderSizeComputing();
+
+                if (cts.IsCancellationRequested)
+                {
+                    completed = false;
+                    break;
+                }
+
+                string path = folder.FullPath;
+                FolderSizeResult result = await Task
+                    .Run(() => FolderSizeCalculator.Count(path, cts.Token, progress), cts.Token)
+                    .ConfigureAwait(true);
+
+                folder.SetFolderSize(result.Bytes, result.Completed);
+
+                totalBytes = result.Bytes > long.MaxValue - totalBytes ? long.MaxValue : totalBytes + result.Bytes;
+                totalFiles += result.FileCount;
+                totalFolders += result.FolderCount;
+                scannedItems += result.FileCount + result.FolderCount;
+                if (!result.Completed) completed = false;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            completed = false;
+        }
+        finally
+        {
+            // 记在 finally 之前读：cts 马上就要释放，之后只能看这个局部变量
+            canceled = cts.IsCancellationRequested;
+
+            // 被取消在"标记完还没开始扫"的那一个行会停在计算中，这里统一收口。
+            // 不清 Completed/Partial 的结果——那些是有效数据。
+            foreach (var folder in folders)
+            {
+                if (folder.FolderSizeState == FolderSizeState.Computing) folder.ClearFolderSize();
+            }
+
+            // 只有"还是自己"才收尾：被新请求顶掉时，收尾归新任务做
+            if (ReferenceEquals(_sizeScanCts, cts))
+            {
+                _sizeScanCts = null;
+                IsCalculatingSize = false;
+                SizeProgressText = string.Empty;
+            }
+
+            cts.Dispose();
+        }
+
+        // 状态栏结论。取消与"算完但有目录打不开"在这里是同一句话的两端：
+        // 前者用户主动喊停，后者是环境不给，都要说清"这个数不是全部"
+        if (!completed)
+        {
+            SetStatus(canceled || scannedItems == 0
+                ? Strings.Status_SizeCanceled
+                : string.Format(
+                    CultureInfo.CurrentCulture,
+                    Strings.Status_SizePartial,
+                    scope,
+                    scannedItems,
+                    FileEntry.FormatSizeText(totalBytes)));
+            return;
+        }
+
+        SetStatus(string.Format(
+            CultureInfo.CurrentCulture,
+            Strings.Status_SizeDone,
+            scope,
+            FileEntry.FormatSizeText(totalBytes),
+            totalFiles,
+            totalFolders));
+    }
 
     public void SetSelectedEntries(IReadOnlyList<FileEntry> entries) => SelectedEntries = entries;
 

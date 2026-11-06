@@ -147,6 +147,14 @@ public partial class App : Application
         SettingsWarning = loaded.Warning;
         _loadedLastPath = Settings.Session.LastPath;
         _loadedTabs = [.. Settings.Session.Tabs];
+
+        // 一条启动记录，回答"这份日志来自哪个版本、哪种数据目录"。
+        // 便携模式下用户不知道数据落在解压目录里，这一行往往是他们唯一的线索；
+        // 版本串带短 commit，能对上到底是哪一次构建，而 0.1.0.0 对不上。
+        Diagnostics.AppLog.Info(
+            "app.start",
+            $"version={AppInfo.Version} portable={AppPaths.IsPortable} data=\"{AppPaths.Root}\"");
+
         if (loaded.Warning is not null)
         {
             Diagnostics.AppLog.Warn("settings.load", "E4001", loaded.Warning);

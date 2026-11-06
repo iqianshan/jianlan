@@ -37,6 +37,12 @@ public sealed class FileEntry : INotifyPropertyChanged
     private string? _dateText;
     // 类型文本曾经缓存在 _typeText，因支持运行时切换语言已去掉缓存（见 TypeText）
 
+    // 文件夹大小（FR-6.16）：只在用户显式触发后才有值。
+    // 每个条目固定多占 9 字节，万项目录约 90KB，相对 NF-05H 的 12MB 上限可以忽略；
+    // 换来的是"结果直接挂在行上"，不必让列表去查一张按路径索引的字典。
+    private long _folderSize;
+    private FolderSizeState _folderSizeState;
+
     public FileEntry(string name, string parentPath, bool isDirectory, long size, DateTime lastWriteTime,
         bool isHidden = false)
     {
@@ -110,10 +116,67 @@ public sealed class FileEntry : INotifyPropertyChanged
     {
         get
         {
-            if (IsDirectory) return string.Empty;
+            if (IsDirectory)
+            {
+                return _folderSizeState switch
+                {
+                    FolderSizeState.Computing => Strings.Size_Computing,
+                    FolderSizeState.Done => FormatSize(_folderSize),
+                    // 未完成标注 "+"：这个数只多不少，不加标记用户会以为是精确值
+                    FolderSizeState.Partial => FormatSize(_folderSize) + "+",
+                    _ => string.Empty,
+                };
+            }
+
             return _sizeText ??= FormatSize(Size);
         }
     }
+
+    /// <summary>
+    /// 文件夹大小的计算状态（FR-6.16）。默认 <see cref="FolderSizeState.None"/>，
+    /// 只有用户显式在右键菜单里点了「计算大小」才会离开这个状态——列表滚动、
+    /// 目录切换都不会触发，这是需求里"严禁自动递归"的落点。
+    /// </summary>
+    public FolderSizeState FolderSizeState => _folderSizeState;
+
+    /// <summary>标记为计算中，让行内先显示占位而不是空白（否则点了没反应）。</summary>
+    public void MarkFolderSizeComputing()
+    {
+        if (!IsDirectory || _folderSizeState == FolderSizeState.Computing) return;
+
+        _folderSizeState = FolderSizeState.Computing;
+        RaiseSizeChanged();
+    }
+
+    /// <summary>写入结果。<paramref name="completed"/> 为 false 时显示成"至少这么多"。</summary>
+    public void SetFolderSize(long bytes, bool completed)
+    {
+        if (!IsDirectory) return;
+
+        _folderSize = bytes;
+        _folderSizeState = completed ? FolderSizeState.Done : FolderSizeState.Partial;
+        RaiseSizeChanged();
+    }
+
+    /// <summary>丢弃结果（被新的计算顶掉时用），回到与刚枚举出来时一致的状态。</summary>
+    public void ClearFolderSize()
+    {
+        if (!IsDirectory || _folderSizeState == FolderSizeState.None) return;
+
+        _folderSize = 0;
+        _folderSizeState = FolderSizeState.None;
+        RaiseSizeChanged();
+    }
+
+    private void RaiseSizeChanged()
+    {
+        PropertyChanged?.Invoke(this, SizeTextChanged);
+        PropertyChanged?.Invoke(this, FolderSizeStateChanged);
+    }
+
+    // 事件参数对象按静态复用：每行每次计算都会触发，新建 12 个对象没有意义
+    private static readonly PropertyChangedEventArgs SizeTextChanged = new(nameof(SizeText));
+    private static readonly PropertyChangedEventArgs FolderSizeStateChanged = new(nameof(FolderSizeState));
 
     public string DateText => _dateText ??= FormatDate(LastWriteTime, DateTime.Now.Year);
 

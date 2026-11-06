@@ -3,6 +3,7 @@
 [Oo]bj/
 artifacts/
 publish/
+dist/
 tools/env-check/WpfBaseline/out/
 *.user
 *.suo

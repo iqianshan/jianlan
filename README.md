@@ -130,8 +130,11 @@ M0 阶段测得"关闭 IME 上下文创建"约省 500 ms，据此在启动阶段
 # 需要 .NET 9 SDK
 dotnet build
 
-# 发布（启用 ReadyToRun）
+# 本地调试用发布（框架依赖，体积小，需本机已装 .NET 9 桌面运行时）
 dotnet publish src/Lingpane.App -c Release -r win-x64 --self-contained false -o publish
+
+# 出正式发布的便携包（AC-09）：自包含运行时 + portable.flag + zip + SHA256
+pwsh tools/release/publish.ps1
 
 # 测启动
 pwsh tools/startup-bench/Measure-Startup.ps1 -Exe publish/Lingpane.exe -Runs 20
@@ -140,6 +143,10 @@ pwsh tools/startup-bench/Measure-Startup.ps1 -Exe publish/Lingpane.exe -Runs 20
 pwsh tools/perf-fixture/New-TestDirectory.ps1 -Path D:\perf-10k -Count 10000
 pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Lingpane.exe -Path D:\perf-10k
 ```
+
+`tools/release/publish.ps1` 的产物在 `dist/`：`Lingpane-<版本>-portable-win-x64.zip`
+（约 70 MB，解压后即用，不写 `%LOCALAPPDATA%`）与配套的 `.sha256`。
+包内的 `portable.flag` 让程序进入便携模式，设置与日志落在解压目录的 `data\` 里。
 
 ## 设计原则
 

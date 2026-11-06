@@ -419,6 +419,36 @@
   <data name="Status.CopyPathFailed" xml:space="preserve">
     <value>Could not copy the path</value>
   </data>
+  <data name="Size.Computing" xml:space="preserve">
+    <value>Calculating…</value>
+  </data>
+  <data name="Size.MultiTargets" xml:space="preserve">
+    <value>{0} folders</value>
+  </data>
+  <data name="Menu.CalculateSize" xml:space="preserve">
+    <value>Calculate size</value>
+  </data>
+  <data name="Menu.CalculateSize.Tip" xml:space="preserve">
+    <value>Total size of every file under this folder; runs only when you ask</value>
+  </data>
+  <data name="Status.SizeCalculating" xml:space="preserve">
+    <value>Calculating {0}: {1} items scanned · {2}</value>
+  </data>
+  <data name="Status.SizeDone" xml:space="preserve">
+    <value>{0}: {1} ({2} files, {3} folders)</value>
+  </data>
+  <data name="Status.SizePartial" xml:space="preserve">
+    <value>{0} not finished ({1} items scanned): at least {2}</value>
+  </data>
+  <data name="Status.SizeCanceled" xml:space="preserve">
+    <value>Size calculation cancelled</value>
+  </data>
+  <data name="Status.SizeNoFolder" xml:space="preserve">
+    <value>Select a folder first</value>
+  </data>
+  <data name="Common.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
   <data name="Properties.Title" xml:space="preserve">
     <value>Properties</value>
   </data>

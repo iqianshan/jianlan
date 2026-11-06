@@ -406,6 +406,36 @@
   <data name="Status.CopyPathFailed" xml:space="preserve">
     <value>复制路径失败</value>
   </data>
+  <data name="Size.Computing" xml:space="preserve">
+    <value>计算中…</value>
+  </data>
+  <data name="Size.MultiTargets" xml:space="preserve">
+    <value>{0} 个文件夹</value>
+  </data>
+  <data name="Menu.CalculateSize" xml:space="preserve">
+    <value>计算大小</value>
+  </data>
+  <data name="Menu.CalculateSize.Tip" xml:space="preserve">
+    <value>递归统计文件夹内所有文件的大小；只在你点这一下时执行</value>
+  </data>
+  <data name="Status.SizeCalculating" xml:space="preserve">
+    <value>正在计算 {0}：已扫描 {1} 项 · {2}</value>
+  </data>
+  <data name="Status.SizeDone" xml:space="preserve">
+    <value>{0}：{1}（{2} 个文件，{3} 个文件夹）</value>
+  </data>
+  <data name="Status.SizePartial" xml:space="preserve">
+    <value>{0} 未算完（已扫描 {1} 项）：至少 {2}</value>
+  </data>
+  <data name="Status.SizeCanceled" xml:space="preserve">
+    <value>已取消计算大小</value>
+  </data>
+  <data name="Status.SizeNoFolder" xml:space="preserve">
+    <value>请先选中要计算大小的文件夹</value>
+  </data>
+  <data name="Common.Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
   <data name="Properties.Title" xml:space="preserve">
     <value>属性</value>
   </data>

@@ -38,6 +38,7 @@ public partial class PaneView
     public CommandAdapter PasteCommand { get; private set; } = null!;
     public CommandAdapter CopyPathCommand { get; private set; } = null!;
     public CommandAdapter PropertiesCommand { get; private set; } = null!;
+    public CommandAdapter CalculateSizeCommand { get; private set; } = null!;
 
     /// <summary>请求开关第二窗格。分屏是窗口形态，窗格只把意图告诉宿主（FR-3.3）。</summary>
     public event Action? SplitToggleRequested;
@@ -198,6 +199,13 @@ public partial class PaneView
         });
         _commands.Register(new AppCommand
         {
+            Id = CommandIds.CalculateSize,
+            TitleFactory = () => Strings.Menu_CalculateSize,
+            Execute = () => _ = _viewModel?.CalculateFolderSizesAsync(_viewModel.SelectedEntries),
+            CanExecute = HasSelectedFolder,
+        });
+        _commands.Register(new AppCommand
+        {
             Id = CommandIds.ShowContextMenu,
             TitleFactory = () => Strings.Command_More,
             Execute = ShowContextMenu,
@@ -227,5 +235,6 @@ public partial class PaneView
         PasteCommand = new CommandAdapter(_commands.Get(CommandIds.Paste));
         CopyPathCommand = new CommandAdapter(_commands.Get(CommandIds.CopyPath));
         PropertiesCommand = new CommandAdapter(_commands.Get(CommandIds.Properties));
+        CalculateSizeCommand = new CommandAdapter(_commands.Get(CommandIds.CalculateSize));
     }
 }

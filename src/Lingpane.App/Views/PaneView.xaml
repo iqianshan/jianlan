@@ -367,6 +367,7 @@
                          DragLeave="OnFileDragLeave"
                          Drop="OnFileDrop"
                          MouseDoubleClick="OnFileDoubleClick"
+                         PreviewKeyDown="OnFileListKeyDown"
                          GotKeyboardFocus="OnFileListGotFocus"
                          Tag="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}">
                     <!--
@@ -412,6 +413,10 @@
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.CopyPath}"
                                       Command="{Binding CopyPathCommand}"/>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.CalculateSize}"
+                                      ToolTip="{loc:Tr Key=Menu.CalculateSize.Tip}"
+                                      Command="{Binding CalculateSizeCommand}"/>
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.Properties}"
                                       Command="{Binding PropertiesCommand}"/>
@@ -476,6 +481,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Column="0"
@@ -490,10 +496,47 @@
                            TextTrimming="CharacterEllipsis"
                            Text="{Binding HintText}"/>
 
-                <TextBlock Grid.Column="2"
+                <!-- 计算文件夹大小期间的进度与取消（FR-6.16）。
+                     放在选中统计的位置而不是另起一行：状态栏只有 28px 高，
+                     多一行会把两块内容一起挤扁。计算中让位给进度，结束后自动换回。 -->
+                <StackPanel Grid.Column="2"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCalculatingSize}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock MaxWidth="360"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource Text.Caption}"
+                               TextTrimming="CharacterEllipsis"
+                               Text="{Binding SizeProgressText}"/>
+                    <Button Margin="10,0,0,0"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource Button.Link}"
+                            Content="{loc:Tr Key=Common.Cancel}"
+                            Click="OnCancelFolderSize"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="3"
                            VerticalAlignment="Center"
-                           Style="{StaticResource Text.Caption}"
-                           Text="{Binding SelectionText}"/>
+                           Text="{Binding SelectionText}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Caption}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCalculatingSize}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
             </Grid>
         </Border>
         </Grid>

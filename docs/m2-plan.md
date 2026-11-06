@@ -56,14 +56,25 @@ M0（技术验证与基线）与 M1（FR-6 收尾 + 0.1.0 发版）的**未闭�
       **已修**：`AppPaths.IsPortableDirectory` 三种口径等价，`portable.marker` 保留兼容；
       7 条单测 + 两次端到端走查（`D:\ac05\s9_portable.py`：`portable.flag` 与"仅 `data` 目录"各一次，
       `%LOCALAPPDATA%\Lingpane\settings.json` 的 mtime 全程不变）。
-- [ ] **AC-09 便携包不存在** —— 没有 `publish.ps1`（或等价脚本）产出 `Lingpane-x.y.z-portable.zip`，
+- [x] **AC-09 便携包不存在** —— 没有 `publish.ps1`（或等价脚本）产出 `Lingpane-x.y.z-portable.zip`，
       "解压即用"这条从未被验证过。
-- [ ] **`AssemblyInformationalVersion` 未设置** —— 程序集版本停在 `0.1.0.0`，与 CHANGELOG 无对应关系；
+      **已补**：`tools/release/publish.ps1` —— publish → 校验（exe / 三份许可 / hostfxr / 版本串）
+      → 写 `portable.flag` → zip → SHA256。默认 self-contained（框架依赖包不算"解压即用"）。
+      走查 `D://ac05//s11_pkg.py`：解压到干净目录启动，`data\logs\app.log` 里
+      `version=0.1.0+6c80b4a portable=True`，`%LOCALAPPDATA%\Lingpane` 的 settings 与 log 全程未变。
+- [x] **`AssemblyInformationalVersion` 未设置** —— 程序集版本停在 `0.1.0.0`，与 CHANGELOG 无对应关系；
       FR-10.8 关于页要显示版本号，现在无处可读。
+      **已补**：发版脚本写入 `0.1.0+<短commit>`（`Directory.Build.props` 关掉了 SDK 的自动追加，
+      否则会拼成 `0.1.0+abc.<40 位 sha>`）；`AppInfo` 是唯一读取处，启动时记进 `app.start`。
+      FR-10.8 关于页接 `AppInfo.DisplayVersion` 即可（页面本身仍属 0.2.0）。
 - [x] **FR-6.1 地址栏自动补全**（1.5 天）—— 详见 §2.1。
       **已实现**：`Core/Navigation/PathCompletion.cs` + 21 条单测；候选 UI 用 Popup，
       `↓↑` 选、`Tab` 补全、`Enter` 跳转、`Esc` 关候选。走查 `D://ac05//s10_completion.py`。
-- [ ] **FR-6.16 文件夹大小按需计算**（1 天）—— 详见 §2.2。
+- [x] **FR-6.16 文件夹大小按需计算**（1 天）—— 详见 §2.2。
+      **已实现**：`Core/FileSystem/FolderSizeCalculator.cs` + 14 条单测；右键「计算大小」，
+      行内显示「计算中…」/ `500 KB` / 部分结果带 `+`；状态栏进度 + 取消（`Esc` 同效）。
+      走查 `D://ac05//s12_size.py`：big（500×1KB）= 500 KB、empty = 0 B，先算一个再算另一个时
+      前一个结果保留。
 - [ ] **FR-6.9 系统 Shell 右键菜单**（2 天）—— 详见 §2.3，本批风险最高。
 
 **B 类：性能门禁的欠账（不影响功能，影响"性能达标"这个卖点能不能宣称）**
@@ -123,6 +134,10 @@ AC-06 视觉走查（`ac06-visual-acceptance.md`）、FR-2.1–2.11、FR-3.1–3
 风险不变：网络盘靠 150ms 超时降级为"只用缓存候选"。
 
 ### 2.2 FR-6.16 文件夹大小按需计算（1 天）
+
+> **状态：已实现（2026-11-06）。** 与下文两处不同（详见 `m1-fr6-plan.md` §3 的状态行）：
+> 结果挂在 `FileEntry` 上而非 `MainViewModel` 字典；`AttributesToSkip` 必须显式设成
+> `ReparsePoint`（默认会跳过隐藏/系统文件）。取消除状态栏按钮外补了 `Esc`。
 
 按 `m1-fr6-plan.md` §3 执行。两处与当前代码的衔接要提前确认：
 
