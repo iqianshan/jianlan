@@ -18,7 +18,8 @@
   "schemaVersion": 1,
 
   "general": {
-    "language": "auto"          // auto（跟随系统安装语言）| zh-Hans | en
+    "language": "auto",         // auto（跟随系统安装语言）| zh-Hans | en
+    "newTabPath": null          // 新标签页默认目录。null = 系统「下载」（每次启动重新问系统，不写死路径）
   },
 
   "appearance": {
@@ -79,6 +80,7 @@
 | 字段 | 约束 | 越界处理 |
 |---|---|---|
 | `language` | `auto` / `zh-Hans` / `en` 三值 | 无法识别的值按 `auto` 处理，不报错（手改坏了不至于起不来） |
+| `newTabPath` | 绝对路径或 `null` | 空白归一为 `null`；**不校验存在性**（盘可能暂时不在），解析时目录不可用则回落到系统「下载」 |
 | `theme` | 三值枚举，且系统高对比度开启时强制 `HighContrast` | 回落 `system` |
 | `fontSizePt` | `null` 或 8–24 整数 | 超范围夹取到边界 |
 | `fontFamily` | 必须存在于系统字体列表 | 不存在则回落默认栈，不报错 |

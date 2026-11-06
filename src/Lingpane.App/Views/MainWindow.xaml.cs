@@ -64,7 +64,9 @@ public partial class MainWindow : Window
         // 标签不能属于某一边。浏览区的视图模型由它创建、由窗格 Attach。
         _splitEnabled = App.Settings.Layout.SplitEnabled;
 
-        _tabs = new TabHostViewModel(App.Settings, ResolveStartPath);
+        // 新建标签走「设置 → 新标签页默认目录」；关掉最后一个标签仍回"上次的目录"
+        // （那是 FR-2.8 的语义，不该被这条新设置顺手改掉）
+        _tabs = new TabHostViewModel(App.Settings, ResolveNewTabPath, ResolveStartPath);
         _tabs.ActiveChanged += OnActiveTabChanged;
         _tabs.CloseWindowRequested += Close;
         TabBar.Host = _tabs;
@@ -1115,6 +1117,28 @@ public partial class MainWindow : Window
         {
             Vm.ReportError(ex);
         }
+    }
+
+    /// <summary>
+    /// 新标签页的默认目录（FR-2.1）：设置里指定的那个，没指定就用系统「下载」。
+    /// 每次新建都重新解析，所以设置页改完立刻生效，不需要重启。
+    ///
+    /// 指定的目录可能不在（移动硬盘没插、网络盘断线），这时回落到下载夹而不是报错：
+    /// 用户要的是"开个标签页"，不是"验证我的设置"。设置本身保持原样，盘回来了就恢复。
+    /// </summary>
+    public static string ResolveNewTabPath()
+    {
+        string? configured = App.Settings.General.NewTabPath;
+        if (!string.IsNullOrEmpty(configured) && Directory.Exists(configured)) return configured;
+
+        string downloads = KnownFolders.Downloads();
+        if (!string.IsNullOrEmpty(downloads) && Directory.Exists(downloads)) return downloads;
+
+        string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        if (!string.IsNullOrEmpty(documents) && Directory.Exists(documents)) return documents;
+
+        string profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return Directory.Exists(profile) ? profile : AppContext.BaseDirectory;
     }
 
     /// <summary>

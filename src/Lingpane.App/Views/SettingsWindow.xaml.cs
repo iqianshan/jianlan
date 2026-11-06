@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using Lingpane.App.Design;
 using Lingpane.App.Typography;
@@ -77,6 +78,11 @@ public partial class SettingsWindow : Window
 
         TabStripCombo.SelectedIndex =
             Settings.Appearance.TabStripPosition == AppearanceSettings.TabBottom ? 1 : 0;
+
+        // 空 = 用系统「下载」：把这个"当前实际生效的目录"直接显示出来，
+        // 否则输入框空着，用户没法判断现在到底会开到哪
+        NewTabPathBox.Text = Settings.General.NewTabPath ?? MainWindow.ResolveNewTabPath();
+        UpdateNewTabPathHint();
 
         ShowNavCheck.IsChecked = Settings.Appearance.ShowNavPane;
         ShowStatusCheck.IsChecked = Settings.Appearance.ShowStatusBar;
@@ -314,6 +320,84 @@ public partial class SettingsWindow : Window
         if (_loading) return;
         Settings.Behavior.ConfirmDelete = ConfirmDeleteCheck.IsChecked == true;
         App.SaveSettings();
+    }
+
+    // ── 新标签页默认目录（FR-2.1）─────────────────────────────────────────
+    //
+    // 输入框里显示的是"当前实际生效的目录"：设置项为空时它就是系统「下载」，
+    // 这样用户不用猜"空着到底会开到哪"。但空串有独立含义（跟随系统下载），
+    // 所以只有用户真的改过（_dirty）才写盘，否则打开一次设置页就会把
+    // "跟随系统"变成一条写死的路径。
+
+    private bool _newTabPathDirty;
+
+    private void OnNewTabPathChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_loading) return;
+
+        _newTabPathDirty = true;
+        UpdateNewTabPathHint();
+    }
+
+    /// <summary>离开输入框或按回车才写盘：逐字保存等于每敲一个键写一次文件。</summary>
+    private void OnNewTabPathCommitted(object sender, RoutedEventArgs e) => CommitNewTabPath();
+
+    private void OnNewTabPathKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+
+        CommitNewTabPath();
+        e.Handled = true;
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        // 点右上角关闭时输入框未必失焦，这里补一次
+        CommitNewTabPath();
+        base.OnClosed(e);
+    }
+
+    private void CommitNewTabPath()
+    {
+        if (!_newTabPathDirty) return;
+        _newTabPathDirty = false;
+
+        string text = NewTabPathBox.Text.Trim();
+
+        // 空串存 null：留一个 "" 在设置文件里，读的人还得再判一次
+        Settings.General.NewTabPath = text.Length == 0 ? null : text;
+        App.SaveSettings();
+        UpdateNewTabPathHint();
+    }
+
+    /// <summary>
+    /// 提示行同时承担校验：目录不存在时说清楚"会回落到下载夹"，
+    /// 而不是等到新标签页打开失败才让用户发现。
+    /// </summary>
+    private void UpdateNewTabPathHint()
+    {
+        string text = NewTabPathBox.Text.Trim();
+
+        NewTabPathHint.Text = text.Length > 0 && !Directory.Exists(text)
+            ? Strings.Settings_Tabs_NewTabPath_Missing
+            : Strings.Settings_Tabs_NewTabPath_Hint;
+    }
+
+    private void OnBrowseNewTabPath(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFolderDialog
+        {
+            Title = Strings.Settings_Tabs_NewTabPath,
+            Multiselect = false,
+        };
+
+        string current = NewTabPathBox.Text.Trim();
+        dialog.InitialDirectory = Directory.Exists(current) ? current : MainWindow.ResolveNewTabPath();
+
+        if (dialog.ShowDialog(this) != true) return;
+
+        NewTabPathBox.Text = dialog.FolderName;
+        CommitNewTabPath();
     }
 
     /// <summary>FR-2.10 的加强版：双击/回车进目录改成开标签。默认关，见 AppSettings 里的说明。</summary>

@@ -154,6 +154,36 @@
                     </ComboBox>
                 </StackPanel>
 
+                <!-- 新标签页默认目录（FR-2.1）。放在「标签页」分组的第一项：
+                     它决定"新开一个标签页落在哪"，是这一组里最靠前的行为。 -->
+                <Grid Margin="0,14,0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Style="{StaticResource Text.FieldLabel}"
+                               Text="{loc:Tr Key=Settings.Tabs.NewTabPath}"/>
+                    <TextBox x:Name="NewTabPathBox"
+                             Grid.Column="1"
+                             Style="{StaticResource TextBox.Address}"
+                             TextChanged="OnNewTabPathChanged"
+                             LostFocus="OnNewTabPathCommitted"
+                             KeyDown="OnNewTabPathKeyDown"
+                             ToolTip="{loc:Tr Key=Settings.Tabs.NewTabPath.Tip}"/>
+                    <Button Grid.Column="2"
+                            Margin="8,0,0,0"
+                            Style="{StaticResource Button.Toolbar}"
+                            Content="{loc:Tr Key=Common.Browse}"
+                            Click="OnBrowseNewTabPath"/>
+                </Grid>
+                <TextBlock x:Name="NewTabPathHint"
+                           Margin="0,0,0,12"
+                           TextWrapping="Wrap"
+                           Style="{StaticResource Text.FieldHint}"/>
+
                 <CheckBox x:Name="OpenFolderInNewTabCheck"
                           Margin="0,0,0,4"
                           Style="{StaticResource CheckBox.Default}"

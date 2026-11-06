@@ -511,6 +511,21 @@
   <data name="Settings.Subtitle" xml:space="preserve">
     <value>Changes take effect immediately and are saved, except items marked “next launch”.</value>
   </data>
+  <data name="Settings.Tabs.NewTabPath" xml:space="preserve">
+    <value>Default folder for new tabs</value>
+  </data>
+  <data name="Settings.Tabs.NewTabPath.Tip" xml:space="preserve">
+    <value>Folder a new tab opens in — covers the + button, Ctrl+T and middle-click</value>
+  </data>
+  <data name="Settings.Tabs.NewTabPath.Hint" xml:space="preserve">
+    <value>Every new tab opens here; leave empty to use the system Downloads folder</value>
+  </data>
+  <data name="Settings.Tabs.NewTabPath.Missing" xml:space="preserve">
+    <value>That folder does not exist right now, so new tabs fall back to the system Downloads folder</value>
+  </data>
+  <data name="Common.Browse" xml:space="preserve">
+    <value>Browse…</value>
+  </data>
   <data name="Settings.Section.Tabs" xml:space="preserve">
     <value>Tabs</value>
   </data>

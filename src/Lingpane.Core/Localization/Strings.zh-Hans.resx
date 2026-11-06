@@ -498,6 +498,21 @@
   <data name="Settings.Subtitle" xml:space="preserve">
     <value>修改即时生效并保存；标注「下次启动」的项除外。</value>
   </data>
+  <data name="Settings.Tabs.NewTabPath" xml:space="preserve">
+    <value>新标签页默认目录</value>
+  </data>
+  <data name="Settings.Tabs.NewTabPath.Tip" xml:space="preserve">
+    <value>新建标签页时进入这个目录，包括 + 按钮、Ctrl+T 与中键开新标签</value>
+  </data>
+  <data name="Settings.Tabs.NewTabPath.Hint" xml:space="preserve">
+    <value>新建的标签页都进入这里；留空则用系统「下载」目录</value>
+  </data>
+  <data name="Settings.Tabs.NewTabPath.Missing" xml:space="preserve">
+    <value>该目录当前不存在，新建标签页会暂时回落到系统「下载」目录</value>
+  </data>
+  <data name="Common.Browse" xml:space="preserve">
+    <value>浏览…</value>
+  </data>
   <data name="Settings.Section.Tabs" xml:space="preserve">
     <value>标签页</value>
   </data>

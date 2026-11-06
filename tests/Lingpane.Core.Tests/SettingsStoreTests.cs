@@ -275,4 +275,20 @@ public sealed class SettingsStoreTests : IDisposable
 
         Assert.Equal(AppearanceSettings.TabBottom, settings.Appearance.TabStripPosition);
     }
+
+    [Theory]
+    [InlineData("  D:\\Files  ", "D:\\Files")]   // 两侧空白去掉
+    [InlineData("", null)]                        // 空串 = 跟随系统「下载」
+    [InlineData("   ", null)]
+    [InlineData(null, null)]
+    public void 新标签页默认目录归一到去空白的路径或空值(string? stored, string? expected)
+    {
+        var settings = new AppSettings();
+        settings.General.NewTabPath = stored;
+
+        settings.Normalize();
+
+        // 空值有独立含义（用系统下载目录），不能留一个 "" 让下游再判一次
+        Assert.Equal(expected, settings.General.NewTabPath);
+    }
 }

@@ -75,6 +75,9 @@ public sealed class AppSettings
 
         if (!GeneralSettings.IsKnownLanguage(General.Language)) General.Language = GeneralSettings.LanguageAuto;
 
+        // 空白等同于"没设置"（回落系统下载）：留一个 "" 在设置文件里，读的人还要再判一次空串
+        General.NewTabPath = string.IsNullOrWhiteSpace(General.NewTabPath) ? null : General.NewTabPath.Trim();
+
         if (!Enum.IsDefined(Appearance.Theme)) Appearance.Theme = ThemeKind.System;
         if (!Enum.IsDefined(Appearance.Density)) Appearance.Density = DensityKind.Comfortable;
         if (!Enum.IsDefined(Behavior.DefaultView)) Behavior.DefaultView = DefaultViewKind.Details;
@@ -189,6 +192,17 @@ public sealed class GeneralSettings
     /// 且新增语言不需要改枚举定义。
     /// </summary>
     public string Language { get; set; } = LanguageAuto;
+
+    /// <summary>
+    /// 新标签页的默认目录（FR-2.1）。空 = 用系统「下载」目录。
+    ///
+    /// 为什么空值代表"系统下载"而不是把下载夹的绝对路径写进来：设置文件会跟着漫游/备份走，
+    /// 写死路径换台机器就指向别人的目录；空值每次启动重新问系统，才是"当前系统的下载"。
+    ///
+    /// 归一化只去空白、不校验存在性：路径可能在移动硬盘上，暂时不可用不该把用户的选择抹掉
+    /// （与 session.tabs 的处理一致）。真正的回落发生在解析时。
+    /// </summary>
+    public string? NewTabPath { get; set; }
 
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }

@@ -23,19 +23,26 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
 
     private readonly AppSettings _settings;
     private readonly Func<string> _defaultPath;
+    private readonly Func<string> _homePath;
     private readonly Stack<string> _closed = [];
 
     private TabViewModel? _active;
 
     /// <param name="settings">应用设置，新建标签时交给视图模型。</param>
     /// <param name="defaultPath">
-    /// 新标签/回到主页时打开的目录（FR-2.1）。由宿主提供而不是在这里算——
-    /// "默认目录"要读设置、命令行参数与已知文件夹，那是宿主的知识。
+    /// 新建标签时打开哪个目录（FR-2.1）。由宿主提供而不是在这里算——
+    /// 它要读"设置 → 新标签页默认目录"、已知文件夹与命令行参数，那是宿主的知识。
     /// </param>
-    public TabHostViewModel(AppSettings settings, Func<string> defaultPath)
+    /// <param name="homePath">
+    /// 关掉最后一个标签后回到哪里（FR-2.8）。与 <paramref name="defaultPath"/> 分开：
+    /// "新标签开在哪"和"关掉最后一个是回哪"是两件事，前者由用户显式指定，
+    /// 后者一直是"上次的目录"，不该被新设置顺手改掉。省略时与前者一致。
+    /// </param>
+    public TabHostViewModel(AppSettings settings, Func<string> defaultPath, Func<string>? homePath = null)
     {
         _settings = settings;
         _defaultPath = defaultPath;
+        _homePath = homePath ?? defaultPath;
 
         // 标签数直接决定"还能不能新建"，两个按钮/快捷键都要看它有没有变
         Tabs.CollectionChanged += (_, _) =>
@@ -175,7 +182,7 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
                 // 不销毁这个标签，只把它送回默认目录：用户刚关掉的是"这个地方"，
                 // 不是"这个窗口"。历史栈保留，Alt+← 还能回退到刚才关掉的目录。
                 RememberClosed(tab.Primary.CurrentPath);
-                _ = tab.Primary.NavigateAsync(_defaultPath());
+                _ = tab.Primary.NavigateAsync(_homePath());
                 return;
             }
 

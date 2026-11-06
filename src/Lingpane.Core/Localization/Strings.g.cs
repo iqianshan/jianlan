@@ -504,6 +504,21 @@ public static class Strings
     /// <summary>Changes take effect immediately and are saved, except items marked “next launch”.</summary>
     public static string Settings_Subtitle => LocalizationService.Instance.Get("Settings.Subtitle");
 
+    /// <summary>Default folder for new tabs</summary>
+    public static string Settings_Tabs_NewTabPath => LocalizationService.Instance.Get("Settings.Tabs.NewTabPath");
+
+    /// <summary>Folder a new tab opens in — covers the + button, Ctrl+T and middle-click</summary>
+    public static string Settings_Tabs_NewTabPath_Tip => LocalizationService.Instance.Get("Settings.Tabs.NewTabPath.Tip");
+
+    /// <summary>Every new tab opens here; leave empty to use the system Downloads folder</summary>
+    public static string Settings_Tabs_NewTabPath_Hint => LocalizationService.Instance.Get("Settings.Tabs.NewTabPath.Hint");
+
+    /// <summary>That folder does not exist right now, so new tabs fall back to the system Downloads folder</summary>
+    public static string Settings_Tabs_NewTabPath_Missing => LocalizationService.Instance.Get("Settings.Tabs.NewTabPath.Missing");
+
+    /// <summary>Browse…</summary>
+    public static string Common_Browse => LocalizationService.Instance.Get("Common.Browse");
+
     /// <summary>Tabs</summary>
     public static string Settings_Section_Tabs => LocalizationService.Instance.Get("Settings.Section.Tabs");
 
