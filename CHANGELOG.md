@@ -6,6 +6,15 @@
 
 ### 新增
 
+- **`THIRD-PARTY-NOTICES.md`**（AC-10）：登记随包分发的 Windows SDK .NET 投影（`Microsoft.Windows.SDK.NET.dll`、
+  `WinRT.Runtime.dll`）、运行环境依赖（.NET 9 Desktop Runtime）、测试期依赖（xunit / vstest / coverlet），
+  以及"特意不用第三方库"的几处选择。发行包现在同时带 `LICENSE`、`NOTICE` 与本文件——
+  原先只有仓库里有两份，解压出来的用户看不到任何许可信息。
+  两个 SDK 程序集按 Windows SDK 的 Distributable Code 条款登记，**没有**含糊写成 MIT
+- **便携模式按需求口径判定**（FR-10.3）：exe 同级存在 `portable.flag`、老口径 `portable.marker`，
+  或直接存在 `data` 目录，任一成立即进入便携模式，数据落在 `exe\data\`。
+  此前只认 `portable.marker`，照需求文档放标记的用户会得到非便携模式、数据仍写 `%LOCALAPPDATA%`
+
 - **设置 → 标签页 → 新标签页默认目录**（FR-5.2.6）：新建标签页（`+`、`Ctrl+T`、中键/`Ctrl+左键`）
   统一进入这里；默认值是**系统「下载」**，可输入路径或用「浏览…」改。
   存 `null` 而不是把下载夹的绝对路径写死——设置文件会跟着备份/漫游走，写死路径换台机器

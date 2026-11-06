@@ -22,4 +22,18 @@
     <Resource Include="Assets\**\*" />
   </ItemGroup>
 
+  <!--
+    开源合规文件随产物落地（AC-10：发布包须含 LICENSE、NOTICE、第三方依赖许可清单）。
+    三份都是仓库根目录的同一份，不复制副本——复制就意味着以后会有人只改其中一份。
+    只在输出/发布目录里放一份链接，文件名保持原样，用户解压后一眼能看到。
+  -->
+  <ItemGroup>
+    <None Include="..\..\LICENSE" Link="LICENSE"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\NOTICE" Link="NOTICE"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
