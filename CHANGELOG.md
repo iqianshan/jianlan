@@ -6,6 +6,10 @@
 
 ### 新增
 
+- **地址栏自动补全**（FR-6.1）：`Ctrl+L` 后边打字边出候选，`↓↑` 移动、`Tab` 补全、`Enter` 跳转、`Esc` 关闭。
+  候选以**当前目录已枚举的条目**为主（零 IO、命中率最高），目录枚举只作补充且限 200 条、超时 150ms 就退回缓存候选——
+  网络盘的枚举能挂几十秒，宁可少给几条也不让地址栏失去响应。候选行显示真实文件图标（与列表同一套键）
+  与「文件夹 / 文件」文字：同名的目录与文件并排时，只看图标最容易选错
 - **`THIRD-PARTY-NOTICES.md`**（AC-10）：登记随包分发的 Windows SDK .NET 投影（`Microsoft.Windows.SDK.NET.dll`、
   `WinRT.Runtime.dll`）、运行环境依赖（.NET 9 Desktop Runtime）、测试期依赖（xunit / vstest / coverlet），
   以及"特意不用第三方库"的几处选择。发行包现在同时带 `LICENSE`、`NOTICE` 与本文件——

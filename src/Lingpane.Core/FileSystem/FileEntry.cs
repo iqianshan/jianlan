@@ -160,7 +160,14 @@ public sealed class FileEntry : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, IconTokenChanged);
     }
 
-    private static string ResolveIconKey(string name, bool isDirectory)
+    /// <summary>
+    /// 图标键规则：目录固定 <c>.folder</c>，文件按扩展名（相同扩展名共用驻留实例）。
+    ///
+    /// 公开是为了让"不在列表里、但也要显示文件图标"的地方复用同一套规则——
+    /// 地址栏补全候选（FR-6.1）就是这种场景。各写一套的后果是同名文件在列表里
+    /// 是一种图标、在补全里是另一种。
+    /// </summary>
+    public static string ResolveIconKey(string name, bool isDirectory)
     {
         if (isDirectory) return ".folder";
 

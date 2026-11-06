@@ -147,6 +147,64 @@ class _BitmapInfoHeader(ctypes.Structure):
     ]
 
 
+# ── 文本输入：SendInput + KEYEVENTF_UNICODE ─────────────────────────────────
+# 地址栏补全（FR-6.1）要往 TextBox 里真的敲字。keybd_event 只认虚拟键码，
+# 反斜杠、冒号、中文都得自己算 Shift 组合；直接送 Unicode 扫描码最省事，
+# 且与真实键盘一样走输入队列，WPF 的 TextChanged 会正常触发。
+KEYEVENTF_KEYUP = 0x0002
+KEYEVENTF_UNICODE = 0x0004
+INPUT_KEYBOARD = 1
+
+
+class _KEYBDINPUT(ctypes.Structure):
+    _fields_ = [
+        ("wVk", wt.WORD),
+        ("wScan", wt.WORD),
+        ("dwFlags", wt.DWORD),
+        ("time", wt.DWORD),
+        ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
+    ]
+
+
+class _MOUSEINPUT(ctypes.Structure):
+    """只为把 INPUT 的 union 撑到 32 字节。
+
+    SendInput 按 cbSize 校验结构体大小，对不上就直接返回 0（错误码 87 参数错误），
+    一个字符也不会送进去。x64 上 MOUSEINPUT 是 32 字节、KEYBDINPUT 只有 24，
+    union 里只放 ki 会让 INPUT 少 8 字节——这个坑的表现是"命令成功但界面毫无反应"。
+    """
+
+    _fields_ = [
+        ("dx", wt.LONG),
+        ("dy", wt.LONG),
+        ("mouseData", wt.DWORD),
+        ("dwFlags", wt.DWORD),
+        ("time", wt.DWORD),
+        ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
+    ]
+
+
+class _INPUT(ctypes.Structure):
+    class _U(ctypes.Union):
+        _fields_ = [("mi", _MOUSEINPUT), ("ki", _KEYBDINPUT)]
+
+    _anonymous_ = ("u",)
+    _fields_ = [("type", wt.DWORD), ("u", _U)]
+
+
+def _type_text(user32, text: str) -> None:
+    """逐字符发送 Unicode 按键。每个字符一次按下、一次抬起，中间留一点间隔。"""
+    for ch in text:
+        for extra in (0, KEYEVENTF_KEYUP):
+            inp = _INPUT(type=INPUT_KEYBOARD)
+            inp.ki = _KEYBDINPUT(0, ord(ch), KEYEVENTF_UNICODE | extra, 0, None)
+            sent = user32.SendInput(1, ctypes.byref(inp), ctypes.sizeof(_INPUT))
+            if sent != 1:
+                # 静默失败最难查：表现出来只是"文本没输进去"
+                raise OSError(f"SendInput 失败（字符 {ch!r}），错误码 {ctypes.get_last_error()}")
+            time.sleep(0.008)
+
+
 def _dib_bytes(gdi32, mem, bmp, width: int, height: int) -> bytes:
     """从内存位图取像素，返回 bottom-up 的 BGRA 原始数据。"""
     header = _BitmapInfoHeader()
@@ -413,6 +471,18 @@ def main() -> int:
         user32.mouse_event(0x0004, 0, 0, 0, 0)   # LEFTUP
         time.sleep(0.5)
         print(f"已拖拽 ({x1},{y1}) -> ({x2},{y2})")
+        return 0
+
+    if action == "type":
+        # 文本输入：python window_drive.py <pid> type D:\ac05\s7
+        # 参数用空格拼回来，路径里本来就不该带空格时的写法更省事；
+        # 真要输空格就多写几个参数，不在这里做引号解析。
+        text = " ".join(sys.argv[3:])
+        _bring_to_front(user32, hwnd)
+        time.sleep(0.25)
+        _type_text(user32, text)
+        time.sleep(0.5)
+        print(f"已输入：{text}")
         return 0
 
     if action == "keys":

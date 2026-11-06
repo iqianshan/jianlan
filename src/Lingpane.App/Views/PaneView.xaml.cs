@@ -571,6 +571,12 @@ public partial class PaneView : UserControl
         if (_viewModel is null || string.IsNullOrEmpty(_viewModel.CurrentPath)) return;
 
         _viewModel.IsAddressEditing = true;
+
+        // 先记快照再赋值：赋值会触发 TextChanged，靠快照判断"用户还没改过内容"，
+        // 否则 Ctrl+L 一按就弹出候选把面包屑盖住
+        _addressSnapshot = _viewModel.CurrentPath;
+        _suppressAutoComplete = true;
+
         AddressBox.Text = _viewModel.CurrentPath;
         AddressBox.Focus();
         AddressBox.SelectAll();
@@ -578,12 +584,16 @@ public partial class PaneView : UserControl
 
     private void EndAddressEdit()
     {
+        CloseCompletion();
         if (_viewModel is not null) _viewModel.IsAddressEditing = false;
     }
 
     private async void OnAddressKeyDown(object sender, KeyEventArgs e)
     {
         if (_viewModel is null) return;
+
+        // 补全优先吃键：↓↑ 选候选、Tab 接受、Esc 先关候选而不是退出编辑态
+        if (TryHandleCompletionKey(e)) return;
 
         switch (e.Key)
         {

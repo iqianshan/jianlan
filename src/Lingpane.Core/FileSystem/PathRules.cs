@@ -52,7 +52,7 @@ public static class PathRules
     }
 
     /// <summary>去掉结尾的分隔符，但保留根路径本身的 <c>C:\</c> 形态。</summary>
-    private static string TrimSeparators(string value)    {
+    public static string TrimSeparators(string value)    {
         string trimmed = value.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
         // "C:\" 去掉分隔符会变成 "C:"，那是"当前目录"的相对写法，必须补回来
