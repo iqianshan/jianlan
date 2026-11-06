@@ -739,6 +739,27 @@ public partial class PaneView : UserControl
             FileList.SelectedItems.Clear();
             item.IsSelected = true;
         }
+
+        // Shift+右键直接给系统菜单（FR-6.9 的显式入口之一）。
+        // 位置取本次点击的屏幕点，不用鼠标当前位置——后者在长任务里可能已经飘走。
+        // 弹出要推迟到本次鼠标事件处理完之后，否则右键松开这一下会落到系统菜单上，
+        // 被它当成"点了别处"关掉。
+        //
+        // 只把 Down 标成 Handled 拦不住自建菜单：自建菜单是右键**抬起**时才弹的，
+        // 具体时机由内部的 PopupControlService 决定。所以另置一个一次性标记，
+        // 等 ContextMenuOpening 真的来了再取消它（见 ShellMenu.cs）。
+        _shellMenuPending = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+
+        if (_shellMenuPending)
+        {
+            e.Handled = true;
+            Point screen = PointToScreen(e.GetPosition(this));
+            QueueShellContextMenu((int)screen.X, (int)screen.Y, extendedVerbs: true);
+            return;
+        }
+
+        // 自建菜单的「更多选项…」要用同一个点，才能弹在用户右键的位置
+        _contextMenuScreenPoint = PointToScreen(e.GetPosition(this));
     }
 
     private void OnFileDoubleClick(object sender, MouseButtonEventArgs e)

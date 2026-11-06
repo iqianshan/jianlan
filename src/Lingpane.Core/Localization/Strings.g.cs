@@ -187,6 +187,15 @@ public static class Strings
     /// <summary>Loading…</summary>
     public static string Status_Loading => LocalizationService.Instance.Get("Status.Loading");
 
+    /// <summary>More options…</summary>
+    public static string Menu_MoreOptions => LocalizationService.Instance.Get("Menu.MoreOptions");
+
+    /// <summary>Opens the Windows menu (Open with, Send to, Compress…); Shift+right-click does the same</summary>
+    public static string Menu_MoreOptions_Tip => LocalizationService.Instance.Get("Menu.MoreOptions.Tip");
+
+    /// <summary>The Windows menu could not open; in-app menu is still available</summary>
+    public static string Status_ShellMenuUnavailable => LocalizationService.Instance.Get("Status.ShellMenuUnavailable");
+
     /// <summary>Operation failed: {0}</summary>
     public static string Status_OperationFailed => LocalizationService.Instance.Get("Status.OperationFailed");
     // 含占位符：string.Format(Strings.Status_OperationFailed, ...)

@@ -359,6 +359,7 @@
                          AllowDrop="True"
                          SelectionChanged="OnFileSelectionChanged"
                          PreviewMouseRightButtonDown="OnFileRightButtonDown"
+                         ContextMenuOpening="OnFileContextMenuOpening"
                          PreviewMouseLeftButtonDown="OnFileDragStart"
                          PreviewMouseLeftButtonUp="OnFileLeftButtonUp"
                          PreviewMouseDown="OnFileMouseDown"
@@ -420,6 +421,13 @@
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.Properties}"
                                       Command="{Binding PropertiesCommand}"/>
+                            <Separator Style="{StaticResource Menu.Separator}"/>
+                            <!-- FR-6.9：系统菜单只在用户显式要"更多选项"时加载。
+                                 日常操作走上面这些自建项，快且不受第三方 Shell 扩展拖累。 -->
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.MoreOptions}"
+                                      ToolTip="{loc:Tr Key=Menu.MoreOptions.Tip}"
+                                      Command="{Binding MoreOptionsCommand}"/>
                         </ContextMenu>
                     </ListBox.ContextMenu>
                     <ListBox.Style>

@@ -200,6 +200,15 @@
   <data name="Status.Loading" xml:space="preserve">
     <value>读取中…</value>
   </data>
+  <data name="Menu.MoreOptions" xml:space="preserve">
+    <value>更多选项…</value>
+  </data>
+  <data name="Menu.MoreOptions.Tip" xml:space="preserve">
+    <value>打开系统菜单（含打开方式、发送到、压缩等）；Shift+右键 同效</value>
+  </data>
+  <data name="Status.ShellMenuUnavailable" xml:space="preserve">
+    <value>系统菜单暂时打不开，已保留应用内菜单</value>
+  </data>
   <data name="Status.OperationFailed" xml:space="preserve">
     <value>操作失败：{0}</value>
   </data>

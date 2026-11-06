@@ -417,6 +417,27 @@ def main() -> int:
         print(f"已右键客户区 ({x},{y})")
         return 0
 
+    if action == "shift_rclick":
+        # Shift+右键：FR-6.9 的第二个入口（CMF_EXTENDEDVERBS）。
+        # 修饰键必须用真实键盘事件按下——应用读的是 Keyboard.Modifiers（物理状态），
+        # 投递消息只会在队列里排一条按键，修饰键状态仍是"没按"。
+        # 坐标与 rclick 一致：客户区像素，内部换算到可见区域原点。
+        x, y = int(sys.argv[3]), int(sys.argv[4])
+        left, top, _, _ = get_visible_rect(hwnd)
+        _bring_to_front(user32, hwnd)
+        user32.SetCursorPos(left + x, top + y)
+        time.sleep(0.25)
+        user32.keybd_event(0x10, 0, 0, 0)        # VK_SHIFT down
+        time.sleep(0.1)
+        user32.mouse_event(0x0008, 0, 0, 0, 0)   # RIGHTDOWN
+        time.sleep(0.12)
+        user32.mouse_event(0x0010, 0, 0, 0, 0)   # RIGHTUP
+        time.sleep(0.1)
+        user32.keybd_event(0x10, 0, 2, 0)        # VK_SHIFT up（KEYEVENTF_KEYUP）
+        time.sleep(1.2)
+        print(f"已 Shift+右键客户区 ({x},{y})")
+        return 0
+
     if action == "mclick":
         # 中键点击：标签页关闭（FR-2.3）等场景要用。同 click，投递消息不抢前台。
         x, y = int(sys.argv[3]), int(sys.argv[4])

@@ -31,14 +31,15 @@
 | FR-3 双窗格 | **已落地（S4）** | 3.1–3.5 完成；跨窗格拖放复用同一条路径，无需专门代码 |
 | FR-4 彩色标签 | 未开始 | 整个模块（技术风险最高） |
 | FR-5 设置 | **外观基本齐** | 缺 FR-5.1.3 强调色；行为缺 5.2.4 系统文件、5.2.5 单击打开、5.2.7 关闭最后标签、5.2.8 确认分项、5.2.9 会话/工作区互斥、5.2.10 预览默认；隐私缺 5.3.2 清空历史、5.3.4 条数上限 UI、5.3.5 缩略图缓存、5.3.6 标签库、5.3.8 恢复默认 |
-| FR-6 基础浏览 | **缺 3 项 P0** | FR-6.1 自动补全、FR-6.16 文件夹大小、FR-6.9 系统 Shell 菜单；P1 的 6.4 列配置、6.6 缩略图、6.13 搜索也未做 |
+| FR-6 基础浏览 | **P0 三项齐** | FR-6.1 自动补全、FR-6.16 文件夹大小、FR-6.9 系统 Shell 菜单均已落地；P1 的 6.4 列配置、6.6 缩略图、6.13 搜索仍未做 |
 | FR-7 收藏 | 未开始 | 整个模块（0.2.0） |
 | FR-8 工作区 | 未开始 | 整个模块 |
 | FR-9 预览窗格 | 未开始 | 整个模块 |
 | FR-10 基础能力 | 大部分已做 | 10.6 异常退出提示、10.7 可访问性、10.8 关于页、10.9 目录入口未做；10.3 便携口径已对齐（三种标记等价） |
 
-`src/` 实测核对：`Core` 19 个文件、`App` 32 个文件，**没有** `PathCompletion`、`FolderSizeCalculator`、
-`ShellContextMenu`、`PreviewHandler`、`Tags`、`Bookmarks`、`Workspaces` 任何一类文件。
+`src/` 实测核对：`Core` 20 个源文件、`App` 38 个源文件（不含 `obj/`、`bin/`）。
+P0 的三项已有对应实现：`Core/Navigation/PathCompletion.cs`、`Core/FileSystem/FolderSizeCalculator.cs`、
+`App/Shell/ShellContextMenu.cs`；**仍然没有** `PreviewHandler`、`Tags`、`Bookmarks`、`Workspaces` 任何一类文件。
 
 ### 1.1 M0 / M1 剩余任务清单
 
@@ -75,7 +76,12 @@ M0（技术验证与基线）与 M1（FR-6 收尾 + 0.1.0 发版）的**未闭�
       行内显示「计算中…」/ `500 KB` / 部分结果带 `+`；状态栏进度 + 取消（`Esc` 同效）。
       走查 `D://ac05//s12_size.py`：big（500×1KB）= 500 KB、empty = 0 B，先算一个再算另一个时
       前一个结果保留。
-- [ ] **FR-6.9 系统 Shell 右键菜单**（2 天）—— 详见 §2.3，本批风险最高。
+- [x] **FR-6.9 系统 Shell 右键菜单**（2 天）—— 详见 §2.3。
+      **已实现**：`App/Shell/ShellInterop.cs` + `ShellContextMenu.cs` + `Views/PaneView.ShellMenu.cs`；
+      两个入口（右键菜单底部「更多选项…」、`Shift+右键`）。走查 `D://ac05//s13_shell.py`：
+      两入口各弹出一份完整的系统菜单（本机 43 项，含 ToDesk / Bandizip / TortoiseSVN / 百度网盘等第三方扩展）；
+      `D://ac05//s14_verb.py`：点系统菜单第一项「打开」→ `big` 文件夹在资源管理器里打开（PASS）。
+      踩到并修掉的五个坑记在 §2.3 的表格里。
 
 **B 类：性能门禁的欠账（不影响功能，影响"性能达标"这个卖点能不能宣称）**
 
@@ -144,20 +150,39 @@ AC-06 视觉走查（`ac06-visual-acceptance.md`）、FR-2.1–2.11、FR-3.1–3
 - 大小覆盖字典放 `MainViewModel`，但 **P1 拆分后它必须跟着成为 `PaneViewModel` 的成员**（目录切换即清空）。现在的写法会让 M2 搬一次，不如一次到位：直接放 `PaneViewModel` 形态的字段，命名按窗格。
 - 行模板的大小列现在是 `Text.Number` 绑 `SizeText`。加"计算中…"状态时不要塞进 `FileEntry`（Core 的不可变记录），用值转换器按 `(path, state)` 查字典。
 
-### 2.3 FR-6.9 系统 Shell 右键菜单（2 天）
+### 2.3 FR-6.9 系统 Shell 右键菜单（2 天）—— 已实现
 
-按 `m1-fr6-plan.md` §5 执行，这是 M1 剩余风险最高的一项。**分层策略不变**：右键走自建菜单，
-「更多选项…」与 `Shift+右键` 才走系统菜单。
+**状态**：已实现并走查通过。分层策略不变——日常右键走自建菜单，「更多选项…」与 `Shift+右键` 才加载系统菜单。
 
-落地时容易踩的三点，先记在这里：
+涉及文件：
+
+| 文件 | 职责 |
+|---|---|
+| `App/Shell/ShellInterop.cs` | `IShellFolder` / `IContextMenu(2/3)` 手写 COM 声明、`SHParseDisplayName` / `SHBindToParent` / `IlFindLastId` / `TrackPopupMenuEx` |
+| `App/Shell/ShellContextMenu.cs` | 六步流程：PIDL → 父 `IShellFolder` → `GetUIObjectOf` → `QueryContextMenu` → `TrackPopupMenuEx` + 消息钩子 → `InvokeCommand`；失败一律 `return false` 交回调用方降级 |
+| `App/Views/PaneView.ShellMenu.cs` | 两个入口凑参数（选中项路径、owner 句柄、屏幕点）、推迟弹出、降级提示 |
+| `App/Views/PaneView.xaml(.cs)` | 「更多选项…」菜单项、`Shift+右键` 拦截、`ContextMenuOpening` 取消 |
+
+落地时实际踩到的五个坑（前三条是预判，后两条是实测才暴露的）：
 
 | 点 | 说明 |
 |---|---|
 | 消息转发 | 只 Hook `WM_INITMENUPOPUP` 会得到"一级菜单正常、二级菜单空白"。`WM_DRAWITEM` / `WM_MEASUREITEM` 三条缺一不可，先给 `IContextMenu3.HandleMenuMsg2`，未处理再给 `IContextMenu2` |
-| 坐标 | `TrackPopupMenuEx` 要物理像素。本机 125% DPI，`PointToScreen` 已经返回物理像素，**不要再乘缩放比**——这是最容易多算一次的地方 |
+| 坐标 | `TrackPopupMenuEx` 要物理像素。本机 125% DPI，`PointToScreen` 已经返回物理像素，**不要再乘缩放比** |
 | 多选 | 必须传 PIDL 数组（`cidl > 1`）。只传首项时菜单能弹出来，但"发送到""压缩"只对第一个文件生效，且不报错 |
+| 取末级 PIDL | **不能 P/Invoke `shlwapi!ILFindLastID`**：它在 SDK 头文件里是内联函数，动态库里没有同名导出，调用直接抛 `EntryPointNotFoundException`。现象是"点更多选项毫无反应、日志里也没有一行"——因为异常类型还落在当时那个窄 catch 过滤器之外。改为手动遍历（每个 SHITEMID 前两字节是自身长度），见 `ShellInterop.IlFindLastId` |
+| 弹出时机 | 不能在 `MenuItem` 的命令回调里同步弹系统菜单：那一刻自建菜单还没关闭，它关窗时收回鼠标捕获，会把刚弹出的系统菜单一起收掉。必须 `Dispatcher.BeginInvoke(DispatcherPriority.Background, ...)` 推迟；`Shift+右键` 同理，且要靠 `ContextMenuOpening` 把自建菜单取消掉（只在 `PreviewMouseRightButtonDown` 里设 `Handled` 拦不住，自建菜单是抬起时才弹的）。系统菜单弹出前再 `SetForegroundWindow(owner)` 兜一次，否则收不到输入 |
 
-降级：任何 HRESULT 失败或 COM 异常 → 关掉系统菜单、回落到自建菜单、写 `app.log`，不弹窗。
+降级：任何异常（catch 用宽口径，不用类型过滤器，理由见上表第 4 条）→ 关掉系统菜单、回落到自建菜单、
+写 `app.log` 的 `shell.menu` + 状态栏一句话，不弹窗。
+
+走查证据：
+
+- `D:\ac05\s13_shell.py`：入口 A（自建菜单 → 更多选项…）与入口 B（`Shift+右键`）各弹出一份完整系统菜单，
+  本机 43 项，含 ToDesk / Bandizip / TortoiseSVN / 百度网盘 / 火绒等第三方扩展；截图 `s13-2-shell-a.png`、`s13-4-shell-b.png`。
+  `Esc` 关闭，`app.log` 无 `shell.menu` 降级记录。
+- `D:\ac05\s14_verb.py`：点系统菜单第一项「打开」→ `big` 文件夹在资源管理器里打开（`RESULT: PASS`），
+  证明 `InvokeCommand` 链路真的执行了，不只是"菜单画出来了"。
 
 ### 2.4 发版合规（0.5 天）——当前是硬缺口
 

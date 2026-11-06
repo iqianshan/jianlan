@@ -209,6 +209,15 @@
   <data name="Status.Loading" xml:space="preserve">
     <value>Loading…</value>
   </data>
+  <data name="Menu.MoreOptions" xml:space="preserve">
+    <value>More options…</value>
+  </data>
+  <data name="Menu.MoreOptions.Tip" xml:space="preserve">
+    <value>Opens the Windows menu (Open with, Send to, Compress…); Shift+right-click does the same</value>
+  </data>
+  <data name="Status.ShellMenuUnavailable" xml:space="preserve">
+    <value>The Windows menu could not open; in-app menu is still available</value>
+  </data>
   <data name="Status.OperationFailed" xml:space="preserve">
     <value>Operation failed: {0}</value>
   </data>

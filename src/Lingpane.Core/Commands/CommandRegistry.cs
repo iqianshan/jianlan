@@ -34,6 +34,9 @@ public static class CommandIds
     // 文件夹大小（FR-6.16）。只有用户显式点菜单才会走到，没有任何自动触发路径。
     public const string CalculateSize = "file.calculateSize";
 
+    // 系统 Shell 菜单（FR-6.9）。显式入口，日常右键仍走自建菜单。
+    public const string MoreOptions = "file.moreOptions";
+
     // 标签页（FR-2）。窗口级：标签集合属于窗口，不属于某个窗格。
     public const string NewTab = "tab.new";
     public const string CloseTab = "tab.close";
