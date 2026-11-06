@@ -70,8 +70,13 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     /// 新建标签并激活（FR-2.1）。<paramref name="path"/> 为空时用默认目录。
     /// 已到上限（FR-2.5，12 个）时返回 <c>null</c>——由调用方决定怎么提示，
     /// 视图模型不弹 UI 文案。
+    ///
+    /// <paramref name="secondaryPath"/> 给分屏用：新标签的第二窗格接着"没被点的那一侧"的
+    /// 目录走，而不是复制主窗格路径（复制的话两侧会显示同一处，看着像"两边一起跳了"）。
+    /// <paramref name="activePane"/> 指定新标签里焦点落在哪一侧（1 = 第二窗格）。
     /// </summary>
-    public TabViewModel? Add(string? path = null, bool activate = true)
+    public TabViewModel? Add(string? path = null, bool activate = true,
+        string? secondaryPath = null, int activePane = 0)
     {
         if (IsFull) return null;
 
@@ -80,6 +85,11 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
         // 不在这里导航：调用方（`+` 按钮、Ctrl+T、会话恢复）时机各不相同，
         // 统一由宿主在激活后决定"现在读盘还是等激活再读"。
         var tab = new TabViewModel(_settings, target);
+
+        // 两件事都要在 Activate 之前写：激活会立刻触发宿主 BindTab，
+        // 那时第二窗格就要按这里的路径建出来、焦点也要一次到位。
+        tab.PrepareSecondaryPending(secondaryPath);
+        tab.PrepareActivePane(activePane);
 
         Tabs.Add(tab);
         if (activate) Activate(tab);

@@ -629,7 +629,7 @@
     <value>Open folders in a new tab</value>
   </data>
   <data name="Settings.Behavior.OpenFolderInNewTab.Hint" xml:space="preserve">
-    <value>Double-click or Enter opens the folder in a new tab instead of replacing the current one; applies immediately</value>
+    <value>Double-click or Enter opens the folder in a new tab instead of replacing the current one; applies immediately. Ignored in split view, where opening a folder always stays in that pane</value>
   </data>
   <data name="Settings.Behavior.OpenNewTabInBackground" xml:space="preserve">
     <value>Open new tabs in the background</value>

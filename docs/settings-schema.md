@@ -40,7 +40,7 @@
     "showExtensions": true,
     "confirmDelete": true,
     "doubleClickOpens": true,
-    "openFolderInNewTab": false,      // 双击/回车进目录时开新标签（FR-2.10）
+    "openFolderInNewTab": false,      // 双击/回车进目录时开新标签（FR-2.10）；分屏时不生效，进目录恒在当前窗格（FR-3.2）
     "openNewTabInBackground": false,  // 中键/Ctrl+左键开出的标签是否留在后台（FR-2.10 可选项）
     "restoreLastSession": true,
     "closeLastTabToHome": true  // 关掉最后一个标签时回默认目录，而不是关窗口（FR-2.8）

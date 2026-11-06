@@ -34,7 +34,7 @@
             <!-- 标签栏（在顶部时用它，切到底部时高度归零） -->
             <RowDefinition x:Name="TabRowTop" Height="Auto"/>
             <RowDefinition Height="*"/>
-            <!-- 与窗格状态栏等高的占位：让导航栏底部的分隔线与状态栏上边框连成一条 -->
+            <!-- 侧栏设置入口那一行。高度取窗格状态栏的高度，让两者的上边框连成一条横线 -->
             <RowDefinition Height="Auto"/>
             <!-- 标签栏（在底部时用它）。两行都留着，切换位置只改高度与 Grid.Row，
                  不重建控件——见 ApplyTabStripPosition -->
@@ -49,84 +49,75 @@
             <views:TabStrip x:Name="TabBar"/>
         </Border>
 
-        <!-- 侧栏：常用目录（FR-1.1）在上，设置在下。
-             设置属于窗口/应用级，放进窗格工具栏会在分屏时变成两颗
-             （两个 PaneView 各挂一颗），所以它的位置只能是侧栏这种"全局只有一处"的地方。 -->
-        <Grid Grid.Column="0" Grid.Row="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-
-            <!-- 常用目录（FR-1.1）。
-                 宽度取内容宽度并夹在 184–320 之间（AC-06 走查修正）：
-                 原来写死 184，英文 24pt 下 "Documents / Downloads" 比栏宽还长，
-                 被 ListBox 直接切掉、连省略号都没有。改为随内容增长，
-                 中文与常规字号下内容不足 184，宽度与原来完全一致。 -->
-            <ListBox x:Name="QuickAccessList"
-                     Grid.Row="0"
+        <!-- 常用目录（FR-1.1）。占满整个导航区，设置入口在下面那一行。
+             宽度取内容宽度并夹在 184–320 之间（AC-06 走查修正）：
+             原来写死 184，英文 24pt 下 "Documents / Downloads" 比栏宽还长，
+             被 ListBox 直接切掉、连省略号都没有。改为随内容增长，
+             中文与常规字号下内容不足 184，宽度与原来完全一致。 -->
+        <ListBox x:Name="QuickAccessList"
+                     Grid.Column="0"
+                     Grid.Row="1"
                      Width="Auto"
                      MinWidth="{DynamicResource Size.Nav.Width.Default}"
                      MaxWidth="{DynamicResource Size.Nav.Width.Max}"
                      Style="{StaticResource Nav.Surface}"
                      ItemsSource="{Binding QuickAccess}"
                      SelectionChanged="OnQuickAccessSelectionChanged">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <!-- 用两列 Grid 而不是横向 StackPanel：StackPanel 横向测量时给子项无限宽，
-                             TextTrimming 永远不触发，文字只会被硬裁。 -->
-                        <Grid Margin="{StaticResource Padding.NavItem}"
-                              VerticalAlignment="Center">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Margin="0,0,8,0"
-                                       Style="{StaticResource Text.Glyph}"
-                                       Text="{Binding Glyph}"/>
-                            <TextBlock Grid.Column="1"
-                                       Style="{StaticResource Text.Nav}"
-                                       Text="{Binding Name}"
-                                       TextTrimming="CharacterEllipsis"
-                                       VerticalAlignment="Center"/>
-                        </Grid>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-
-            <!-- 设置入口（FR-5.1）。放在侧栏底部，与浏览器的习惯一致；
-                 上边框把它和导航列表分开，视觉上属于"侧栏的另一半"而非列表末尾的多一行。 -->
-            <Border Grid.Row="1"
-                    Background="{DynamicResource Brush.Surface.Sidebar}"
-                    BorderBrush="{DynamicResource Brush.Border.Hairline}"
-                    BorderThickness="0,1,0,0"
-                    Padding="0,6">
-                <Button x:Name="SettingsButton"
-                        Style="{StaticResource Button.NavCommand}"
-                        Click="OnSettingsButtonClick"
-                        ToolTip="{loc:Tr Key=Toolbar.Settings.Tip}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Margin="0,0,10,0"
-                                   VerticalAlignment="Center"
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <!-- 用两列 Grid 而不是横向 StackPanel：StackPanel 横向测量时给子项无限宽，
+                         TextTrimming 永远不触发，文字只会被硬裁。 -->
+                    <Grid Margin="{StaticResource Padding.NavItem}"
+                          VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Margin="0,0,8,0"
                                    Style="{StaticResource Text.Glyph}"
-                                   Text="&#xE713;"/>
-                        <TextBlock VerticalAlignment="Center"
-                                   Text="{loc:Tr Key=Toolbar.Settings}"/>
-                    </StackPanel>
-                </Button>
-            </Border>
-        </Grid>
+                                   Text="{Binding Glyph}"/>
+                        <TextBlock Grid.Column="1"
+                                   Style="{StaticResource Text.Nav}"
+                                   Text="{Binding Name}"
+                                   TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
 
         <Border Grid.Column="1" Grid.Row="1" Grid.RowSpan="2" Background="{DynamicResource Brush.Border.Hairline}"/>
 
-        <!-- 导航栏底部的状态栏等高占位（见上面 RowDefinitions 的注释） -->
-        <Border x:Name="NavStatusSpacer"
+        <!-- 设置入口（FR-5.1）。占的是第 2 行——与窗格状态栏同一行、同一高度（28）。
+             放在这里而不是导航列表下面：列表下面那一块会随窗口长高而变大，
+             按钮漂在中间、底下空一片；贴着状态栏这条基线上，才和右侧那条状态栏连成一条。
+             设置属于窗口/应用级，放进窗格工具栏会在分屏时变成两颗
+             （两个 PaneView 各挂一颗），所以它的位置只能是"全局只有一处"的侧栏。
+
+             这一行不随"显示状态栏"设置隐藏：那是个纯展示设置，不能顺带把唯一的设置入口藏掉。 -->
+        <Border x:Name="SettingsHost"
                 Grid.Column="0" Grid.Row="2"
                 Height="{DynamicResource Size.StatusBar.Height}"
-                Background="{DynamicResource Brush.Surface.Window}"
+                Background="{DynamicResource Brush.Surface.Sidebar}"
                 BorderBrush="{DynamicResource Brush.Border.Hairline}"
-                BorderThickness="0,1,0,0"/>
+                BorderThickness="0,1,0,0">
+            <Button x:Name="SettingsButton"
+                    Height="Auto"
+                    Padding="{StaticResource Padding.NavItem}"
+                    Style="{StaticResource Button.NavCommand}"
+                    Click="OnSettingsButtonClick"
+                    ToolTip="{loc:Tr Key=Toolbar.Settings.Tip}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Margin="0,0,8,0"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource Text.Glyph}"
+                               Text="&#xE713;"/>
+                    <TextBlock VerticalAlignment="Center"
+                               Text="{loc:Tr Key=Toolbar.Settings}"/>
+                </StackPanel>
+            </Button>
+        </Border>
 
         <!-- 浏览区宿主（FR-3）。平时只放主窗格；开分屏时第二列（或第二行）显示第二个
              PaneView，中间是可拖的分隔条。两个 PaneView 各自持有工具栏/列头/列表/状态栏，

@@ -112,6 +112,10 @@ public partial class MainWindow : Window
 
         // 分屏的行列先摆好：此时还没有标签，只是把两列/两行的宽度归位
         ApplySplitLayout();
+
+        // 分屏状态要立刻写进两个窗格：窗格自己拿它决定"进目录是导航还是开新标签"
+        // （见 PaneView.OpenEntry）。等到 OnLoaded 才同步的话，首帧之前的那次双击会走错分支。
+        SyncSplitButton();
         ApplyTabStripPosition();
         StartupTrace.Mark("cmd");
 
@@ -284,13 +288,37 @@ public partial class MainWindow : Window
     /// 把某个目录开进新标签（FR-2.10）。<paramref name="background"/> 为 true 时只建不切，
     /// 让用户连续开一批目录而不离开当前位置。
     ///
+    /// 分屏时新标签接着"没被点的那一侧"走：标签是一对窗格，若第二窗格照旧回落到主窗格路径，
+    /// 从右边点一下文件夹，左边也会跟着变成同一处——看起来就是"两边一起跳了"。
+    /// 所以把另一侧的快照带进新标签，并把焦点留在发起的那一侧（从右边点的，焦点还在右边）。
+    ///
     /// 到 12 个上限（FR-2.5）时不新建，直接把路径交给**发起的那一侧窗格**导航——
     /// 比"按键没反应"有用，也比弹一句"标签已满"轻。所以这里带着
     /// <paramref name="source"/>：分屏时中键点右窗格，退回导航的必须是右窗格。
     /// </summary>
     private void OpenInNewTab(PaneView source, string path, bool background)
     {
-        if (_tabs.Add(path, activate: !background) is not null) return;
+        TabViewModel current = Tab;
+        bool fromSecondary = _splitEnabled
+                             && current.Secondary is not null
+                             && ReferenceEquals(current.ActivePane, current.Secondary);
+
+        string sibling = string.Empty;
+        if (_splitEnabled && current.Secondary is { } other)
+        {
+            sibling = fromSecondary ? current.Primary.CurrentPath : other.CurrentPath;
+        }
+
+        TabViewModel? created = fromSecondary
+            ? _tabs.Add(sibling, activate: !background, secondaryPath: path, activePane: 1)
+            : _tabs.Add(path, activate: !background, secondaryPath: sibling);
+
+        if (created is not null)
+        {
+            // 切过去了才抢焦点；后台打开时用户还在原处按着 Ctrl 连点，不该被拽走
+            if (!background) ViewFor(created.ActivePane).FocusList();
+            return;
+        }
 
         // 状态栏必须出声：满额时"双击文件夹没开新标签"与"双击坏了"在用户眼里一样。
         // 提示落在这个窗格自己的状态栏上——分屏时右边点的那一下，提示就该在右边。
@@ -700,8 +728,8 @@ public partial class MainWindow : Window
             : new GridLength(0);
         QuickAccessList.Visibility = s.Appearance.ShowNavPane ? Visibility.Visible : Visibility.Collapsed;
 
-        // 导航栏底部的占位条跟随状态栏：状态栏隐藏时它也不该留着一条空横线
-        NavStatusSpacer.Visibility = s.Appearance.ShowStatusBar ? Visibility.Visible : Visibility.Collapsed;
+        // 设置入口那一行不跟"显示状态栏"走：状态栏是纯展示设置，
+        // 不能顺带把唯一的设置入口藏掉（这一行高度固定为状态栏高度，见 MainWindow.xaml）。
 
         // 标签栏位置（FR-2.4）：设置页改完立即生效，不用重启
         ApplyTabStripPosition();

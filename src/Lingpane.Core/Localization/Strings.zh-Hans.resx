@@ -616,7 +616,7 @@
     <value>文件夹在新标签页打开</value>
   </data>
   <data name="Settings.Behavior.OpenFolderInNewTab.Hint" xml:space="preserve">
-    <value>双击或按回车进入文件夹时新开一个标签页，不替换当前目录；立即生效</value>
+    <value>双击或按回车进入文件夹时新开一个标签页，不替换当前目录；立即生效。分屏时不生效：此时进入文件夹一律在当前窗格内完成</value>
   </data>
   <data name="Settings.Behavior.OpenNewTabInBackground" xml:space="preserve">
     <value>新标签页在后台打开</value>

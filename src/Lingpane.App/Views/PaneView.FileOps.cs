@@ -31,7 +31,10 @@ public partial class PaneView
         {
             // 设置项：双击/回车进目录时另开标签（默认关，见 BehaviorSettings.OpenFolderInNewTab）。
             // 这里恒为"切过去"：双击是明确的"我要看这个"，开在后台等于什么都没发生。
-            if (App.Settings.Behavior.OpenFolderInNewTab)
+            //
+            // 分屏时这一项**不生效**（FR-3.2）：标签是一对窗格，开新标签会把两侧一起换掉，
+            // 等于顺手冲掉另一侧正在看的目录——那正好抵消了分屏的意义。
+            if (!IsSplitActive && App.Settings.Behavior.OpenFolderInNewTab)
             {
                 OpenInNewTabRequested?.Invoke(entry.FullPath, false);
                 return;

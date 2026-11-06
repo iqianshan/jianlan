@@ -26,6 +26,9 @@ public sealed class TabViewModel : INotifyPropertyChanged
     /// <summary>关闭分屏后留下的第二窗格路径，下次开分屏时用。</summary>
     private string? _secondaryPath;
 
+    /// <summary>建第二窗格时要把焦点放过去（1 = 放第二窗格）。见 <see cref="PrepareActivePane"/>。</summary>
+    private int _pendingActivePane;
+
     public TabViewModel(AppSettings settings, string? path)
     {
         _settings = settings;
@@ -106,8 +109,19 @@ public sealed class TabViewModel : INotifyPropertyChanged
         Raise(nameof(IsSplit));
         Raise(nameof(TabTooltip));
 
+        // 分屏下从第二窗格发起的"在新标签打开"，新标签里焦点仍该在这一侧
+        if (_pendingActivePane == 1) SetActivePane(pane);
+        _pendingActivePane = 0;
+
         return pane;
     }
+
+    /// <summary>
+    /// 新建标签时声明焦点落在哪一侧（0 主 / 1 第二），在建出第二窗格那一刻生效。
+    /// 由 <see cref="TabHostViewModel.Add"/> 在建标签时写入——那时第二窗格还不存在，
+    /// 直接调 <see cref="ActivatePane"/> 会被当成"没有第二窗格"而落回主窗格。
+    /// </summary>
+    public void PrepareActivePane(int index) => _pendingActivePane = index;
 
     /// <summary>会话恢复：只记第二窗格的路径，不读盘。真正的窗格等窗口开分屏时再建。</summary>
     public void PrepareSecondaryPending(string? path)

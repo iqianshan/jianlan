@@ -623,7 +623,7 @@ public static class Strings
     /// <summary>Open folders in a new tab</summary>
     public static string Settings_Behavior_OpenFolderInNewTab => LocalizationService.Instance.Get("Settings.Behavior.OpenFolderInNewTab");
 
-    /// <summary>Double-click or Enter opens the folder in a new tab instead of replacing the current one; applies immediately</summary>
+    /// <summary>Double-click or Enter opens the folder in a new tab instead of replacing the current one; applies immediately. Ignored i</summary>
     public static string Settings_Behavior_OpenFolderInNewTab_Hint => LocalizationService.Instance.Get("Settings.Behavior.OpenFolderInNewTab.Hint");
 
     /// <summary>Open new tabs in the background</summary>
