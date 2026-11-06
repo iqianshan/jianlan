@@ -110,7 +110,7 @@ public partial class App : Application
 
         // 诊断模式：--perf-probe <目录> [--perf-frames N]，见 Views/MainWindow.PerfProbe.cs。
         // 先解析：探针必须能独立运行，不能因为已有实例在跑就退出。
-        var (probePath, probeFrames) = ParseProbeArgs(e.Args);
+        var (probePath, probeFrames, probeSplitPath) = ParseProbeArgs(e.Args);
         _isProbeMode = probePath is not null;
 
         // 按键诊断：必须在窗口构造前设置，静态初始化已经读过一次环境变量
@@ -184,11 +184,13 @@ public partial class App : Application
         // 等 OnExit 再读，Application.MainWindow 已被置空。
         window.Closing += (_, _) => PersistWindowState(window);
 
-        // 诊断模式：--perf-probe <目录> [--perf-frames N]，见 Views/MainWindow.PerfProbe.cs
+        // 诊断模式：--perf-probe <目录> [--perf-frames N] [--perf-split <目录>]，
+        // 见 Views/MainWindow.PerfProbe.cs
         if (probePath is not null)
         {
             window.ProbePath = probePath;
             window.ProbeFrames = probeFrames;
+            window.ProbeSplitPath = probeSplitPath;
         }
 
         // M0 实测结论：窗口激活时创建 IME 上下文在当前环境耗时约 500ms。
@@ -294,9 +296,10 @@ public partial class App : Application
         }
     }
 
-    private static (string? Path, int Frames) ParseProbeArgs(string[] args)
+    private static (string? Path, int Frames, string? SplitPath) ParseProbeArgs(string[] args)
     {
         string? path = null;
+        string? splitPath = null;
         int frames = 240;
 
         for (int i = 0; i < args.Length; i++)
@@ -304,6 +307,12 @@ public partial class App : Application
             if (args[i] == "--perf-probe" && i + 1 < args.Length)
             {
                 path = args[++i];
+            }
+            else if (args[i] == "--perf-split" && i + 1 < args.Length)
+            {
+                // 双窗格测量（NF-05R 双窗格档）：第二窗格单独给一个目录，
+                // 两个大目录同时常驻才是要测的场景，传同一个目录测不出第二份数据层
+                splitPath = args[++i];
             }
             else if (args[i] == "--perf-frames" && i + 1 < args.Length &&
                      int.TryParse(args[i + 1], out int n) && n >= 0)
@@ -313,6 +322,6 @@ public partial class App : Application
             }
         }
 
-        return (path, frames);
+        return (path, frames, splitPath);
     }
 }

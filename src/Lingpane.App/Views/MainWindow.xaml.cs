@@ -438,6 +438,26 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// 探针专用入口：进入双窗格形态，但不改设置、不落盘。
+    ///
+    /// 不能直接调 <see cref="ToggleSplit"/>：它会 `App.Settings.Layout.SplitEnabled = true`
+    /// 并立刻 <c>SaveSettings()</c>，测完一次内存就把用户下次启动变成"莫名其妙分屏"。
+    /// 探针本来就要跑多次取中位数，这个副作用会被放大成"设置老是自己变"。
+    /// </summary>
+    internal void EnterProbeSplit()
+    {
+        _splitEnabled = true;
+
+        PaneViewModel second = Tab.EnsureSecondary(Tab.Primary.CurrentPath);
+        Pane2.Attach(second);
+        Pane2.Visibility = Visibility.Visible;
+
+        ApplySplitLayout();
+        SyncSplitButton();
+        RefreshPaneFocus();
+    }
+
+    /// <summary>
     /// 把分屏状态同步到工具栏按钮的选中态。
     /// 三个入口（F3 / Ctrl+Shift+E / 工具栏按钮）最后都落到 <see cref="ToggleSplit"/>，
     /// 所以只在那一处收口就够；启动与设置变更时由 <see cref="ApplySettingsToUi"/> 再叫一次。

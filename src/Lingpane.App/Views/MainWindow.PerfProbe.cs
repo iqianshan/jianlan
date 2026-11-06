@@ -28,6 +28,13 @@ public partial class MainWindow
     /// <summary>非 null 时进入探针模式，跳过默认目录导航。</summary>
     internal string? ProbePath { get; set; }
 
+    /// <summary>
+    /// 非 null 时探针先分屏，再把第二窗格导航到这里（NF-05R 双窗格档）。
+    /// 与 <see cref="ProbePath"/> 分开是因为双窗格要测的是"两个大目录同时常驻"，
+    /// 传同一个目录也能测，但传两个不同目录更接近真实用法。
+    /// </summary>
+    internal string? ProbeSplitPath { get; set; }
+
     /// <summary>滚动采样帧数，默认 240 帧。传 0 表示只测加载、不滚动。</summary>
     internal int ProbeFrames { get; set; } = 240;
 
@@ -45,6 +52,26 @@ public partial class MainWindow
             // 主题影响渲染成本（深色/高对比度画笔路径不同），记录实际生效值才能解释数字差异
             r.AppliedTheme = Design.ThemeService.Current.ToString();
             r.WindowSize = $"{Math.Round(ActualWidth)}x{Math.Round(ActualHeight)}";
+
+            // 双窗格：必须在主窗格导航之前建出来，否则第二窗格按"主窗格当时路径"兜底，
+            // 测到的就是一个假的双窗格场景（两边同目录、只多了一份壳）
+            if (ProbeSplitPath is not null)
+            {
+                EnterProbeSplit();
+
+                // Vm 就是 Tab.ActivePane。分屏建出第二窗格后活动侧必须钉回主窗格，
+                // 否则后面所有指标（条目数、枚举耗时）都可能取自第二窗格，看起来"双窗格更慢"
+                Tab.ActivatePane(0);
+                r.SplitActive = true;
+
+                if (Tab.Secondary is { } secondVm)
+                {
+                    await secondVm.NavigateAsync(ProbeSplitPath);
+                    r.SecondItemCount = secondVm.Entries.Count;
+                    r.SecondTarget = ProbeSplitPath;
+                    await WaitForRenderAsync();
+                }
+            }
 
             var sw = Stopwatch.StartNew();
             await Vm.NavigateAsync(ProbePath!);
@@ -108,6 +135,12 @@ public partial class MainWindow
 
             r.WorkingSetMb = CurrentWorkingSetMb();
             r.PrivateMb = CurrentPrivateMb();
+
+            // NF-05H：托管堆。降级判据——它只受数据层影响，与框架底和环境两态无关，
+            // 所以当 NF-05/NF-05R 因为环境处于高态而不可判定时，这一项仍然可比。
+            // 口径固定为"滚动结束后 GC.GetTotalMemory(true)"。
+            r.ManagedHeapMb = CurrentManagedHeapMb();
+
             r.HandleCount = CurrentHandleCount();
             r.GdiObjects = GetGuiResources(Process.GetCurrentProcess().Handle, 0);
         }
@@ -190,6 +223,13 @@ public partial class MainWindow
         p.Refresh();
         return Math.Round(p.PrivateMemorySize64 / 1024.0 / 1024.0, 1);
     }
+
+    /// <summary>
+    /// 托管堆占用（NF-05H）。<c>forceFullCollection: true</c> 是刻意的：
+    /// 不强制回收时读到的是"含垃圾"的数，会把上一轮滚动产生的临时对象算进常驻内存。
+    /// </summary>
+    private static double CurrentManagedHeapMb()
+        => Math.Round(GC.GetTotalMemory(forceFullCollection: true) / 1024.0 / 1024.0, 1);
 
     private static int CurrentHandleCount()
     {
@@ -401,6 +441,22 @@ internal sealed class PerfProbeResult
     public double WorkingSetMb { get; set; }
 
     public double PrivateMb { get; set; }
+
+    /// <summary>
+    /// 托管堆（NF-05H）。只受数据层影响，与框架底、环境两态无关，
+    /// 是 NF-05/NF-05R 因环境不可判定时的降级依据。
+    /// </summary>
+    public double ManagedHeapMb { get; set; }
+
+    /// <summary>本次是否跑在双窗格形态下（NF-05R 双窗格档）。</summary>
+    public bool SplitActive { get; set; }
+
+    /// <summary>双窗格时第二窗格的实际目录（null 表示单窗格）。</summary>
+    public string? SecondTarget { get; set; }
+
+    /// <summary>双窗格时第二窗格的条目数。为 0 说明第二窗格没真正加载，测量无效。</summary>
+    public int SecondItemCount { get; set; }
+
     public int HandleCountBefore { get; set; }
     public int HandleCount { get; set; }
     public uint GdiObjects { get; set; }
