@@ -201,8 +201,13 @@ public partial class App : Application
             window.ProbeSplitPath = probeSplitPath;
         }
 
-        // M0 实测结论：窗口激活时创建 IME 上下文在当前环境耗时约 500ms。
-        // 浏览文件不需要输入法，故启动阶段关闭，首次进入文本输入场景（重命名/地址栏）再开启。
+        // 关掉 WPF 的输入法客户端注册。窗口激活时创建 IME 上下文要 820ms 与 74MB 工作集，
+        // 落在 activated → loaded 这一段，窗口已经画出来了、只是还不能用（见 performance-gate §6.2）。
+        //
+        // 不需要在文本框获得焦点时再手动开启：地址栏、重命名框都是普通 TextBox，
+        // 获得焦点时 WPF 会自行按需创建上下文。实测带这一行时中文输入与候选框一切正常
+        // （D:\ac05\ac06\ime-3-addressbar-typed.png）。原注释写的"首次输入时再开启"从未实现，
+        // 也不必要——那个承诺会让后来的人去找一个不存在的方法。
         System.Windows.Input.InputMethod.SetIsInputMethodEnabled(window, false);
 
         StartupTrace.Mark("window");

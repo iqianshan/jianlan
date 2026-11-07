@@ -188,14 +188,19 @@ CPU 上限取 60 而非 50：Windows 空闲机器也常在 30–50% 波动，50 
 
 | 优化 | 收益 | 位置 |
 |---|---|---|
-| 启动期关闭 IME | **约 −500 ms，−43 MB** | `App.OnStartup` |
+| 启动期关闭 IME | **−820 ms（`activated` → `loaded`）、−74 MB 峰值工作集**；外部口径（到窗口句柄出现）无差异，见 §6.2 | `App.OnStartup` |
 | 设置读取改用源生成序列化 | **−36 ms（−5.6%，交替对照）** | `SettingsStore` / `SettingsJsonContext` |
 | ReadyToRun 发布 | −16 ms（与未 R2R 版本交替对照） | `Lingpane.App.csproj` |
 | `SatelliteResourceLanguages=en` | 减少附属程序集探测 | `Directory.Build.props` |
 | 图标按扩展名而非按文件查询 | 滚动零磁盘 IO | `ShellIconProvider` |
 | 列表用 `IReadOnlyList` 整体替换 | 避免 N 次 `CollectionChanged` | `MainViewModel` |
 
-### 6.1 `Show()` 段的两态：启动耗时最大的不确定性来源
+### 6.1 `Show()` 段的两态：`window` → `srcinit` 是系统状态，另有 IME 段
+
+> **2026-11-07 更正**：本节原先把两类波动混为一谈。经 §6.2 的对照实测，启动期有一笔
+> 稳定的、可完全归因的 **IME 成本（`activated` → `loaded`，约 820 ms）**，与本节描述的
+> `window` → `srcinit` 波动是两个独立来源。原表"输入法上下文创建 → 无关"的结论作废，
+> 原因是当时只在 `window` → `srcinit` 段读数，而 IME 成本根本不在这一段。
 
 2026-11-05 实测发现，同一份可执行文件在两个时间点测出的启动耗时可差 **400 ms 以上**，
 差值几乎全部落在 `window` → `srcinit` 这一段（即 `Window.Show()` 内部的窗口源初始化）：
@@ -213,20 +218,73 @@ CPU 上限取 60 而非 50：Windows 空闲机器也常在 30–50% 波动，50 
 | 假设 | 实验 | 结果 |
 |---|---|---|
 | 自定义字体（Alibaba PuHuiTi 2.0）渲染 | 把 `fontFamily` 置空 | 该段仍 560 ms，无关 |
-| 输入法上下文创建 | 注释掉 `SetIsInputMethodEnabled` | 该段仍 540 ms，无关 |
+| 输入法上下文创建 | 注释掉 `SetIsInputMethodEnabled` | ~~该段仍 540 ms，无关~~ **2026-11-07 推翻**：成本在 `activated` → `loaded`，不在本段。该行实际值 820 ms，见 §6.2 |
 | GPU / D3D 设备初始化 | `ProcessRenderMode = SoftwareOnly` | 该段仍 570 ms，无关 |
 | 窗口句柄重建 | 记录 `WindowInteropHelper.Handle` | 前后句柄一致，未重建 |
 | `TieredPGO` | 关掉后交替对照 | 0 ms 差异，已回滚 |
 
 剩下的是 `HwndSource` / `PresentationSource` 的初始化本身（`activated` 触发时
 `PresentationSource.FromVisual` 仍为 null，说明此时窗口源尚未就绪）。
-这一段由 WPF 与系统共同完成，代码侧没有可控的介入点。
+这一段由 WPF 与系统共同完成，代码侧没有可控的介入点——注意这句只针对
+`window` → `srcinit`（约 200 ms）；IME 那 820 ms 落在其后的 `activated` → `loaded`，
+有明确的介入点，就是 `App.OnStartup` 里那行。
 
-**测量规则**：判定"某次改动是否引入启动回归"前，先看 `srcinit - window` 是否显著大于 160 ms。
-若是，本次数据不可用于代码判定——它反映的是系统状态，不是代码。
+**测量规则**（2026-11-07 补充第二条）：判定"某次改动是否引入启动回归"前，先看两处分段：
+
+| 分段 | 正常值 | 异常说明 |
+|---|---|---|
+| `srcinit - window` | < 160 ms | 偏大：系统状态（全局钩子、DWM、安全软件），本次数据不可用于代码判定 |
+| `activated` → `loaded` | **约 40 ms** | 出现约 860 ms：IME 上下文被创建，即 `App.OnStartup` 里那行 `SetIsInputMethodEnabled` 失效或被删 |
+
+第二条是本项目最容易在重构中无意破坏的一条：它不影响功能（中文输入照常）、不影响窗口出现时间，
+只让"窗口出现到可用"多等 0.8 秒，肉眼几乎察觉不到，只有分段数据能看出来。
 
 > 已知本机存在全局钩子类软件时该段会明显变长（输入法、屏幕录制、安全软件都会插入
 > `CreateWindowEx` 的钩子链）。换一台干净的机器对照是最快的验证方式。
+
+
+### 6.2 IME 成本的对照实测（2026-11-07，O3 收益归属）
+
+2026-11-05 曾复核"注释掉 `SetIsInputMethodEnabled` 后无差异"，据此把 O3 的收益判为无法归属。
+该结论已作废。本次用两种独立方法重测，结论一致。
+
+**方法一：产品级单变量交替对照。** 同一份源码编两份二进制，唯一差异是
+`App.xaml.cs` 中那一行是否注释；每轮 `ime` / `noime` 各启一次（轮转，不是跑完一组再跑下一组，
+以把环境漂移摊到两组），取 `startup.log` 新增行的分段数据。
+
+| 组 | n | `window`→`loaded` P50 | min | `activated`→`loaded`（抽样） | 峰值工作集 | 慢态（>600 ms） |
+|---|---|---|---|---|---|---|
+| 带该行 | 12 | **257 ms** | 234 ms | 41 ms | 131 MB | 0 / 12 |
+| 注释该行 | 12 | **1080 ms** | 1054 ms | 863 ms | 205 MB | **12 / 12** |
+
+差异 **−823 ms、−74 MB**，两个组的 `window`、`render`、`srcinit`、`activated` 四个锚点
+几乎逐毫秒相同（621 ms vs 621 ms），成本精确落在 `activated` → `loaded` ——
+即窗口已激活、WPF 正在为文本框注册输入法客户端的那一段。
+
+**方法二：最小空窗口三配置对照**（`D://ac05//imeprobe`，同一份二进制靠参数切换，10 轮交替）：
+
+| 配置 | 构造→`Loaded` P50 | 峰值工作集 | 外部口径（到窗口句柄出现） |
+|---|---|---|---|
+| 默认 | 1073 ms | 175 MB | 530 ms |
+| `InputMethod.SetIsInputMethodEnabled(window, false)` | **184 ms** | **95 MB** | 525 ms |
+| 进程级 `ImmDisableIME(0)` | 354 ms | 136 MB | 527 ms |
+
+四条结论：
+
+1. **收益真实且稳定**：两种方法、34 次启动、零例外。O3 不是"无法归属"，是归属到了错误的段落。
+2. **窗口级关闭优于进程级**：`SetIsInputMethodEnabled` 阻止的是 WPF 创建 `TextInputMethodClient`
+   （184 ms），`ImmDisableIME` 只关掉 IMM 的线程上下文，WPF 仍会走一遍自己的绑定（354 ms）。
+   产品用的前者是对的，不必改成后者。
+3. **外部口径测不到这笔收益**：三组到"窗口句柄出现"都是 525–530 ms。成本发生在窗口可见之后、
+   布局完成之前，用户看到的是"窗口出现了但白着 0.8 秒"。因此对外表述仍用 `firstframe`，
+   不能用"到窗口出现"来论证这条优化。
+4. **不影响功能**：带该行的构建里，地址栏输入 `nihao` 时候选框正常弹出（`D://ac05//ac06//ime-3-addressbar-typed.png`），
+   中文输入、重命名均可用。`App.OnStartup` 的注释原写"首次进入文本输入场景再开启"，
+   实测不需要显式恢复——文本框获得焦点时 WPF 会自行按需创建上下文，这句话已改写。
+
+复现脚本：`D://ac05//o3_ab.py`（产品级）、`D://ac05//ime_ab.py`（空窗口三配置）。
+两份二进制需分别 `dotnet publish`，对照完成后必须把 `App.xaml.cs` 恢复原状
+（`git diff` 应为空）——脚本不负责恢复，这一步是手工的。
 
 
 ## 7. 待验证的优化（按收益排序）
