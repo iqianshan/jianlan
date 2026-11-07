@@ -399,6 +399,42 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     public Task RefreshAsync()
         => string.IsNullOrEmpty(CurrentPath) ? Task.CompletedTask : NavigateAsync(CurrentPath, recordHistory: false);
 
+    /// <summary>
+    /// 释放目录内容，只留路径、历史与视图状态（内存预算配套约束，见 performance-gate §9.5）。
+    ///
+    /// 非活动标签调用它。一个 1 万项目录约 3 MB，12 个标签就是 36 MB，而这些条目在切回来
+    /// 之前没有任何人看。释放后 <see cref="HasPendingContent"/> 置位，激活时宿主走
+    /// <c>LoadPanesAsync</c> 重新读盘——与"会话恢复的半开标签"共用同一条加载路径，
+    /// 不为它另写一套。
+    ///
+    /// 保留：路径、面包屑、导航栈、滚动锚点、选中路径（全是字符串，合计几 KB）。
+    /// 丢弃：原始枚举结果与可见列表。
+    ///
+    /// 代价：切回来要重新枚举一次。万项目录实测 64 ms 枚举 + 218 ms 首屏（§9.2），
+    /// 期间列表显示"加载中"。换来的是"标签开得再多也不按标签数线性涨内存"。
+    /// </summary>
+    public void ReleaseContent()
+    {
+        if (_all.Count == 0 && _entries.Count == 0) return;
+
+        // 正在跑的枚举必须作废：它回来时直接给 _all 赋值，会把刚释放的内容又装回去。
+        // 少了这一步，释放会呈现"切一次省了、多切两次又回来了"的假象。
+        _navigationToken++;
+
+        CancelFolderSizeScan();
+        _sizeScanTargets = [];
+        IsCalculatingSize = false;
+        SizeProgressText = string.Empty;
+
+        _all = [];
+        Entries = [];
+        SelectedEntries = [];
+
+        // 状态栏文字保持原样：切回来会立刻显示"加载中"，
+        // 中间那一帧显示"0 项"只会让人以为目录被清空了。
+        HasPendingContent = true;
+    }
+
     public Task<bool> GoBackAsync() => GoAsync(back: true);
 
     public Task<bool> GoForwardAsync() => GoAsync(back: false);

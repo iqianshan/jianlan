@@ -73,10 +73,13 @@ public partial class PaneView : UserControl
             SaveViewState(previous);
             previous.NavigationCompleted -= StartWatching;
             previous.NavigationCompleted -= ScheduleFolderIcons;
+            previous.NavigationCompleted -= RestoreAfterReload;
             StopWatching();
         }
 
         _viewModel = viewModel;
+        // 换绑就作废上一次的等待：它属于旧窗格
+        _pendingRestore = null;
         DataContext = viewModel;
 
         // 列宽要在首帧前就位，否则会看到一次"默认宽度 → 记忆宽度"的跳动
@@ -85,6 +88,7 @@ public partial class PaneView : UserControl
         // 监听与图标补充挂在视图模型上：它们的目标是"这个窗格正在看的目录"
         viewModel.NavigationCompleted += StartWatching;
         viewModel.NavigationCompleted += ScheduleFolderIcons;
+        viewModel.NavigationCompleted += RestoreAfterReload;
 
         RestoreViewState(viewModel);
     }
@@ -95,6 +99,14 @@ public partial class PaneView : UserControl
     // 它们来自设置，属于整个应用；标签之间不一致反而会让用户以为设置丢了。
 
     private bool _restoringState;
+
+    /// <summary>
+    /// 内容被释放过、要等重新读盘才能恢复选中与滚动的窗格。
+    /// 非活动标签不保留条目（<see cref="PaneViewModel.ReleaseContent"/>），切回来时列表先是空的，
+    /// 按路径一条也找不到——此时不能"恢复失败就算了"，得等 <c>NavigationCompleted</c> 再来一次，
+    /// 否则用户切回标签会发现选中项没了。
+    /// </summary>
+    private PaneViewModel? _pendingRestore;
 
     private void SaveViewState(PaneViewModel viewModel)
     {
@@ -117,12 +129,16 @@ public partial class PaneView : UserControl
 
     private void RestoreViewState(PaneViewModel viewModel)
     {
-        RestoreSelection(viewModel, viewModel.SelectedPaths);
+        // 条目可能已经被释放（非活动标签不保留内容）。这时按路径一条也找不到，
+        // 选中与滚动都只能等重新读盘完成——记下来，交给 RestoreAfterReload。
+        bool pending = !RestoreSelection(viewModel, viewModel.SelectedPaths);
+        if (pending) _pendingRestore = viewModel;
 
         // 滚动要等布局跑完：ItemsSource 刚换过，此刻 ScrollViewer 的 extent 还是旧的，
         // 直接 ScrollToVerticalOffset 会被夹到 0，表现为"切回来列表在顶部"。
+        // 等着读盘的这一轮先跳过——列表是空的，恢复了也会被夹到 0。
         (int Index, double Offset) anchor = viewModel.ScrollAnchor;
-        if (anchor.Index <= 0 && anchor.Offset <= 0) return;
+        if (pending || (anchor.Index <= 0 && anchor.Offset <= 0)) return;
 
         Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
         {
@@ -131,18 +147,48 @@ public partial class PaneView : UserControl
         });
     }
 
-    private void RestoreSelection(PaneViewModel viewModel, IReadOnlyList<string> paths)
+    /// <summary>
+    /// 重新读盘完成后补做选中与滚动恢复。只对"切回来时内容还没加载"的窗格生效；
+    /// 正常导航（用户点了别的目录）不会走到恢复，因为那时没有等待中的窗格。
+    /// </summary>
+    private void RestoreAfterReload(string path)
     {
-        if (paths.Count == 0) return;
+        if (_pendingRestore is not { } viewModel || !ReferenceEquals(_viewModel, viewModel)) return;
+        _pendingRestore = null;
+
+        RestoreSelection(viewModel, viewModel.SelectedPaths);
+
+        (int Index, double Offset) anchor = viewModel.ScrollAnchor;
+        if (anchor.Index <= 0 && anchor.Offset <= 0) return;
+
+        // 刚读完盘、列表刚换过 ItemsSource，同 RestoreViewState 的理由再等一帧布局
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+        {
+            if (ReferenceEquals(_viewModel, viewModel)) RestoreScrollAnchor(anchor);
+        });
+    }
+
+    /// <summary>
+    /// 按路径恢复选中。返回 <c>false</c> 表示"有路径要选、但一条都没找到"——
+    /// 这只发生在内容已被释放、正等着重新读盘的时候。
+    /// </summary>
+    private bool RestoreSelection(PaneViewModel viewModel, IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return true;
 
         _restoringState = true;
+        int found = 0;
         try
         {
             FileList.SelectedItems.Clear();
 
             foreach (string path in paths)
             {
-                if (viewModel.FindByPath(path) is { } entry) FileList.SelectedItems.Add(entry);
+                if (viewModel.FindByPath(path) is { } entry)
+                {
+                    FileList.SelectedItems.Add(entry);
+                    found++;
+                }
             }
         }
         finally
@@ -163,6 +209,8 @@ public partial class PaneView : UserControl
         viewModel.SetSelection(selected.Count, total);
         viewModel.SetSelectedEntries(selected);
         CommandManager.InvalidateRequerySuggested();
+
+        return found > 0;
     }
 
     /// <summary>窗格被点中（键盘焦点进入列表）时触发，宿主据此切换"活动窗格"。</summary>
@@ -238,10 +286,12 @@ public partial class PaneView : UserControl
             SaveViewState(previous);
             previous.NavigationCompleted -= StartWatching;
             previous.NavigationCompleted -= ScheduleFolderIcons;
+            previous.NavigationCompleted -= RestoreAfterReload;
             StopWatching();
         }
 
         _viewModel = null;
+        _pendingRestore = null;
         DataContext = null;
         OutlineHost.BorderThickness = new Thickness(0);
     }

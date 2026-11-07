@@ -359,6 +359,12 @@ public partial class MainWindow : Window
 
         BindTab(current);
 
+        // 释放上一个标签的条目集合（内存预算配套约束，见 performance-gate §9.5）。
+        // 顺序不能反：BindTab → PaneView.Attach 会先把滚动位置与选中项写回 previous，
+        // 早于它释放会把这两样状态连同条目一起丢掉。
+        // 关掉的标签不在这里处理——它已经从 Tabs 移除，整份视图模型交给 GC。
+        previous?.ReleaseContent();
+
         // 窗口标题与导航栏的绑定都挂在窗口 DataContext 上，跟着焦点窗格走
         DataContext = current.ActivePane;
         SyncNavSelection(current.ActivePane.CurrentPath);

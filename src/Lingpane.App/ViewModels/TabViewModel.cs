@@ -167,6 +167,21 @@ public sealed class TabViewModel : INotifyPropertyChanged
     public (string Primary, string Secondary) SnapshotPaths()
         => (Primary.CurrentPath, Secondary?.CurrentPath ?? string.Empty);
 
+    /// <summary>
+    /// 释放本标签两个窗格的目录内容，只留路径（非活动标签的内存约束）。
+    ///
+    /// 必须在视图换绑之后调用：<c>PaneView.Attach</c> 会先把滚动位置与选中项写回窗格，
+    /// 早于它调用会把这两样状态连同条目一起丢掉。
+    ///
+    /// 第二窗格通常是 null——关分屏时 <see cref="DropSecondary"/> 已经把它整份丢掉了，
+    /// 只有分屏期间它才以实体存在。
+    /// </summary>
+    public void ReleaseContent()
+    {
+        Primary.ReleaseContent();
+        Secondary?.ReleaseContent();
+    }
+
     private void OnPanePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         // 窗格换了目录 → 标签名与 tooltip 一起变。窗格自己会在 CurrentPath 变化时

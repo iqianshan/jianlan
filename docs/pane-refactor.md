@@ -168,8 +168,14 @@ MainWindow
 ```
 
 预算算得过来：一个空视图壳约 3 MB（20 个标签若各建一套工具栏 + 列表，光控件树就吃掉 60 MB，
-而 ADR-0008 定的是私有提交 65 MB）。保活的是**状态**（路径、历史栈、条目、选中、滚动位置），
+而 ADR-0008 定的是私有提交 65 MB）。保活的是**状态**（路径、历史栈、选中、滚动位置），
 不是**控件**。
+
+> **2026-11-07 补**：**条目本身也不保活了**。原先视图模型保活意味着 12 个标签各留一份
+> `Entries`，一万项目录下约 25 MB。现在切走时释放内容（`PaneViewModel.ReleaseContent`），
+> 只留上面那几样字符串状态，切回来走 §6.3 的懒加载路径重新读盘，
+> 读完再按 `FullPath` 把选中还原（`PaneView.RestoreAfterReload`）。
+> 实测与代价见 `performance-gate.md` §9.5.1。
 
 `Attach` 必须可重复调用——它会先把上一份视图状态存回旧 VM（`SaveViewState`），
 再挂事件、还原新 VM 的视图状态（`RestoreViewState`）。
@@ -196,6 +202,10 @@ ScrollViewer 的 extent 还是旧的，偏移会被夹到 0。
 单实例转交也要认这个状态：首屏没起来时第二次启动的目录参数直接改进当前标签的待办路径
 （`if (!_started && Vm.HasPendingContent) { Vm.PreparePendingPath(path); return; }`），
 否则会和 `OnLoaded` 的导航抢同一个标签。
+
+这条路径现在有两个使用者：**启动时的非活动标签**，以及**被释放过内容的标签**。
+后者是 2026-11-07 加的（`ReleaseContent` 把 `HasPendingContent` 置位），
+于是"切回标签"与"会话恢复"共用同一段加载逻辑，没有第二套代码要维护。
 
 ### 6.4 命令分家：6 条进窗口表
 
