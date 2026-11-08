@@ -170,6 +170,18 @@ finally {
     $env:InformationalVersion = $previousInfoVersion
 }
 
+# ---------- 3.5 随包文档 ----------
+
+# 解压后的用户看不到仓库：版本变更、已知限制、用法全在这两份文件里。
+# 下一段的校验会一起检，缺了就是发版包不完整。
+Write-Step '拷入随包文档'
+foreach ($doc in @('CHANGELOG.md', 'README.md')) {
+    $src = Join-Path $root $doc
+    if (-not (Test-Path -LiteralPath $src)) { throw "仓库缺少 $doc，无法打出完整发布包" }
+    Copy-Item -LiteralPath $src -Destination (Join-Path $stage $doc) -Force
+    Write-Note $doc
+}
+
 # ---------- 4. 校验产物 ----------
 
 Write-Step '校验产物'
@@ -180,12 +192,12 @@ function Assert-Item([string]$Path, [string]$What) {
 
 $exe = Join-Path $stage 'Lingpane.exe'
 Assert-Item $exe '主程序'
-foreach ($f in @('LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES.md')) {
+foreach ($f in @('LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES.md', 'CHANGELOG.md', 'README.md')) {
     $p = Join-Path $stage $f
     Assert-Item $p '合规文件'
     if ((Get-Item -LiteralPath $p).Length -le 0) { throw "合规文件是空的：$p" }
 }
-Write-Note 'LICENSE / NOTICE / THIRD-PARTY-NOTICES.md 齐全'
+Write-Note 'LICENSE / NOTICE / THIRD-PARTY-NOTICES.md / CHANGELOG / README 齐全'
 
 # self-contained 的标志物：有 hostfxr 才是自带运行时。
 # 少了它，包名里的 portable 就是假的——用户双击会看到"需要 .NET"。

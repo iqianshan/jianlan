@@ -22,7 +22,8 @@
 - **便携发布脚本 `tools/release/publish.ps1`**（AC-09）：publish → 校验 → 写 `portable.flag` → zip → SHA256。
   默认 self-contained（自带 .NET 运行时）：框架依赖包在没装运行时的机器上双击只会弹下载页，
   那不叫"解压即用"。产物 `Lingpane-<版本>-portable-win-x64.zip` 约 70 MB，解压后设置与日志落在
-  `data\`，不写 `%LOCALAPPDATA%`。校验项包含 `hostfxr.dll`——少了它，包名里的 portable 就是假的
+  `data\`，不写 `%LOCALAPPDATA%`。校验项包含 `hostfxr.dll`——少了它，包名里的 portable 就是假的。包内另带 `CHANGELOG.md` 与 `README.md`：
+  解压后的用户看不到仓库，已知限制、用法与版本变更得跟着包走
 - **版本号可追溯到 commit**：发版脚本写入 `0.1.0+<短commit>`，`AppInfo` 是唯一读取处，
   启动时记一行 `app.start`（含版本、是否便携、数据目录）。用户报问题时，
   日志能回答"哪个版本、哪种数据目录"——便携模式下这一点尤其重要，用户并不知道数据在解压目录里
