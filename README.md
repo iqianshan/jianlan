@@ -98,27 +98,36 @@ M0 阶段测得"关闭 IME 上下文创建"约省 500 ms，据此在启动阶段
 **快捷键**：见 [`docs/shortcuts.md`](docs/shortcuts.md)，键位表集中在
 `src/Lingpane.App/Input/KeyBindings.cs`，窗口消息（物理键码）为主入口、`PreviewKeyDown` 兜底。
 
+## 已完成（0.1.0 收尾）
+
+| 项 | 说明 |
+|---|---|
+| 地址栏自动补全 | 输入路径时给候选，`Tab` 补全、`Enter` 打开 |
+| 文件夹大小按需计算 | 仅显式触发，后台递归可取消，`Esc` 中止并返回已累计值 |
+| 系统 Shell 右键菜单 | 「更多选项…」与 `Shift+右键` 加载真实系统菜单 |
+| 多语言（中/英） | 无硬编码、运行时切换，见 [`i18n.md`](docs/i18n.md) |
+| 便携包与合规文件 | `publish.ps1` 出自包含 zip，随包 `LICENSE` / `NOTICE` / `THIRD-PARTY-NOTICES.md` |
+
+## 已知限制（0.1.0）
+
+六项 P1 留在 0.2.0，均不挡日常使用——上一版异常退出无提示、导航栏缺「网络 / 回收站」节点、
+导航栏宽度不可拖、导航栏中键不开新标签、列不可增减、双窗格下地址栏过窄。
+逐条的现状与替代操作见 [`CHANGELOG.md`](CHANGELOG.md) 的「0.1.0 已知限制」。
+
+多标签页与双窗格**代码里已可用**（`Ctrl+T` / `F3`），但 M2 验收矩阵未跑完，0.1.0 不列为承诺能力。
+
 ## 规划中
-
-**0.1.0 收尾（单窗格可用版）**
-
-| 项 | 说明 | 方案 |
-|---|---|---|
-| 地址栏自动补全 | 输入路径时给候选，`Tab` 补全、`Enter` 打开 | [`m1-fr6-plan.md`](docs/m1-fr6-plan.md) §1 |
-| 文件夹大小按需计算 | 仅显式触发，后台递归可取消 | §3 |
-| 系统 Shell 右键菜单 | 「更多选项…」与 `Shift+右键` | §5 |
-| 多语言（中/英） | 无硬编码、运行时切换 <200ms | [`i18n.md`](docs/i18n.md) |
 
 **0.2.0（功能完整版）**
 
-多标签页 · 双窗格 · 彩色标签 · 收藏书签 · 工作区 · 预览窗格 · 主页 · 关于页
-（[`about-page.md`](docs/about-page.md)）
+彩色标签 · 收藏书签 · 工作区 · 预览窗格 · 主页 · 关于页
+（[`about-page.md`](docs/about-page.md)）；加上方「已知限制」六项。
 
 **明确不做**：图标/磁贴视图（[ADR-0005](docs/adr/0005-large-icon-view.md)），
 完整清单见需求文档 §8.3。
 
 完整需求见 [`docs/requirements.md`](docs/requirements.md)，界面规范见 [`docs/ui-guidelines.md`](docs/ui-guidelines.md)。
-**未实现部分的完整盘点与逐项实现方案见 [`docs/m2-plan.md`](docs/m2-plan.md)**（0.1.0 收尾 5 天 + 0.2.0 约 6 周）。
+**未实现部分的完整盘点与逐项实现方案见 [`docs/m2-plan.md`](docs/m2-plan.md)**（0.1.0 收尾已全部完成，余 0.2.0 约 6 周）。
 
 多标签与双窗格的前置重构见 [`docs/pane-refactor.md`](docs/pane-refactor.md)；
 彩色标签的存储方案复核见 [`docs/tags-storage.md`](docs/tags-storage.md)；
