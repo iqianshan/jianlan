@@ -1072,4 +1072,52 @@ public static class Strings
     public static string Status_Workspace_Skipped => LocalizationService.Instance.Get("Status.Workspace.Skipped");
     // 含占位符：string.Format(Strings.Status_Workspace_Skipped, ...)
 
+    /// <summary>Tag</summary>
+    public static string Menu_Tag => LocalizationService.Instance.Get("Menu.Tag");
+
+    /// <summary>Set a colour tag on the selected items</summary>
+    public static string Menu_Tag_Tip => LocalizationService.Instance.Get("Menu.Tag.Tip");
+
+    /// <summary>Remove Tag</summary>
+    public static string Menu_Tag_Remove => LocalizationService.Instance.Get("Menu.Tag.Remove");
+
+    /// <summary>Red</summary>
+    public static string Tag_Color_Red => LocalizationService.Instance.Get("Tag.Color.Red");
+
+    /// <summary>Orange</summary>
+    public static string Tag_Color_Orange => LocalizationService.Instance.Get("Tag.Color.Orange");
+
+    /// <summary>Yellow</summary>
+    public static string Tag_Color_Yellow => LocalizationService.Instance.Get("Tag.Color.Yellow");
+
+    /// <summary>Green</summary>
+    public static string Tag_Color_Green => LocalizationService.Instance.Get("Tag.Color.Green");
+
+    /// <summary>Blue</summary>
+    public static string Tag_Color_Blue => LocalizationService.Instance.Get("Tag.Color.Blue");
+
+    /// <summary>Purple</summary>
+    public static string Tag_Color_Purple => LocalizationService.Instance.Get("Tag.Color.Purple");
+
+    /// <summary>Gray</summary>
+    public static string Tag_Color_Gray => LocalizationService.Instance.Get("Tag.Color.Gray");
+
+    /// <summary>Black</summary>
+    public static string Tag_Color_Black => LocalizationService.Instance.Get("Tag.Color.Black");
+
+    /// <summary>Tagged {0} item(s)</summary>
+    public static string Status_Tag_Applied => LocalizationService.Instance.Get("Status.Tag.Applied");
+    // 含占位符：string.Format(Strings.Status_Tag_Applied, ...)
+
+    /// <summary>Removed tags from {0} item(s)</summary>
+    public static string Status_Tag_Removed => LocalizationService.Instance.Get("Status.Tag.Removed");
+    // 含占位符：string.Format(Strings.Status_Tag_Removed, ...)
+
+    /// <summary>This location does not support tags</summary>
+    public static string Status_Tag_Unsupported => LocalizationService.Instance.Get("Status.Tag.Unsupported");
+
+    /// <summary>Tag limit reached ({0})</summary>
+    public static string Status_Tag_Full => LocalizationService.Instance.Get("Status.Tag.Full");
+    // 含占位符：string.Format(Strings.Status_Tag_Full, ...)
+
 }

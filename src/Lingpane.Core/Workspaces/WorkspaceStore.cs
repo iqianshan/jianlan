@@ -94,7 +94,7 @@ public sealed class WorkspaceStore
             }
             catch (Exception copyEx) when (copyEx is IOException or UnauthorizedAccessException)
             {
-                LogSink.Warn("workspace.load", "E8001", $"备份失败：{copyEx.Message}");  // i18n-ignore：只进 app.log
+                LogSink.Warn("workspace.load", "E9001", $"备份失败：{copyEx.Message}");  // i18n-ignore：只进 app.log
             }
 
             return new WorkspaceStore(new WorkspacesDocument(), path, false, warn);
@@ -136,7 +136,7 @@ public sealed class WorkspaceStore
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            LogSink.Warn("workspace.save", "E8002", $"保存工作区失败：{ex.Message}");  // i18n-ignore：只进 app.log
+            LogSink.Warn("workspace.save", "E9002", $"保存工作区失败：{ex.Message}");  // i18n-ignore：只进 app.log
             return false;
         }
     }

@@ -2,6 +2,7 @@ using Lingpane.App.Commands;
 using Lingpane.Core.Commands;
 using Lingpane.Core.Localization;
 using Lingpane.Core.Settings;
+using Lingpane.Core.Tagging;
 
 namespace Lingpane.App.Views;
 
@@ -40,6 +41,7 @@ public partial class PaneView
     public CommandAdapter PropertiesCommand { get; private set; } = null!;
     public CommandAdapter CalculateSizeCommand { get; private set; } = null!;
     public CommandAdapter MoreOptionsCommand { get; private set; } = null!;
+    public CommandAdapter TagRemoveCommand { get; private set; } = null!;
 
     /// <summary>请求开关第二窗格。分屏是窗口形态，窗格只把意图告诉宿主（FR-3.3）。</summary>
     public event Action? SplitToggleRequested;
@@ -204,6 +206,15 @@ public partial class PaneView
             TitleFactory = () => Strings.Menu_MoreOptions,
             Execute = ShowShellContextMenuFromMenu,
         });
+        // 彩色标签（FR-4.1.3）。设色走预设表 + EventSetter，不进注册表；
+        // "移除"有确定语义，进注册表以便将来给快捷键。
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.RemoveTag,
+            TitleFactory = () => Strings.Menu_Tag_Remove,
+            Execute = () => _ = ApplyTagAsync(TagColors.None),
+            CanExecute = HasSelection,
+        });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.CalculateSize,
@@ -244,5 +255,6 @@ public partial class PaneView
         PropertiesCommand = new CommandAdapter(_commands.Get(CommandIds.Properties));
         CalculateSizeCommand = new CommandAdapter(_commands.Get(CommandIds.CalculateSize));
         MoreOptionsCommand = new CommandAdapter(_commands.Get(CommandIds.MoreOptions));
+        TagRemoveCommand = new CommandAdapter(_commands.Get(CommandIds.RemoveTag));
     }
 }

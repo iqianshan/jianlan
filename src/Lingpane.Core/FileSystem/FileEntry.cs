@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 
 using Lingpane.Core.Localization;
+using Lingpane.Core.Tagging;
 
 namespace Lingpane.Core.FileSystem;
 
@@ -44,7 +45,7 @@ public sealed class FileEntry : INotifyPropertyChanged
     private FolderSizeState _folderSizeState;
 
     public FileEntry(string name, string parentPath, bool isDirectory, long size, DateTime lastWriteTime,
-        bool isHidden = false)
+        bool isHidden = false, ulong fileId = 0)
     {
         Name = name;
         _parentPath = parentPath;
@@ -52,7 +53,55 @@ public sealed class FileEntry : INotifyPropertyChanged
         Size = size;
         LastWriteTime = lastWriteTime;
         IsHidden = isHidden;
+        FileId = fileId;
         IconKey = ResolveIconKey(name, isDirectory);
+    }
+
+    /// <summary>
+    /// 文件的稳定标识（FR-4.2.2，标签主键的一半）。0 表示"这次枚举没取到"——
+    /// 标签库为空时走的是不取 FileId 的快枚举，这种情况下每个条目都是 0；
+    /// 用户真要给某一项打标签时再单独查一次（见 <c>PaneViewModel.ResolveTargets</c>）。
+    ///
+    /// 不做成构造后不可变：同一个 <see cref="FileEntry"/> 在"打标签"那一刻才拿到 id，
+    /// 为它重建整个列表（几千项）代价远大于事后补一个字段。
+    /// </summary>
+    public ulong FileId { get; private set; }
+
+    /// <summary>打标签时补上 id，并通知界面（圆点要立刻画出来）。</summary>
+    public void SetFileId(ulong fileId)
+    {
+        if (fileId == 0 || FileId == fileId) return;
+
+        FileId = fileId;
+        PropertyChanged?.Invoke(this, FileIdChanged);
+    }
+
+    private static readonly PropertyChangedEventArgs FileIdChanged = new(nameof(FileId));
+
+    /// <summary>
+    /// 颜色标签（FR-4.1.4）。库未就绪时一律是 <see cref="TagColors.None"/>，
+    /// 库就绪后由窗格统一补一次（FR-4.2.5）——列表不必等标签库才开始渲染。
+    /// </summary>
+    public TagColors Tags => _tags;
+
+    private TagColors _tags;
+
+    /// <summary>有没有标签。行模板用它决定要不要画那圈描边——
+    /// 只靠 <see cref="Tags"/> 的话，没有标签的行会留下一个空心小圆环，
+    /// 看起来像一个没勾的复选框。</summary>
+    public bool HasTags => _tags != TagColors.None;
+
+    private static readonly PropertyChangedEventArgs TagsChanged = new(nameof(Tags));
+    private static readonly PropertyChangedEventArgs HasTagsChanged = new(nameof(HasTags));
+
+    /// <summary>设置颜色并通知。相同值不通知，避免整批刷新时的无谓布局。</summary>
+    public void SetTags(TagColors colors)
+    {
+        if (_tags == colors) return;
+
+        _tags = colors;
+        PropertyChanged?.Invoke(this, TagsChanged);
+        PropertyChanged?.Invoke(this, HasTagsChanged);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

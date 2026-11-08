@@ -7,6 +7,7 @@ using Lingpane.App.Views;
 using Lingpane.Core.Diagnostics;
 using Lingpane.Core.Localization;
 using Lingpane.Core.Settings;
+using Lingpane.Core.Tagging;
 using Lingpane.Core.Workspaces;
 
 namespace Lingpane.App;
@@ -29,6 +30,15 @@ public partial class App : Application
     private static WorkspaceStore? _workspaces;
 
     public static WorkspaceStore Workspaces => _workspaces ??= WorkspaceStore.Load();
+
+    /// <summary>
+    /// 彩色标签库（FR-4.2.3）。同样懒加载——构造函数不读文件，
+    /// 第一次 <c>EnsureLoaded</c> 才解析 <c>data\tags.jsonl</c>。
+    /// 由主窗口在首帧之后的线程池里触发，冷启动不为标签多付几十毫秒。
+    /// </summary>
+    private static TagStore? _tags;
+
+    public static TagStore Tags => _tags ??= new TagStore();
 
     /// <summary>诊断探针模式：不得写设置文件，否则会污染测量并覆盖用户窗口尺寸。</summary>
     private static bool _isProbeMode;

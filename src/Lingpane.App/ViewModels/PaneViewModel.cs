@@ -8,6 +8,7 @@ using Lingpane.Core.FileSystem;
 using Lingpane.Core.Localization;
 using Lingpane.Core.Navigation;
 using Lingpane.Core.Settings;
+using Lingpane.Core.Tagging;
 
 namespace Lingpane.App.ViewModels;
 
@@ -71,10 +72,20 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     /// <summary>导航序号：用于丢弃过期的异步枚举结果（快速连按时防止旧目录覆盖新目录）。</summary>
     private int _navigationToken;
 
-    public PaneViewModel(AppSettings settings, Action<string>? onVisited = null)
+    /// <summary>
+    /// 彩色标签库（FR-4）。可空：没有它就只是"这个窗格不显示标签"，
+    /// 浏览功能一律照常——标签是装饰，不该成为打开目录的前提。
+    /// </summary>
+    private readonly TagStore? _tags;
+
+    /// <summary>当前目录所在卷的序列号。标签键是 <c>(卷, FileId)</c>，一半在这里。</summary>
+    private ulong _volumeSerial;
+
+    public PaneViewModel(AppSettings settings, Action<string>? onVisited = null, TagStore? tags = null)
     {
         _settings = settings;
         _onVisited = onVisited;
+        _tags = tags;
         // schema 里允许 grid，但 M1 未实现该视图（见 SetViewMode），启动时回落到列表
         _viewMode = settings.Behavior.DefaultView == DefaultViewKind.Grid
             ? DefaultViewKind.List
@@ -352,11 +363,8 @@ public sealed class PaneViewModel : INotifyPropertyChanged
         StatusText = Strings.Status_Loading;
 
         long started = Stopwatch.GetTimestamp();
-        var result = await Task.Run(() =>
-        {
-            bool ok = DirectoryEnumerator.TryRead(target, _sort, out var list, out var error);
-            return (Ok: ok, List: list, Error: error);
-        }).ConfigureAwait(true);
+        bool withFileIds = _tags is { IsLoaded: true, Count: > 0 };
+        var result = await Task.Run(() => ReadDirectory(target, withFileIds)).ConfigureAwait(true);
 
         // 期间用户又导航了一次：丢弃本次结果，否则会把新目录覆盖成旧目录
         if (token != _navigationToken) return;
@@ -367,6 +375,8 @@ public sealed class PaneViewModel : INotifyPropertyChanged
         {
             LastNavigationError = null;
             _all = result.List;
+            _volumeSerial = result.Volume;
+            ApplyTagsToEntries();
             if (recordHistory) _history.Push(target);
             if (recordVisit) _onVisited?.Invoke(target);
 
@@ -393,6 +403,7 @@ public sealed class PaneViewModel : INotifyPropertyChanged
             Diagnostics.AppLog.Warn("nav.open", code, $"{target} · {result.Error}");
 
             _all = [];
+            _volumeSerial = 0;
             Entries = [];
             CurrentPath = target;
             AddressText = target;
@@ -405,6 +416,176 @@ public sealed class PaneViewModel : INotifyPropertyChanged
 
     /// <summary>错误码 → 用户可读原因。文案要能被 i18n 抽走，不拼接原始异常文本。</summary>
     private static string DescribeNavigationError(string code) => FsErrors.DescribeForNavigation(code);
+
+    // ── 彩色标签（FR-4） ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// 读一个目录。<paramref name="withFileIds"/> 为真时用 FileId 枚举（标签库非空时才走）：
+    /// 一次调用同时给出 FileId，不必为"查标签"再枚举第二遍。
+    ///
+    /// 失败一律回落普通枚举——卷不支持、网络盘超时、无权限目录都会走到这里，
+    /// 结果是"这个目录的标签不显示"，而不是"打不开这个目录"。
+    /// </summary>
+    private (bool Ok, List<FileEntry> List, string? Error, ulong Volume) ReadDirectory(string path, bool withFileIds)
+    {
+        if (withFileIds)
+        {
+            if (DirectoryEnumerator.TryReadWithFileIds(path, _sort, out List<FileEntry> tagged, out ulong volume,
+                    out _))
+            {
+                return (true, tagged, null, volume);
+            }
+
+            Diagnostics.AppLog.Warn("tags.enum", "E3006", $"{path} 取不到 FileId，本次回落普通枚举");  // i18n-ignore：只进 app.log
+        }
+
+        bool ok = DirectoryEnumerator.TryRead(path, _sort, out List<FileEntry> list, out string? error);
+        return (ok, list, error, 0);
+    }
+
+    /// <summary>
+    /// 把标签库里的颜色写进当前条目（FR-4.2.4）。可视区几十项、整目录上万项都是一次哈希查找，
+    /// 单次导航的查询耗时在 1 ms 量级，不需要"只查可视区"这种优化。
+    /// </summary>
+    private void ApplyTagsToEntries()
+    {
+        if (_tags is not { IsLoaded: true } tags || _volumeSerial == 0) return;
+
+        foreach (FileEntry entry in _all)
+        {
+            if (entry.FileId == 0) continue;
+            entry.SetTags(tags.Get(_volumeSerial, entry.FileId));
+        }
+    }
+
+    /// <summary>
+    /// 标签库刚就绪时补一次标记（FR-4.2.5）。列表先渲染、库后到位，这一步把两者接上。
+    ///
+    /// 需要重新取 FileId：库未就绪时那次导航走的是快枚举，条目身上没有 id。
+    /// 只补 id 不重建列表——重建会顺手丢掉文件夹大小结果与滚动位置。
+    /// </summary>
+    public async Task RefreshTagsAsync()
+    {
+        if (_tags is not { IsLoaded: true } tags || string.IsNullOrEmpty(_currentPath)) return;
+        if (_all.Count == 0) return;
+
+        string path = _currentPath;
+
+        if (_volumeSerial != 0 && _all.All(e => e.FileId != 0))
+        {
+            ApplyTagsToEntries();
+            return;
+        }
+
+        var scan = await Task.Run(() =>
+        {
+            bool ok = FileIdEnumerator.TryRead(path, out List<FileIdEntry> raw, out ulong volume, out _);
+            return (Ok: ok, Raw: raw, Volume: volume);
+        }).ConfigureAwait(true);
+
+        // 期间切走了：这批 id 属于另一个目录，套上去会把标签画到错误的行上
+        if (!scan.Ok || !string.Equals(path, _currentPath, StringComparison.OrdinalIgnoreCase)) return;
+
+        _volumeSerial = scan.Volume;
+
+        var byName = new Dictionary<string, ulong>(scan.Raw.Count, StringComparer.OrdinalIgnoreCase);
+        foreach (FileIdEntry entry in scan.Raw) byName[entry.Name] = entry.FileId;
+
+        foreach (FileEntry entry in _all)
+        {
+            if (entry.FileId == 0 && byName.TryGetValue(entry.Name, out ulong id)) entry.SetFileId(id);
+            if (entry.FileId != 0) entry.SetTags(tags.Get(_volumeSerial, entry.FileId));
+        }
+    }
+
+    /// <summary>
+    /// 给选中项设置（或移除）颜色标签（FR-4.1.1 / FR-4.1.3）。<paramref name="colors"/> 为
+    /// <see cref="TagColors.None"/> 即移除。
+    ///
+    /// 取 FileId 的那一段放后台线程：库里为空时条目身上没有 id，得对每个选中项开一次句柄。
+    /// 选中几百个文件时这一步是几十毫秒，放 UI 线程会让右键菜单关得一顿。
+    /// </summary>
+    public async Task ApplyTagAsync(TagColors colors)
+    {
+        if (_tags is null) return;
+
+        List<FileEntry> targets = [.. SelectedEntries];
+        if (targets.Count == 0) return;
+
+        _tags.EnsureLoaded();
+
+        ulong paneVolume = _volumeSerial;
+        List<(FileEntry Entry, TagTarget Target)> resolved =
+            await Task.Run(() => ResolveTargets(targets, paneVolume)).ConfigureAwait(true);
+
+        if (resolved.Count == 0)
+        {
+            // 一个都没解析出 FileId：这卷不支持（exFAT / 部分网络盘），说清楚而不是静默失败
+            SetStatus(Strings.Status_Tag_Unsupported);
+            return;
+        }
+
+        TagSetResult result = colors == TagColors.None
+            ? (_tags.RemoveMany([.. resolved.Select(r => r.Target)]) > 0 ? TagSetResult.Applied : TagSetResult.Invalid)
+            : _tags.SetMany([.. resolved.Select(r => r.Target)], colors);
+
+        // 属性通知必须在 UI 线程发，所以 id 与颜色在这一侧写回
+        foreach ((FileEntry entry, TagTarget target) in resolved)
+        {
+            entry.SetFileId(target.FileId);
+            if (_volumeSerial == 0 && target.Volume != 0) _volumeSerial = target.Volume;
+            entry.SetTags(colors);
+        }
+
+        ReportTagResult(result, resolved.Count, colors);
+    }
+
+    /// <summary>
+    /// 给选中项补齐 <c>(卷, FileId, 路径)</c>。条目自己带着 id 时直接用，
+    /// 否则单独查一次——只有"用户明确点了这一项"才会走到这里，一次系统调用换一次正确。
+    /// </summary>
+    private static List<(FileEntry Entry, TagTarget Target)> ResolveTargets(List<FileEntry> targets, ulong paneVolume)
+    {
+        var list = new List<(FileEntry, TagTarget)>(targets.Count);
+
+        foreach (FileEntry entry in targets)
+        {
+            if (entry.FileId != 0)
+            {
+                list.Add((entry, new TagTarget(paneVolume, entry.FileId, entry.FullPath)));
+                continue;
+            }
+
+            if (FileIdEnumerator.TryIdentify(entry.FullPath, out ulong volume, out ulong fileId))
+            {
+                list.Add((entry, new TagTarget(volume, fileId, entry.FullPath)));
+            }
+        }
+
+        return list;
+    }
+
+    private void ReportTagResult(TagSetResult result, int count, TagColors colors)
+    {
+        switch (result)
+        {
+            case TagSetResult.Applied:
+                SetStatus(colors == TagColors.None
+                    ? string.Format(CultureInfo.CurrentCulture, Strings.Status_Tag_Removed, count)
+                    : string.Format(CultureInfo.CurrentCulture, Strings.Status_Tag_Applied, count));
+                break;
+
+            case TagSetResult.NoFileId:
+                // 明确告知而不是静默失败：exFAT 的 U 盘、部分网络盘拿不到稳定标识
+                SetStatus(Strings.Status_Tag_Unsupported);
+                break;
+
+            case TagSetResult.Full:
+                SetStatus(string.Format(
+                    CultureInfo.CurrentCulture, Strings.Status_Tag_Full, TagStore.MaxRecords));
+                break;
+        }
+    }
 
     /// <summary>
     /// 把枚举异常文本映射成 logging.md §4 的错误码。认不出来时归到 E1001（路径不可用），

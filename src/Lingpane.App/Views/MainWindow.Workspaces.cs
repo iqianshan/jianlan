@@ -36,7 +36,7 @@ public partial class MainWindow
 
         if (store.LoadWarning is not null)
         {
-            Diagnostics.AppLog.Warn("workspace.load", "E8003", store.LoadWarning);  // i18n-ignore：只进 app.log
+            Diagnostics.AppLog.Warn("workspace.load", "E9003", store.LoadWarning);  // i18n-ignore：只进 app.log
             Vm.SetStatus(store.LoadWarning);
         }
 

@@ -1051,4 +1051,49 @@
   <data name="Status.Workspace.Skipped" xml:space="preserve">
     <value>{0} tab(s) could not be opened</value>
   </data>
+  <data name="Menu.Tag" xml:space="preserve">
+    <value>Tag</value>
+  </data>
+  <data name="Menu.Tag.Tip" xml:space="preserve">
+    <value>Set a colour tag on the selected items</value>
+  </data>
+  <data name="Menu.Tag.Remove" xml:space="preserve">
+    <value>Remove Tag</value>
+  </data>
+  <data name="Tag.Color.Red" xml:space="preserve">
+    <value>Red</value>
+  </data>
+  <data name="Tag.Color.Orange" xml:space="preserve">
+    <value>Orange</value>
+  </data>
+  <data name="Tag.Color.Yellow" xml:space="preserve">
+    <value>Yellow</value>
+  </data>
+  <data name="Tag.Color.Green" xml:space="preserve">
+    <value>Green</value>
+  </data>
+  <data name="Tag.Color.Blue" xml:space="preserve">
+    <value>Blue</value>
+  </data>
+  <data name="Tag.Color.Purple" xml:space="preserve">
+    <value>Purple</value>
+  </data>
+  <data name="Tag.Color.Gray" xml:space="preserve">
+    <value>Gray</value>
+  </data>
+  <data name="Tag.Color.Black" xml:space="preserve">
+    <value>Black</value>
+  </data>
+  <data name="Status.Tag.Applied" xml:space="preserve">
+    <value>Tagged {0} item(s)</value>
+  </data>
+  <data name="Status.Tag.Removed" xml:space="preserve">
+    <value>Removed tags from {0} item(s)</value>
+  </data>
+  <data name="Status.Tag.Unsupported" xml:space="preserve">
+    <value>This location does not support tags</value>
+  </data>
+  <data name="Status.Tag.Full" xml:space="preserve">
+    <value>Tag limit reached ({0})</value>
+  </data>
 </root>

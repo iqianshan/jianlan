@@ -68,6 +68,43 @@ public static class DirectoryEnumerator
         return list;
     }
 
+    /// <summary>
+    /// 枚举并排序，每条目附带 FileId（FR-4.2.2）。标签库非空时走这一条。
+    ///
+    /// 为什么不"先普通枚举、再对拿不到标签的项补一次 FileId 查询"：
+    /// 那样要么对每个文件各开一次句柄（万项目录一万次系统调用），
+    /// 要么把整个目录枚举两遍。<c>FileIdBothDirectoryInfo</c> 一次调用就把
+    /// 名称/大小/时间/属性/FileId 全给出来，实测比 <see cref="FileSystemEnumerable{TResult}"/> 还快
+    /// （10000 项 6.2 ms vs 11.7 ms，见 <c>docs/fileid-enumeration.md</c>），所以只枚举一遍。
+    ///
+    /// 失败（无权限、卷不支持、网络盘不可用）返回 <c>false</c>，调用方回落到普通枚举——
+    /// 标签不显示远好过打不开目录。
+    /// </summary>
+    public static bool TryReadWithFileIds(string path, EntrySort sort, out List<FileEntry> entries,
+        out ulong volumeSerial, out string? error)
+    {
+        entries = [];
+        if (!FileIdEnumerator.TryRead(path, out List<FileIdEntry> raw, out volumeSerial, out error)) return false;
+
+        string directory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+        var list = new List<FileEntry>(raw.Count);
+        foreach (FileIdEntry entry in raw)
+        {
+            list.Add(new FileEntry(
+                entry.Name,
+                directory,
+                entry.IsDirectory,
+                entry.Size,
+                entry.LastWriteTime,
+                entry.IsHidden,
+                entry.FileId));
+        }
+
+        list.Sort(sort.ToComparison());
+        entries = list;
+        return true;
+    }
+
     /// <summary>读取失败返回 false 并给出可展示的原因，不抛异常。</summary>
     public static bool TryRead(string path, EntrySort sort, out List<FileEntry> entries, out string? error)
     {

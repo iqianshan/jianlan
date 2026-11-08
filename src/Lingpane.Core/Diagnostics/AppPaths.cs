@@ -29,7 +29,12 @@ public static class AppPaths
 
     public static string DataDir => Path.Combine(Root, PortableDataDir);
 
-    public static string TagsDbFile => Path.Combine(DataDir, "tags.db");
+    /// <summary>
+    /// 彩色标签库（FR-4.2.1）。放在 <c>data\</c> 而不是根目录：它是"用户数据"，
+    /// 与 settings.json（配置）分开，备份或清空用户数据时边界清楚。
+    /// 早期口径叫 <c>tags.db</c>（当初打算用 SQLite），存储引擎改追加日志后一并改名。
+    /// </summary>
+    public static string TagsFile => Path.Combine(DataDir, "tags.jsonl");
 
     public static string LogsDir => Path.Combine(Root, "logs");
 

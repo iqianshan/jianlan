@@ -96,7 +96,7 @@ public partial class MainWindow : Window
 
         // 新建标签走「设置 → 新标签页默认目录」，没设就是主页（FR-2.1）；关掉最后一个标签
         // 仍回"上次的目录"（FR-2.8 的语义，不该被这条新设置顺手改掉）
-        _tabs = new TabHostViewModel(App.Settings, ResolveNewTabPath, ResolveStartPath, RecordVisit);
+        _tabs = new TabHostViewModel(App.Settings, ResolveNewTabPath, ResolveStartPath, RecordVisit, App.Tags);
         _tabs.ActiveChanged += OnActiveTabChanged;
         _tabs.TabKindChanged += OnTabKindChanged;
         _tabs.CloseWindowRequested += Close;
@@ -1400,6 +1400,10 @@ public partial class MainWindow : Window
             // 工作区（FR-8.6）：首帧之后才读 workspaces.json，导航栏与主页各补一段。
             // 放在这里而不是构造里，是因为需求要求它不参与冷启动默认路径。
             InitializeWorkspaces();
+
+            // 标签库（FR-4.2.3 / FR-4.2.5）：同样不参与冷启动。列表已经画出来了，
+            // 这里在后台把 tags.jsonl 读进内存，再回头给屏幕上的行补圆点。
+            InitializeTags();
         }
         catch (Exception ex)
         {

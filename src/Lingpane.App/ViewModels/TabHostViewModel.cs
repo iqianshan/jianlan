@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using Lingpane.Core.Settings;
+using Lingpane.Core.Tagging;
 
 namespace Lingpane.App.ViewModels;
 
@@ -33,6 +34,7 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     private readonly Func<string> _defaultPath;
     private readonly Func<string> _homePath;
     private readonly Action<string>? _onVisited;
+    private readonly TagStore? _tags;
     private readonly Stack<string> _closed = [];
 
     private TabViewModel? _active;
@@ -50,13 +52,18 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     /// <param name="onVisited">
     /// 成功进入目录后的回调（FR-1.1.2 最近访问）。由窗口注入，见 MainWindow 的构造。
     /// </param>
+    /// <param name="tags">
+    /// 彩色标签库（FR-4）。可空：为空时窗格照常浏览，只是不显示标签——
+    /// 标签是装饰，不该成为打开目录的前提。
+    /// </param>
     public TabHostViewModel(AppSettings settings, Func<string> defaultPath, Func<string>? homePath = null,
-        Action<string>? onVisited = null)
+        Action<string>? onVisited = null, TagStore? tags = null)
     {
         _settings = settings;
         _defaultPath = defaultPath;
         _homePath = homePath ?? defaultPath;
         _onVisited = onVisited;
+        _tags = tags;
 
         // 标签数直接决定"还能不能新建"，两个按钮/快捷键都要看它有没有变
         Tabs.CollectionChanged += (_, _) =>
@@ -108,7 +115,7 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
 
         // 不在这里导航：调用方（`+` 按钮、Ctrl+T、会话恢复）时机各不相同，
         // 统一由宿主在激活后决定"现在读盘还是等激活再读"。
-        var tab = new TabViewModel(_settings, target, _onVisited);
+        var tab = new TabViewModel(_settings, target, _onVisited, tags: _tags);
         tab.KindChanged += OnTabKindChanged;
 
         // 两件事都要在 Activate 之前写：激活会立刻触发宿主 BindTab，
@@ -134,7 +141,7 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     /// <summary>恢复会话用：只建标签、只记路径，不读盘也不激活。</summary>
     public TabViewModel AddPending(string path)
     {
-        var tab = new TabViewModel(_settings, path, _onVisited);
+        var tab = new TabViewModel(_settings, path, _onVisited, tags: _tags);
         tab.KindChanged += OnTabKindChanged;
         Tabs.Add(tab);
         return tab;
@@ -148,7 +155,7 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     {
         if (IsFull) return null;
 
-        var tab = new TabViewModel(_settings, null, _onVisited, TabKind.Home);
+        var tab = new TabViewModel(_settings, null, _onVisited, TabKind.Home, _tags);
         tab.KindChanged += OnTabKindChanged;
         Tabs.Add(tab);
         if (activate) Activate(tab);
@@ -159,7 +166,7 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     /// <summary>会话恢复用：建一个主页标签但不激活、不做任何加载。</summary>
     public TabViewModel AddPendingHome()
     {
-        var tab = new TabViewModel(_settings, null, _onVisited, TabKind.Home);
+        var tab = new TabViewModel(_settings, null, _onVisited, TabKind.Home, _tags);
         tab.KindChanged += OnTabKindChanged;
         Tabs.Add(tab);
         return tab;

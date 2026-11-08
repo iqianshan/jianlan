@@ -4,6 +4,7 @@
              xmlns:conv="clr-namespace:Lingpane.App.Converters"
              xmlns:loc="clr-namespace:Lingpane.App.Localization"
              xmlns:local="clr-namespace:Lingpane.App.Views"
+             xmlns:vm="clr-namespace:Lingpane.App.ViewModels"
              Background="{DynamicResource Brush.Surface.Window}"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True"
@@ -53,8 +54,15 @@
             </Style.Triggers>
         </Style>
 
-        <!-- 面包屑段之间的分隔符：第一段前不显示（PreviousData 为 null 即首项） -->
-        <Style x:Key="Breadcrumb.Separator" TargetType="TextBlock" BasedOn="{StaticResource Text.Secondary}">
+        <!-- 标签颜色子菜单的条目（FR-4.1.1）。用 EventSetter 挂同一个处理器：
+             子项由预设表生成，逐条写 Click 既重复又容易漏。
+             MinWidth 压到 120：主菜单项 200 宽是为了放键位提示，色块行不需要那么宽。 -->
+        <Style x:Key="Menu.TagItem" TargetType="MenuItem" BasedOn="{StaticResource MenuItem.Default}">
+            <Setter Property="MinWidth" Value="120"/>
+            <EventSetter Event="Click" Handler="OnTagColorPicked"/>
+        </Style>
+
+        <!-- 面包屑段之间的分隔符：第一段前不显示（PreviousData 为 null 即首项） -->        <Style x:Key="Breadcrumb.Separator" TargetType="TextBlock" BasedOn="{StaticResource Text.Secondary}">
             <Setter Property="Text" Value="›"/>
             <Setter Property="Margin" Value="2,0,2,0"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -383,6 +391,35 @@
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.Open}"
                                       Command="{Binding OpenItemCommand}"/>
+                            <Separator Style="{StaticResource Menu.Separator}"/>
+                            <!-- 彩色标签（FR-4.1.1）。子项由预设表驱动：MenuItem 容器只被塞进
+                                 Header/HeaderTemplate，**不设 DataContext**，所以处理器读 Header 取预设，
+                                 父菜单的 DataContext 才是本窗格（见 FR-7 那次踩坑）。 -->
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.Tag}"
+                                      ToolTip="{loc:Tr Key=Menu.Tag.Tip}"
+                                      ItemsSource="{Binding Source={x:Static vm:TagPresets.Colors}}"
+                                      ItemContainerStyle="{StaticResource Menu.TagItem}">
+                                <MenuItem.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <!-- 色块带一圈描边：纯"黑"在深色面板上几乎看不见，
+                                                 没有描边会像一个空槽位 -->
+                                            <Border Width="12" Height="12"
+                                                    CornerRadius="6"
+                                                    Margin="0,0,8,0"
+                                                    VerticalAlignment="Center"
+                                                    Background="{Binding Hex}"
+                                                    BorderBrush="{DynamicResource Brush.Border.Strong}"
+                                                    BorderThickness="0.5"/>
+                                            <TextBlock Style="{StaticResource Text.Base}" Text="{Binding Name}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </MenuItem.ItemTemplate>
+                            </MenuItem>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.Tag.Remove}"
+                                      Command="{Binding TagRemoveCommand}"/>
                             <Separator Style="{StaticResource Menu.Separator}"/>
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.NewFolder}"

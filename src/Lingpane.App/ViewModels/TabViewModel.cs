@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Lingpane.App.Shell;
 using Lingpane.Core.Localization;
 using Lingpane.Core.Settings;
+using Lingpane.Core.Tagging;
 
 namespace Lingpane.App.ViewModels;
 
@@ -37,6 +38,9 @@ public sealed class TabViewModel : INotifyPropertyChanged
     /// <summary>成功进入目录后的回调（最近访问），两个窗格共用一份。</summary>
     private readonly Action<string>? _onVisited;
 
+    /// <summary>彩色标签库（FR-4），两个窗格共用一份。</summary>
+    private readonly TagStore? _tags;
+
     private TabKind _kind;
 
     private PaneViewModel _activePane;
@@ -50,13 +54,14 @@ public sealed class TabViewModel : INotifyPropertyChanged
     private int _pendingActivePane;
 
     public TabViewModel(AppSettings settings, string? path, Action<string>? onVisited = null,
-        TabKind kind = TabKind.Files)
+        TabKind kind = TabKind.Files, TagStore? tags = null)
     {
         _settings = settings;
         _onVisited = onVisited;
         _kind = kind;
+        _tags = tags;
 
-        Primary = new PaneViewModel(settings, onVisited);
+        Primary = new PaneViewModel(settings, onVisited, tags);
 
         // 主页标签不挂路径：主页不"位于"任何目录。不调 PreparePendingPath 是关键——
         // 那个方法会把 HasPendingContent 置真，激活时宿主就会拿空路径去读盘。
@@ -160,7 +165,7 @@ public sealed class TabViewModel : INotifyPropertyChanged
         string target = _secondaryPath
                         ?? (string.IsNullOrWhiteSpace(fallbackPath) ? Primary.CurrentPath : fallbackPath);
 
-        var pane = new PaneViewModel(_settings, _onVisited);
+        var pane = new PaneViewModel(_settings, _onVisited, _tags);
         pane.PreparePendingPath(target);
         pane.PropertyChanged += OnPanePropertyChanged;
         Secondary = pane;

@@ -37,6 +37,13 @@ public static class CommandIds
     // 系统 Shell 菜单（FR-6.9）。显式入口，日常右键仍走自建菜单。
     public const string MoreOptions = "file.moreOptions";
 
+    // 彩色标签（FR-4.1）。设色是多条命令由预设表驱动，只有"移除"需要一个固定 Id
+    // （要进快捷键表与命令注册表）。设色的 Id 形如 file.tag.red。
+    public const string RemoveTag = "file.tag.remove";
+
+    /// <summary>给某项设置颜色标签的命令 Id。只用于诊断与将来的快捷键绑定。</summary>
+    public static string SetTag(string colorName) => $"file.tag.{colorName}";
+
     // 标签页（FR-2）。窗口级：标签集合属于窗口，不属于某个窗格。
     public const string NewTab = "tab.new";
     public const string CloseTab = "tab.close";

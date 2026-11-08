@@ -1038,4 +1038,49 @@
   <data name="Status.Workspace.Skipped" xml:space="preserve">
     <value>{0} 个标签打不开</value>
   </data>
+  <data name="Menu.Tag" xml:space="preserve">
+    <value>标签</value>
+  </data>
+  <data name="Menu.Tag.Tip" xml:space="preserve">
+    <value>为选中项设置颜色标签</value>
+  </data>
+  <data name="Menu.Tag.Remove" xml:space="preserve">
+    <value>移除标签</value>
+  </data>
+  <data name="Tag.Color.Red" xml:space="preserve">
+    <value>红</value>
+  </data>
+  <data name="Tag.Color.Orange" xml:space="preserve">
+    <value>橙</value>
+  </data>
+  <data name="Tag.Color.Yellow" xml:space="preserve">
+    <value>黄</value>
+  </data>
+  <data name="Tag.Color.Green" xml:space="preserve">
+    <value>绿</value>
+  </data>
+  <data name="Tag.Color.Blue" xml:space="preserve">
+    <value>蓝</value>
+  </data>
+  <data name="Tag.Color.Purple" xml:space="preserve">
+    <value>紫</value>
+  </data>
+  <data name="Tag.Color.Gray" xml:space="preserve">
+    <value>灰</value>
+  </data>
+  <data name="Tag.Color.Black" xml:space="preserve">
+    <value>黑</value>
+  </data>
+  <data name="Status.Tag.Applied" xml:space="preserve">
+    <value>已为 {0} 项设置标签</value>
+  </data>
+  <data name="Status.Tag.Removed" xml:space="preserve">
+    <value>已移除 {0} 项的标签</value>
+  </data>
+  <data name="Status.Tag.Unsupported" xml:space="preserve">
+    <value>该位置不支持标签</value>
+  </data>
+  <data name="Status.Tag.Full" xml:space="preserve">
+    <value>标签数量已达上限（{0}）</value>
+  </data>
 </root>
