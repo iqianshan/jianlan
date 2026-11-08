@@ -129,7 +129,10 @@
                                     <TextBlock Grid.Column="0" Margin="0,0,6,0">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Glyph}">
-                                                <Setter Property="Text" Value="&#xE8B7;"/>
+                                                <!-- 图标跟随标签形态（主页用房子）。必须写在 Setter 里：
+                                                     元素上的本地值优先级高于触发器，直接写 Text= 会让下面的
+                                                     图钉触发器永远不生效。 -->
+                                                <Setter Property="Text" Value="{Binding IconGlyph}"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding IsPinned}" Value="True">
                                                         <Setter Property="Text" Value="&#xE840;"/>

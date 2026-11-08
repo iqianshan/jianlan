@@ -140,6 +140,11 @@
                 <RowDefinition x:Name="SecondRow" Height="0"/>
             </Grid.RowDefinitions>
 
+            <!-- 主页（FR-1.1）。与 PaneView 一样只有一份实例：主页视图模型是窗口级的，
+                 多个主页标签共用它。显示主页时它会横跨整个 PaneHost，两个窗格一起让位——
+                 主页不"位于"任何目录，没有第二个位置可以分屏。 -->
+            <views:HomeView x:Name="Home" Grid.Column="0" Grid.Row="0" Visibility="Collapsed"/>
+
             <views:PaneView x:Name="Pane" Grid.Column="0" Grid.Row="0"/>
 
             <GridSplitter x:Name="ColumnSplitter"

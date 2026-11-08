@@ -739,4 +739,79 @@
   <data name="Error.DeleteRefused" xml:space="preserve">
     <value>Could not delete the item — it may be in use, or you may not have permission</value>
   </data>
+  <data name="Home.Title" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Home.NewTab" xml:space="preserve">
+    <value>New tab</value>
+  </data>
+  <data name="Home.NewTab.Tip" xml:space="preserve">
+    <value>Open a new tab (Ctrl+T)</value>
+  </data>
+  <data name="Home.NewFolder" xml:space="preserve">
+    <value>New folder</value>
+  </data>
+  <data name="Home.NewFolder.Tip" xml:space="preserve">
+    <value>Create a folder in the new-tab folder</value>
+  </data>
+  <data name="Home.Section.Folders" xml:space="preserve">
+    <value>Common places</value>
+  </data>
+  <data name="Home.Section.Drives" xml:space="preserve">
+    <value>Drives</value>
+  </data>
+  <data name="Home.Section.Recent" xml:space="preserve">
+    <value>Recent</value>
+  </data>
+  <data name="Home.Section.Bookmarks" xml:space="preserve">
+    <value>Bookmarks</value>
+  </data>
+  <data name="Home.Recent.Empty" xml:space="preserve">
+    <value>No recent places yet</value>
+  </data>
+  <data name="Home.Recent.Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Home.Recent.Clear.Tip" xml:space="preserve">
+    <value>Clear the recent list</value>
+  </data>
+  <data name="Home.Recent.Missing" xml:space="preserve">
+    <value>No longer available</value>
+  </data>
+  <data name="Home.Bookmarks.Empty" xml:space="preserve">
+    <value>No bookmarks yet</value>
+  </data>
+  <data name="Home.Bookmarks.More" xml:space="preserve">
+    <value>See all</value>
+  </data>
+  <data name="Home.Bookmarks.Less" xml:space="preserve">
+    <value>Show less</value>
+  </data>
+  <data name="Home.Drive.Unknown" xml:space="preserve">
+    <value>—</value>
+  </data>
+  <data name="Home.Drive.Loading" xml:space="preserve">
+    <value>Reading…</value>
+  </data>
+  <data name="Home.Drive.Capacity" xml:space="preserve">
+    <value>{0} free of {1}</value>
+  </data>
+  <data name="Home.Tile.OpenInNewTab" xml:space="preserve">
+    <value>Ctrl+click to open in a new tab</value>
+  </data>
+  <data name="Nav.Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Tab.Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Tab.Home.Tip" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Status.HistoryCleared" xml:space="preserve">
+    <value>Recent list cleared</value>
+  </data>
+  <data name="Status.HomeNoSplit" xml:space="preserve">
+    <value>The home tab has no second pane to split</value>
+  </data>
 </root>

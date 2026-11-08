@@ -291,4 +291,102 @@ public sealed class SettingsStoreTests : IDisposable
         // 空值有独立含义（用系统下载目录），不能留一个 "" 让下游再判一次
         Assert.Equal(expected, settings.General.NewTabPath);
     }
+
+    [Fact]
+    public void 已知文件夹缓存里的空值被清掉()
+    {
+        var settings = new AppSettings();
+        settings.General.KnownFolderPaths["Downloads"] = @"C:\Users\Me\Downloads";
+        settings.General.KnownFolderPaths["Music"] = "   ";
+
+        settings.Normalize();
+
+        Assert.True(settings.General.KnownFolderPaths.ContainsKey("Downloads"));
+        Assert.False(settings.General.KnownFolderPaths.ContainsKey("Music"));
+    }
+
+    [Fact]
+    public void 已知文件夹缓存的键不区分大小写()
+    {
+        var settings = new AppSettings();
+        // 手改配置文件常见的两种写法：小写、以及同名的另一份大小写
+        settings.General.KnownFolderPaths["downloads"] = @"C:\Old";
+        settings.General.KnownFolderPaths["Downloads"] = @"C:\Users\Me\Downloads";
+
+        settings.Normalize();
+
+        // 合并成一条、留下最后一次写入的值，且按枚举名的大小写也能取到
+        Assert.Single(settings.General.KnownFolderPaths);
+        Assert.Equal(@"C:\Users\Me\Downloads", settings.General.KnownFolderPaths["Downloads"]);
+        Assert.Equal(@"C:\Users\Me\Downloads", settings.General.KnownFolderPaths["DOWNLOADS"]);
+    }
+
+    [Fact]
+    public void 已知文件夹缓存为空值节点时回落空字典()
+    {
+        var settings = new AppSettings();
+        settings.General.KnownFolderPaths = null!;
+
+        settings.Normalize();
+
+        Assert.NotNull(settings.General.KnownFolderPaths);
+        Assert.Empty(settings.General.KnownFolderPaths);
+    }
+
+    [Fact]
+    public void 历史按时间倒序去重并截断到上限()
+    {
+        var settings = new AppSettings();
+        var older = new DateTimeOffset(2026, 1, 1, 8, 0, 0, TimeSpan.Zero);
+        var newer = older.AddHours(2);
+        settings.History.Entries =
+        [
+            new HistoryEntry { Path = @"C:\a", VisitedAt = older },
+            new HistoryEntry { Path = @"C:\b", VisitedAt = newer },
+            new HistoryEntry { Path = @"c:\A", VisitedAt = newer.AddHours(1) },   // 与 C:\a 同一个目录
+            new HistoryEntry { Path = "  ", VisitedAt = newer },
+        ];
+
+        settings.Normalize();
+
+        // 去重留最新一次访问、按时间倒序、空白项丢掉
+        Assert.Equal([@"c:\A", @"C:\b"], settings.History.Entries.Select(e => e.Path));
+    }
+
+    [Fact]
+    public void 历史条数被隐私设置夹取()
+    {
+        var settings = new AppSettings();
+        settings.Privacy.HistoryLimit = 2;
+        settings.History.Entries = Enumerable.Range(0, 10)
+            .Select(i => new HistoryEntry
+            {
+                Path = $@"C:\d{i}",
+                VisitedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero).AddMinutes(i),
+            })
+            .ToList();
+
+        settings.Normalize();
+
+        Assert.Equal(2, settings.History.Entries.Count);
+    }
+
+    [Fact]
+    public void 收藏去重去空并清理空白名字()
+    {
+        var settings = new AppSettings();
+        settings.Bookmarks.Items =
+        [
+            new BookmarkEntry { Path = @"C:\a", Name = "   " },
+            new BookmarkEntry { Path = @"c:\A" },
+            new BookmarkEntry { Path = "" },
+        ];
+
+        settings.Normalize();
+
+        // 空白名字归一成 null（显示时回落路径末段），重复路径只留第一条
+        Assert.Single(settings.Bookmarks.Items);
+        Assert.Null(settings.Bookmarks.Items[0].Name);
+        Assert.Equal(@"C:\a", settings.Bookmarks.Items[0].Path);
+    }
 }

@@ -1,7 +1,22 @@
 using System.ComponentModel;
+using Lingpane.App.Shell;
+using Lingpane.Core.Localization;
 using Lingpane.Core.Settings;
 
 namespace Lingpane.App.ViewModels;
+
+/// <summary>
+/// 标签的内容形态（FR-1.1）。主页是"一种标签页"，不是独立窗口——
+/// 这样标签栏、Ctrl+Tab、会话恢复全都无需为它开第二条路径。
+/// </summary>
+public enum TabKind
+{
+    /// <summary>浏览某个目录。绝大多数标签都是这一种。</summary>
+    Files = 0,
+
+    /// <summary>主页（FR-1.1）：常用目录、驱动器、最近访问、收藏。</summary>
+    Home = 1,
+}
 
 /// <summary>
 /// 一个标签 = 一对窗格（FR-2 × FR-3）。
@@ -19,6 +34,11 @@ public sealed class TabViewModel : INotifyPropertyChanged
 {
     private readonly AppSettings _settings;
 
+    /// <summary>成功进入目录后的回调（最近访问），两个窗格共用一份。</summary>
+    private readonly Action<string>? _onVisited;
+
+    private TabKind _kind;
+
     private PaneViewModel _activePane;
     private bool _isTabActive;
     private bool _isPinned;
@@ -29,18 +49,56 @@ public sealed class TabViewModel : INotifyPropertyChanged
     /// <summary>建第二窗格时要把焦点放过去（1 = 放第二窗格）。见 <see cref="PrepareActivePane"/>。</summary>
     private int _pendingActivePane;
 
-    public TabViewModel(AppSettings settings, string? path)
+    public TabViewModel(AppSettings settings, string? path, Action<string>? onVisited = null,
+        TabKind kind = TabKind.Files)
     {
         _settings = settings;
+        _onVisited = onVisited;
+        _kind = kind;
 
-        Primary = new PaneViewModel(settings);
-        Primary.PreparePendingPath(string.IsNullOrWhiteSpace(path) ? string.Empty : path);
+        Primary = new PaneViewModel(settings, onVisited);
+
+        // 主页标签不挂路径：主页不"位于"任何目录。不调 PreparePendingPath 是关键——
+        // 那个方法会把 HasPendingContent 置真，激活时宿主就会拿空路径去读盘。
+        if (kind == TabKind.Files)
+        {
+            Primary.PreparePendingPath(string.IsNullOrWhiteSpace(path) ? string.Empty : path);
+        }
+
         Primary.PropertyChanged += OnPanePropertyChanged;
 
         _activePane = Primary;
     }
 
+    /// <summary>这个标签是不是主页（FR-1.1）。</summary>
+    public TabKind Kind
+    {
+        get => _kind;
+        private set
+        {
+            if (_kind == value) return;
+            _kind = value;
+            Raise(nameof(Kind));
+            Raise(nameof(DisplayName));
+            Raise(nameof(TabTooltip));
+            Raise(nameof(IconGlyph));
+            Raise(nameof(IsHome));
+            KindChanged?.Invoke(this);
+        }
+    }
+
+    public bool IsHome => _kind == TabKind.Home;
+
+    /// <summary>标签栏上的图标。主页用房子图标，否则是文件夹。</summary>
+    public string IconGlyph => IsHome ? IconGlyphs.Home : IconGlyphs.Folder;
+
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>
+    /// 标签形态变了（主页 ⇄ 目录）。宿主据此切换 PaneHost 里显示的是主页还是窗格——
+    /// 光靠 <see cref="PropertyChanged"/> 传不出"要换一套视图"这件事。
+    /// </summary>
+    public event Action<TabViewModel>? KindChanged;
 
     public PaneViewModel Primary { get; }
 
@@ -55,12 +113,14 @@ public sealed class TabViewModel : INotifyPropertyChanged
     /// 标签标题跟随**活动窗格**，而不是固定取主窗格：用户把焦点放到右边并导航到别处时，
     /// 标签名必须跟着变，否则看起来像"标签没响应"。
     /// </summary>
-    public string DisplayName => _activePane.DisplayName;
+    public string DisplayName => IsHome ? Strings.Tab_Home : _activePane.DisplayName;
 
     /// <summary>分屏时 tooltip 给两条路径，单窗格时与之前一致。</summary>
-    public string TabTooltip => Secondary is { } second
-        ? $"{Primary.TabTooltip}{Environment.NewLine}{second.TabTooltip}"
-        : _activePane.TabTooltip;
+    public string TabTooltip => IsHome
+        ? Strings.Tab_Home_Tip
+        : Secondary is { } second
+            ? $"{Primary.TabTooltip}{Environment.NewLine}{second.TabTooltip}"
+            : _activePane.TabTooltip;
 
     /// <summary>本标签是否为当前标签。标签栏据此区分活动/非活动配色。</summary>
     public bool IsTabActive
@@ -100,7 +160,7 @@ public sealed class TabViewModel : INotifyPropertyChanged
         string target = _secondaryPath
                         ?? (string.IsNullOrWhiteSpace(fallbackPath) ? Primary.CurrentPath : fallbackPath);
 
-        var pane = new PaneViewModel(_settings);
+        var pane = new PaneViewModel(_settings, _onVisited);
         pane.PreparePendingPath(target);
         pane.PropertyChanged += OnPanePropertyChanged;
         Secondary = pane;
@@ -190,7 +250,29 @@ public sealed class TabViewModel : INotifyPropertyChanged
         {
             Raise(nameof(DisplayName));
             Raise(nameof(TabTooltip));
+            return;
         }
+
+        // 从主页点了某个目录：标签形态跟着变成"浏览目录"。反过来不做——
+        // 导航到一个真实目录后标签就该显示那个目录，而不是继续叫"主页"。
+        if (e.PropertyName == nameof(PaneViewModel.CurrentPath) && IsHome &&
+            !string.IsNullOrEmpty(_activePane.CurrentPath))
+        {
+            Kind = TabKind.Files;
+        }
+    }
+
+    /// <summary>
+    /// 把标签切到主页（FR-1.2.1 的"主页"节点）。窗格的历史栈保留：
+    /// Alt+← 应该能回到离开主页前看的那一处，而不是"主页是历史里的一个点"。
+    /// </summary>
+    public void ShowHome()
+    {
+        if (IsHome) return;
+
+        DropSecondary();
+        Primary.DetachToHome();
+        Kind = TabKind.Home;
     }
 
     private void Raise(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

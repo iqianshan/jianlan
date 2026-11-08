@@ -161,6 +161,15 @@ public partial class App : Application
         }
         StartupTrace.Mark("settings");
 
+        // 已知文件夹（FR-1.1 实现约束）：先读设置里的缓存，缓存命中就不碰 shell32。
+        // 首次运行或新增 kind 时会在这里问一次外壳，那是唯一一次把外壳拉进启动路径的情况。
+        // 校验放在窗口显示之后（见下方 ApplicationIdle），不占首帧。
+        if (Services.KnownFolderService.Initialize(Settings.General.KnownFolderPaths))
+        {
+            SaveSettings();
+        }
+        StartupTrace.Mark("knownfolders");
+
         // 语言必须在创建视图模型之前生效：视图模型构造期就会取文案（列头、侧栏名称）。
         // 只做一次 ResourceManager 装配 + 三个 CultureInfo 赋值，约 1ms（docs/i18n.md §五）。
         LocalizationService.Instance.Apply(Settings.General.Language);
@@ -224,6 +233,21 @@ public partial class App : Application
         // 管道监听放在窗口显示之后：第二次启动的转交请求宁可晚几十毫秒，
         // 也不要让管道创建进启动路径。
         _singleInstance?.StartListening(OnSecondInstance);
+
+        // 已知文件夹的后台校验（FR-1.1）：首帧已经用缓存画完了，这里只比对系统当前值，
+        // 有变化才刷新界面并落盘。用户重定向了下载夹、或换了台机器漫游回来，靠这一步跟上。
+        Dispatcher.BeginInvoke(new Action(async () =>
+        {
+            try
+            {
+                if (await Services.KnownFolderService.RefreshAsync()) SaveSettings();
+            }
+            catch (Exception ex)
+            {
+                // 校验失败不影响任何已画出来的东西，只留一条日志
+                Diagnostics.AppLog.Warn("knownfolders.refresh", "E9001", $"{ex.GetType().Name}: {ex.Message}");  // i18n-ignore：只进 app.log
+            }
+        }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
     }
 
     /// <summary>

@@ -726,4 +726,79 @@
   <data name="Error.DeleteRefused" xml:space="preserve">
     <value>无法删除该项：可能正在被使用，或没有删除权限</value>
   </data>
+  <data name="Home.Title" xml:space="preserve">
+    <value>主页</value>
+  </data>
+  <data name="Home.NewTab" xml:space="preserve">
+    <value>新建标签</value>
+  </data>
+  <data name="Home.NewTab.Tip" xml:space="preserve">
+    <value>新开一个标签（Ctrl+T）</value>
+  </data>
+  <data name="Home.NewFolder" xml:space="preserve">
+    <value>新建文件夹</value>
+  </data>
+  <data name="Home.NewFolder.Tip" xml:space="preserve">
+    <value>在新标签页默认目录里新建文件夹</value>
+  </data>
+  <data name="Home.Section.Folders" xml:space="preserve">
+    <value>常用目录</value>
+  </data>
+  <data name="Home.Section.Drives" xml:space="preserve">
+    <value>驱动器</value>
+  </data>
+  <data name="Home.Section.Recent" xml:space="preserve">
+    <value>最近访问</value>
+  </data>
+  <data name="Home.Section.Bookmarks" xml:space="preserve">
+    <value>收藏</value>
+  </data>
+  <data name="Home.Recent.Empty" xml:space="preserve">
+    <value>还没有访问记录</value>
+  </data>
+  <data name="Home.Recent.Clear" xml:space="preserve">
+    <value>清空</value>
+  </data>
+  <data name="Home.Recent.Clear.Tip" xml:space="preserve">
+    <value>清空最近访问列表</value>
+  </data>
+  <data name="Home.Recent.Missing" xml:space="preserve">
+    <value>位置已不可用</value>
+  </data>
+  <data name="Home.Bookmarks.Empty" xml:space="preserve">
+    <value>还没有收藏</value>
+  </data>
+  <data name="Home.Bookmarks.More" xml:space="preserve">
+    <value>查看全部</value>
+  </data>
+  <data name="Home.Bookmarks.Less" xml:space="preserve">
+    <value>收起</value>
+  </data>
+  <data name="Home.Drive.Unknown" xml:space="preserve">
+    <value>—</value>
+  </data>
+  <data name="Home.Drive.Loading" xml:space="preserve">
+    <value>读取中…</value>
+  </data>
+  <data name="Home.Drive.Capacity" xml:space="preserve">
+    <value>可用 {0}，共 {1}</value>
+  </data>
+  <data name="Home.Tile.OpenInNewTab" xml:space="preserve">
+    <value>Ctrl+点击在新标签打开</value>
+  </data>
+  <data name="Nav.Home" xml:space="preserve">
+    <value>主页</value>
+  </data>
+  <data name="Tab.Home" xml:space="preserve">
+    <value>主页</value>
+  </data>
+  <data name="Tab.Home.Tip" xml:space="preserve">
+    <value>主页</value>
+  </data>
+  <data name="Status.HistoryCleared" xml:space="preserve">
+    <value>已清空最近访问</value>
+  </data>
+  <data name="Status.HomeNoSplit" xml:space="preserve">
+    <value>主页标签没有可分屏的第二窗格</value>
+  </data>
 </root>

@@ -57,6 +57,16 @@ public sealed class AppSettings
 
     public LayoutSettings Layout { get; set; } = new();
 
+    /// <summary>
+    /// 最近访问（FR-1.1.2）。独立成段而不是塞进 session：session 是"下次怎么打开"，
+    /// 历史是"用户去过哪里"，两者的生命周期与清空入口都不同
+    /// （FR-5.3.2 只清历史，不动会话）。
+    /// </summary>
+    public HistorySettings History { get; set; } = new();
+
+    /// <summary>收藏（FR-7）。主页收藏区与导航栏收藏区读同一份（FR-1.1.5）。</summary>
+    public BookmarkSettings Bookmarks { get; set; } = new();
+
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
 
@@ -72,11 +82,22 @@ public sealed class AppSettings
         Privacy ??= new PrivacySettings();
         Session ??= new SessionSettings();
         Layout ??= new LayoutSettings();
+        History ??= new HistorySettings();
+        Bookmarks ??= new BookmarkSettings();
 
         if (!GeneralSettings.IsKnownLanguage(General.Language)) General.Language = GeneralSettings.LanguageAuto;
 
         // 空白等同于"没设置"（回落系统下载）：留一个 "" 在设置文件里，读的人还要再判一次空串
         General.NewTabPath = string.IsNullOrWhiteSpace(General.NewTabPath) ? null : General.NewTabPath.Trim();
+
+        // 路径缓存：空值等于"这一项解析失败"，留着只会让读取方多判一次。
+        // 键是已知文件夹的枚举名，手改配置文件时大小写常有出入——按不区分大小写重建一份，
+        // 否则大小写不匹配的那条会永久留在文件里（每次启动都判未命中、再补一条新的）。
+        General.KnownFolderPaths ??= [];
+        General.KnownFolderPaths = General.KnownFolderPaths
+            .Where(p => !string.IsNullOrWhiteSpace(p.Value))
+            .GroupBy(p => p.Key, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Last().Value.Trim(), StringComparer.OrdinalIgnoreCase);
 
         if (!Enum.IsDefined(Appearance.Theme)) Appearance.Theme = ThemeKind.System;
         if (!Enum.IsDefined(Appearance.Density)) Appearance.Density = DensityKind.Comfortable;
@@ -95,6 +116,11 @@ public sealed class AppSettings
 
         Privacy.HistoryLimit = Math.Clamp(Privacy.HistoryLimit, 0, 500);
         Privacy.CacheLimitMb = Math.Clamp(Privacy.CacheLimitMb, 64, 4096);
+
+        // 历史的条数上限就是隐私设置里的那一项：两处各存一份必然会对不上，
+        // 而"设置里写 50 条、文件里留着 100 条"是最难解释的那种不一致。
+        History.Normalize(Privacy.HistoryLimit);
+        Bookmarks.Normalize();
 
         Session.WindowWidth = Math.Max(Session.WindowWidth, MinWindowWidth);
         Session.WindowHeight = Math.Max(Session.WindowHeight, MinWindowHeight);
@@ -203,6 +229,16 @@ public sealed class GeneralSettings
     /// （与 session.tabs 的处理一致）。真正的回落发生在解析时。
     /// </summary>
     public string? NewTabPath { get; set; }
+
+    /// <summary>
+    /// 已知文件夹路径缓存（FR-1.1 实现约束）：kind 名 → 绝对路径。
+    ///
+    /// 需求要求"启动从缓存读，仅在检测到系统变化时刷新"。这不是为了省几毫秒——
+    /// <c>SHGetKnownFolderPath</c> 首次调用会加载 shell32 并读注册表，属于启动路径上的
+    /// 不确定项；缓存命中时这一段完全不碰外壳，冷启动才可预测。
+    /// 校验放在首帧之后的后台任务里（见 KnownFolderService）。
+    /// </summary>
+    public Dictionary<string, string> KnownFolderPaths { get; set; } = [];
 
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
@@ -334,6 +370,119 @@ public sealed class SessionSettings
 
     /// <summary>会话恢复的标签数上限。再多也只是把启动拖慢，捡不回来的价值很低。</summary>
     public const int MaxTabs = 12;
+
+    [JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
+}
+
+/// <summary>
+/// 最近访问过的目录（FR-1.1.2 / FR-5.3.2）。只记目录、不记文件：
+/// 主页那一栏的用途是"回到刚才去过的地方"，文件级历史既列不下也用不上，
+/// 还会把大量本地路径写进设置文件。
+/// </summary>
+public sealed class HistorySettings
+{
+    /// <summary>主页"最近访问"展示条数（FR-1.1.2 写死 12）。</summary>
+    public const int HomePageLimit = 12;
+
+    /// <summary>历史条数硬上限。隐私设置里的 <c>historyLimit</c> 被夹在这个范围内。</summary>
+    public const int MaxEntries = 500;
+
+    /// <summary>按访问时间**倒序**存放，最新的在前。顺序即主页的展示顺序。</summary>
+    public List<HistoryEntry> Entries { get; set; } = [];
+
+    [JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
+
+    /// <summary>
+    /// 归一化：去空、去重（同一目录只留最新一次）、按时间倒序、按上限截断。
+    /// 手改过的设置文件什么顺序都可能有，读进来必须先排一次，否则主页的顺序是随机的。
+    /// </summary>
+    public void Normalize(int limit)
+    {
+        Entries ??= [];
+        Entries.RemoveAll(e => string.IsNullOrWhiteSpace(e?.Path));
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        Entries = Entries
+            .OrderByDescending(e => e.VisitedAt)
+            .Where(e => seen.Add(e.Path.Trim()))
+            .Take(Math.Max(0, limit))
+            .ToList();
+
+        foreach (HistoryEntry entry in Entries) entry.Path = entry.Path.Trim();
+    }
+}
+
+public sealed class HistoryEntry
+{
+    public string Path { get; set; } = string.Empty;
+
+    /// <summary>最近一次访问的 UTC 时间。存 UTC 而不是本地时间：夏令时切换那天本地时间会有重复区间。</summary>
+    public DateTimeOffset VisitedAt { get; set; }
+
+    [JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
+}
+
+/// <summary>
+/// 收藏（FR-7）。与 <see cref="HistorySettings"/> 同样是设置文件里的一段：
+/// 需求明确"不新建数据库"，收藏上限 500 条，纯 JSON 完全放得下。
+/// </summary>
+public sealed class BookmarkSettings
+{
+    /// <summary>收藏总上限（FR-7.9）。超过时拒绝新增，由界面显式提示，不静默丢弃。</summary>
+    public const int MaxItems = 500;
+
+    /// <summary>主页收藏区最多展示几项，超出显示"查看全部"（FR-1.1.5）。</summary>
+    public const int HomePageLimit = 8;
+
+    public List<BookmarkEntry> Items { get; set; } = [];
+
+    [JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
+
+    public void Normalize()
+    {
+        Items ??= [];
+        Items.RemoveAll(b => string.IsNullOrWhiteSpace(b?.Path));
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        Items = Items
+            .Where(b => seen.Add(b.Path.Trim()))
+            .Take(MaxItems)
+            .ToList();
+
+        foreach (BookmarkEntry item in Items)
+        {
+            item.Path = item.Path.Trim();
+            if (string.IsNullOrWhiteSpace(item.Name)) item.Name = null;
+        }
+    }
+}
+
+public enum BookmarkKind
+{
+    Folder = 0,
+    File = 1,
+}
+
+public sealed class BookmarkEntry
+{
+    public string Path { get; set; } = string.Empty;
+
+    /// <summary>显示名。为空时用路径末段——重命名后不必回头改收藏。</summary>
+    public string? Name { get; set; }
+
+    public BookmarkKind Kind { get; set; }
+
+    /// <summary>分组名（FR-7.5）。null = 未分组，UI 归到默认那一组。</summary>
+    public string? Group { get; set; }
+
+    /// <summary>自定义颜色（FR-7.6），形如 <c>#RRGGBB</c>。null = 跟随主题强调色。</summary>
+    public string? Color { get; set; }
+
+    public DateTimeOffset AddedAt { get; set; }
 
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }

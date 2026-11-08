@@ -13,6 +13,7 @@ using Lingpane.App.Services;
 using Lingpane.App.ViewModels;
 using Lingpane.Core.Commands;
 using Lingpane.Core.Diagnostics;
+using Lingpane.Core.Navigation;
 using Lingpane.Core.Settings;
 
 using Lingpane.Core.Localization;
@@ -36,6 +37,18 @@ public partial class MainWindow : Window
     private readonly CommandRegistry _commands = new();
     private readonly TabHostViewModel _tabs;
     private bool _flushed;
+
+    /// <summary>最近访问（FR-1.1.2）。与主页、导航栏共用同一份。</summary>
+    private readonly VisitHistory _history;
+
+    /// <summary>收藏（FR-7）。主页收藏区与导航栏收藏区同源（FR-1.1.5）。</summary>
+    private readonly BookmarkStore _bookmarks;
+
+    /// <summary>主页视图模型。窗口级单例，所有主页标签共用。</summary>
+    private readonly HomeViewModel _home;
+
+    /// <summary>本次运行有没有新增过访问记录——决定退出时要不要多写一次设置。</summary>
+    private bool _visitedSinceSave;
 
     /// <summary>
     /// 双窗格是否开启（FR-3.3）。形态是窗口级而不是标签级：开着分屏切标签，
@@ -64,10 +77,17 @@ public partial class MainWindow : Window
         // 标签不能属于某一边。浏览区的视图模型由它创建、由窗格 Attach。
         _splitEnabled = App.Settings.Layout.SplitEnabled;
 
-        // 新建标签走「设置 → 新标签页默认目录」；关掉最后一个标签仍回"上次的目录"
-        // （那是 FR-2.8 的语义，不该被这条新设置顺手改掉）
-        _tabs = new TabHostViewModel(App.Settings, ResolveNewTabPath, ResolveStartPath);
+        // 最近访问与收藏都是设置文件里的一段，各只建一个实例：
+        // 主页、导航栏、窗格的访问回调必须读写同一份，多建一个就会"这边加完那边看不见"。
+        _history = new VisitHistory(App.Settings.History, () => App.Settings.Privacy.HistoryLimit);
+        _bookmarks = new BookmarkStore(App.Settings.Bookmarks);
+        _home = new HomeViewModel(_history, _bookmarks);
+
+        // 新建标签走「设置 → 新标签页默认目录」，没设就是主页（FR-2.1）；关掉最后一个标签
+        // 仍回"上次的目录"（FR-2.8 的语义，不该被这条新设置顺手改掉）
+        _tabs = new TabHostViewModel(App.Settings, ResolveNewTabPath, ResolveStartPath, RecordVisit);
         _tabs.ActiveChanged += OnActiveTabChanged;
+        _tabs.TabKindChanged += OnTabKindChanged;
         _tabs.CloseWindowRequested += Close;
         TabBar.Host = _tabs;
 
@@ -106,6 +126,19 @@ public partial class MainWindow : Window
         // 哪个窗格的列表拿到焦点，哪个就是活动窗格（FR-3.5）。
         Pane.Activated += OnPaneActivated;
         Pane2.Activated += OnPaneActivated;
+
+        // 主页（FR-1.1）：卡片点击只发意图，导航归窗口——主页不知道自己在哪个标签里。
+        Home.OpenRequested += OpenFromHome;
+        Home.NewTabRequested += NewTab;
+        Home.NewFolderRequested += NewFolderFromHome;
+        Home.Attach(_home);
+
+        // 主页改了设置里的数据（清空历史）要立刻落盘：等退出再写的话，中途崩溃就白清了
+        _home.SettingsChanged += () => App.SaveSettings();
+
+        // 已知文件夹后台校验可能改了下载夹指向（用户重定向）。侧栏与主页都要跟着换，
+        // 否则会出现"标题栏写着新下载夹、侧栏还指着旧的"。
+        KnownFolderService.Changed += OnKnownFoldersChanged;
 
         // 中键 / Ctrl+左键点文件夹 → 新标签（FR-2.10）。窗格只发意图，新建标签归窗口；
         // 带着"是哪个窗格发的"一起转交——到达上限时要退回到发起的那一侧导航。
@@ -151,6 +184,15 @@ public partial class MainWindow : Window
             App.Settings.Session.TabSecondPaths = _tabs.SnapshotSecondPaths();
             App.Settings.Session.TabPinned = _tabs.SnapshotPinned();
             App.Settings.Session.ActiveTabIndex = Math.Clamp(_tabs.ActiveIndex, 0, Math.Max(0, paths.Count - 1));
+
+            // 最近访问只在这条路径上落盘：导航一次写一次文件纯属浪费，
+            // 而 App 的兜底保存只在"窗口尺寸/最后目录/标签列表有变"时才写，
+            // 光逛了几个目录就退出的会话会被它判成"什么都没改"。
+            if (_visitedSinceSave)
+            {
+                App.SaveSettings();
+                _visitedSinceSave = false;
+            }
         };
     }
 
@@ -190,6 +232,21 @@ public partial class MainWindow : Window
             for (int i = 0; i < session.Tabs.Count; i++)
             {
                 string path = session.Tabs[i];
+
+                // 主页标签用哨兵表示（见 TabHostViewModel.HomeMarker）：它没有路径，
+                // 不能走 Directory.Exists 校验，否则每次启动主页都会被当成坏数据丢掉。
+                // 去重集合里放哨兵本身：同时恢复出两个主页标签没有意义。
+                if (path == TabHostViewModel.HomeMarker)
+                {
+                    if (seen.Add(TabHostViewModel.HomeMarker))
+                    {
+                        restored.Add((TabHostViewModel.HomeMarker, string.Empty,
+                            i < session.TabPinned.Count && session.TabPinned[i]));
+                    }
+
+                    continue;
+                }
+
                 if (!Directory.Exists(path) || !seen.Add(path)) continue;
 
                 restored.Add((
@@ -201,19 +258,32 @@ public partial class MainWindow : Window
 
         if (restored.Count == 0)
         {
-            // 没有可恢复的会话，或恢复项全已失效：开一个默认目录的标签
-            _tabs.Activate(_tabs.AddPending(ResolveStartPath()));
+            // 没有可恢复的会话，或恢复项全已失效。两条落地路径：
+            //   · 命令行带了目录 → 直接开那个目录（用户双击进来的，不该被主页挡一道）
+            //   · 否则开主页（FR-1.1.1"启动后展示主页"）
+            if (!string.IsNullOrEmpty(App.StartupDirectory))
+            {
+                _tabs.Activate(_tabs.AddPending(ResolveStartPath()));
+            }
+            else
+            {
+                _tabs.Activate(_tabs.AddPendingHome());
+            }
+
             return;
         }
 
         foreach ((string path, string second, bool pinned) in restored)
         {
-            TabViewModel tab = _tabs.AddPending(path);
+            TabViewModel tab = path == TabHostViewModel.HomeMarker
+                ? _tabs.AddPendingHome()
+                : _tabs.AddPending(path);
+
             tab.IsPinned = pinned;
 
             // 第二窗格只记路径：窗格本身等"这个标签被激活且开着分屏"时才建，
             // 否则启动时就把 12 个标签的另一半全建出来，首帧预算立刻见底。
-            if (Directory.Exists(second)) tab.PrepareSecondaryPending(second);
+            if (!tab.IsHome && Directory.Exists(second)) tab.PrepareSecondaryPending(second);
         }
 
         _tabs.ActivateAt(Math.Clamp(session.ActiveTabIndex, 0, restored.Count - 1));
@@ -280,7 +350,14 @@ public partial class MainWindow : Window
     /// </summary>
     private void NewTab()
     {
-        if (_tabs.Add() is not null) return;
+        // FR-2.1：新标签默认开主页；设置里指定了目录才开那个目录。
+        // 判断放在这里而不是 ResolveNewTabPath 里：那个方法要返回一个"能打开的目录"，
+        // 让它在"主页"这种非目录形态下返回空串，会把"设置没填"和"设置填错了"混成一种。
+        TabViewModel? created = string.IsNullOrWhiteSpace(App.Settings.General.NewTabPath)
+            ? _tabs.AddHome()
+            : _tabs.Add();
+
+        if (created is not null) return;
 
         Vm.SetStatus(string.Format(Strings.Status_TabLimit, SessionSettings.MaxTabs));
         AppLog.Warn("tab.limit", "E6002", $"已达 {SessionSettings.MaxTabs} 个标签，Ctrl+T 不新建");  // i18n-ignore：只进 app.log
@@ -327,6 +404,89 @@ public partial class MainWindow : Window
         source.ViewModel?.SetStatus(string.Format(Strings.Status_TabLimit, SessionSettings.MaxTabs));
         AppLog.Warn("tab.limit", "E6002", $"已达 {SessionSettings.MaxTabs} 个标签，改为在当前窗格导航：{path}");  // i18n-ignore：只进 app.log
         source.NavigateTo(path);
+    }
+
+    // ── 主页（FR-1.1） ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// 主页上点了某个入口。<paramref name="newTab"/> 为真表示用户按了 Ctrl 或中键。
+    /// 当前标签内打开时，标签形态会从主页自动变成"浏览目录"（见 TabViewModel）。
+    /// </summary>
+    private void OpenFromHome(string path, bool newTab)
+    {
+        if (newTab)
+        {
+            // 与列表里的中键/Ctrl+点击走同一条路径：满 12 个标签时会退回当前窗格导航，
+            // 而不是点了没反应。
+            OpenInNewTab(ActiveView, path, background: false);
+            return;
+        }
+
+        _ = NavigatePaneAsync(Vm, path);
+    }
+
+    /// <summary>
+    /// 主页的"新建文件夹"（FR-1.1.4）。主页没有当前目录，落点是"新标签页默认目录"——
+    /// 那张卡片就在主页上，用户的心理位置是"在下载里建一个文件夹"，与 Ctrl+T 一致。
+    /// </summary>
+    private void NewFolderFromHome()
+    {
+        string target = ResolveNewTabPath();
+
+        TabViewModel? tab = _tabs.Add(target, activate: true);
+        if (tab is null)
+        {
+            Vm.SetStatus(string.Format(Strings.Status_TabLimit, SessionSettings.MaxTabs));
+            return;
+        }
+
+        // 新标签是懒加载的：等它把目录读完再发命令，否则"新建文件夹"会落在一个空列表上，
+        // 用户看到的是一次没有任何反馈的点击。
+        Dispatcher.BeginInvoke(new Action(async () =>
+        {
+            await NavigatePaneAsync(tab.Primary, tab.Primary.CurrentPath);
+            ViewFor(tab.ActivePane).TryInvoke(CommandIds.NewFolder);
+        }), DispatcherPriority.Background);
+    }
+
+    /// <summary>成功进入目录 → 记一条最近访问（FR-1.1.2）。历史关闭时什么都不做。</summary>
+    private void RecordVisit(string path)
+    {
+        if (!App.Settings.Privacy.HistoryEnabled) return;
+
+        _history.Record(path);
+        _visitedSinceSave = true;
+
+        // 主页正开着就顺带刷一下：用户刚点开一个目录又按 Alt+← 回主页时，
+        // "最近访问"里应该已经有刚去的那个。
+        if (Tab.IsHome) _home.Refresh();
+    }
+
+    private static async Task NavigatePaneAsync(PaneViewModel pane, string path)
+    {
+        try
+        {
+            await pane.NavigateAsync(path);
+        }
+        catch (Exception ex)
+        {
+            pane.ReportError(ex);
+        }
+    }
+
+    /// <summary>
+    /// 已知文件夹被后台校验改了（用户重定向了下载夹、换了台机器）。重建侧栏与主页卡片，
+    /// 不导航、不动当前目录——变的只是"下载指向哪里"。
+    /// </summary>
+    private void OnKnownFoldersChanged()
+    {
+        foreach (TabViewModel tab in _tabs.Tabs)
+        {
+            tab.Primary.RefreshQuickAccess();
+            tab.Secondary?.RefreshQuickAccess();
+        }
+
+        _home.Refresh();
     }
 
     /// <summary>双窗格命令（FR-3.3）。开关是窗口级的：它不是某个标签的属性。</summary>
@@ -376,6 +536,34 @@ public partial class MainWindow : Window
     /// <summary>把一个标签的一到两份视图模型绑到对应的窗格视图上。</summary>
     private void BindTab(TabViewModel tab)
     {
+        ApplyTabKind(tab);
+        RefreshPaneFocus();
+    }
+
+    /// <summary>
+    /// 按标签形态决定 PaneHost 里显示谁：主页标签显示 <see cref="Home"/> 并让两个窗格让位，
+    /// 目录标签则把主页藏起来、窗格绑上去。
+    ///
+    /// 主页标签不参与分屏：主页不"位于"任何目录，右侧没有第二个位置可放。
+    /// 分屏是窗口级形态，切回目录标签时仍在（见 ToggleSplit 的注释）。
+    /// </summary>
+    private void ApplyTabKind(TabViewModel tab)
+    {
+        if (tab.IsHome)
+        {
+            Home.Visibility = Visibility.Visible;
+            Pane.Visibility = Visibility.Collapsed;
+            Pane2.Visibility = Visibility.Collapsed;
+
+            // 每次显示主页都刷一次：刚插的 U 盘、刚访问过的目录都要出现在卡片里。
+            // 异步、带超时，不占首帧（FR-1.1.3）。
+            _home.Refresh();
+            _ = _home.LoadAsync();
+            return;
+        }
+
+        Home.Visibility = Visibility.Collapsed;
+        Pane.Visibility = Visibility.Visible;
         Pane.Attach(tab.Primary);
 
         if (_splitEnabled)
@@ -389,8 +577,24 @@ public partial class MainWindow : Window
         {
             Pane2.Visibility = Visibility.Collapsed;
         }
+    }
 
+    /// <summary>
+    /// 标签形态在运行中变了（主页点了目录 / 导航栏点了主页）。只切视图，不重新导航——
+    /// 触发这次变化的那次导航已经在路上或已经完成。
+    /// </summary>
+    private void OnTabKindChanged(TabViewModel tab)
+    {
+        if (!ReferenceEquals(tab, _tabs.Active)) return;
+
+        ApplyTabKind(tab);
+        ApplySplitLayout();
         RefreshPaneFocus();
+        DataContext = tab.ActivePane;
+        SyncNavSelection(tab.ActivePane.CurrentPath);
+
+        // 不在这里补一次 LoadPanesAsync：引起形态变化的那个动作本身就是一次导航
+        // （主页点卡片 / Alt+← 回退），再发一次只会让两次枚举互相作废。
     }
 
     /// <summary>按需加载：只导航还没读过盘的窗格（半开的第二窗格也算）。</summary>
@@ -411,6 +615,14 @@ public partial class MainWindow : Window
     /// </summary>
     private void ToggleSplit()
     {
+        if (Tab.IsHome)
+        {
+            // 主页是"没有位置"的形态，分不出第二栏。给一句话比让 F3 静默失效好——
+            // 否则用户会以为分屏快捷键坏了。
+            Vm.SetStatus(Strings.Status_HomeNoSplit);
+            return;
+        }
+
         _splitEnabled = !_splitEnabled;
         App.Settings.Layout.SplitEnabled = _splitEnabled;
 
@@ -503,6 +715,24 @@ public partial class MainWindow : Window
         Grid.SetRow(Pane2, 0);
         Grid.SetColumnSpan(Pane2, 1);
         Grid.SetRowSpan(Pane2, 1);
+
+        // 主页横跨整个 PaneHost。放在分屏判断之前：主页标签下无论窗口是否"开着分屏"，
+        // 都只有一个内容区——否则切到主页会看到右边留着一条空白的分屏列。
+        Grid.SetColumn(Home, 0);
+        Grid.SetRow(Home, 0);
+        if (Tab.IsHome)
+        {
+            Grid.SetColumnSpan(Home, 3);
+            Grid.SetRowSpan(Home, 3);
+            FirstColumn.Width = new GridLength(1, GridUnitType.Star);
+            FirstRow.Height = new GridLength(1, GridUnitType.Star);
+            ColumnSplitter.Visibility = Visibility.Collapsed;
+            RowSplitter.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        Grid.SetColumnSpan(Home, 1);
+        Grid.SetRowSpan(Home, 1);
 
         if (!_splitEnabled)
         {
@@ -701,7 +931,9 @@ public partial class MainWindow : Window
         {
             QuickAccessList.SelectedItem = QuickAccessList.Items
                 .OfType<NavItem>()
-                .FirstOrDefault(item => string.Equals(item.Path, path, StringComparison.OrdinalIgnoreCase));
+                .FirstOrDefault(item => item.IsHome
+                    ? string.IsNullOrEmpty(path)
+                    : string.Equals(item.Path, path, StringComparison.OrdinalIgnoreCase));
         }
         finally
         {
@@ -1133,6 +1365,14 @@ public partial class MainWindow : Window
         if (_syncingNavSelection) return;
 
         if (QuickAccessList.SelectedItem is not NavItem item) return;
+
+        if (item.IsHome)
+        {
+            // FR-1.2.1：主页节点在当前标签内打开，而不是另开一个标签
+            Tab.ShowHome();
+            return;
+        }
+
         if (string.Equals(item.Path, Vm.CurrentPath, StringComparison.OrdinalIgnoreCase)) return;
 
         try
@@ -1157,7 +1397,7 @@ public partial class MainWindow : Window
         string? configured = App.Settings.General.NewTabPath;
         if (!string.IsNullOrEmpty(configured) && Directory.Exists(configured)) return configured;
 
-        string downloads = KnownFolders.Downloads();
+        string downloads = KnownFolderService.Downloads();
         if (!string.IsNullOrEmpty(downloads) && Directory.Exists(downloads)) return downloads;
 
         string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);

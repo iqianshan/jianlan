@@ -37,7 +37,7 @@ P1 是全局瓶颈：不做拆分，后面每项功能都要在 962 行的 `Main
 
 | 模块 | 状态 | 缺口 |
 |---|---|---|
-| FR-1.1 主页 | 未开始 | 整个模块（0.2.0） |
+| FR-1.1 主页 | **已落地（P4-1）** | 1.1.1–1.1.5 全部实现并有走查截图；详见 §4.7 |
 | FR-1.2 快捷导航 | 部分 | 缺 FR-1.2.3 网络/回收站节点、FR-1.2.4 宽度可拖拽（现在是内容自适应但不可拖）、FR-1.2.6 中键新标签；1.2.1 的"主页"节点随 1.1 |
 | FR-2 多标签 | **基本齐（S3–S5）** | 已落地 2.1/2.3/2.4/2.5/2.6/2.7/2.8/2.9/2.10/2.11/2.12；缺 2.12 的"在新窗口打开"（P2）、2.9 的键盘入口（只有右键菜单）；2.5「20 个标签」已按 CHANGELOG 的口径改为 12 |
 | FR-3 双窗格 | **已落地（S4）** | 3.1–3.5 完成；跨窗格拖放复用同一条路径，无需专门代码 |
@@ -49,9 +49,10 @@ P1 是全局瓶颈：不做拆分，后面每项功能都要在 962 行的 `Main
 | FR-9 预览窗格 | 未开始 | 整个模块 |
 | FR-10 基础能力 | 大部分已做 | 10.6 异常退出提示、10.7 可访问性、10.8 关于页、10.9 目录入口未做；10.3 便携口径已对齐（三种标记等价） |
 
-`src/` 实测核对：`Core` 20 个源文件、`App` 38 个源文件（不含 `obj/`、`bin/`）。
+`src/` 实测核对：`Core` 22 个源文件、`App` 41 个源文件（不含 `obj/`、`bin/`）。
 P0 的三项已有对应实现：`Core/Navigation/PathCompletion.cs`、`Core/FileSystem/FolderSizeCalculator.cs`、
-`App/Shell/ShellContextMenu.cs`；**仍然没有** `PreviewHandler`、`Tags`、`Bookmarks`、`Workspaces` 任何一类文件。
+`App/Shell/ShellContextMenu.cs`；**仍然没有** `PreviewHandler`、`Tags`、`Workspaces` 任何一类文件，
+收藏与历史已有 Core 侧存储（`Core/Navigation/BookmarkStore.cs`、`VisitHistory.cs`），导航栏 UI 未接。
 
 ### 1.1 M0 / M1 剩余任务清单
 
@@ -407,13 +408,33 @@ NF-05R 只剩 20 MB 余量，而 SQLite 一口气要 12 MB 且不退——在"�
 - UNC 与可移动设备默认不自动预览（FR-9.2.8），要点击一次才触发。
 - 关闭窗格立即释放 Handler 实例与文件句柄（FR-9.2.6）——这条最容易漏，因为窗格关闭时没人会想到还有 COM 持有文件。
 
-### 4.7 FR-1.1 主页（2 天）
+### 4.7 FR-1.1 主页（2 天）——**已落地（2026-11-08）**
 
 - 主页是**一种标签页**（`TabKind.Home`），不是独立窗口。`PaneHost` 里按 `TabKind` 切换模板。
 - 常用目录卡片：`KnownFolders` 已有缓存（`SHGetKnownFolderPath` 结果写设置），直接复用；不存在的目录隐藏。
 - 驱动器卡片：`DriveInfo` 容量**异步**取，失败显示"—"（FR-1.1.3）。
 - 最近访问：历史记录已有（`historyEnabled`），取前 12 条。
 - 收藏区：与 FR-7 同源，最多 8 项 + "查看全部"。
+
+**实现口径（走查后的最终形态）**
+
+| 点 | 做法 | 理由 |
+|---|---|---|
+| 主页的表示 | `TabHostViewModel.HomeMarker = "lingpane:home"` 哨兵写进 `session.tabs` | 空串在会话里表示"这一项无效"，混用会让主页被当坏数据丢掉 |
+| 主页切换 | 不调 `PreparePendingPath`；`PaneViewModel.DetachToHome()` 丢路径但**保留历史栈** | 否则 `HasPendingContent` 被置真，会拿空路径去读盘；历史栈要留给 Alt+← |
+| 已知文件夹 | 七个 FOLDERID 走 `SHGetKnownFolderPath`，结果整份缓存进 `general.knownFolderPaths` | `Environment.SpecialFolder` 没有 Downloads，且用户重定向/OneDrive 接管后给的是旧路径 |
+| 缓存校验 | 命中（路径仍存在）就不碰 shell32；首帧之后 `ApplicationIdle` 后台校验，变化才刷 UI + 落盘 | 不占首帧 |
+| 容量 | `DriveInfo` 在线程池 + `Task.WhenAny(probe, Task.Delay(2s))` | 断线的映射盘会让 `DriveInfo` 卡几十秒 |
+| 失效检测 | 异步（沿用 FR-7.7 的口径） | UNC 不可达要等几秒，同步做会卡住主页首帧 |
+| 视图模型 | 窗口级单例，所有主页标签共用一份；`HomeView` 同样一份实例 | 最近访问与收藏本来就是全局数据 |
+
+**踩到的坑（写下来避免复现）**
+
+- `ProgressBar.Value` 默认是 **TwoWay** 绑定，绑到只读属性 `UsedRatio` 会抛 `XamlParseException`。
+  必须显式写 `Mode=OneWay`。更麻烦的是它的表现形式：异常在布局过程中抛出，WPF 的整个 measure/arrange
+  被打断，于是"点卡片后主区域一片空白"——看起来像布局 bug，实际是模板绑定错误。
+- `TabStrip` 的图标不能写成元素上的 `Text="{Binding IconGlyph}"`：本地值优先级高于触发器，
+  会把图钉的高亮触发器压掉。要放进 `<Setter>`。
 
 ### 4.8 FR-10.8 关于页（1 天）
 

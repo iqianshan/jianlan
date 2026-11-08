@@ -11,8 +11,12 @@ using Lingpane.Core.Settings;
 
 namespace Lingpane.App.ViewModels;
 
-/// <summary>左侧导航项。显示名与字形在 UI 层映射，Core 只给路径。</summary>
-public sealed record NavItem(string Name, string Glyph, string Path);
+/// <summary>
+/// 左侧导航项。显示名与字形在 UI 层映射，Core 只给路径。
+/// <paramref name="IsHome"/> 为真的那一项是主页入口（FR-1.2.1）：它没有路径，
+/// 点击的语义是"把当前标签切到主页"，不是"导航到某个目录"。
+/// </summary>
+public sealed record NavItem(string Name, string Glyph, string Path, bool IsHome = false);
 
 /// <summary>
 /// 单个浏览区（窗格）的视图模型：负责"打开目录 → 过滤 → 排序 → 交给列表"，
@@ -28,6 +32,12 @@ public sealed class PaneViewModel : INotifyPropertyChanged
 {
     private readonly NavigationHistory _history = new();
     private readonly AppSettings _settings;
+
+    /// <summary>
+    /// 成功进入一个目录后的回调（FR-1.1.2 最近访问）。用委托注入而不是直接读
+    /// <c>App.Settings</c>：视图模型在当前代码里不依赖 App 静态类，测试也能单独构造。
+    /// </summary>
+    private readonly Action<string>? _onVisited;
 
     private List<FileEntry> _all = [];
     private IReadOnlyList<FileEntry> _entries = [];
@@ -61,9 +71,10 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     /// <summary>导航序号：用于丢弃过期的异步枚举结果（快速连按时防止旧目录覆盖新目录）。</summary>
     private int _navigationToken;
 
-    public PaneViewModel(AppSettings settings)
+    public PaneViewModel(AppSettings settings, Action<string>? onVisited = null)
     {
         _settings = settings;
+        _onVisited = onVisited;
         // schema 里允许 grid，但 M1 未实现该视图（见 SetViewMode），启动时回落到列表
         _viewMode = settings.Behavior.DefaultView == DefaultViewKind.Grid
             ? DefaultViewKind.List
@@ -319,7 +330,12 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     /// <summary>当前目录条目总数（未过滤），用于状态栏与测试。</summary>
     public int TotalCount => _all.Count;
 
-    public async Task NavigateAsync(string path, bool recordHistory = true)
+    /// <param name="recordHistory">是否压入本窗格的后退栈。刷新与前进/后退重导航不压。</param>
+    /// <param name="recordVisit">
+    /// 是否写进"最近访问"（FR-1.1.2）。与 <paramref name="recordHistory"/> 分开：
+    /// 按 F5 刷新不算"去过一个新地方"，但 Alt+← 回到刚才的目录算。
+    /// </param>
+    public async Task NavigateAsync(string path, bool recordHistory = true, bool recordVisit = true)
     {
         if (string.IsNullOrWhiteSpace(path)) return;
 
@@ -352,6 +368,7 @@ public sealed class PaneViewModel : INotifyPropertyChanged
             LastNavigationError = null;
             _all = result.List;
             if (recordHistory) _history.Push(target);
+            if (recordVisit) _onVisited?.Invoke(target);
 
             CurrentPath = target;
             AddressText = target;
@@ -397,7 +414,9 @@ public sealed class PaneViewModel : INotifyPropertyChanged
 
     /// <summary>刷新当前目录。不产生新的历史记录，否则连按 F5 会堆满后退栈。</summary>
     public Task RefreshAsync()
-        => string.IsNullOrEmpty(CurrentPath) ? Task.CompletedTask : NavigateAsync(CurrentPath, recordHistory: false);
+        => string.IsNullOrEmpty(CurrentPath)
+            ? Task.CompletedTask
+            : NavigateAsync(CurrentPath, recordHistory: false, recordVisit: false);
 
     /// <summary>
     /// 释放目录内容，只留路径、历史与视图状态（内存预算配套约束，见 performance-gate §9.5）。
@@ -433,6 +452,38 @@ public sealed class PaneViewModel : INotifyPropertyChanged
         // 状态栏文字保持原样：切回来会立刻显示"加载中"，
         // 中间那一帧显示"0 项"只会让人以为目录被清空了。
         HasPendingContent = true;
+    }
+
+    /// <summary>
+    /// 把窗格切到"主页形态"（FR-1.2.1 的"主页"节点）：丢掉目录内容与当前路径，
+    /// 但**保留历史栈**——Alt+← 应当回到离开主页前看的那一处。
+    ///
+    /// 与 <see cref="ReleaseContent"/> 的区别：那个留路径、等下次激活重新读盘；
+    /// 这个连路径都不要，因为主页不位于任何目录。共同点是都要先作废在途枚举，
+    /// 否则它回来时会把内容装回一个已经"不是目录"的窗格。
+    /// </summary>
+    public void DetachToHome()
+    {
+        _navigationToken++;
+        CancelFolderSizeScan();
+        _sizeScanTargets = [];
+        IsCalculatingSize = false;
+        SizeProgressText = string.Empty;
+
+        _all = [];
+        Entries = [];
+        HasPendingContent = false;
+
+        LastNavigationError = null;
+        _lastNavigationErrorCode = "E1001";
+        CurrentPath = string.Empty;
+        AddressText = string.Empty;
+        Breadcrumbs = [];
+        SelectionText = string.Empty;
+        StatusText = Strings.Status_Ready;
+        IsLoading = false;
+        Raise(nameof(CanGoBack));
+        Raise(nameof(CanGoForward));
     }
 
     public Task<bool> GoBackAsync() => GoAsync(back: true);
@@ -734,10 +785,20 @@ public sealed class PaneViewModel : INotifyPropertyChanged
         StatusText = string.Format(Strings.Status_OperationFailed, FsErrors.DescribeForOperation(code));
     }
 
+    /// <summary>
+    /// 已知文件夹在后台校验后可能变化（用户重定向了下载夹），此时重建导航项。
+    /// 不动当前目录、不动选中项——变的只是侧栏那几条。
+    /// </summary>
+    public void RefreshQuickAccess() => QuickAccess = BuildQuickAccess();
+
     private static List<NavItem> BuildQuickAccess()
     {
-        var list = new List<NavItem>(7);
-        foreach (var folder in KnownFolders.All)
+        var list = new List<NavItem>(8);
+
+        // 主页节点（FR-1.2.1）。排在最前：它是"回到起点"，比任何一个具体目录更像入口
+        list.Add(new NavItem(Strings.Nav_Home, IconGlyphs.Home, string.Empty, IsHome: true));
+
+        foreach (var folder in Services.KnownFolderService.All)
         {
             var (name, glyph) = folder.Kind switch
             {

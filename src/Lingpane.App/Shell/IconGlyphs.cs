@@ -20,4 +20,12 @@ public static class IconGlyphs
     public const string Up = "\uE74A";
     public const string Folder = "\uE8B7";
     public const string Refresh = "\uE72C";
+
+    // 主页（FR-1.1）与收藏（FR-7）新增
+    public const string Home = "\uE80F";
+    public const string Drive = "\uEDA2";
+    public const string File = "\uE7C3";
+    public const string History = "\uE81C";
+    public const string Star = "\uE734";
+    public const string NewFolder = "\uE8F4";
 }

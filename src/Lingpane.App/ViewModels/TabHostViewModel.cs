@@ -21,9 +21,18 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     /// <summary>最近关闭的标签保留几个用于 Ctrl+Shift+T（FR-2.3 / shortcuts §1）。</summary>
     private const int ClosedHistoryLimit = 10;
 
+    /// <summary>
+    /// 会话文件里代表"这个标签是主页"的哨兵值（FR-1.1 + FR-2.11）。
+    /// 真实路径不可能长这样（Windows 路径要么盘符开头、要么 UNC），所以不会撞。
+    /// 用哨兵而不是"空串表示主页"：空串在会话里是"这一项无效"，两者语义不同，
+    /// 混成一种之后，恢复时既可能把主页当坏数据丢掉，也可能把坏数据恢复成主页。
+    /// </summary>
+    public const string HomeMarker = "lingpane:home";
+
     private readonly AppSettings _settings;
     private readonly Func<string> _defaultPath;
     private readonly Func<string> _homePath;
+    private readonly Action<string>? _onVisited;
     private readonly Stack<string> _closed = [];
 
     private TabViewModel? _active;
@@ -38,11 +47,16 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     /// "新标签开在哪"和"关掉最后一个是回哪"是两件事，前者由用户显式指定，
     /// 后者一直是"上次的目录"，不该被新设置顺手改掉。省略时与前者一致。
     /// </param>
-    public TabHostViewModel(AppSettings settings, Func<string> defaultPath, Func<string>? homePath = null)
+    /// <param name="onVisited">
+    /// 成功进入目录后的回调（FR-1.1.2 最近访问）。由窗口注入，见 MainWindow 的构造。
+    /// </param>
+    public TabHostViewModel(AppSettings settings, Func<string> defaultPath, Func<string>? homePath = null,
+        Action<string>? onVisited = null)
     {
         _settings = settings;
         _defaultPath = defaultPath;
         _homePath = homePath ?? defaultPath;
+        _onVisited = onVisited;
 
         // 标签数直接决定"还能不能新建"，两个按钮/快捷键都要看它有没有变
         Tabs.CollectionChanged += (_, _) =>
@@ -59,6 +73,9 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
 
     /// <summary>关掉了最后一个标签且设置为"关闭窗口"（FR-2.8）。</summary>
     public event Action? CloseWindowRequested;
+
+    /// <summary>某个标签的形态变了（主页 ⇄ 目录）。窗口据此决定显示主页还是窗格。</summary>
+    public event Action<TabViewModel>? TabKindChanged;
 
     public ObservableCollection<TabViewModel> Tabs { get; } = [];
 
@@ -91,7 +108,8 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
 
         // 不在这里导航：调用方（`+` 按钮、Ctrl+T、会话恢复）时机各不相同，
         // 统一由宿主在激活后决定"现在读盘还是等激活再读"。
-        var tab = new TabViewModel(_settings, target);
+        var tab = new TabViewModel(_settings, target, _onVisited);
+        tab.KindChanged += OnTabKindChanged;
 
         // 两件事都要在 Activate 之前写：激活会立刻触发宿主 BindTab，
         // 那时第二窗格就要按这里的路径建出来、焦点也要一次到位。
@@ -116,7 +134,33 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     /// <summary>恢复会话用：只建标签、只记路径，不读盘也不激活。</summary>
     public TabViewModel AddPending(string path)
     {
-        var tab = new TabViewModel(_settings, path);
+        var tab = new TabViewModel(_settings, path, _onVisited);
+        tab.KindChanged += OnTabKindChanged;
+        Tabs.Add(tab);
+        return tab;
+    }
+
+    /// <summary>
+    /// 新建一个主页标签（FR-1.1）。<paramref name="activate"/> 为 false 时只建不切，
+    /// 用于启动时"主页在最左"的形态。
+    /// </summary>
+    public TabViewModel? AddHome(bool activate = true)
+    {
+        if (IsFull) return null;
+
+        var tab = new TabViewModel(_settings, null, _onVisited, TabKind.Home);
+        tab.KindChanged += OnTabKindChanged;
+        Tabs.Add(tab);
+        if (activate) Activate(tab);
+
+        return tab;
+    }
+
+    /// <summary>会话恢复用：建一个主页标签但不激活、不做任何加载。</summary>
+    public TabViewModel AddPendingHome()
+    {
+        var tab = new TabViewModel(_settings, null, _onVisited, TabKind.Home);
+        tab.KindChanged += OnTabKindChanged;
         Tabs.Add(tab);
         return tab;
     }
@@ -181,7 +225,15 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
             {
                 // 不销毁这个标签，只把它送回默认目录：用户刚关掉的是"这个地方"，
                 // 不是"这个窗口"。历史栈保留，Alt+← 还能回退到刚才关掉的目录。
-                RememberClosed(tab.Primary.CurrentPath);
+                RememberClosed(tab.IsHome ? HomeMarker : tab.Primary.CurrentPath);
+
+                if (tab.IsHome)
+                {
+                    // 已经在主页了，"回到主页"这个动作没有意义，直接当成关窗口更符合预期
+                    CloseWindowRequested?.Invoke();
+                    return;
+                }
+
                 _ = tab.Primary.NavigateAsync(_homePath());
                 return;
             }
@@ -190,7 +242,7 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
             return;
         }
 
-        RememberClosed(tab.Primary.CurrentPath);
+        RememberClosed(tab.IsHome ? HomeMarker : tab.Primary.CurrentPath);
 
         bool wasActive = ReferenceEquals(_active, tab);
         Tabs.RemoveAt(index);
@@ -262,14 +314,23 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
         if (_closed.Count == 0 || IsFull) return;
 
         string path = _closed.Pop();
+
+        // 关掉的如果是主页标签，重新打开的也该是主页——否则 Ctrl+Shift+T 会把
+        // "主页"还原成一个打开默认目录的普通标签，看起来像恢复错了东西。
+        if (path == HomeMarker)
+        {
+            AddHome();
+            return;
+        }
+
         TabViewModel? tab = Add(path, activate: true);
         if (tab is not null) _ = tab.Primary.NavigateAsync(path);
     }
 
     /// <summary>退出时写进会话的路径列表（空的标签不写，否则下次启动多出一个没内容的标签）。</summary>
     public List<string> SnapshotPaths()
-        => Tabs.Select(t => t.Primary.CurrentPath)
-               .Where(p => !string.IsNullOrWhiteSpace(p))
+        => Tabs.Select(t => t.IsHome ? HomeMarker : t.Primary.CurrentPath)
+               .Where(p => IsPersistable(p))
                .Take(SessionSettings.MaxTabs)
                .ToList();
 
@@ -279,14 +340,18 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     /// </summary>
     public List<string> SnapshotSecondPaths()
         => Tabs.Select(t => t.SnapshotPaths())
-               .Where(p => !string.IsNullOrWhiteSpace(p.Primary))
+               .Where(p => IsPersistable(p.Primary))
                .Select(p => p.Secondary)
                .Take(SessionSettings.MaxTabs)
                .ToList();
 
+    /// <summary>主页标签在会话里也是有效的一条，不能因为"没有路径"被过滤掉。</summary>
+    private static bool IsPersistable(string? path)
+        => !string.IsNullOrWhiteSpace(path);
+
     /// <summary>固定标记，与 <see cref="SnapshotPaths"/> 等长（FR-2.9）。</summary>
     public List<bool> SnapshotPinned()
-        => Tabs.Where(t => !string.IsNullOrWhiteSpace(t.Primary.CurrentPath))
+        => Tabs.Where(t => t.IsHome || !string.IsNullOrWhiteSpace(t.Primary.CurrentPath))
                .Select(t => t.IsPinned)
                .Take(SessionSettings.MaxTabs)
                .ToList();
@@ -299,6 +364,8 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
             return index < 0 ? 0 : index;
         }
     }
+
+    private void OnTabKindChanged(TabViewModel tab) => TabKindChanged?.Invoke(tab);
 
     private void RememberClosed(string? path)
     {

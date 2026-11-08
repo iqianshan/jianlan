@@ -740,4 +740,80 @@ public static class Strings
     /// <summary>Could not delete the item — it may be in use, or you may not have permission</summary>
     public static string Error_DeleteRefused => LocalizationService.Instance.Get("Error.DeleteRefused");
 
+    /// <summary>Home</summary>
+    public static string Home_Title => LocalizationService.Instance.Get("Home.Title");
+
+    /// <summary>New tab</summary>
+    public static string Home_NewTab => LocalizationService.Instance.Get("Home.NewTab");
+
+    /// <summary>Open a new tab (Ctrl+T)</summary>
+    public static string Home_NewTab_Tip => LocalizationService.Instance.Get("Home.NewTab.Tip");
+
+    /// <summary>New folder</summary>
+    public static string Home_NewFolder => LocalizationService.Instance.Get("Home.NewFolder");
+
+    /// <summary>Create a folder in the new-tab folder</summary>
+    public static string Home_NewFolder_Tip => LocalizationService.Instance.Get("Home.NewFolder.Tip");
+
+    /// <summary>Common places</summary>
+    public static string Home_Section_Folders => LocalizationService.Instance.Get("Home.Section.Folders");
+
+    /// <summary>Drives</summary>
+    public static string Home_Section_Drives => LocalizationService.Instance.Get("Home.Section.Drives");
+
+    /// <summary>Recent</summary>
+    public static string Home_Section_Recent => LocalizationService.Instance.Get("Home.Section.Recent");
+
+    /// <summary>Bookmarks</summary>
+    public static string Home_Section_Bookmarks => LocalizationService.Instance.Get("Home.Section.Bookmarks");
+
+    /// <summary>No recent places yet</summary>
+    public static string Home_Recent_Empty => LocalizationService.Instance.Get("Home.Recent.Empty");
+
+    /// <summary>Clear</summary>
+    public static string Home_Recent_Clear => LocalizationService.Instance.Get("Home.Recent.Clear");
+
+    /// <summary>Clear the recent list</summary>
+    public static string Home_Recent_Clear_Tip => LocalizationService.Instance.Get("Home.Recent.Clear.Tip");
+
+    /// <summary>No longer available</summary>
+    public static string Home_Recent_Missing => LocalizationService.Instance.Get("Home.Recent.Missing");
+
+    /// <summary>No bookmarks yet</summary>
+    public static string Home_Bookmarks_Empty => LocalizationService.Instance.Get("Home.Bookmarks.Empty");
+
+    /// <summary>See all</summary>
+    public static string Home_Bookmarks_More => LocalizationService.Instance.Get("Home.Bookmarks.More");
+
+    /// <summary>Show less</summary>
+    public static string Home_Bookmarks_Less => LocalizationService.Instance.Get("Home.Bookmarks.Less");
+
+    /// <summary>—</summary>
+    public static string Home_Drive_Unknown => LocalizationService.Instance.Get("Home.Drive.Unknown");
+
+    /// <summary>Reading…</summary>
+    public static string Home_Drive_Loading => LocalizationService.Instance.Get("Home.Drive.Loading");
+
+    /// <summary>{0} free of {1}</summary>
+    public static string Home_Drive_Capacity => LocalizationService.Instance.Get("Home.Drive.Capacity");
+    // 含占位符：string.Format(Strings.Home_Drive_Capacity, ...)
+
+    /// <summary>Ctrl+click to open in a new tab</summary>
+    public static string Home_Tile_OpenInNewTab => LocalizationService.Instance.Get("Home.Tile.OpenInNewTab");
+
+    /// <summary>Home</summary>
+    public static string Nav_Home => LocalizationService.Instance.Get("Nav.Home");
+
+    /// <summary>Home</summary>
+    public static string Tab_Home => LocalizationService.Instance.Get("Tab.Home");
+
+    /// <summary>Home</summary>
+    public static string Tab_Home_Tip => LocalizationService.Instance.Get("Tab.Home.Tip");
+
+    /// <summary>Recent list cleared</summary>
+    public static string Status_HistoryCleared => LocalizationService.Instance.Get("Status.HistoryCleared");
+
+    /// <summary>The home tab has no second pane to split</summary>
+    public static string Status_HomeNoSplit => LocalizationService.Instance.Get("Status.HomeNoSplit");
+
 }
