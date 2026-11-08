@@ -542,6 +542,8 @@ def main() -> int:
             "ctrl+a": (0x11, 0x41),
             "ctrl+d": (0x11, 0x44),
             "esc": (0x1B,),
+            "left": (0x25,),
+            "right": (0x27,),
             "tab": (0x09,),
             "shift+tab": (0x10, 0x09),
             "app": (0x5D,),

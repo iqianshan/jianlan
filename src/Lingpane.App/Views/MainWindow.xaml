@@ -16,6 +16,14 @@
         TextOptions.TextHintingMode="Fixed">
 
     <Window.Resources>
+        <!-- 收藏外观预设子菜单里的条目（FR-7.5）。用 EventSetter 挂同一个处理器：
+             子项由预设表生成，逐个写 Click 既重复又容易漏。
+             MinWidth 压到 140：主菜单项是 200 宽（要放键位提示），色块行不需要那么宽。 -->
+        <Style x:Key="Bookmark.PresetItem" TargetType="MenuItem" BasedOn="{StaticResource MenuItem.Default}">
+            <Setter Property="MinWidth" Value="140"/>
+            <EventSetter Event="Click" Handler="OnBookmarkPresetPicked"/>
+        </Style>
+
         <!--
             导航栏的行模板（FR-1.2 + FR-7.3）。五种行共处一条 ListBox，靠类型挑模板：
             系统节点 / 分区标题 / 空态提示 / 收藏分组 / 收藏项。
@@ -45,12 +53,24 @@
             </Grid>
         </DataTemplate>
 
-        <!-- 分区标题（"收藏"）。不可选中，也不吃鼠标——点它没有任何该发生的事 -->
+        <!-- 分区标题（"收藏"）。不可选中，也不吃鼠标——点它没有任何该发生的事。
+             右键是收藏区的管理入口：新建分组、清理失效项（FR-7.3 / FR-7.7） -->
         <DataTemplate DataType="{x:Type vm:NavSectionRow}">
             <TextBlock Margin="12,10,8,4"
                        Style="{StaticResource Text.Header}"
                        Text="{Binding Title}"
-                       PreviewMouseLeftButtonDown="OnNavInertRowClick"/>
+                       PreviewMouseLeftButtonDown="OnNavInertRowClick">
+                <TextBlock.ContextMenu>
+                    <ContextMenu Style="{StaticResource ContextMenu.Default}">
+                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                  Header="{loc:Tr Key=Bookmark.Group.NewMenu}"
+                                  Click="OnBookmarkNewGroup"/>
+                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                  Header="{loc:Tr Key=Bookmark.CleanMissing}"
+                                  Click="OnBookmarkCleanMissing"/>
+                    </ContextMenu>
+                </TextBlock.ContextMenu>
+            </TextBlock>
         </DataTemplate>
 
         <!-- 空态提示。折行显示：窄侧栏里"按 Ctrl+D 收藏当前位置"一行放不下 -->
@@ -105,7 +125,8 @@
                   Background="Transparent"
                   VerticalAlignment="Center"
                   ToolTip="{Binding TooltipText}"
-                  PreviewMouseDown="OnBookmarkMouseDown">
+                  PreviewMouseDown="OnBookmarkMouseDown"
+                  PreviewMouseMove="OnBookmarkDragMove">
                 <Grid.ContextMenu>
                     <ContextMenu Style="{StaticResource ContextMenu.Default}">
                         <MenuItem Style="{StaticResource MenuItem.Default}"
@@ -118,6 +139,44 @@
                         <MenuItem Style="{StaticResource MenuItem.Default}"
                                   Header="{loc:Tr Key=Bookmark.Rename}"
                                   Click="OnBookmarkRename"/>
+                        <!-- 外观预设（FR-7.5）。子项由数据驱动：ItemsSource 取静态预设表，
+                             ItemContainerStyle 里挂同一个 Click，靠 DataContext 区分选了哪个。
+                             不在 XAML 里逐条写色块：那样既重复，也会把色值散到界面层。 -->
+                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                  Header="{loc:Tr Key=Bookmark.Color}"
+                                  ItemsSource="{Binding Source={x:Static vm:BookmarkPresets.Colors}}"
+                                  ItemContainerStyle="{StaticResource Bookmark.PresetItem}">
+                            <MenuItem.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Width="12" Height="12"
+                                                CornerRadius="2"
+                                                Margin="0,0,8,0"
+                                                VerticalAlignment="Center"
+                                                Background="{Binding Hex}"/>
+                                        <TextBlock Style="{StaticResource Text.Base}" Text="{Binding Name}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </MenuItem.ItemTemplate>
+                        </MenuItem>
+                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                  Header="{loc:Tr Key=Bookmark.Icon}"
+                                  ItemsSource="{Binding Source={x:Static vm:BookmarkPresets.Icons}}"
+                                  ItemContainerStyle="{StaticResource Bookmark.PresetItem}">
+                            <MenuItem.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Text.Glyph}"
+                                                   Margin="0,0,8,0"
+                                                   Text="{Binding Glyph}"/>
+                                        <TextBlock Style="{StaticResource Text.Base}" Text="{Binding Name}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </MenuItem.ItemTemplate>
+                        </MenuItem>
+                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                  Header="{loc:Tr Key=Bookmark.Reset}"
+                                  Click="OnBookmarkResetAppearance"/>
                         <MenuItem Style="{StaticResource MenuItem.Default}"
                                   Header="{loc:Tr Key=Bookmark.Group.New}"
                                   Click="OnBookmarkMoveToGroup"/>
@@ -142,8 +201,11 @@
                            Text="{Binding Glyph}">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Glyph}">
-                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
                             <Style.Triggers>
+                                <!-- 自定义颜色（FR-7.5）。放在失效触发器之前，失效要能把颜色压回去 -->
+                                <DataTrigger Binding="{Binding HasColor}" Value="True">
+                                    <Setter Property="Foreground" Value="{Binding GlyphBrush}"/>
+                                </DataTrigger>
                                 <DataTrigger Binding="{Binding IsMissing}" Value="True">
                                     <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Tertiary}"/>
                                 </DataTrigger>
@@ -212,15 +274,32 @@
 
              ItemsSource 在代码里赋（NavPanelViewModel.Rows）：这一列的内容是
              "窗格的系统节点 + 窗口的收藏"两部分拼起来的，任何一个 DataContext 都不完整。 -->
-        <ListBox x:Name="QuickAccessList"
-                     Grid.Column="0"
-                     Grid.Row="1"
-                     Width="Auto"
-                     MinWidth="{DynamicResource Size.Nav.Width.Default}"
-                     MaxWidth="{DynamicResource Size.Nav.Width.Max}"
+        <Grid Grid.Column="0"
+              Grid.Row="1"
+              MinWidth="{DynamicResource Size.Nav.Width.Default}"
+              MaxWidth="{DynamicResource Size.Nav.Width.Max}">
+            <ListBox x:Name="QuickAccessList"
                      Style="{StaticResource Nav.Surface}"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                     SelectionChanged="OnQuickAccessSelectionChanged"/>
+                     SelectionChanged="OnQuickAccessSelectionChanged"
+                     AllowDrop="True"
+                     DragOver="OnNavDragOver"
+                     DragLeave="OnNavDragLeave"
+                     Drop="OnNavDrop"/>
+
+            <!-- 拖拽排序的插入位置指示（FR-7.6）：一条 2px 的横线，压在将要插入的位置上。
+                 不拦截鼠标（IsHitTestVisible=False），否则它自己会把 DragOver 抢走。 -->
+            <Rectangle x:Name="DropIndicator"
+                       Height="2"
+                       VerticalAlignment="Top"
+                       HorizontalAlignment="Stretch"
+                       Margin="4,0,4,0"
+                       RadiusX="1"
+                       RadiusY="1"
+                       Fill="{DynamicResource Brush.Accent.Default}"
+                       Visibility="Collapsed"
+                       IsHitTestVisible="False"/>
+        </Grid>
 
         <Border Grid.Column="1" Grid.Row="1" Grid.RowSpan="2" Background="{DynamicResource Brush.Border.Hairline}"/>
 

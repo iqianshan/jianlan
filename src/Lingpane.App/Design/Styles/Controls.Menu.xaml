@@ -4,8 +4,9 @@
     <!--
         右键菜单最小样式集。
         WPF 默认 ContextMenu/MenuItem 用的是系统配色，深色主题下是一块突兀的白底，
-        这里只覆盖用得到的部分：无图标、无子菜单、无勾选态。
-        将来要加子菜单或勾选项时，需要扩展模板（Popup 与 IsCheckable 分支）。
+        这里只覆盖用得到的部分：无图标、无勾选态。
+        子菜单有了（FR-7.5 的颜色/图标预设），模板里对应一段 Popup 与一个右侧箭头；
+        勾选态仍未用到，将来要加 IsCheckable 时再补分支。
     -->
 
     <Style x:Key="ContextMenu.Default" TargetType="ContextMenu">
@@ -46,6 +47,7 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <ContentPresenter Grid.Column="0"
                                               ContentSource="Header"
@@ -58,6 +60,40 @@
                                        VerticalAlignment="Center"
                                        Text="{TemplateBinding InputGestureText}"
                                        Style="{StaticResource Text.Caption}"/>
+                            <!-- 有子项时右侧出箭头（见下面的 SubmenuHeader 触发器）。
+                                 E76C 与 IconGlyphs.ChevronRight 同一个码位。 -->
+                            <TextBlock x:Name="Arrow"
+                                       Grid.Column="2"
+                                       Margin="24,0,0,0"
+                                       VerticalAlignment="Center"
+                                       FontFamily="{StaticResource Font.Family.Icon}"
+                                       FontSize="{DynamicResource Font.Size.Caption}"
+                                       Text="&#xE76C;"
+                                       Visibility="Collapsed"/>
+
+                            <!-- 子菜单宿主。MenuItem 自己会在悬停/右键时置 IsSubmenuOpen，
+                                 模板里必须有这个 Popup（名字固定为 PART_Popup）它才有地方展开。 -->
+                            <Popup x:Name="PART_Popup"
+                                   Grid.Column="0"
+                                   Placement="Right"
+                                   HorizontalOffset="-4"
+                                   VerticalOffset="-6"
+                                   IsOpen="{TemplateBinding IsSubmenuOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="None">
+                                <!-- 颜色写死与 ContextMenu.Default 一致：MenuItem 自身没有
+                                     Background/BorderBrush（这两个属性不继承），
+                                     TemplateBinding 过来会得到全透明的面板。 -->
+                                <Border Background="{DynamicResource Brush.Surface.Window}"
+                                        BorderBrush="{DynamicResource Brush.Border.Hairline}"
+                                        BorderThickness="{DynamicResource BorderThickness.Hairline}"
+                                        CornerRadius="{StaticResource CornerRadius.Control}"
+                                        Padding="4">
+                                    <StackPanel IsItemsHost="True"
+                                                KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                                </Border>
+                            </Popup>
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -67,6 +103,11 @@
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Disabled}"/>
+                        </Trigger>
+                        <!-- 有子项才出箭头。Role 是 MenuItem 的只读依赖属性，
+                             ContextMenu 里带子项的项算 SubmenuHeader。 -->
+                        <Trigger Property="Role" Value="SubmenuHeader">
+                            <Setter TargetName="Arrow" Property="Visibility" Value="Visible"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Windows.Media;
 using Lingpane.App.Diagnostics;
 using Lingpane.App.Shell;
 using Lingpane.Core.Localization;
@@ -80,6 +81,20 @@ public sealed class NavBookmarkRow : NavRow, INotifyPropertyChanged
         Entry = entry;
         Name = BookmarkStore.DisplayName(entry);
         Tooltip = entry.Path;
+
+        // 颜色在设置里是 #RRGGBB 字符串（用户会手改的地方不放 Brush）。
+        // 解析失败就当作没设过——一个手抖的色值时，图标该是默认色，而不是让整行崩掉。
+        if (!string.IsNullOrWhiteSpace(entry.Color))
+        {
+            try
+            {
+                GlyphBrush = (Brush)new BrushConverter().ConvertFromString(entry.Color)!;
+            }
+            catch (Exception ex) when (ex is FormatException or NotSupportedException)
+            {
+                GlyphBrush = null;
+            }
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -94,6 +109,11 @@ public sealed class NavBookmarkRow : NavRow, INotifyPropertyChanged
 
     /// <summary>自定义图标优先（FR-7.5），否则按"文件夹 / 文件"给一个（FR-7.2）。</summary>
     public string Glyph => Entry.Icon ?? (Entry.Kind == BookmarkKind.Folder ? IconGlyphs.Folder : IconGlyphs.File);
+
+    /// <summary>自定义颜色（FR-7.5）。null = 跟随主题图标色；解析失败的色值也当没设过。</summary>
+    public Brush? GlyphBrush { get; }
+
+    public bool HasColor => GlyphBrush is not null;
 
     /// <summary>路径当前不存在。异步检测后才置真（FR-7.7），首帧不做同步判断。</summary>
     public bool IsMissing

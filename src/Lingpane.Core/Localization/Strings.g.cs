@@ -871,9 +871,8 @@ public static class Strings
     /// <summary>Delete group</summary>
     public static string Bookmark_Group_Remove => LocalizationService.Instance.Get("Bookmark.Group.Remove");
 
-    /// <summary>Remove unavailable items ({0})</summary>
+    /// <summary>Remove unavailable bookmarks</summary>
     public static string Bookmark_CleanMissing => LocalizationService.Instance.Get("Bookmark.CleanMissing");
-    // 含占位符：string.Format(Strings.Bookmark_CleanMissing, ...)
 
     /// <summary>Bookmark the current folder (Ctrl+D)</summary>
     public static string Bookmark_Tip => LocalizationService.Instance.Get("Bookmark.Tip");
@@ -898,5 +897,75 @@ public static class Strings
 
     /// <summary>Bookmark this folder</summary>
     public static string Command_Bookmark => LocalizationService.Instance.Get("Command.Bookmark");
+
+    /// <summary>New group…</summary>
+    public static string Bookmark_Group_NewMenu => LocalizationService.Instance.Get("Bookmark.Group.NewMenu");
+
+    /// <summary>No unavailable bookmarks</summary>
+    public static string Bookmark_CleanNone => LocalizationService.Instance.Get("Bookmark.CleanNone");
+
+    /// <summary>Removed {0} unavailable bookmarks</summary>
+    public static string Bookmark_CleanDone => LocalizationService.Instance.Get("Bookmark.CleanDone");
+    // 含占位符：string.Format(Strings.Bookmark_CleanDone, ...)
+
+    /// <summary>Remove {0} bookmarks whose location is unavailable? Only the bookmark entries are deleted.</summary>
+    public static string Bookmark_CleanConfirm => LocalizationService.Instance.Get("Bookmark.CleanConfirm");
+    // 含占位符：string.Format(Strings.Bookmark_CleanConfirm, ...)
+
+    /// <summary>Bookmarked {0} item(s)</summary>
+    public static string Status_BookmarkDropAdded => LocalizationService.Instance.Get("Status.BookmarkDropAdded");
+    // 含占位符：string.Format(Strings.Status_BookmarkDropAdded, ...)
+
+    /// <summary>Drop to bookmark</summary>
+    public static string Bookmark_Hint_Drop => LocalizationService.Instance.Get("Bookmark.Hint.Drop");
+
+    /// <summary>Drop to bookmark into “{0}”</summary>
+    public static string Bookmark_Hint_DropToGroup => LocalizationService.Instance.Get("Bookmark.Hint.DropToGroup");
+    // 含占位符：string.Format(Strings.Bookmark_Hint_DropToGroup, ...)
+
+    /// <summary>Colour</summary>
+    public static string Bookmark_Color => LocalizationService.Instance.Get("Bookmark.Color");
+
+    /// <summary>Icon</summary>
+    public static string Bookmark_Icon => LocalizationService.Instance.Get("Bookmark.Icon");
+
+    /// <summary>Use default</summary>
+    public static string Bookmark_Reset => LocalizationService.Instance.Get("Bookmark.Reset");
+
+    /// <summary>Red</summary>
+    public static string Bookmark_Color_Red => LocalizationService.Instance.Get("Bookmark.Color.Red");
+
+    /// <summary>Orange</summary>
+    public static string Bookmark_Color_Orange => LocalizationService.Instance.Get("Bookmark.Color.Orange");
+
+    /// <summary>Green</summary>
+    public static string Bookmark_Color_Green => LocalizationService.Instance.Get("Bookmark.Color.Green");
+
+    /// <summary>Blue</summary>
+    public static string Bookmark_Color_Blue => LocalizationService.Instance.Get("Bookmark.Color.Blue");
+
+    /// <summary>Purple</summary>
+    public static string Bookmark_Color_Purple => LocalizationService.Instance.Get("Bookmark.Color.Purple");
+
+    /// <summary>Grey</summary>
+    public static string Bookmark_Color_Gray => LocalizationService.Instance.Get("Bookmark.Color.Gray");
+
+    /// <summary>Folder</summary>
+    public static string Bookmark_Icon_Folder => LocalizationService.Instance.Get("Bookmark.Icon.Folder");
+
+    /// <summary>Star</summary>
+    public static string Bookmark_Icon_Star => LocalizationService.Instance.Get("Bookmark.Icon.Star");
+
+    /// <summary>Home</summary>
+    public static string Bookmark_Icon_Home => LocalizationService.Instance.Get("Bookmark.Icon.Home");
+
+    /// <summary>Drive</summary>
+    public static string Bookmark_Icon_Drive => LocalizationService.Instance.Get("Bookmark.Icon.Drive");
+
+    /// <summary>Downloads</summary>
+    public static string Bookmark_Icon_Download => LocalizationService.Instance.Get("Bookmark.Icon.Download");
+
+    /// <summary>Pictures</summary>
+    public static string Bookmark_Icon_Pictures => LocalizationService.Instance.Get("Bookmark.Icon.Pictures");
 
 }

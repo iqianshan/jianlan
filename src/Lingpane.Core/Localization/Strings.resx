@@ -866,7 +866,7 @@
     <value>Delete group</value>
   </data>
   <data name="Bookmark.CleanMissing" xml:space="preserve">
-    <value>Remove unavailable items ({0})</value>
+    <value>Remove unavailable bookmarks</value>
   </data>
   <data name="Bookmark.Tip" xml:space="preserve">
     <value>Bookmark the current folder (Ctrl+D)</value>
@@ -891,5 +891,71 @@
   </data>
   <data name="Command.Bookmark" xml:space="preserve">
     <value>Bookmark this folder</value>
+  </data>
+  <data name="Bookmark.Group.NewMenu" xml:space="preserve">
+    <value>New group…</value>
+  </data>
+  <data name="Bookmark.CleanNone" xml:space="preserve">
+    <value>No unavailable bookmarks</value>
+  </data>
+  <data name="Bookmark.CleanDone" xml:space="preserve">
+    <value>Removed {0} unavailable bookmarks</value>
+  </data>
+  <data name="Bookmark.CleanConfirm" xml:space="preserve">
+    <value>Remove {0} bookmarks whose location is unavailable? Only the bookmark entries are deleted.</value>
+  </data>
+  <data name="Status.BookmarkDropAdded" xml:space="preserve">
+    <value>Bookmarked {0} item(s)</value>
+  </data>
+  <data name="Bookmark.Hint.Drop" xml:space="preserve">
+    <value>Drop to bookmark</value>
+  </data>
+  <data name="Bookmark.Hint.DropToGroup" xml:space="preserve">
+    <value>Drop to bookmark into “{0}”</value>
+  </data>
+  <data name="Bookmark.Color" xml:space="preserve">
+    <value>Colour</value>
+  </data>
+  <data name="Bookmark.Icon" xml:space="preserve">
+    <value>Icon</value>
+  </data>
+  <data name="Bookmark.Reset" xml:space="preserve">
+    <value>Use default</value>
+  </data>
+  <data name="Bookmark.Color.Red" xml:space="preserve">
+    <value>Red</value>
+  </data>
+  <data name="Bookmark.Color.Orange" xml:space="preserve">
+    <value>Orange</value>
+  </data>
+  <data name="Bookmark.Color.Green" xml:space="preserve">
+    <value>Green</value>
+  </data>
+  <data name="Bookmark.Color.Blue" xml:space="preserve">
+    <value>Blue</value>
+  </data>
+  <data name="Bookmark.Color.Purple" xml:space="preserve">
+    <value>Purple</value>
+  </data>
+  <data name="Bookmark.Color.Gray" xml:space="preserve">
+    <value>Grey</value>
+  </data>
+  <data name="Bookmark.Icon.Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="Bookmark.Icon.Star" xml:space="preserve">
+    <value>Star</value>
+  </data>
+  <data name="Bookmark.Icon.Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Bookmark.Icon.Drive" xml:space="preserve">
+    <value>Drive</value>
+  </data>
+  <data name="Bookmark.Icon.Download" xml:space="preserve">
+    <value>Downloads</value>
+  </data>
+  <data name="Bookmark.Icon.Pictures" xml:space="preserve">
+    <value>Pictures</value>
   </data>
 </root>

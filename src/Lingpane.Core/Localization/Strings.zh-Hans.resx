@@ -853,7 +853,7 @@
     <value>删除分组</value>
   </data>
   <data name="Bookmark.CleanMissing" xml:space="preserve">
-    <value>清理失效项（{0}）</value>
+    <value>清理失效项</value>
   </data>
   <data name="Bookmark.Tip" xml:space="preserve">
     <value>收藏当前目录（Ctrl+D）</value>
@@ -878,5 +878,71 @@
   </data>
   <data name="Command.Bookmark" xml:space="preserve">
     <value>收藏当前目录</value>
+  </data>
+  <data name="Bookmark.Group.NewMenu" xml:space="preserve">
+    <value>新建分组…</value>
+  </data>
+  <data name="Bookmark.CleanNone" xml:space="preserve">
+    <value>没有失效的收藏</value>
+  </data>
+  <data name="Bookmark.CleanDone" xml:space="preserve">
+    <value>已清理 {0} 条失效收藏</value>
+  </data>
+  <data name="Bookmark.CleanConfirm" xml:space="preserve">
+    <value>要移除 {0} 条位置已不可用的收藏吗？只删除收藏记录，文件本身早已不在。</value>
+  </data>
+  <data name="Status.BookmarkDropAdded" xml:space="preserve">
+    <value>已收藏 {0} 项</value>
+  </data>
+  <data name="Bookmark.Hint.Drop" xml:space="preserve">
+    <value>放到这里即收藏</value>
+  </data>
+  <data name="Bookmark.Hint.DropToGroup" xml:space="preserve">
+    <value>放到这里，归入「{0}」</value>
+  </data>
+  <data name="Bookmark.Color" xml:space="preserve">
+    <value>颜色</value>
+  </data>
+  <data name="Bookmark.Icon" xml:space="preserve">
+    <value>图标</value>
+  </data>
+  <data name="Bookmark.Reset" xml:space="preserve">
+    <value>恢复默认</value>
+  </data>
+  <data name="Bookmark.Color.Red" xml:space="preserve">
+    <value>红</value>
+  </data>
+  <data name="Bookmark.Color.Orange" xml:space="preserve">
+    <value>橙</value>
+  </data>
+  <data name="Bookmark.Color.Green" xml:space="preserve">
+    <value>绿</value>
+  </data>
+  <data name="Bookmark.Color.Blue" xml:space="preserve">
+    <value>蓝</value>
+  </data>
+  <data name="Bookmark.Color.Purple" xml:space="preserve">
+    <value>紫</value>
+  </data>
+  <data name="Bookmark.Color.Gray" xml:space="preserve">
+    <value>灰</value>
+  </data>
+  <data name="Bookmark.Icon.Folder" xml:space="preserve">
+    <value>文件夹</value>
+  </data>
+  <data name="Bookmark.Icon.Star" xml:space="preserve">
+    <value>星标</value>
+  </data>
+  <data name="Bookmark.Icon.Home" xml:space="preserve">
+    <value>主页</value>
+  </data>
+  <data name="Bookmark.Icon.Drive" xml:space="preserve">
+    <value>驱动器</value>
+  </data>
+  <data name="Bookmark.Icon.Download" xml:space="preserve">
+    <value>下载</value>
+  </data>
+  <data name="Bookmark.Icon.Pictures" xml:space="preserve">
+    <value>图片</value>
   </data>
 </root>
