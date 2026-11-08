@@ -968,4 +968,108 @@ public static class Strings
     /// <summary>Pictures</summary>
     public static string Bookmark_Icon_Pictures => LocalizationService.Instance.Get("Bookmark.Icon.Pictures");
 
+    /// <summary>Workspaces</summary>
+    public static string Nav_Workspaces => LocalizationService.Instance.Get("Nav.Workspaces");
+
+    /// <summary>No workspaces yet — save the current tabs</summary>
+    public static string Nav_Workspaces_Empty => LocalizationService.Instance.Get("Nav.Workspaces.Empty");
+
+    /// <summary>{0} tab(s)</summary>
+    public static string Nav_Workspace_Tooltip => LocalizationService.Instance.Get("Nav.Workspace.Tooltip");
+    // 含占位符：string.Format(Strings.Nav_Workspace_Tooltip, ...)
+
+    /// <summary>Save current tabs…</summary>
+    public static string Nav_Workspace_SaveCurrent => LocalizationService.Instance.Get("Nav.Workspace.SaveCurrent");
+
+    /// <summary>Workspace name</summary>
+    public static string Workspace_Prompt_Name => LocalizationService.Instance.Get("Workspace.Prompt.Name");
+
+    /// <summary>Save Workspace</summary>
+    public static string Workspace_Prompt_SaveTitle => LocalizationService.Instance.Get("Workspace.Prompt.SaveTitle");
+
+    /// <summary>Rename Workspace</summary>
+    public static string Workspace_Prompt_RenameTitle => LocalizationService.Instance.Get("Workspace.Prompt.RenameTitle");
+
+    /// <summary>A workspace with this name already exists</summary>
+    public static string Workspace_Prompt_NameExists => LocalizationService.Instance.Get("Workspace.Prompt.NameExists");
+
+    /// <summary>Open</summary>
+    public static string Workspace_Open => LocalizationService.Instance.Get("Workspace.Open");
+
+    /// <summary>Overwrite with current tabs</summary>
+    public static string Workspace_Overwrite => LocalizationService.Instance.Get("Workspace.Overwrite");
+
+    /// <summary>Rename…</summary>
+    public static string Workspace_Rename => LocalizationService.Instance.Get("Workspace.Rename");
+
+    /// <summary>Delete</summary>
+    public static string Workspace_Delete => LocalizationService.Instance.Get("Workspace.Delete");
+
+    /// <summary>Restore at startup</summary>
+    public static string Workspace_SetStartup => LocalizationService.Instance.Get("Workspace.SetStartup");
+
+    /// <summary>Don't restore at startup</summary>
+    public static string Workspace_ClearStartup => LocalizationService.Instance.Get("Workspace.ClearStartup");
+
+    /// <summary>Saved workspace "{0}"</summary>
+    public static string Status_Workspace_Saved => LocalizationService.Instance.Get("Status.Workspace.Saved");
+    // 含占位符：string.Format(Strings.Status_Workspace_Saved, ...)
+
+    /// <summary>A workspace named "{0}" already exists</summary>
+    public static string Status_Workspace_Duplicate => LocalizationService.Instance.Get("Status.Workspace.Duplicate");
+    // 含占位符：string.Format(Strings.Status_Workspace_Duplicate, ...)
+
+    /// <summary>Workspace limit reached ({0})</summary>
+    public static string Status_Workspace_Full => LocalizationService.Instance.Get("Status.Workspace.Full");
+    // 含占位符：string.Format(Strings.Status_Workspace_Full, ...)
+
+    /// <summary>Nothing to save</summary>
+    public static string Status_Workspace_NoTabs => LocalizationService.Instance.Get("Status.Workspace.NoTabs");
+
+    /// <summary>Workspace not found</summary>
+    public static string Status_Workspace_Missing => LocalizationService.Instance.Get("Status.Workspace.Missing");
+
+    /// <summary>Deleted workspace "{0}"</summary>
+    public static string Status_Workspace_Deleted => LocalizationService.Instance.Get("Status.Workspace.Deleted");
+    // 含占位符：string.Format(Strings.Status_Workspace_Deleted, ...)
+
+    /// <summary>Opened workspace "{0}" ({1} tabs)</summary>
+    public static string Status_Workspace_Restored => LocalizationService.Instance.Get("Status.Workspace.Restored");
+    // 含占位符：string.Format(Strings.Status_Workspace_Restored, ...)
+
+    /// <summary>Will open "{0}" at startup</summary>
+    public static string Status_Workspace_StartupSet => LocalizationService.Instance.Get("Status.Workspace.StartupSet");
+    // 含占位符：string.Format(Strings.Status_Workspace_StartupSet, ...)
+
+    /// <summary>Workspace restore at startup is off</summary>
+    public static string Status_Workspace_StartupCleared => LocalizationService.Instance.Get("Status.Workspace.StartupCleared");
+
+    /// <summary>Delete Workspace</summary>
+    public static string Dialog_Workspace_DeleteTitle => LocalizationService.Instance.Get("Dialog.Workspace.DeleteTitle");
+
+    /// <summary>Delete workspace "{0}"? This cannot be undone.</summary>
+    public static string Dialog_Workspace_DeleteMessage => LocalizationService.Instance.Get("Dialog.Workspace.DeleteMessage");
+    // 含占位符：string.Format(Strings.Dialog_Workspace_DeleteMessage, ...)
+
+    /// <summary>Open Workspace</summary>
+    public static string Dialog_Workspace_ReplaceTitle => LocalizationService.Instance.Get("Dialog.Workspace.ReplaceTitle");
+
+    /// <summary>Opening "{0}" replaces the {1} tab(s) currently open.</summary>
+    public static string Dialog_Workspace_ReplaceMessage => LocalizationService.Instance.Get("Dialog.Workspace.ReplaceMessage");
+    // 含占位符：string.Format(Strings.Dialog_Workspace_ReplaceMessage, ...)
+
+    /// <summary>Overwrite Workspace</summary>
+    public static string Dialog_Workspace_OverwriteTitle => LocalizationService.Instance.Get("Dialog.Workspace.OverwriteTitle");
+
+    /// <summary>Workspace "{0}" already exists. Overwrite it with the current tabs?</summary>
+    public static string Dialog_Workspace_OverwriteMessage => LocalizationService.Instance.Get("Dialog.Workspace.OverwriteMessage");
+    // 含占位符：string.Format(Strings.Dialog_Workspace_OverwriteMessage, ...)
+
+    /// <summary>Workspaces</summary>
+    public static string Home_Section_Workspaces => LocalizationService.Instance.Get("Home.Section.Workspaces");
+
+    /// <summary>{0} tab(s) could not be opened</summary>
+    public static string Status_Workspace_Skipped => LocalizationService.Instance.Get("Status.Workspace.Skipped");
+    // 含占位符：string.Format(Strings.Status_Workspace_Skipped, ...)
+
 }

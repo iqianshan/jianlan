@@ -7,6 +7,7 @@ using Lingpane.App.Views;
 using Lingpane.Core.Diagnostics;
 using Lingpane.Core.Localization;
 using Lingpane.Core.Settings;
+using Lingpane.Core.Workspaces;
 
 namespace Lingpane.App;
 
@@ -20,6 +21,14 @@ public partial class App : Application
 
     /// <summary>设置读取告警，非空时应在状态栏提示，但不得中断启动。</summary>
     public static string? SettingsWarning { get; private set; }
+
+    /// <summary>
+    /// 工作区（FR-8）。懒加载：m2-plan 要求 workspaces.json 不参与冷启动默认路径，
+    /// 所以第一次访问才读文件。首帧之后由主窗口在 <c>InitializeWorkspaces</c> 里触发。
+    /// </summary>
+    private static WorkspaceStore? _workspaces;
+
+    public static WorkspaceStore Workspaces => _workspaces ??= WorkspaceStore.Load();
 
     /// <summary>诊断探针模式：不得写设置文件，否则会污染测量并覆盖用户窗口尺寸。</summary>
     private static bool _isProbeMode;

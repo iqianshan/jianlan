@@ -420,6 +420,71 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </StackPanel>
+
+            <!-- 工作区（FR-8.6）。排在最下面：它是"整套标签"的入口，用得比收藏少，
+                 但一旦用到就是一次批量动作，放底部反而好找（其它区块的高度是稳定的）。 -->
+            <StackPanel Margin="0,20,0,0">
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Style="{StaticResource Text.Subtitle}"
+                               Text="{loc:Tr Key=Home.Section.Workspaces}"
+                               VerticalAlignment="Center"/>
+                    <Button Grid.Column="1"
+                            Style="{StaticResource Button.Link}"
+                            Content="{loc:Tr Key=Nav.Workspace.SaveCurrent}"
+                            Click="OnSaveWorkspaceClick"/>
+                </Grid>
+
+                <TextBlock Text="{loc:Tr Key=Nav.Workspaces.Empty}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Caption}">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Tertiary}"/>
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasWorkspaces}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <ItemsControl ItemsSource="{Binding Workspaces}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource Home.Card}"
+                                    ToolTip="{Binding Tooltip}"
+                                    Click="OnWorkspaceClick">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Style="{StaticResource Text.Glyph}"
+                                               FontSize="{DynamicResource Size.Icon.Medium}"
+                                               Text="{Binding Glyph}"
+                                               Margin="0,0,10,0"/>
+                                    <TextBlock Grid.Column="1"
+                                               Style="{StaticResource Text.Base}"
+                                               Text="{Binding Title}"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

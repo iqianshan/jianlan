@@ -945,4 +945,97 @@
   <data name="Bookmark.Icon.Pictures" xml:space="preserve">
     <value>图片</value>
   </data>
+  <data name="Nav.Workspaces" xml:space="preserve">
+    <value>工作区</value>
+  </data>
+  <data name="Nav.Workspaces.Empty" xml:space="preserve">
+    <value>还没有工作区，保存当前标签页试试</value>
+  </data>
+  <data name="Nav.Workspace.Tooltip" xml:space="preserve">
+    <value>共 {0} 个标签</value>
+  </data>
+  <data name="Nav.Workspace.SaveCurrent" xml:space="preserve">
+    <value>保存当前标签…</value>
+  </data>
+  <data name="Workspace.Prompt.Name" xml:space="preserve">
+    <value>工作区名称</value>
+  </data>
+  <data name="Workspace.Prompt.SaveTitle" xml:space="preserve">
+    <value>保存工作区</value>
+  </data>
+  <data name="Workspace.Prompt.RenameTitle" xml:space="preserve">
+    <value>重命名工作区</value>
+  </data>
+  <data name="Workspace.Prompt.NameExists" xml:space="preserve">
+    <value>已有同名工作区</value>
+  </data>
+  <data name="Workspace.Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="Workspace.Overwrite" xml:space="preserve">
+    <value>用当前标签覆盖</value>
+  </data>
+  <data name="Workspace.Rename" xml:space="preserve">
+    <value>重命名…</value>
+  </data>
+  <data name="Workspace.Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Workspace.SetStartup" xml:space="preserve">
+    <value>启动时自动恢复</value>
+  </data>
+  <data name="Workspace.ClearStartup" xml:space="preserve">
+    <value>取消启动时恢复</value>
+  </data>
+  <data name="Status.Workspace.Saved" xml:space="preserve">
+    <value>已保存工作区「{0}」</value>
+  </data>
+  <data name="Status.Workspace.Duplicate" xml:space="preserve">
+    <value>已有名为「{0}」的工作区</value>
+  </data>
+  <data name="Status.Workspace.Full" xml:space="preserve">
+    <value>工作区数量已达上限（{0}）</value>
+  </data>
+  <data name="Status.Workspace.NoTabs" xml:space="preserve">
+    <value>没有可保存的标签</value>
+  </data>
+  <data name="Status.Workspace.Missing" xml:space="preserve">
+    <value>工作区不存在</value>
+  </data>
+  <data name="Status.Workspace.Deleted" xml:space="preserve">
+    <value>已删除工作区「{0}」</value>
+  </data>
+  <data name="Status.Workspace.Restored" xml:space="preserve">
+    <value>已打开工作区「{0}」（{1} 个标签）</value>
+  </data>
+  <data name="Status.Workspace.StartupSet" xml:space="preserve">
+    <value>下次启动将打开「{0}」</value>
+  </data>
+  <data name="Status.Workspace.StartupCleared" xml:space="preserve">
+    <value>已取消启动时恢复工作区</value>
+  </data>
+  <data name="Dialog.Workspace.DeleteTitle" xml:space="preserve">
+    <value>删除工作区</value>
+  </data>
+  <data name="Dialog.Workspace.DeleteMessage" xml:space="preserve">
+    <value>删除工作区「{0}」？此操作无法撤销。</value>
+  </data>
+  <data name="Dialog.Workspace.ReplaceTitle" xml:space="preserve">
+    <value>打开工作区</value>
+  </data>
+  <data name="Dialog.Workspace.ReplaceMessage" xml:space="preserve">
+    <value>打开「{0}」会替换当前打开的 {1} 个标签。</value>
+  </data>
+  <data name="Dialog.Workspace.OverwriteTitle" xml:space="preserve">
+    <value>覆盖工作区</value>
+  </data>
+  <data name="Dialog.Workspace.OverwriteMessage" xml:space="preserve">
+    <value>已存在工作区「{0}」，用当前标签覆盖它？</value>
+  </data>
+  <data name="Home.Section.Workspaces" xml:space="preserve">
+    <value>工作区</value>
+  </data>
+  <data name="Status.Workspace.Skipped" xml:space="preserve">
+    <value>{0} 个标签打不开</value>
+  </data>
 </root>

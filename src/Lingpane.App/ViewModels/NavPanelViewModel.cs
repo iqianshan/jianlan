@@ -8,6 +8,7 @@ using Lingpane.App.Shell;
 using Lingpane.Core.Localization;
 using Lingpane.Core.Navigation;
 using Lingpane.Core.Settings;
+using Lingpane.Core.Workspaces;
 
 namespace Lingpane.App.ViewModels;
 
@@ -20,10 +21,23 @@ public interface INavRow;
 /// <summary>收藏区的行（分区标题 / 空态 / 分组 / 收藏项）的共同基类。</summary>
 public abstract class NavRow : INavRow;
 
-/// <summary>分区标题（如"收藏"）。不可选中，点击无动作。</summary>
+/// <summary>分区标题（如"收藏"）。不可选中，点击无动作；右键出该分区的管理菜单。</summary>
 public sealed class NavSectionRow : NavRow
 {
     public required string Title { get; init; }
+
+    /// <summary>这份标题属于哪个分区。模板据此决定右键菜单里出哪几项。</summary>
+    public NavSectionKind Kind { get; init; } = NavSectionKind.Bookmarks;
+
+    public bool IsBookmarks => Kind == NavSectionKind.Bookmarks;
+
+    public bool IsWorkspaces => Kind == NavSectionKind.Workspaces;
+}
+
+public enum NavSectionKind
+{
+    Bookmarks,
+    Workspaces,
 }
 
 /// <summary>分区下方的空态提示，例如"还没有收藏，Ctrl+D 添加当前目录"。</summary>
@@ -69,6 +83,40 @@ public sealed class NavGroupRow : NavRow, INotifyPropertyChanged
 
     private void Raise([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+}
+
+/// <summary>
+/// 一份工作区（FR-8）。行上显示"名字 (标签数)"，提示里给出最后保存时间——
+/// 这两项正是 FR-8.3 要求"管理界面可见"的信息；管理动作走右键菜单，不再单开一个窗口。
+/// </summary>
+public sealed class NavWorkspaceRow : NavRow
+{
+    public NavWorkspaceRow(Workspace workspace, bool isStartup)
+    {
+        Workspace = workspace;
+        IsStartup = isStartup;
+    }
+
+    public Workspace Workspace { get; }
+
+    public string Name => Workspace.Name;
+
+    public int TabCount => Workspace.Tabs.Count;
+
+    /// <summary>起点标记：启动时自动恢复的那一份，行尾有一个小点，避免"改了名不知道哪份在生效"。</summary>
+    public bool IsStartup { get; }
+
+    public string Title => $"{Name} ({TabCount})";
+
+    public string Glyph => IconGlyphs.Workspace;
+
+    public string TooltipText
+        => $"{Workspace.SavedAt.ToLocalTime():yyyy-MM-dd HH:mm}\n"
+         + string.Format(Strings.Nav_Workspace_Tooltip, TabCount);
+
+    /// <summary>右键菜单里那一项的文字：已经是启动项时给"取消"，否则给"设为"。</summary>
+    public string StartupMenuText
+        => IsStartup ? Strings.Workspace_ClearStartup : Strings.Workspace_SetStartup;
 }
 
 /// <summary>一条收藏（FR-7.1 / FR-7.2）。失效项标灰并给出提示（FR-7.7）。</summary>
@@ -150,6 +198,15 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
     private readonly Func<IReadOnlyList<NavItem>> _systemRows;
     private IReadOnlyList<string> _missing = [];
 
+    /// <summary>
+    /// 工作区（FR-8）。null 表示"还没加载"——首帧不读 workspaces.json（需求要求它
+    /// 不参与冷启动），由窗口在首帧之后调 <see cref="SetWorkspaces"/> 补上。
+    /// </summary>
+    private WorkspaceStore? _workspaces;
+
+    /// <summary>启动时自动恢复的那份工作区名（FR-8.4），只用来在行尾标个点。</summary>
+    private string? _startupWorkspace;
+
     public NavPanelViewModel(BookmarkStore store, Func<IReadOnlyList<NavItem>> systemRows)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
@@ -169,6 +226,19 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
     /// <summary>当前检测出失效的收藏路径（FR-7.7 的"批量清理"用）。</summary>
     public IReadOnlyList<string> MissingPaths => _missing;
 
+    public bool HasWorkspaces => _workspaces is { Count: > 0 };
+
+    /// <summary>
+    /// 接上工作区数据（FR-8.6）。首帧之后再调：workspaces.json 不参与冷启动默认路径，
+    /// 而导航栏是在首帧前就建好的，所以只能先出架子、稍后补这一段。
+    /// </summary>
+    public void SetWorkspaces(WorkspaceStore store, string? startupWorkspace)
+    {
+        _workspaces = store ?? throw new ArgumentNullException(nameof(store));
+        _startupWorkspace = startupWorkspace;
+        Rebuild();
+    }
+
     /// <summary>
     /// 重建整条导航列表。系统节点、分区标题、未分组条目、各分组（展开的才带上子项）依次拼起来。
     /// 分组顺序取设置里的顺序（FR-7.6 拖拽排序改的就是这个）。
@@ -184,26 +254,49 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
         if (_store.Count == 0)
         {
             Rows.Add(new NavEmptyRow { Text = Strings.Nav_Bookmarks_Empty });
-            Raise(nameof(HasBookmarks));
-            return;
         }
-
-        // 未分组的一批先露出来：Ctrl+D 刚加的收藏应该一眼能看见，
-        // 而不是先被折进某个分组、用户以为没加上。
-        foreach (BookmarkEntry entry in _store.ItemsOf(null)) Rows.Add(Row(entry));
-
-        foreach (BookmarkGroup group in _store.Groups)
+        else
         {
-            IReadOnlyList<BookmarkEntry> items = _store.ItemsOf(group.Name);
-            var header = new NavGroupRow(group.IsExpanded) { Name = group.Name, Count = items.Count };
-            Rows.Add(header);
+            // 未分组的一批先露出来：Ctrl+D 刚加的收藏应该一眼能看见，
+            // 而不是先被折进某个分组、用户以为没加上。
+            foreach (BookmarkEntry entry in _store.ItemsOf(null)) Rows.Add(Row(entry));
 
-            if (!group.IsExpanded) continue;
-            foreach (BookmarkEntry entry in items) Rows.Add(Row(entry));
+            foreach (BookmarkGroup group in _store.Groups)
+            {
+                IReadOnlyList<BookmarkEntry> items = _store.ItemsOf(group.Name);
+                var header = new NavGroupRow(group.IsExpanded) { Name = group.Name, Count = items.Count };
+                Rows.Add(header);
+
+                if (!group.IsExpanded) continue;
+                foreach (BookmarkEntry entry in items) Rows.Add(Row(entry));
+            }
         }
 
         Raise(nameof(HasBookmarks));
+        AddWorkspaceRows();
         _ = CheckMissingAsync();
+    }
+
+    /// <summary>工作区一段（FR-8.6）。数据没接上时整段都不出，不留一个空标题。</summary>
+    private void AddWorkspaceRows()
+    {
+        if (_workspaces is not { } store) return;
+
+        Rows.Add(new NavSectionRow { Title = Strings.Nav_Workspaces, Kind = NavSectionKind.Workspaces });
+
+        if (store.Count == 0)
+        {
+            Rows.Add(new NavEmptyRow { Text = Strings.Nav_Workspaces_Empty });
+            return;
+        }
+
+        foreach (Workspace ws in store.Items)
+        {
+            bool isStartup = string.Equals(ws.Name, _startupWorkspace, StringComparison.OrdinalIgnoreCase);
+            Rows.Add(new NavWorkspaceRow(ws, isStartup));
+        }
+
+        Raise(nameof(HasWorkspaces));
     }
 
     /// <summary>折叠/展开一个分组（FR-7.3 验收）。状态同时写回设置，下次启动仍是这个样子。</summary>

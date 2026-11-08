@@ -209,6 +209,27 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// 用另一批标签整体替换当前标签（FR-8.2 恢复工作区）。
+    ///
+    /// 为什么不逐个 <see cref="Close"/>：Close 会把每个标签压进"最近关闭"栈，
+    /// 于是打开一次工作区之后，`Ctrl+Shift+T` 会把被替换掉的旧标签一个个还回来——
+    /// 用户会以为工作区没生效。被工作区替换掉的标签不是"被关掉"的，不该进那个栈。
+    ///
+    /// 传进来的标签由调用方用 <see cref="AddPending"/> 事先建好（此时它们已经在
+    /// <see cref="Tabs"/> 里了），这里只做"清空→按新顺序放回"。
+    /// </summary>
+    public void ReplaceWith(IReadOnlyList<TabViewModel> replacements, int activeIndex)
+    {
+        if (replacements.Count == 0) return;
+
+        _active = null;
+        Tabs.Clear();
+        foreach (TabViewModel tab in replacements) Tabs.Add(tab);
+
+        ActivateAt(Math.Clamp(activeIndex, 0, Tabs.Count - 1));
+    }
+
+    /// <summary>
     /// 关闭一个标签（FR-2.3 / FR-2.8）。关的是最后一个时两种去处：
     /// 回到默认目录（默认），或关窗口（设置项）。
     /// </summary>

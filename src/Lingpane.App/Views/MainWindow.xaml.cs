@@ -152,6 +152,8 @@ public partial class MainWindow : Window
         Home.OpenRequested += OpenFromHome;
         Home.NewTabRequested += NewTab;
         Home.NewFolderRequested += NewFolderFromHome;
+        Home.WorkspaceRequested += ws => OpenWorkspace(ws);
+        Home.SaveWorkspaceRequested += SaveCurrentWorkspace;
         Home.Attach(_home);
 
         // 主页改了设置里的数据（清空历史）要立刻落盘：等退出再写的话，中途崩溃就白清了
@@ -240,6 +242,10 @@ public partial class MainWindow : Window
     /// </summary>
     private void RestoreTabs()
     {
+        // FR-8.4：设了"启动时自动恢复"的工作区就按它来，会话恢复让路（设置里互斥）。
+        // 这是唯一在首帧读 workspaces.json 的路径，且由用户显式开启。
+        if (RestoreStartupWorkspace()) return;
+
         SessionSettings session = App.Settings.Session;
 
         // 三份平行的列表（路径 / 第二窗格 / 固定标记）先按索引配对，再逐条筛掉失效路径。
@@ -1390,6 +1396,10 @@ public partial class MainWindow : Window
             await LoadPanesAsync(Tab);
             StartupTrace.Mark("firstcontent");
             FlushOnce();
+
+            // 工作区（FR-8.6）：首帧之后才读 workspaces.json，导航栏与主页各补一段。
+            // 放在这里而不是构造里，是因为需求要求它不参与冷启动默认路径。
+            InitializeWorkspaces();
         }
         catch (Exception ex)
         {
@@ -1433,6 +1443,14 @@ public partial class MainWindow : Window
             // 文件夹单击就进去；文件只高亮，双击才打开（FR-7.2 验收）——
             // 单击一条文件收藏就启动程序，误触的代价太大。
             if (bookmarkRow.Entry.Kind == BookmarkKind.Folder) OpenBookmark(bookmarkRow, newTab: false);
+            return;
+        }
+
+        // 工作区不是"位置"，点它等于换掉整套标签（FR-8.2）。原标签会被替换，
+        // 所以这里不还原高亮——还原了反而指向一个即将消失的目录。
+        if (QuickAccessList.SelectedItem is NavWorkspaceRow workspaceRow)
+        {
+            OpenWorkspace(workspaceRow.Workspace);
             return;
         }
 

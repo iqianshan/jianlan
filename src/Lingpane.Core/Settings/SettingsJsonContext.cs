@@ -13,6 +13,8 @@ namespace Lingpane.Core.Settings;
     WriteIndented = true,
     DefaultIgnoreCondition = JsonIgnoreCondition.Never)]
 [JsonSerializable(typeof(AppSettings))]
+// workspaces.json 用同一份元数据：结构简单，没必要再生成一个上下文
+[JsonSerializable(typeof(Workspaces.WorkspacesDocument))]
 internal sealed partial class SettingsJsonContext : JsonSerializerContext
 {
 }

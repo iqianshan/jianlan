@@ -40,4 +40,10 @@ public static class IconGlyphs
     public const string NewFolder = "\uE8F4";
     public const string ChevronDown = "\uE70D";
     public const string ChevronRight = "\uE76C";
+
+    /// <summary>
+    /// 工作区（FR-8）。MDL2 的 MapLayers：三层叠放的菱形，正好表示"多份可切换的集合"。
+    /// 码位是先渲染出来看过再定的——别照抄图标表，E8B7 的教训。
+    /// </summary>
+    public const string Workspace = "\uE81E";
 }

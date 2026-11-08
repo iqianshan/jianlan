@@ -9,6 +9,7 @@ using Lingpane.App.Shell;
 using Lingpane.Core.Localization;
 using Lingpane.Core.Navigation;
 using Lingpane.Core.Settings;
+using Lingpane.Core.Workspaces;
 
 namespace Lingpane.App.ViewModels;
 
@@ -208,6 +209,31 @@ public sealed class HomeBookmarkTile : INotifyPropertyChanged, IHomeEntry
 }
 
 /// <summary>
+/// 主页工作区的一项（FR-8.6）。单击 = 打开这份工作区。
+///
+/// 不实现 <see cref="IHomeEntry"/>：那个接口的形状是"一个有路径的位置"，
+/// 工作区没有路径——硬塞一个空 Path 进去，点击处理器就会拿着空串去导航。
+/// </summary>
+public sealed class HomeWorkspaceTile
+{
+    public HomeWorkspaceTile(Workspace workspace)
+    {
+        Workspace = workspace;
+        Title = $"{workspace.Name} ({workspace.Tabs.Count})";
+        Tooltip = $"{workspace.SavedAt.ToLocalTime():yyyy-MM-dd HH:mm}\n"
+                + string.Format(Strings.Nav_Workspace_Tooltip, workspace.Tabs.Count);
+    }
+
+    public Workspace Workspace { get; }
+
+    public string Title { get; }
+
+    public string Tooltip { get; }
+
+    public string Glyph => IconGlyphs.Workspace;
+}
+
+/// <summary>
 /// 主页（FR-1.1）。它是**一种标签页**（<see cref="TabKind.Home"/>），不是独立窗口。
 ///
 /// 这个视图模型刻意不持有任何目录状态：主页不"当前位于"某处，它只是几个入口的集合。
@@ -224,6 +250,9 @@ public sealed class HomeViewModel : INotifyPropertyChanged
 
     private readonly VisitHistory _history;
     private readonly BookmarkStore _bookmarks;
+
+    /// <summary>工作区（FR-8.6）。null = 还没加载（首帧不读 workspaces.json）。</summary>
+    private WorkspaceStore? _workspaces;
 
     private bool _isBookmarksExpanded;
     private bool _isLoadingDrives;
@@ -246,6 +275,12 @@ public sealed class HomeViewModel : INotifyPropertyChanged
 
     public event Action? NewFolderRequested;
 
+    /// <summary>点了某份工作区。宿主去替换标签，主页不认识标签宿主，只发事件。</summary>
+    public event Action<Workspace>? WorkspaceRequested;
+
+    /// <summary>点了"保存当前标签为工作区"。实际保存动作在宿主那边。</summary>
+    public event Action? SaveWorkspaceRequested;
+
     /// <summary>主页改动了设置里的数据（清空历史），宿主据此落盘。</summary>
     public event Action? SettingsChanged;
 
@@ -257,6 +292,8 @@ public sealed class HomeViewModel : INotifyPropertyChanged
 
     public ObservableCollection<HomeBookmarkTile> Bookmarks { get; } = [];
 
+    public ObservableCollection<HomeWorkspaceTile> Workspaces { get; } = [];
+
     public bool HasFolders => Folders.Count > 0;
 
     public bool HasDrives => Drives.Count > 0;
@@ -264,6 +301,8 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     public bool HasRecent => Recent.Count > 0;
 
     public bool HasBookmarks => Bookmarks.Count > 0;
+
+    public bool HasWorkspaces => Workspaces.Count > 0;
 
     public bool IsLoadingDrives
     {
@@ -305,6 +344,29 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         RebuildFolders();
         RebuildRecent();
         RebuildBookmarks();
+        RebuildWorkspaces();
+    }
+
+    /// <summary>
+    /// 接上工作区数据（FR-8.6）。首帧之后才调：workspaces.json 不参与冷启动，
+    /// 主页先按"没有工作区"渲染，数据到了再补这一块。
+    /// </summary>
+    public void SetWorkspaces(WorkspaceStore store)
+    {
+        _workspaces = store ?? throw new ArgumentNullException(nameof(store));
+        RebuildWorkspaces();
+    }
+
+    private void RebuildWorkspaces()
+    {
+        Workspaces.Clear();
+
+        if (_workspaces is { } store)
+        {
+            foreach (Workspace ws in store.Items) Workspaces.Add(new HomeWorkspaceTile(ws));
+        }
+
+        Raise(nameof(HasWorkspaces));
     }
 
     /// <summary>

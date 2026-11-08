@@ -16,6 +16,10 @@
         TextOptions.TextHintingMode="Fixed">
 
     <Window.Resources>
+        <!-- 分区菜单互斥、工作区行的"启动项"小点都靠它（HomeView 有自己的同名资源，
+             两个 UserControl/Window 的 Resources 不共享） -->
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
         <!-- 收藏外观预设子菜单里的条目（FR-7.5）。用 EventSetter 挂同一个处理器：
              子项由预设表生成，逐个写 Click 既重复又容易漏。
              MinWidth 压到 140：主菜单项是 200 宽（要放键位提示），色块行不需要那么宽。 -->
@@ -53,8 +57,9 @@
             </Grid>
         </DataTemplate>
 
-        <!-- 分区标题（"收藏"）。不可选中，也不吃鼠标——点它没有任何该发生的事。
-             右键是收藏区的管理入口：新建分组、清理失效项（FR-7.3 / FR-7.7） -->
+        <!-- 分区标题（"收藏" / "工作区"）。不可选中，也不吃鼠标——点它没有任何该发生的事。
+             右键是该分区的管理入口：收藏区是新建分组/清理失效项（FR-7.3 / FR-7.7），
+             工作区是"保存当前标签"（FR-8.1）。两份菜单靠 IsBookmarks / IsWorkspaces 互斥。 -->
         <DataTemplate DataType="{x:Type vm:NavSectionRow}">
             <TextBlock Margin="12,10,8,4"
                        Style="{StaticResource Text.Header}"
@@ -64,10 +69,16 @@
                     <ContextMenu Style="{StaticResource ContextMenu.Default}">
                         <MenuItem Style="{StaticResource MenuItem.Default}"
                                   Header="{loc:Tr Key=Bookmark.Group.NewMenu}"
-                                  Click="OnBookmarkNewGroup"/>
+                                  Click="OnBookmarkNewGroup"
+                                  Visibility="{Binding IsBookmarks, Converter={StaticResource BoolToVisibility}}"/>
                         <MenuItem Style="{StaticResource MenuItem.Default}"
                                   Header="{loc:Tr Key=Bookmark.CleanMissing}"
-                                  Click="OnBookmarkCleanMissing"/>
+                                  Click="OnBookmarkCleanMissing"
+                                  Visibility="{Binding IsBookmarks, Converter={StaticResource BoolToVisibility}}"/>
+                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                  Header="{loc:Tr Key=Nav.Workspace.SaveCurrent}"
+                                  Click="OnWorkspaceSaveCurrent"
+                                  Visibility="{Binding IsWorkspaces, Converter={StaticResource BoolToVisibility}}"/>
                     </ContextMenu>
                 </TextBlock.ContextMenu>
             </TextBlock>
@@ -116,6 +127,59 @@
                            Text="{Binding Title}"
                            TextTrimming="CharacterEllipsis"
                            VerticalAlignment="Center"/>
+            </Grid>
+        </DataTemplate>
+
+        <!-- 工作区（FR-8.6）。行标题带标签数，提示里给最后保存时间（FR-8.3）；
+             单击 = 打开（会替换当前标签，宿主那边会先问一句），右键是管理入口。 -->
+        <DataTemplate DataType="{x:Type vm:NavWorkspaceRow}">
+            <Grid Margin="{StaticResource Padding.NavItem}"
+                  Background="Transparent"
+                  VerticalAlignment="Center"
+                  ToolTip="{Binding TooltipText}">
+                <Grid.ContextMenu>
+                    <ContextMenu Style="{StaticResource ContextMenu.Default}">
+                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                  Header="{loc:Tr Key=Workspace.Open}"
+                                  Click="OnWorkspaceOpen"/>
+                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                  Header="{loc:Tr Key=Workspace.Overwrite}"
+                                  Click="OnWorkspaceOverwrite"/>
+                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                  Header="{loc:Tr Key=Workspace.Rename}"
+                                  Click="OnWorkspaceRename"/>
+                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                  Header="{Binding StartupMenuText}"
+                                  Click="OnWorkspaceToggleStartup"/>
+                        <Separator Style="{StaticResource Menu.Separator}"/>
+                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                  Header="{loc:Tr Key=Workspace.Delete}"
+                                  Click="OnWorkspaceDelete"/>
+                    </ContextMenu>
+                </Grid.ContextMenu>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Margin="0,0,8,0"
+                           Style="{StaticResource Text.Glyph}"
+                           Text="{Binding Glyph}"
+                           VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1"
+                           Style="{StaticResource Text.Nav}"
+                           Text="{Binding Title}"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center"/>
+                <!-- 启动项标记：一个小小的实心点，避免"改了名之后不知道哪份在生效" -->
+                <Ellipse Grid.Column="2"
+                         Width="6" Height="6"
+                         Margin="6,0,0,0"
+                         VerticalAlignment="Center"
+                         Fill="{DynamicResource Brush.Accent.Default}"
+                         ToolTip="{loc:Tr Key=Workspace.SetStartup}"
+                         Visibility="{Binding IsStartup, Converter={StaticResource BoolToVisibility}}"/>
             </Grid>
         </DataTemplate>
 

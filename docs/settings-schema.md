@@ -44,6 +44,7 @@
     "openFolderInNewTab": false,      // 双击/回车进目录时开新标签（FR-2.10）；分屏时不生效，进目录恒在当前窗格（FR-3.2）
     "openNewTabInBackground": false,  // 中键/Ctrl+左键开出的标签是否留在后台（FR-2.10 可选项）
     "restoreLastSession": true,
+    "startupWorkspace": null,   // 启动时自动打开的工作区名（FR-8.4）。非 null 时 restoreLastSession 强制为 false
     "closeLastTabToHome": true  // 关掉最后一个标签时回默认目录，而不是关窗口（FR-2.8）
   },
 
@@ -93,6 +94,7 @@
 | `session.tabSecondPaths` | 与 `tabs` 等长；每条为空串或非空路径 | 短了补空串、长了截断（补齐而不是补 `null`：`null` 会把"没开分屏"和"没写这个字段"混成一种） |
 | `session.tabPinned` | 与 `tabs` 等长 | 短了补 `false`（默认不固定）、长了截断。固定是用户主动设的意图，丢了会被当成功能失效，所以必须落盘而不是只活在内存里 |
 | `appearance.tabStripPosition` | `top` / `bottom` | 无法识别回落 `top`：落到一个不存在的位置上，标签栏会直接看不见 |
+| `behavior.startupWorkspace` | `null` 或非空工作区名 | 空白归一为 `null`；**不校验该工作区是否还在**（工作区文件按需加载，启动恢复时才去找，找不到就退回会话恢复）。非 `null` 时 `Normalize()` 把 `restoreLastSession` 置 `false`：两项都表达"启动时放什么"，显式选择的那一项胜出，而不是让两套逻辑抢 |
 | `columnDate/Type/SizeWidth` | 56–400（单位：DIP） | 夹取；`0`、`NaN`、`Infinity` 回落默认值 |
 | `splitRatio` | 0.15–0.85 | 夹取；`NaN`/`Infinity` 回落 0.5。夹到 0.15 以下等于把一个窗格压成 0 宽，没有意义 |
 
@@ -107,6 +109,10 @@
 > `splitEnabled` / `splitRatio` / `splitVertical` 三者都是**用户动作当场落盘**
 > （`F3`、拖完分隔条、双击复位、右键改方向），不走"退出时尺寸变了才存"的兜底路径：
 > 那条路径的判据里没有这三项，只拖一下分隔条就关窗口会把比例丢掉。
+>
+> **工作区不在这个文件里**：`behavior.startupWorkspace` 只存一个名字，工作区本体在独立的
+> `workspaces.json`（同目录，`AppPaths.WorkspacesFile`）。放进 `settings.json` 等于每次启动
+> 都要解析一遍所有工作区的标签列表，与"不参与冷启动默认路径"的要求相违。
 
 ## 4. 读写规则
 

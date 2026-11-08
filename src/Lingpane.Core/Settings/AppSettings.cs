@@ -104,6 +104,14 @@ public sealed class AppSettings
         if (!Enum.IsDefined(Behavior.DefaultView)) Behavior.DefaultView = DefaultViewKind.Details;
         if (!Enum.IsDefined(Behavior.SortBy)) Behavior.SortBy = SortFieldKind.Name;
 
+        // 启动恢复二选一（FR-8.4）：设了工作区就关掉会话恢复。
+        // 两者都开着会把工作区的标签和上次会话的标签叠在一起，同一批目录出现两遍；
+        // 这里让显式选择的工作区获胜——它是用户主动指定的，会话恢复只是默认值。
+        Behavior.StartupWorkspace = string.IsNullOrWhiteSpace(Behavior.StartupWorkspace)
+            ? null
+            : Behavior.StartupWorkspace.Trim();
+        if (Behavior.StartupWorkspace is not null) Behavior.RestoreLastSession = false;
+
         if (Appearance.FontSizePt is int pt)
         {
             Appearance.FontSizePt = Math.Clamp(pt, 8, 24);
@@ -310,7 +318,18 @@ public sealed class BehaviorSettings
     /// </summary>
     public bool OpenNewTabInBackground { get; set; }
 
+    /// <summary>启动时恢复上次会话（FR-2.11）。与 <see cref="StartupWorkspace"/> 互斥。</summary>
     public bool RestoreLastSession { get; set; } = true;
+
+    /// <summary>
+    /// 启动时自动打开的工作区名（FR-8.4）。非空表示"每次启动都还原这份工作区"，
+    /// 此时 <see cref="RestoreLastSession"/> 必须为 false——两者同时生效会把
+    /// 工作区的标签和上次会话的标签叠在一起，同一批目录出现两遍。
+    ///
+    /// 这里只存名字，工作区内容仍在 workspaces.json：冷启动不读那个文件，
+    /// 只在真的要还原时才去读。
+    /// </summary>
+    public string? StartupWorkspace { get; set; }
 
     /// <summary>
     /// 关闭最后一个标签时的行为（FR-2.8）：true = 回到默认目录，false = 关闭窗口。

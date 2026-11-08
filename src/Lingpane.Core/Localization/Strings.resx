@@ -958,4 +958,97 @@
   <data name="Bookmark.Icon.Pictures" xml:space="preserve">
     <value>Pictures</value>
   </data>
+  <data name="Nav.Workspaces" xml:space="preserve">
+    <value>Workspaces</value>
+  </data>
+  <data name="Nav.Workspaces.Empty" xml:space="preserve">
+    <value>No workspaces yet — save the current tabs</value>
+  </data>
+  <data name="Nav.Workspace.Tooltip" xml:space="preserve">
+    <value>{0} tab(s)</value>
+  </data>
+  <data name="Nav.Workspace.SaveCurrent" xml:space="preserve">
+    <value>Save current tabs…</value>
+  </data>
+  <data name="Workspace.Prompt.Name" xml:space="preserve">
+    <value>Workspace name</value>
+  </data>
+  <data name="Workspace.Prompt.SaveTitle" xml:space="preserve">
+    <value>Save Workspace</value>
+  </data>
+  <data name="Workspace.Prompt.RenameTitle" xml:space="preserve">
+    <value>Rename Workspace</value>
+  </data>
+  <data name="Workspace.Prompt.NameExists" xml:space="preserve">
+    <value>A workspace with this name already exists</value>
+  </data>
+  <data name="Workspace.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Workspace.Overwrite" xml:space="preserve">
+    <value>Overwrite with current tabs</value>
+  </data>
+  <data name="Workspace.Rename" xml:space="preserve">
+    <value>Rename…</value>
+  </data>
+  <data name="Workspace.Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Workspace.SetStartup" xml:space="preserve">
+    <value>Restore at startup</value>
+  </data>
+  <data name="Workspace.ClearStartup" xml:space="preserve">
+    <value>Don't restore at startup</value>
+  </data>
+  <data name="Status.Workspace.Saved" xml:space="preserve">
+    <value>Saved workspace "{0}"</value>
+  </data>
+  <data name="Status.Workspace.Duplicate" xml:space="preserve">
+    <value>A workspace named "{0}" already exists</value>
+  </data>
+  <data name="Status.Workspace.Full" xml:space="preserve">
+    <value>Workspace limit reached ({0})</value>
+  </data>
+  <data name="Status.Workspace.NoTabs" xml:space="preserve">
+    <value>Nothing to save</value>
+  </data>
+  <data name="Status.Workspace.Missing" xml:space="preserve">
+    <value>Workspace not found</value>
+  </data>
+  <data name="Status.Workspace.Deleted" xml:space="preserve">
+    <value>Deleted workspace "{0}"</value>
+  </data>
+  <data name="Status.Workspace.Restored" xml:space="preserve">
+    <value>Opened workspace "{0}" ({1} tabs)</value>
+  </data>
+  <data name="Status.Workspace.StartupSet" xml:space="preserve">
+    <value>Will open "{0}" at startup</value>
+  </data>
+  <data name="Status.Workspace.StartupCleared" xml:space="preserve">
+    <value>Workspace restore at startup is off</value>
+  </data>
+  <data name="Dialog.Workspace.DeleteTitle" xml:space="preserve">
+    <value>Delete Workspace</value>
+  </data>
+  <data name="Dialog.Workspace.DeleteMessage" xml:space="preserve">
+    <value>Delete workspace "{0}"? This cannot be undone.</value>
+  </data>
+  <data name="Dialog.Workspace.ReplaceTitle" xml:space="preserve">
+    <value>Open Workspace</value>
+  </data>
+  <data name="Dialog.Workspace.ReplaceMessage" xml:space="preserve">
+    <value>Opening "{0}" replaces the {1} tab(s) currently open.</value>
+  </data>
+  <data name="Dialog.Workspace.OverwriteTitle" xml:space="preserve">
+    <value>Overwrite Workspace</value>
+  </data>
+  <data name="Dialog.Workspace.OverwriteMessage" xml:space="preserve">
+    <value>Workspace "{0}" already exists. Overwrite it with the current tabs?</value>
+  </data>
+  <data name="Home.Section.Workspaces" xml:space="preserve">
+    <value>Workspaces</value>
+  </data>
+  <data name="Status.Workspace.Skipped" xml:space="preserve">
+    <value>{0} tab(s) could not be opened</value>
+  </data>
 </root>

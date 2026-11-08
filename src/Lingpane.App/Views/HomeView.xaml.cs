@@ -26,6 +26,12 @@ public partial class HomeView : UserControl
 
     public event Action? NewFolderRequested;
 
+    /// <summary>点了某份工作区。</summary>
+    public event Action<Core.Workspaces.Workspace>? WorkspaceRequested;
+
+    /// <summary>点了"保存当前标签…"。</summary>
+    public event Action? SaveWorkspaceRequested;
+
     public HomeViewModel? ViewModel => DataContext as HomeViewModel;
 
     /// <summary>
@@ -40,6 +46,8 @@ public partial class HomeView : UserControl
         viewModel.OpenRequested += OnOpenRequested;
         viewModel.NewTabRequested += OnNewTabRequested;
         viewModel.NewFolderRequested += OnNewFolderRequested;
+        viewModel.WorkspaceRequested += w => WorkspaceRequested?.Invoke(w);
+        viewModel.SaveWorkspaceRequested += () => SaveWorkspaceRequested?.Invoke();
     }
 
     private void OnOpenRequested(string path, bool newTab) => OpenRequested?.Invoke(path, newTab);
@@ -47,6 +55,17 @@ public partial class HomeView : UserControl
     private void OnNewTabRequested() => NewTabRequested?.Invoke();
 
     private void OnNewFolderRequested() => NewFolderRequested?.Invoke();
+
+    /// <summary>点了某份工作区（FR-8.6）。整块标签的替换归宿主做。</summary>
+    private void OnWorkspaceClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: HomeWorkspaceTile tile })
+        {
+            WorkspaceRequested?.Invoke(tile.Workspace);
+        }
+    }
+
+    private void OnSaveWorkspaceClick(object sender, RoutedEventArgs e) => SaveWorkspaceRequested?.Invoke();
 
     private void OnEntryClick(object sender, RoutedEventArgs e)
     {
