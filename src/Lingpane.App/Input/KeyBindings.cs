@@ -96,6 +96,10 @@ internal static class KeyBindings
 
         // 上下文菜单（§4）：键盘上的菜单键
         new(Key.Apps, Vk.Apps, ModifierKeys.None, CommandIds.ShowContextMenu, "Apps"),
+
+        // 导航栏（§2）：收藏当前目录（FR-7.1）。与浏览器的"加书签"同一个手势，
+        // 不给 Ctrl+B——那是"打开侧栏"的习惯，容易与"收藏"混起来。
+        new(Key.D, Vk.D, ModifierKeys.Control, CommandIds.Bookmark, "D"),
     ];
 
     private static readonly Dictionary<(Key, ModifierKeys), string> ByKey = BuildByKey();

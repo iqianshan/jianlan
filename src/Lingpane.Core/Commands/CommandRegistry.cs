@@ -52,6 +52,9 @@ public static class CommandIds
     // 开着分屏切标签，新标签也照样是分屏，否则"切个标签分屏就没了"会被当成 bug。
     public const string ToggleSplit = "pane.toggleSplit";
     public const string FocusOtherPane = "pane.focusOther";
+
+    // 收藏（FR-7.1）。窗口级：收藏是全局数据，跟着窗口存，不跟着某个窗格。
+    public const string Bookmark = "bookmark.add";
 }
 
 /// <summary>

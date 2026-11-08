@@ -814,4 +814,82 @@
   <data name="Status.HomeNoSplit" xml:space="preserve">
     <value>The home tab has no second pane to split</value>
   </data>
+  <data name="Nav.Bookmarks" xml:space="preserve">
+    <value>Bookmarks</value>
+  </data>
+  <data name="Nav.Bookmarks.Empty" xml:space="preserve">
+    <value>No bookmarks yet. Press Ctrl+D in a folder to add one.</value>
+  </data>
+  <data name="Nav.Bookmark.Missing" xml:space="preserve">
+    <value>Location unavailable</value>
+  </data>
+  <data name="Status.BookmarkAdded" xml:space="preserve">
+    <value>Bookmarked: {0}</value>
+  </data>
+  <data name="Status.BookmarkExists" xml:space="preserve">
+    <value>Already bookmarked: {0}</value>
+  </data>
+  <data name="Status.BookmarkRemoved" xml:space="preserve">
+    <value>Bookmark removed: {0}</value>
+  </data>
+  <data name="Status.BookmarkFull" xml:space="preserve">
+    <value>Bookmark limit reached ({0})</value>
+  </data>
+  <data name="Status.BookmarkHome" xml:space="preserve">
+    <value>The home tab cannot be bookmarked</value>
+  </data>
+  <data name="Bookmark.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Bookmark.OpenNewTab" xml:space="preserve">
+    <value>Open in new tab</value>
+  </data>
+  <data name="Bookmark.Rename" xml:space="preserve">
+    <value>Rename…</value>
+  </data>
+  <data name="Bookmark.Remove" xml:space="preserve">
+    <value>Remove bookmark</value>
+  </data>
+  <data name="Bookmark.MoveUp" xml:space="preserve">
+    <value>Move up</value>
+  </data>
+  <data name="Bookmark.MoveDown" xml:space="preserve">
+    <value>Move down</value>
+  </data>
+  <data name="Bookmark.Group.New" xml:space="preserve">
+    <value>New group…</value>
+  </data>
+  <data name="Bookmark.Group.Rename" xml:space="preserve">
+    <value>Rename group…</value>
+  </data>
+  <data name="Bookmark.Group.Remove" xml:space="preserve">
+    <value>Delete group</value>
+  </data>
+  <data name="Bookmark.CleanMissing" xml:space="preserve">
+    <value>Remove unavailable items ({0})</value>
+  </data>
+  <data name="Bookmark.Tip" xml:space="preserve">
+    <value>Bookmark the current folder (Ctrl+D)</value>
+  </data>
+  <data name="Bookmark.Prompt.Name" xml:space="preserve">
+    <value>Bookmark name</value>
+  </data>
+  <data name="Bookmark.Prompt.Rename" xml:space="preserve">
+    <value>Rename bookmark</value>
+  </data>
+  <data name="Bookmark.Prompt.Group" xml:space="preserve">
+    <value>Group name</value>
+  </data>
+  <data name="Bookmark.Prompt.NewGroup" xml:space="preserve">
+    <value>New group</value>
+  </data>
+  <data name="Bookmark.Prompt.GroupExists" xml:space="preserve">
+    <value>A group with this name already exists.</value>
+  </data>
+  <data name="Bookmark.Prompt.Empty" xml:space="preserve">
+    <value>Name cannot be empty.</value>
+  </data>
+  <data name="Command.Bookmark" xml:space="preserve">
+    <value>Bookmark this folder</value>
+  </data>
 </root>

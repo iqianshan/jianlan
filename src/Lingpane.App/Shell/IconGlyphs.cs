@@ -18,7 +18,17 @@ public static class IconGlyphs
     public const string Back = "\uE72B";
     public const string Forward = "\uE72A";
     public const string Up = "\uE74A";
-    public const string Folder = "\uE8B7";
+
+    /// <summary>
+    /// 文件夹（标签页图标、收藏里的文件夹项、最近访问）。
+    ///
+    /// 这里曾经写的是 <c>E8B7</c>——几乎每份"MDL2 图标表"都把 E8B7 标成 Folder，
+    /// 但在 <c>Segoe MDL2 Assets</c> 里它其实是一张**纸**（右下角带折角），
+    /// 于是目录的标签页图标一直显示成"文件"。ED25 才是真正的文件夹。
+    /// 改码位前先用字体把字形画出来看一眼，别照抄表。
+    /// </summary>
+    public const string Folder = "\uED25";
+
     public const string Refresh = "\uE72C";
 
     // 主页（FR-1.1）与收藏（FR-7）新增
@@ -28,4 +38,6 @@ public static class IconGlyphs
     public const string History = "\uE81C";
     public const string Star = "\uE734";
     public const string NewFolder = "\uE8F4";
+    public const string ChevronDown = "\uE70D";
+    public const string ChevronRight = "\uE76C";
 }

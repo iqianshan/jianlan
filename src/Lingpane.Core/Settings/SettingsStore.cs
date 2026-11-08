@@ -32,6 +32,10 @@ public static class SettingsStore
         o.Converters.Add(new LenientEnumConverter<DefaultViewKind>());
         o.Converters.Add(new LenientEnumConverter<SortFieldKind>());
 
+        // 收藏的 folder/file。不登记的话默认会写成数字 0/1——settings.json 是用户会打开看的，
+        // 而且需求里写的就是 { kind(folder|file) }（docs/m2-plan.md §4.3）。
+        o.Converters.Add(new LenientEnumConverter<BookmarkKind>());
+
         // 用源生成的元数据替掉反射元数据：省掉首次反序列化的类型构建
         o.TypeInfoResolver = SettingsJsonContext.Default;
         return o;

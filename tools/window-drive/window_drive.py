@@ -540,6 +540,7 @@ def main() -> int:
             "delete": (0x2E,),
             "enter": (0x0D,),
             "ctrl+a": (0x11, 0x41),
+            "ctrl+d": (0x11, 0x44),
             "esc": (0x1B,),
             "tab": (0x09,),
             "shift+tab": (0x10, 0x09),

@@ -47,6 +47,12 @@ public partial class MainWindow : Window
     /// <summary>主页视图模型。窗口级单例，所有主页标签共用。</summary>
     private readonly HomeViewModel _home;
 
+    /// <summary>
+    /// 导航栏的完整内容（系统节点 + 收藏，FR-1.2 + FR-7.3）。
+    /// 系统节点由窗格视图模型提供：已知文件夹的解析与刷新归它管，这里不复制一份。
+    /// </summary>
+    private readonly NavPanelViewModel _nav;
+
     /// <summary>本次运行有没有新增过访问记录——决定退出时要不要多写一次设置。</summary>
     private bool _visitedSinceSave;
 
@@ -83,6 +89,11 @@ public partial class MainWindow : Window
         _bookmarks = new BookmarkStore(App.Settings.Bookmarks);
         _home = new HomeViewModel(_history, _bookmarks);
 
+        // 导航栏：系统节点从窗格视图模型取（它管已知文件夹的解析），收藏从本窗口的存储取。
+        // 用委托而不是直接传 QuickAccess，因为此刻还没有活动标签，Vm 取不到东西。
+        _nav = new NavPanelViewModel(_bookmarks, () => _tabs.Active is { } t ? t.ActivePane.QuickAccess : []);
+        QuickAccessList.ItemsSource = _nav.Rows;
+
         // 新建标签走「设置 → 新标签页默认目录」，没设就是主页（FR-2.1）；关掉最后一个标签
         // 仍回"上次的目录"（FR-2.8 的语义，不该被这条新设置顺手改掉）
         _tabs = new TabHostViewModel(App.Settings, ResolveNewTabPath, ResolveStartPath, RecordVisit);
@@ -92,6 +103,9 @@ public partial class MainWindow : Window
         TabBar.Host = _tabs;
 
         RestoreTabs();
+
+        // 导航栏的行要等系统节点（QuickAccess）建好之后才能拼：收藏区排在它们下面。
+        _nav.Rebuild();
         StartupTrace.Mark("vm");
         StartupTrace.Mark("xaml");
 
@@ -111,6 +125,13 @@ public partial class MainWindow : Window
             TitleFactory = () => Strings.Command_OpenSettings,
             Gesture = "Ctrl+,",
             Execute = OpenSettings,
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.Bookmark,
+            TitleFactory = () => Strings.Command_Bookmark,
+            Gesture = "Ctrl+D",
+            Execute = BookmarkCurrent,
         });
 
         ThemeCommand = new CommandAdapter(_commands.Get(CommandIds.CycleTheme));
@@ -486,6 +507,7 @@ public partial class MainWindow : Window
             tab.Secondary?.RefreshQuickAccess();
         }
 
+        _nav.Rebuild();
         _home.Refresh();
     }
 
@@ -929,11 +951,27 @@ public partial class MainWindow : Window
         _syncingNavSelection = true;
         try
         {
-            QuickAccessList.SelectedItem = QuickAccessList.Items
-                .OfType<NavItem>()
-                .FirstOrDefault(item => item.IsHome
-                    ? string.IsNullOrEmpty(path)
-                    : string.Equals(item.Path, path, StringComparison.OrdinalIgnoreCase));
+            QuickAccessList.SelectedItem = _nav.FindRow(path);
+        }
+        finally
+        {
+            _syncingNavSelection = false;
+        }
+    }
+
+    /// <summary>
+    /// 把导航栏高亮挪到某个路径上（不触发导航）。
+    /// 用在"重复收藏"这种需要"把那一行指出来"的场合（FR-7.1 验收）。
+    /// </summary>
+    private void HighlightNavPath(string path)
+    {
+        if (!App.Settings.Appearance.ShowNavPane) return;
+
+        _syncingNavSelection = true;
+        try
+        {
+            QuickAccessList.SelectedItem = _nav.FindRow(path);
+            QuickAccessList.ScrollIntoView(QuickAccessList.SelectedItem);
         }
         finally
         {
@@ -1363,6 +1401,40 @@ public partial class MainWindow : Window
     {
         // 切标签时同步高亮会走到这里：那是"跟着目录改高亮"，不是"用户点了导航项"
         if (_syncingNavSelection) return;
+
+        // 收藏分组只是开关，不是"位置"：点一下折叠/展开，然后把高亮还给当前目录
+        // （FR-7.3）。不给它单独的鼠标事件：行模板带 Margin，点在边距上时事件
+        // 不经过模板里的 Grid，那条路会漏。
+        if (QuickAccessList.SelectedItem is NavGroupRow group)
+        {
+            _nav.ToggleGroup(group);
+            SyncNavSelection(Vm.CurrentPath);
+            return;
+        }
+
+        // 分区标题与空态提示没有对应动作，点到了就把高亮还原，别留一个假的"选中"
+        if (QuickAccessList.SelectedItem is NavSectionRow or NavEmptyRow)
+        {
+            SyncNavSelection(Vm.CurrentPath);
+            return;
+        }
+
+        // Ctrl+单击 / 中键点收藏项 → 新标签（与列表里那套手势一致）。中键在
+        // OnBookmarkMouseDown 里已经处理过并且吃掉了事件，这里是 Ctrl+单击那条路。
+        if (QuickAccessList.SelectedItem is NavBookmarkRow bookmarkRow)
+        {
+            if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                OpenBookmark(bookmarkRow, newTab: true);
+                HighlightNavPath(Vm.CurrentPath);
+                return;
+            }
+
+            // 文件夹单击就进去；文件只高亮，双击才打开（FR-7.2 验收）——
+            // 单击一条文件收藏就启动程序，误触的代价太大。
+            if (bookmarkRow.Entry.Kind == BookmarkKind.Folder) OpenBookmark(bookmarkRow, newTab: false);
+            return;
+        }
 
         if (QuickAccessList.SelectedItem is not NavItem item) return;
 

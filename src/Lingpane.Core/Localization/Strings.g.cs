@@ -816,4 +816,87 @@ public static class Strings
     /// <summary>The home tab has no second pane to split</summary>
     public static string Status_HomeNoSplit => LocalizationService.Instance.Get("Status.HomeNoSplit");
 
+    /// <summary>Bookmarks</summary>
+    public static string Nav_Bookmarks => LocalizationService.Instance.Get("Nav.Bookmarks");
+
+    /// <summary>No bookmarks yet. Press Ctrl+D in a folder to add one.</summary>
+    public static string Nav_Bookmarks_Empty => LocalizationService.Instance.Get("Nav.Bookmarks.Empty");
+
+    /// <summary>Location unavailable</summary>
+    public static string Nav_Bookmark_Missing => LocalizationService.Instance.Get("Nav.Bookmark.Missing");
+
+    /// <summary>Bookmarked: {0}</summary>
+    public static string Status_BookmarkAdded => LocalizationService.Instance.Get("Status.BookmarkAdded");
+    // 含占位符：string.Format(Strings.Status_BookmarkAdded, ...)
+
+    /// <summary>Already bookmarked: {0}</summary>
+    public static string Status_BookmarkExists => LocalizationService.Instance.Get("Status.BookmarkExists");
+    // 含占位符：string.Format(Strings.Status_BookmarkExists, ...)
+
+    /// <summary>Bookmark removed: {0}</summary>
+    public static string Status_BookmarkRemoved => LocalizationService.Instance.Get("Status.BookmarkRemoved");
+    // 含占位符：string.Format(Strings.Status_BookmarkRemoved, ...)
+
+    /// <summary>Bookmark limit reached ({0})</summary>
+    public static string Status_BookmarkFull => LocalizationService.Instance.Get("Status.BookmarkFull");
+    // 含占位符：string.Format(Strings.Status_BookmarkFull, ...)
+
+    /// <summary>The home tab cannot be bookmarked</summary>
+    public static string Status_BookmarkHome => LocalizationService.Instance.Get("Status.BookmarkHome");
+
+    /// <summary>Open</summary>
+    public static string Bookmark_Open => LocalizationService.Instance.Get("Bookmark.Open");
+
+    /// <summary>Open in new tab</summary>
+    public static string Bookmark_OpenNewTab => LocalizationService.Instance.Get("Bookmark.OpenNewTab");
+
+    /// <summary>Rename…</summary>
+    public static string Bookmark_Rename => LocalizationService.Instance.Get("Bookmark.Rename");
+
+    /// <summary>Remove bookmark</summary>
+    public static string Bookmark_Remove => LocalizationService.Instance.Get("Bookmark.Remove");
+
+    /// <summary>Move up</summary>
+    public static string Bookmark_MoveUp => LocalizationService.Instance.Get("Bookmark.MoveUp");
+
+    /// <summary>Move down</summary>
+    public static string Bookmark_MoveDown => LocalizationService.Instance.Get("Bookmark.MoveDown");
+
+    /// <summary>New group…</summary>
+    public static string Bookmark_Group_New => LocalizationService.Instance.Get("Bookmark.Group.New");
+
+    /// <summary>Rename group…</summary>
+    public static string Bookmark_Group_Rename => LocalizationService.Instance.Get("Bookmark.Group.Rename");
+
+    /// <summary>Delete group</summary>
+    public static string Bookmark_Group_Remove => LocalizationService.Instance.Get("Bookmark.Group.Remove");
+
+    /// <summary>Remove unavailable items ({0})</summary>
+    public static string Bookmark_CleanMissing => LocalizationService.Instance.Get("Bookmark.CleanMissing");
+    // 含占位符：string.Format(Strings.Bookmark_CleanMissing, ...)
+
+    /// <summary>Bookmark the current folder (Ctrl+D)</summary>
+    public static string Bookmark_Tip => LocalizationService.Instance.Get("Bookmark.Tip");
+
+    /// <summary>Bookmark name</summary>
+    public static string Bookmark_Prompt_Name => LocalizationService.Instance.Get("Bookmark.Prompt.Name");
+
+    /// <summary>Rename bookmark</summary>
+    public static string Bookmark_Prompt_Rename => LocalizationService.Instance.Get("Bookmark.Prompt.Rename");
+
+    /// <summary>Group name</summary>
+    public static string Bookmark_Prompt_Group => LocalizationService.Instance.Get("Bookmark.Prompt.Group");
+
+    /// <summary>New group</summary>
+    public static string Bookmark_Prompt_NewGroup => LocalizationService.Instance.Get("Bookmark.Prompt.NewGroup");
+
+    /// <summary>A group with this name already exists.</summary>
+    public static string Bookmark_Prompt_GroupExists => LocalizationService.Instance.Get("Bookmark.Prompt.GroupExists");
+
+    /// <summary>Name cannot be empty.</summary>
+    public static string Bookmark_Prompt_Empty => LocalizationService.Instance.Get("Bookmark.Prompt.Empty");
+
+    /// <summary>Bookmark this folder</summary>
+    public static string Command_Bookmark => LocalizationService.Instance.Get("Command.Bookmark");
+
 }

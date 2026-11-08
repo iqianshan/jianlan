@@ -16,7 +16,7 @@ namespace Lingpane.App.ViewModels;
 /// <paramref name="IsHome"/> 为真的那一项是主页入口（FR-1.2.1）：它没有路径，
 /// 点击的语义是"把当前标签切到主页"，不是"导航到某个目录"。
 /// </summary>
-public sealed record NavItem(string Name, string Glyph, string Path, bool IsHome = false);
+public sealed record NavItem(string Name, string Glyph, string Path, bool IsHome = false) : INavRow;
 
 /// <summary>
 /// 单个浏览区（窗格）的视图模型：负责"打开目录 → 过滤 → 排序 → 交给列表"，

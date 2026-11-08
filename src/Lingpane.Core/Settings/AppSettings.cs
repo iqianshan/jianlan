@@ -437,7 +437,13 @@ public sealed class BookmarkSettings
     /// <summary>主页收藏区最多展示几项，超出显示"查看全部"（FR-1.1.5）。</summary>
     public const int HomePageLimit = 8;
 
+    /// <summary>分组上限。需求没定数字，取一个"够用且不至于把导航栏撑爆"的量。</summary>
+    public const int MaxGroups = 50;
+
     public List<BookmarkEntry> Items { get; set; } = [];
+
+    /// <summary>分组及其折叠状态，顺序即导航栏的展示顺序（FR-7.3 / FR-7.6）。</summary>
+    public List<BookmarkGroup> Groups { get; set; } = [];
 
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
@@ -457,6 +463,36 @@ public sealed class BookmarkSettings
         {
             item.Path = item.Path.Trim();
             if (string.IsNullOrWhiteSpace(item.Name)) item.Name = null;
+            if (string.IsNullOrWhiteSpace(item.Icon)) item.Icon = null;
+            if (string.IsNullOrWhiteSpace(item.Color)) item.Color = null;
+
+            // 空白分组名等同于"未分组"：留一个 "" 会让 UI 多出一个没有标题的分组
+            if (string.IsNullOrWhiteSpace(item.Group)) item.Group = null;
+            else item.Group = item.Group.Trim();
+        }
+
+        // 分组：去空、去重（保留先出现的顺序与折叠状态）、截断
+        Groups ??= [];
+        var groupSeen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        Groups = Groups
+            .Where(g => !string.IsNullOrWhiteSpace(g?.Name))
+            .Where(g => groupSeen.Add(g.Name.Trim()))
+            .Take(MaxGroups)
+            .ToList();
+
+        foreach (BookmarkGroup group in Groups) group.Name = group.Name.Trim();
+
+        // 条目引用了不存在的分组时补一条，而不是把条目的分组清掉：
+        // 手改过 JSON 的人写了 "group": "项目" 却没往 groups 里加，意图是明确的，
+        // 悄悄降级成"未分组"等于吃掉用户数据。
+        foreach (string name in Items
+                     .Select(b => b.Group)
+                     .OfType<string>()
+                     .Where(n => !groupSeen.Contains(n))
+                     .Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            Groups.Add(new BookmarkGroup { Name = name });
+            groupSeen.Add(name);
         }
     }
 }
@@ -476,13 +512,32 @@ public sealed class BookmarkEntry
 
     public BookmarkKind Kind { get; set; }
 
-    /// <summary>分组名（FR-7.5）。null = 未分组，UI 归到默认那一组。</summary>
+    /// <summary>分组名（FR-7.3）。null = 未分组，UI 归到"未分组"那一块。</summary>
     public string? Group { get; set; }
 
-    /// <summary>自定义颜色（FR-7.6），形如 <c>#RRGGBB</c>。null = 跟随主题强调色。</summary>
+    /// <summary>自定义图标（FR-7.5）：一个 Segoe MDL2 字形码。null = 按路径取系统图标。</summary>
+    public string? Icon { get; set; }
+
+    /// <summary>自定义颜色（FR-7.5），形如 <c>#RRGGBB</c>。null = 跟随主题强调色。</summary>
     public string? Color { get; set; }
 
     public DateTimeOffset AddedAt { get; set; }
+
+    [JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
+}
+
+/// <summary>
+/// 收藏分组（FR-7.3）。分组名即身份：条目上存的就是名字，重命名时两边一起改。
+/// 用名字而不是 Guid 是有意的——这是一份用户会自己打开看、甚至手改的 JSON，
+/// 出现 <c>"group": "5f2c…"</c> 之后再配一张 id→名字的对照表，没人愿意维护。
+/// </summary>
+public sealed class BookmarkGroup
+{
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>折叠状态（FR-7.3 验收：折叠状态持久化）。默认展开。</summary>
+    public bool IsExpanded { get; set; } = true;
 
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
