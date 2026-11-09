@@ -165,11 +165,29 @@
                           Unchecked="OnShowNavChanged"/>
 
                 <CheckBox x:Name="ShowStatusCheck"
-                          Margin="0,0,0,16"
+                          Margin="0,0,0,10"
                           Style="{StaticResource CheckBox.Default}"
                           Content="{loc:Tr Key=Settings.Appearance.ShowStatus}"
                           Checked="OnShowStatusChanged"
                           Unchecked="OnShowStatusChanged"/>
+
+                <!-- 预览窗格的默认状态（FR-5.2.10）。默认关闭：它是本应用内存占用最大的
+                     可选功能，不该在用户没要求时一直占着一栏。开关本身也能用 Alt+P 切。 -->
+                <CheckBox x:Name="ShowPreviewCheck"
+                          Margin="0,0,0,10"
+                          Style="{StaticResource CheckBox.Default}"
+                          Content="{loc:Tr Key=Settings.Appearance.ShowPreview}"
+                          Checked="OnShowPreviewChanged"
+                          Unchecked="OnShowPreviewChanged"/>
+
+                <!-- 触发方式（FR-5.2.10 的后半句）。关掉之后预览窗格还在，
+                     但要按里面的「立即预览」才动——给"一选中就卡一下"的大文件目录留的开关。 -->
+                <CheckBox x:Name="PreviewAutoCheck"
+                          Margin="0,0,0,16"
+                          Style="{StaticResource CheckBox.Default}"
+                          Content="{loc:Tr Key=Settings.Behavior.PreviewAuto}"
+                          Checked="OnPreviewAutoChanged"
+                          Unchecked="OnPreviewAutoChanged"/>
 
                 <!-- ══ 标签页 ══
                      这三项原先分散在"外观"和"行为"两处，且"文件夹在新标签页打开"排在

@@ -355,6 +355,11 @@
             <ColumnDefinition x:Name="NavColumn" Width="Auto"/>
             <ColumnDefinition Width="1"/>
             <ColumnDefinition Width="*"/>
+            <!-- 预览窗格（FR-9.1.1）。两列都留在这里，开关只改宽度：
+                 关掉时宽度归零，界面上看不出差别，但分隔条与窗格的实例都还在——
+                 重建控件会把用户拖动过的宽度、以及正在显示的内容一起丢掉。 -->
+            <ColumnDefinition x:Name="PreviewSplitterColumn" Width="0"/>
+            <ColumnDefinition x:Name="PreviewColumn" Width="0"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <!-- 标签栏（在顶部时用它，切到底部时高度归零） -->
@@ -368,7 +373,7 @@
         </Grid.RowDefinitions>
 
         <Border x:Name="TabFrame"
-                Grid.Row="0" Grid.ColumnSpan="3"
+                Grid.Row="0" Grid.ColumnSpan="5"
                 Background="{DynamicResource Brush.Surface.Window}"
                 BorderBrush="{DynamicResource Brush.Border.Hairline}"
                 BorderThickness="0,0,0,1">
@@ -528,5 +533,23 @@
 
             <views:PaneView x:Name="Pane2" Grid.Column="2" Grid.Row="0" Visibility="Collapsed"/>
         </Grid>
+
+        <!-- 预览分隔条。ResizeBehavior 取 PreviousAndNext：左边是列表（星号列）、
+             右边是预览（固定像素列），拖动就是在"列表让出多少"与"预览占多少"之间挪边界。 -->
+        <GridSplitter x:Name="PreviewSplitter"
+                      Grid.Column="3" Grid.Row="1" Grid.RowSpan="2"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      ResizeDirection="Columns"
+                      ResizeBehavior="PreviousAndNext"
+                      Background="Transparent"
+                      Visibility="Collapsed"
+                      DragCompleted="OnPreviewSplitterDragCompleted"
+                      MouseDoubleClick="OnPreviewSplitterDoubleClick"/>
+
+        <views:PreviewPane x:Name="Preview"
+                           Grid.Column="4" Grid.Row="1" Grid.RowSpan="2"
+                           MinWidth="{DynamicResource Size.Preview.MinWidth}"
+                           Visibility="Collapsed"/>
     </Grid>
 </Window>

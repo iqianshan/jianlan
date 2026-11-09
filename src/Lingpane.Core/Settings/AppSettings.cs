@@ -218,6 +218,13 @@ public sealed class AppSettings
         }
 
         Layout.SplitRatio = Math.Clamp(Layout.SplitRatio, MinSplitRatio, MaxSplitRatio);
+
+        if (double.IsNaN(Layout.PreviewWidth) || double.IsInfinity(Layout.PreviewWidth) || Layout.PreviewWidth <= 0)
+        {
+            Layout.PreviewWidth = DefaultPreviewWidth;
+        }
+
+        Layout.PreviewWidth = Math.Clamp(Layout.PreviewWidth, MinPreviewWidth, MaxPreviewWidth);
     }
 
     // ── 恢复默认值（FR-5.3.8）─────────────────────────────────────────────
@@ -257,6 +264,7 @@ public sealed class AppSettings
         Layout.SplitEnabled = false;
         Layout.SplitRatio = DefaultSplitRatio;
         Layout.SplitVertical = false;
+        Layout.PreviewWidth = DefaultPreviewWidth;
     }
 
     /// <summary>
@@ -276,6 +284,11 @@ public sealed class AppSettings
     /// <summary>分屏比例的上下限：低于 15% 的那一栏连列头都放不下，等于"分了个看不见的屏"。</summary>
     public const double MinSplitRatio = 0.15;    public const double MaxSplitRatio = 0.85;
     public const double DefaultSplitRatio = 0.5;
+
+    /// <summary>预览窗格宽度的上下限。下限是"还能看清一张缩略图"，上限是别让它把列表挤没。</summary>
+    public const double MinPreviewWidth = 240;
+    public const double MaxPreviewWidth = 720;
+    public const double DefaultPreviewWidth = 320;
 
     public const double MinColumnWidth = 56;
     public const double MaxColumnWidth = 400;
@@ -356,6 +369,14 @@ public sealed class AppearanceSettings
     public bool ShowStatusBar { get; set; } = true;
 
     /// <summary>
+    /// 预览窗格默认是否展开（FR-5.2.10）。默认关闭——它是本应用内存占用最大的可选功能，
+    /// 不该在用户没要求的情况下一直占着一栏。
+    /// 与 <see cref="LayoutSettings.PreviewWidth"/> 分开：一个是"开不开"，一个是"多宽"，
+    /// 关掉再打开应当回到原来的宽度，而不是回到默认值。
+    /// </summary>
+    public bool ShowPreview { get; set; }
+
+    /// <summary>
     /// 标签栏位置（FR-2.4）：<c>top</c>（默认）/ <c>bottom</c>。
     /// 用字符串而不是枚举的理由同 <see cref="GeneralSettings.Language"/>。
     /// </summary>
@@ -410,6 +431,15 @@ public sealed class BehaviorSettings
     public bool ShowSystem { get; set; }
 
     public bool ShowExtensions { get; set; } = true;
+
+    /// <summary>
+    /// 选中文件后是否自动预览（FR-5.2.10 的"触发方式"）。
+    ///
+    /// 关掉之后预览窗格仍在，但要按窗格里的「立即预览」才动——这是给
+    /// "目录里有几个几十 MB 的文件、一选中就卡一下"的场景留的开关。
+    /// 网络路径与可移动设备不受这一项影响：那两类无论怎么设都不自动预览（FR-9.2.8）。
+    /// </summary>
+    public bool PreviewAutoOpen { get; set; } = true;
 
     public bool ConfirmDelete { get; set; } = true;
 
@@ -801,6 +831,12 @@ public sealed class LayoutSettings
 
     /// <summary>true = 上下分割，false = 左右分割（FR-3.1，默认左右）。</summary>
     public bool SplitVertical { get; set; }
+
+    /// <summary>
+    /// 预览窗格宽度（FR-9.1.1）。只在用户拖过分隔条之后才是"真值"，
+    /// 没拖过时落盘的就是默认值，所以这里不必区分"有没有设过"。
+    /// </summary>
+    public double PreviewWidth { get; set; } = AppSettings.DefaultPreviewWidth;
 
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }

@@ -208,6 +208,33 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Equal(AppSettings.DefaultSplitRatio, settings.Layout.SplitRatio, 3);
     }
 
+    [Theory]
+    [InlineData(120, AppSettings.MinPreviewWidth)]      // 比"看得清一张缩略图"还窄 → 抬到下限
+    [InlineData(2000, AppSettings.MaxPreviewWidth)]     // 把列表挤没了 → 压到上限
+    [InlineData(0, AppSettings.DefaultPreviewWidth)]    // 手改文件留下的 0 → 回默认
+    [InlineData(-40, AppSettings.DefaultPreviewWidth)]  // 负数同理
+    [InlineData(360, 360)]                              // 合法值原样保留
+    public void 预览宽度越界被夹取或回落默认(double stored, double expected)
+    {
+        var settings = new AppSettings();
+        settings.Layout.PreviewWidth = stored;
+
+        settings.Normalize();
+
+        Assert.Equal(expected, settings.Layout.PreviewWidth, 3);
+    }
+
+    [Fact]
+    public void 恢复布局默认会把预览宽度一起复位()
+    {
+        var settings = new AppSettings();
+        settings.Layout.PreviewWidth = 500;
+
+        settings.ResetLayout();
+
+        Assert.Equal(AppSettings.DefaultPreviewWidth, settings.Layout.PreviewWidth, 3);
+    }
+
     [Fact]
     public void 第二窗格路径与标签数量对齐()
     {

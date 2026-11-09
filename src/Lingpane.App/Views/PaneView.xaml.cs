@@ -217,12 +217,22 @@ public partial class PaneView : UserControl
         viewModel.SetSelection(selected.Count, total);
         viewModel.SetSelectedEntries(selected);
         CommandManager.InvalidateRequerySuggested();
+        SelectionChanged?.Invoke(this);
 
         return found > 0;
     }
 
     /// <summary>窗格被点中（键盘焦点进入列表）时触发，宿主据此切换"活动窗格"。</summary>
     public event Action<PaneView>? Activated;
+
+    /// <summary>
+    /// 选中集合变化（含"清空"与"切标签时恢复上次选中"）。预览窗格（FR-9.1.2）据此刷新。
+    ///
+    /// 由视图发而不是由视图模型发：选中的真值在 <c>ListBox</c> 上，
+    /// 视图模型里的 <c>SelectedEntries</c> 只是它的镜像；恢复选中时中间会经历
+    /// "先空后有"两个中间态，只有视图知道哪一次才是最终结果。
+    /// </summary>
+    public event Action<PaneView>? SelectionChanged;
 
     /// <summary>
     /// 请求把某个目录开进新标签（FR-2.10）。参数：(路径, 是否后台打开)。
@@ -596,6 +606,10 @@ public partial class PaneView : UserControl
 
         // 选中数变化影响"打开/重命名/删除"等命令的可执行性，右键菜单打开前必须已刷新
         CommandManager.InvalidateRequerySuggested();
+
+        // 预览跟着选中走。放在这里而不是绑 ListBox.SelectionChanged：
+        // 那个事件在枚举/刷新过程中会连发多次，这里是"这一轮结算完了"的唯一时点。
+        SelectionChanged?.Invoke(this);
     }
 
     /// <summary>

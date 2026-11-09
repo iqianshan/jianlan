@@ -30,6 +30,7 @@
     "density": "comfortable",   // comfortable(32px) | compact(26px)
     "showNavPane": true,
     "showStatusBar": true,
+    "showPreview": false,       // 预览窗格的默认状态（FR-5.2.10）。默认关闭：内存占用最大的可选功能
     "tabStripPosition": "top"   // top | bottom（FR-2.4），无法识别时回落 top
   },
 
@@ -48,7 +49,8 @@
     "openNewTabInBackground": false,  // 中键/Ctrl+左键开出的标签是否留在后台（FR-2.10 可选项）
     "restoreLastSession": true,
     "startupWorkspace": null,   // 启动时自动打开的工作区名（FR-8.4）。非 null 时 restoreLastSession 强制为 false
-    "closeLastTabToHome": true  // 关掉最后一个标签时回默认目录，而不是关窗口（FR-2.8）
+    "closeLastTabToHome": true, // 关掉最后一个标签时回默认目录，而不是关窗口（FR-2.8）
+    "previewAutoOpen": true     // 选中文件后自动预览（FR-5.2.10 的「触发方式」）。关掉后要按预览里的「立即预览」
   },
 
   "privacy": {
@@ -83,7 +85,8 @@
     },
     "splitEnabled": false,      // 双窗格开关，窗口级（FR-3.3）
     "splitRatio": 0.5,          // 第一窗格占比，0.15–0.85
-    "splitVertical": false      // false = 左右，true = 上下（FR-3.1）
+    "splitVertical": false,     // false = 左右，true = 上下（FR-3.1）
+    "previewWidth": 320         // 预览窗格宽度，240–720（FR-9.1.1）。与 showPreview 分开：关掉再打开要回到原宽度
   }
 }
 ```
@@ -116,6 +119,8 @@
 | `columns.*.showDate/Type/Size` | 布尔 | 三项可同时为 `false`（只剩文件名，等同列表视图）；名称列不可隐藏，属输入校验 |
 | `columns.*.date/Type/SizeWidth` | 56–400（单位：DIP，字号基线下的逻辑宽度） | 夹取；`0`、`NaN`、`Infinity` 回落默认值。实际显示宽度 = 本值 × 字号缩放，因此换字号不会把用户拖出来的宽度改掉 |
 | `splitRatio` | 0.15–0.85 | 夹取；`NaN`/`Infinity` 回落 0.5。夹到 0.15 以下等于把一个窗格压成 0 宽，没有意义 |
+| `previewWidth` | 240–720（DIP） | 夹取；`0`、负数、`NaN`、`Infinity` 回落 320。下限是"还能看清一张缩略图"，上限是别把列表挤没 |
+| `previewAutoOpen` | 布尔 | `false` = 选中不自动预览，要按窗格里的「立即预览」。网络路径与可移动设备不受这一项影响，它们无论怎么设都不自动预览（FR-9.2.8） |
 
 > **路径合法性不在归一化里判**：盘符可能暂时不在（U 盘没插），判了就把标签吃掉。
 > 恢复时按 `Directory.Exists` 过滤（`MainWindow.RestoreTabs`），宁少一个标签，不留死标签。

@@ -106,6 +106,9 @@
     <sys:Double x:Key="Size.ScrollBar.Thickness">10</sys:Double>
     <sys:Double x:Key="Size.Splitter.Thickness">6</sys:Double>
     <sys:Double x:Key="Size.Preview.MinWidth">240</sys:Double>
+    <!-- 默认宽度。320 是"能看清一张缩略图 + 三行文件名"的下限，再窄预览就只剩图标了 -->
+    <sys:Double x:Key="Size.Preview.DefaultWidth">320</sys:Double>
+    <sys:Double x:Key="Size.Preview.MaxWidth">720</sys:Double>
 
     <Thickness x:Key="Padding.Row">8,0,8,0</Thickness>
     <Thickness x:Key="Padding.NavItem">8,0,8,0</Thickness>

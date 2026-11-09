@@ -21,6 +21,7 @@ public static class ShellIconProvider
     private const uint SHGFI_ICON = 0x0000_0100;
     private const uint SHGFI_PIDL = 0x0000_0008;
     private const uint SHGFI_SMALLICON = 0x0000_0001;
+    private const uint SHGFI_LARGEICON = 0x0000_0000;
     private const uint SHGFI_USEFILEATTRIBUTES = 0x0000_0010;
 
     private const uint FILE_ATTRIBUTE_NORMAL = 0x0000_0080;
@@ -33,6 +34,30 @@ public static class ShellIconProvider
     private static readonly Dictionary<int, ImageSource> IndexCache = new();
 
     private static ImageSource? _fallback;
+
+    /// <summary>
+    /// 32px 图标的独立缓存（预览窗格里那个大图标用）。
+    ///
+    /// 不与 16px 共用一张表：同一个 key 在两张表里是两个尺寸，混着存会让
+    /// "先取过小图标"的路径把大图标也变成 16px——列表里看不出问题，预览里就是一团糊。
+    /// </summary>
+    private static readonly Dictionary<string, ImageSource> LargeCache = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// 取 32px 图标。预览窗格里的"不支持的类型"要用它——把 16px 的列表图标放大到 48，
+    /// 得到的是一团没有轮廓的白块，还不如不显示。
+    /// </summary>
+    public static ImageSource GetLarge(string iconKey)
+    {
+        lock (Gate)
+        {
+            if (LargeCache.TryGetValue(iconKey, out var cached)) return cached;
+
+            var image = LoadCore(iconKey, SHGFI_LARGEICON) ?? (_fallback ??= CreateFallback());
+            LargeCache[iconKey] = image;
+            return image;
+        }
+    }
 
     /// <summary>
     /// 取图标。<paramref name="iconKey"/> 形如 <c>.txt</c> / <c>.folder</c> / <c>.file</c>。
@@ -182,7 +207,9 @@ public static class ShellIconProvider
         return info.iIcon;
     }
 
-    private static BitmapSource? Load(string iconKey)
+    private static BitmapSource? Load(string iconKey) => LoadCore(iconKey, SHGFI_SMALLICON);
+
+    private static BitmapSource? LoadCore(string iconKey, uint sizeFlag)
     {
         bool isDirectory = iconKey.Equals(".folder", StringComparison.OrdinalIgnoreCase);
 
@@ -197,7 +224,7 @@ public static class ShellIconProvider
         var info = new SHFILEINFO();
 
         IntPtr result = SHGetFileInfo(probe, attributes, ref info, (uint)Marshal.SizeOf<SHFILEINFO>(),
-            SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES);
+            SHGFI_ICON | sizeFlag | SHGFI_USEFILEATTRIBUTES);
 
         if (result == IntPtr.Zero || info.hIcon == IntPtr.Zero) return null;
 

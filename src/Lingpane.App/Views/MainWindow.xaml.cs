@@ -146,6 +146,8 @@ public partial class MainWindow : Window
 
         RegisterTabCommands();
         RegisterSplitCommands();
+        RegisterPreviewCommands();
+        InitializePreview();
 
         // 分屏开关：工具栏那颗按钮在窗格里，真正的开关在窗口（FR-3.3）。
         // 只有主窗格显示按钮——分屏是窗口形态，两颗按钮会看起来像"两个窗格各分各的"。
@@ -178,6 +180,7 @@ public partial class MainWindow : Window
 
         // 分屏的行列先摆好：此时还没有标签，只是把两列/两行的宽度归位
         ApplySplitLayout();
+        ApplyPreviewLayout();
 
         // 分屏状态要立刻写进两个窗格：窗格自己拿它决定"进目录是导航还是开新标签"
         // （见 PaneView.OpenEntry）。等到 OnLoaded 才同步的话，首帧之前的那次双击会走错分支。
@@ -202,6 +205,10 @@ public partial class MainWindow : Window
         {
             // 热键是系统级资源，进程退出前主动交还，避免句柄被回收前的短暂占用
             UnregisterSettingsHotkey();
+
+            // 预览持有的位图与缩略图缓存要主动丢掉（FR-9.2.6）：
+            // 进程退出时操作系统会回收，但"退出前的最后一刻内存很高"会让性能走查误判
+            _preview.Release();
 
             if (!string.IsNullOrEmpty(Vm.CurrentPath))
             {
@@ -600,6 +607,7 @@ public partial class MainWindow : Window
     {
         ApplyTabKind(tab);
         RefreshPaneFocus();
+        RefreshPreview();
     }
 
     /// <summary>
@@ -611,6 +619,9 @@ public partial class MainWindow : Window
     /// </summary>
     private void ApplyTabKind(TabViewModel tab)
     {
+        // 主页与标签结果页没有"选中的文件"，预览那一栏先收起（不是关掉——意图还留着）
+        ApplyPreviewLayout();
+
         if (tab.IsHome)
         {
             Home.Visibility = Visibility.Visible;
@@ -666,6 +677,8 @@ public partial class MainWindow : Window
         ApplyTabKind(tab);
         ApplySplitLayout();
         RefreshPaneFocus();
+        ApplyPreviewLayout();
+        RefreshPreview();
         DataContext = tab.ActivePane;
 
         // 标签结果页没有路径，高亮要落在侧栏对应的那个颜色节点上，
@@ -977,6 +990,9 @@ public partial class MainWindow : Window
         DataContext = pane;
         SyncNavSelection(pane.CurrentPath);
         RefreshPaneFocus();
+
+        // 换了焦点窗格 = 换了"我此刻在看什么"，预览要跟着换（FR-9.1）
+        RefreshPreview();
     }
 
     /// <summary>
@@ -1002,6 +1018,7 @@ public partial class MainWindow : Window
         DataContext = target;
         SyncNavSelection(target.CurrentPath);
         RefreshPaneFocus();
+        RefreshPreview();
         ViewFor(target).FocusList();
     }
 
@@ -1106,6 +1123,9 @@ public partial class MainWindow : Window
 
         // 分屏按钮的选中态跟着设置走（会话里可能本来就是开着的）
         SyncSplitButton();
+
+        // 预览的开关与触发方式（FR-5.2.10）：设置页改完立即生效
+        ApplyPreviewSettings();
 
         // 状态栏与列宽在两个窗格各有一份，都要套一遍
         Pane.ApplyAppearance(s);

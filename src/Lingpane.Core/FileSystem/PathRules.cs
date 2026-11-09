@@ -51,6 +51,20 @@ public static class PathRules
         return path[2] == Path.DirectorySeparatorChar || path[2] == Path.AltDirectorySeparatorChar;
     }
 
+    /// <summary>
+    /// 是否网络路径（<c>\\server\share</c>）。只看前缀，不验证可达性——
+    /// 验证要发网络请求，那正是这类路径危险的地方。
+    ///
+    /// 用途是决定"要不要自动预览"（FR-9.2.8）：网络上的一次读盘可能等几秒，
+    /// 不能挂在选中动作上。
+    /// </summary>
+    public static bool IsUncPath(string path)
+    {
+        if (string.IsNullOrEmpty(path) || path.Length < 2) return false;
+
+        return path[0] == '\\' && path[1] == '\\';
+    }
+
     /// <summary>去掉结尾的分隔符，但保留根路径本身的 <c>C:\</c> 形态。</summary>
     public static string TrimSeparators(string value)    {
         string trimmed = value.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);

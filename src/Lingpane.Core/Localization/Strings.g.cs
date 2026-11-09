@@ -81,6 +81,9 @@ public static class Strings
     /// <summary>Toggle second pane</summary>
     public static string Command_ToggleSplit => LocalizationService.Instance.Get("Command_ToggleSplit");
 
+    /// <summary>Toggle preview pane</summary>
+    public static string Command_TogglePreview => LocalizationService.Instance.Get("Command_TogglePreview");
+
     /// <summary>Focus the other pane</summary>
     public static string Command_FocusOtherPane => LocalizationService.Instance.Get("Command_FocusOtherPane");
 
@@ -1332,5 +1335,66 @@ public static class Strings
 
     /// <summary>No telemetry, no uploads. The only outbound action is opening the releases page in your browser when you choose Check fo</summary>
     public static string Settings_About_Privacy => LocalizationService.Instance.Get("Settings.About.Privacy");
+
+    /// <summary>Preview</summary>
+    public static string Preview_Title => LocalizationService.Instance.Get("Preview.Title");
+
+    /// <summary>Show preview pane (Alt+P)</summary>
+    public static string Preview_Open_Tip => LocalizationService.Instance.Get("Preview.Open.Tip");
+
+    /// <summary>Hide preview pane (Alt+P)</summary>
+    public static string Preview_Close_Tip => LocalizationService.Instance.Get("Preview.Close.Tip");
+
+    /// <summary>Select a file to preview it</summary>
+    public static string Preview_Empty => LocalizationService.Instance.Get("Preview.Empty");
+
+    /// <summary>{0} items selected</summary>
+    public static string Preview_MultiTitle => LocalizationService.Instance.Get("Preview.MultiTitle");
+    // 含占位符：string.Format(Strings.Preview_MultiTitle, ...)
+
+    /// <summary>{0} in total</summary>
+    public static string Preview_MultiSize => LocalizationService.Instance.Get("Preview.MultiSize");
+    // 含占位符：string.Format(Strings.Preview_MultiSize, ...)
+
+    /// <summary>Path</summary>
+    public static string Preview_Field_Path => LocalizationService.Instance.Get("Preview.Field.Path");
+
+    /// <summary>Folders have no preview.</summary>
+    public static string Preview_Folder => LocalizationService.Instance.Get("Preview.Folder");
+
+    /// <summary>Showing the first {0} characters only.</summary>
+    public static string Preview_Truncated => LocalizationService.Instance.Get("Preview.Truncated");
+    // 含占位符：string.Format(Strings.Preview_Truncated, ...)
+
+    /// <summary>Files on network locations and removable drives are not previewed automatically.</summary>
+    public static string Preview_Deferred => LocalizationService.Instance.Get("Preview.Deferred");
+
+    /// <summary>Preview now</summary>
+    public static string Preview_DeferredAction => LocalizationService.Instance.Get("Preview.DeferredAction");
+
+    /// <summary>Preview memory budget reached — showing basic information only.</summary>
+    public static string Preview_Degraded => LocalizationService.Instance.Get("Preview.Degraded");
+
+    /// <summary>Larger than {0} — not previewed.</summary>
+    public static string Preview_Note_TooLarge => LocalizationService.Instance.Get("Preview.Note.TooLarge");
+    // 含占位符：string.Format(Strings.Preview_Note_TooLarge, ...)
+
+    /// <summary>This file does not contain displayable text.</summary>
+    public static string Preview_Note_Binary => LocalizationService.Instance.Get("Preview.Note.Binary");
+
+    /// <summary>This file could not be read.</summary>
+    public static string Preview_Note_Unreadable => LocalizationService.Instance.Get("Preview.Note.Unreadable");
+
+    /// <summary>Preview timed out.</summary>
+    public static string Preview_Note_Timeout => LocalizationService.Instance.Get("Preview.Note.Timeout");
+
+    /// <summary>No preview available for this type.</summary>
+    public static string Preview_Note_NoThumbnail => LocalizationService.Instance.Get("Preview.Note.NoThumbnail");
+
+    /// <summary>Show preview pane</summary>
+    public static string Settings_Appearance_ShowPreview => LocalizationService.Instance.Get("Settings.Appearance.ShowPreview");
+
+    /// <summary>Preview automatically when a file is selected</summary>
+    public static string Settings_Behavior_PreviewAuto => LocalizationService.Instance.Get("Settings.Behavior.PreviewAuto");
 
 }

@@ -100,6 +100,8 @@ public partial class SettingsWindow : Window
 
         ShowNavCheck.IsChecked = Settings.Appearance.ShowNavPane;
         ShowStatusCheck.IsChecked = Settings.Appearance.ShowStatusBar;
+        ShowPreviewCheck.IsChecked = Settings.Appearance.ShowPreview;
+        PreviewAutoCheck.IsChecked = Settings.Behavior.PreviewAutoOpen;
         RememberPathCheck.IsChecked = Settings.Privacy.HistoryEnabled;
 
         int limitIndex = Array.FindIndex(HistoryLimits, n => n >= Settings.Privacy.HistoryLimit);
@@ -353,6 +355,24 @@ public partial class SettingsWindow : Window
     {
         if (_loading) return;
         Settings.Appearance.ShowStatusBar = ShowStatusCheck.IsChecked == true;
+        Owner_?.ApplySettingsToUi();
+        App.SaveSettings();
+    }
+
+    /// <summary>预览窗格的默认状态（FR-5.2.10）。与 Alt+P 改的是同一项，两边同步。</summary>
+    private void OnShowPreviewChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        Settings.Appearance.ShowPreview = ShowPreviewCheck.IsChecked == true;
+        Owner_?.ApplySettingsToUi();
+        App.SaveSettings();
+    }
+
+    /// <summary>预览的触发方式（FR-5.2.10）。关掉后窗格仍在，但选中不自动出内容。</summary>
+    private void OnPreviewAutoChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        Settings.Behavior.PreviewAutoOpen = PreviewAutoCheck.IsChecked == true;
         Owner_?.ApplySettingsToUi();
         App.SaveSettings();
     }

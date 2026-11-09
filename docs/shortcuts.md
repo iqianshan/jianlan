@@ -148,7 +148,26 @@
 | `Alt + 1…8` | 给选中项打上第 N 号颜色标签 |
 | `Alt + 0` | 清除选中项的标签 |
 
-## 7. 应用
+## 7. 预览窗格（M2）
+
+| 快捷键 | 动作 |
+|---|---|
+| `Alt + P` | 开/关预览窗格（FR-9.1.1）。与资源管理器同一手势 |
+| `Ctrl + Shift + P` | 同 `Alt + P`。远程桌面/某些输入法会把 `Alt` 组合截走，留一条备用路 |
+
+鼠标：
+
+| 操作 | 动作 |
+|---|---|
+| 拖动预览左侧的分隔条 | 改宽度（240–720），拖完即落盘 |
+| 双击分隔条 | 复位 320 |
+| 预览里的「立即预览」 | 网络位置与可移动设备上的文件不自动预览（FR-9.2.8），点它触发一次 |
+
+预览是**窗口级**的一栏：分屏时两个窗格共用一个，永远反映焦点窗格的选中项。
+切到主页或标签结果页时这一栏自动收起（那两种形态没有"选中的文件"），切回目录标签自动恢复——
+收的是显示，不是你按 Alt+P 的意图。
+
+## 8. 应用
 
 | 快捷键 | 动作 |
 |---|---|
@@ -157,14 +176,14 @@
 | `Alt + F4` | 退出 |
 | `Ctrl + Shift + W` | 关闭窗口（含全部标签页） |
 
-## 8. 冲突规避
+## 9. 冲突规避
 
 以下组合**已占用，不得分配给新功能**：
 
 `Ctrl+T` `Ctrl+W` `Ctrl+Shift+T` `Ctrl+Tab` `Ctrl+1…9` `Alt+←→↑` `Backspace` `Ctrl+L`
 `F5` `Ctrl+R` `Ctrl+D` `Ctrl+H` `Ctrl+Shift+1…3` `Ctrl+Shift+D` `Ctrl+,` `Ctrl+滚轮` `F11` `Ctrl+B` `Enter`
 `Ctrl+A/C/X/V` `Delete` `Shift+Delete` `F2` `Ctrl+Shift+N` `Ctrl+Shift+M` `Alt+Enter` `Ctrl+Shift+C`
-`Tab` `F3` `F6` `Ctrl+Shift+E` `Alt+1…8,0` `Ctrl+,` `F1` `Alt+F4` `Ctrl+Shift+W`
+`Tab` `F3` `F6` `Ctrl+Shift+E` `Alt+1…8,0` `Alt+P` `Ctrl+Shift+P` `Ctrl+,` `F1` `Alt+F4` `Ctrl+Shift+W`
 
 实现要求：
 

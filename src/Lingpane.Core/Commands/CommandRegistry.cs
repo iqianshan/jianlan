@@ -62,6 +62,10 @@ public static class CommandIds
 
     // 收藏（FR-7.1）。窗口级：收藏是全局数据，跟着窗口存，不跟着某个窗格。
     public const string Bookmark = "bookmark.add";
+
+    // 预览窗格（FR-9.1.1）。同样是窗口级：预览反映"当前焦点窗格选了什么"，
+    // 一个窗口只有一栏，开在哪个标签都一样。
+    public const string TogglePreview = "preview.toggle";
 }
 
 /// <summary>

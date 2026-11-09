@@ -90,6 +90,9 @@
   <data name="Command_ToggleSplit" xml:space="preserve">
     <value>切换第二窗格</value>
   </data>
+  <data name="Command_TogglePreview" xml:space="preserve">
+    <value>切换预览窗格</value>
+  </data>
 
   <data name="Command_FocusOtherPane" xml:space="preserve">
     <value>切换焦点窗格</value>
@@ -1289,5 +1292,63 @@
   </data>
   <data name="Settings.About.Privacy" xml:space="preserve">
     <value>不收集遥测，不联网上传。唯一的对外动作是你手动点「检查更新」时在浏览器中打开发布页。</value>
+  </data>
+
+  <data name="Preview.Title" xml:space="preserve">
+    <value>预览</value>
+  </data>
+  <data name="Preview.Open.Tip" xml:space="preserve">
+    <value>显示预览窗格 (Alt+P)</value>
+  </data>
+  <data name="Preview.Close.Tip" xml:space="preserve">
+    <value>隐藏预览窗格 (Alt+P)</value>
+  </data>
+  <data name="Preview.Empty" xml:space="preserve">
+    <value>选择一个文件即可预览</value>
+  </data>
+  <data name="Preview.MultiTitle" xml:space="preserve">
+    <value>已选中 {0} 项</value>
+  </data>
+  <data name="Preview.MultiSize" xml:space="preserve">
+    <value>共 {0}</value>
+  </data>
+  <data name="Preview.Field.Path" xml:space="preserve">
+    <value>路径</value>
+  </data>
+  <data name="Preview.Folder" xml:space="preserve">
+    <value>文件夹没有可预览的内容。</value>
+  </data>
+  <data name="Preview.Truncated" xml:space="preserve">
+    <value>内容过长，仅显示前 {0} 个字符。</value>
+  </data>
+  <data name="Preview.Deferred" xml:space="preserve">
+    <value>网络位置与可移动设备上的文件不会自动预览。</value>
+  </data>
+  <data name="Preview.DeferredAction" xml:space="preserve">
+    <value>立即预览</value>
+  </data>
+  <data name="Preview.Degraded" xml:space="preserve">
+    <value>预览内存已达预算上限，仅显示基本信息。</value>
+  </data>
+  <data name="Preview.Note.TooLarge" xml:space="preserve">
+    <value>文件超过 {0}，不预览。</value>
+  </data>
+  <data name="Preview.Note.Binary" xml:space="preserve">
+    <value>内容不是可显示的文本。</value>
+  </data>
+  <data name="Preview.Note.Unreadable" xml:space="preserve">
+    <value>无法读取这个文件。</value>
+  </data>
+  <data name="Preview.Note.Timeout" xml:space="preserve">
+    <value>预览超时，已放弃这次渲染。</value>
+  </data>
+  <data name="Preview.Note.NoThumbnail" xml:space="preserve">
+    <value>此类型没有可用的预览。</value>
+  </data>
+  <data name="Settings.Appearance.ShowPreview" xml:space="preserve">
+    <value>显示预览窗格</value>
+  </data>
+  <data name="Settings.Behavior.PreviewAuto" xml:space="preserve">
+    <value>选中文件后自动预览</value>
   </data>
 </root>

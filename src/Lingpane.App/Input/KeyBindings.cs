@@ -66,6 +66,12 @@ internal static class KeyBindings
         new(Key.F6, Vk.F6, ModifierKeys.None, CommandIds.FocusOtherPane, "F6"),
         new(Key.E, Vk.E, ModifierKeys.Control | ModifierKeys.Shift, CommandIds.ToggleSplit, "E"),
 
+        // 预览（§9 / FR-9.1.1）。Alt+P 与资源管理器一致；面板类开关一律用 Alt+字母，
+        // 这样它们和 Ctrl+字母的文件操作不会抢键。Ctrl+Shift+P 是给外接键盘/远程桌面的
+        // 备用入口——某些环境里 Alt 组合会被输入法截走。
+        new(Key.P, Vk.P, ModifierKeys.Alt, CommandIds.TogglePreview, "P"),
+        new(Key.P, Vk.P, ModifierKeys.Control | ModifierKeys.Shift, CommandIds.TogglePreview, "P"),
+
         // 导航（§2）
         new(Key.Up, Vk.Up, ModifierKeys.Alt, CommandIds.GoUp, "↑"),
         new(Key.Left, Vk.Left, ModifierKeys.Alt, CommandIds.GoBack, "←"),
@@ -200,6 +206,7 @@ internal static class KeyBindings
         public const int L = 0x4C;
         public const int M = 0x4D;
         public const int N = 0x4E;
+        public const int P = 0x50;
         public const int R = 0x52;
         public const int T = 0x54;
         public const int V = 0x56;

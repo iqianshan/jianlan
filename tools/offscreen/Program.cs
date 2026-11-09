@@ -20,8 +20,10 @@ namespace OffscreenShot;
 /// 为什么需要它：桌面被锁或占着别的程序时，抓屏只能拍到壁纸，而 WPF 内容由 DWM 合成，
 /// PrintWindow 也拿不到（试过，全白）。在自己的进程里渲染不依赖桌面是否可见。
 ///
-/// 用法：OffscreenShot.exe &lt;输出png&gt; [等待毫秒] [标签颜色名，如 Red]
-/// 数据目录由 exe 旁边的 data\ 决定（便携模式），演示数据自己放进去。
+/// 用法：
+///   OffscreenShot.exe &lt;输出png&gt; [等待毫秒] [--tag 颜色名] [--activate 序号]
+///                                        [--preview] [--select 序号] [--close-preview]
+/// 数据目录由 exe 旁边的 portable.flag + data\ 决定（便携模式），演示数据自己放进去。
 /// </summary>
 internal static class Program
 {
@@ -33,8 +35,38 @@ internal static class Program
             : Path.Combine(Environment.CurrentDirectory, "shot.png");
 
         int waitMs = argv.Length > 1 && int.TryParse(argv[1], out int parsed) ? parsed : 4000;
-        string? tagName = argv.Length > 2 ? argv[2] : null;
-        int activateIndex = argv.Length > 3 && int.TryParse(argv[3], out int idx) ? idx : -1;
+
+        string? tagName = null;
+        int activateIndex = -1;
+        int[] selectIndexes = [];
+        bool enablePreview = false;
+        bool disablePreview = false;
+
+        for (int i = 2; i < argv.Length; i++)
+        {
+            switch (argv[i])
+            {
+                case "--tag" when i + 1 < argv.Length:
+                    tagName = argv[++i];
+                    break;
+                case "--activate" when i + 1 < argv.Length:
+                    _ = int.TryParse(argv[++i], out activateIndex);
+                    break;
+                case "--select" when i + 1 < argv.Length:
+                    // 逗号分隔可多选，用来验证"多选只报数量与总大小"（FR-9.1.6）
+                    selectIndexes = argv[++i]
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Select(int.Parse)
+                        .ToArray();
+                    break;
+                case "--preview":
+                    enablePreview = true;
+                    break;
+                case "--close-preview":
+                    disablePreview = true;
+                    break;
+            }
+        }
 
         var app = new App();
         app.InitializeComponent();
@@ -54,12 +86,29 @@ internal static class Program
 
             try
             {
-                if (tagName is not null) OpenTagResults(window, tagName);
-                await Task.Delay(600);
+                if (tagName is not null)
+                {
+                    OpenTagResults(window, tagName);
+                    await Task.Delay(600);
+                }
 
                 if (activateIndex >= 0)
                 {
                     ActivateResult(window, activateIndex);
+                    await Task.Delay(1500);
+                }
+
+                if (enablePreview || disablePreview)
+                {
+                    SetPreview(window, open: enablePreview);
+                    await Task.Delay(400);
+                }
+
+                if (selectIndexes.Length > 0)
+                {
+                    SelectFile(window, selectIndexes);
+
+                    // 300ms 防抖 + 读盘/解码，1.5s 足够拍到结果
                     await Task.Delay(1500);
                 }
 
@@ -75,6 +124,53 @@ internal static class Program
         }));
 
         return app.Run();
+    }
+
+    /// <summary>
+    /// 把预览窗格摆到指定状态。**不**用"切换"：设置是落盘的，上一张图跑完
+    /// showPreview 就已经是 true，再切换一次反而把它关掉——第一次踩到这个坑时，
+    /// 第二张图里的预览整栏不见了。
+    /// </summary>
+    private static void SetPreview(MainWindow window, bool open)
+    {
+        FieldInfo? field = typeof(MainWindow).GetField(
+            "_previewOpen", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        if (field?.GetValue(window) is bool current && current == open) return;
+
+        MethodInfo? method = typeof(MainWindow).GetMethod(
+            "TogglePreview", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        if (method is null) throw new MissingMethodException("MainWindow.TogglePreview");
+
+        method.Invoke(window, null);
+    }
+
+    /// <summary>
+    /// 在主窗格里"选中第 index 个文件"。直接改 ListBox 的 SelectedIndex：
+    /// 走的是用户点一行时的同一条 <c>SelectionChanged</c> 链，因此预览会被真正触发。
+    /// </summary>
+    private static void SelectFile(MainWindow window, int[] indexes)
+    {
+        FieldInfo? paneField = typeof(MainWindow).GetField("Pane", BindingFlags.NonPublic | BindingFlags.Instance);
+        if (paneField?.GetValue(window) is not PaneView pane) throw new MissingMemberException("Pane");
+
+        FieldInfo? listField = typeof(PaneView).GetField(
+            "FileList", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        if (listField?.GetValue(pane) is not System.Windows.Controls.ListBox list)
+        {
+            throw new MissingMemberException("FileList");
+        }
+
+        foreach (int index in indexes)
+        {
+            if (index >= list.Items.Count) throw new ArgumentOutOfRangeException(nameof(indexes), "序号超出列表项数");
+
+            list.SelectedItems.Add(list.Items[index]);
+        }
+
+        list.ScrollIntoView(list.Items[indexes[0]]);
     }
 
     /// <summary>
