@@ -738,7 +738,7 @@
     <value>已清空记录的路径</value>
   </data>
   <data name="Settings.About.Content" xml:space="preserve">
-    <value>Lingpane 预览版（M1）&#10;运行时：.NET {0}&#10;数据目录：{1}&#10;开源许可：Apache-2.0</value>
+    <value>Lingpane {0}&#10;数据目录：{1}</value>
   </data>
   <data name="Common.Close" xml:space="preserve">
     <value>关闭</value>
@@ -1379,5 +1379,129 @@
   </data>
   <data name="Settings.Behavior.PreviewAuto" xml:space="preserve">
     <value>选中文件后自动预览</value>
+  </data>
+
+  <!-- 屏幕阅读器标签（FR-10.7） -->
+  <data name="A11y.FileList" xml:space="preserve">
+    <value>文件列表</value>
+  </data>
+  <data name="A11y.Nav" xml:space="preserve">
+    <value>导航栏</value>
+  </data>
+  <data name="A11y.TabStrip" xml:space="preserve">
+    <value>标签栏</value>
+  </data>
+  <data name="A11y.Address" xml:space="preserve">
+    <value>地址栏</value>
+  </data>
+  <data name="A11y.StatusBar" xml:space="preserve">
+    <value>状态栏</value>
+  </data>
+  <data name="A11y.Preview" xml:space="preserve">
+    <value>预览窗格</value>
+  </data>
+  <data name="A11y.PreviewText" xml:space="preserve">
+    <value>预览文本</value>
+  </data>
+  <data name="A11y.Toolbar" xml:space="preserve">
+    <value>工具栏</value>
+  </data>
+
+  <!-- 关于页（FR-10.8） -->
+  <data name="About.Title" xml:space="preserve">
+    <value>关于 Lingpane</value>
+  </data>
+  <data name="About.Open" xml:space="preserve">
+    <value>关于 Lingpane…</value>
+  </data>
+  <data name="About.Tagline" xml:space="preserve">
+    <value>一个安静、键盘优先的 Windows 文件管理器。</value>
+  </data>
+  <data name="About.Build" xml:space="preserve">
+    <value>构建 {0}</value>
+  </data>
+  <data name="About.Section.Environment" xml:space="preserve">
+    <value>运行环境</value>
+  </data>
+  <data name="About.Env.Runtime" xml:space="preserve">
+    <value>运行时</value>
+  </data>
+  <data name="About.Env.OS" xml:space="preserve">
+    <value>系统</value>
+  </data>
+  <data name="About.Env.Arch" xml:space="preserve">
+    <value>架构</value>
+  </data>
+  <data name="About.Env.Memory" xml:space="preserve">
+    <value>内存</value>
+  </data>
+  <data name="About.Env.MemoryValue" xml:space="preserve">
+    <value>{0} MB（工作集）</value>
+  </data>
+  <data name="About.Section.License" xml:space="preserve">
+    <value>开源许可</value>
+  </data>
+  <data name="About.Section.Tools" xml:space="preserve">
+    <value>诊断与更新</value>
+  </data>
+  <data name="About.License.Name" xml:space="preserve">
+    <value>许可证</value>
+  </data>
+  <data name="About.License.View" xml:space="preserve">
+    <value>查看许可证全文</value>
+  </data>
+  <data name="About.License.Notice" xml:space="preserve">
+    <value>查看 NOTICE</value>
+  </data>
+  <data name="About.License.ThirdParty" xml:space="preserve">
+    <value>第三方依赖清单</value>
+  </data>
+  <data name="About.License.Copy" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="About.License.Copied" xml:space="preserve">
+    <value>已复制到剪贴板</value>
+  </data>
+  <data name="About.License.Missing" xml:space="preserve">
+    <value>此构建缺少许可证文件。</value>
+  </data>
+  <data name="About.Section.Paths" xml:space="preserve">
+    <value>目录</value>
+  </data>
+  <data name="About.Paths.Portable" xml:space="preserve">
+    <value>便携模式——配置与数据都在 Lingpane.exe 旁的 data 目录里。</value>
+  </data>
+  <data name="About.Paths.Config" xml:space="preserve">
+    <value>配置目录</value>
+  </data>
+  <data name="About.Paths.Logs" xml:space="preserve">
+    <value>日志目录</value>
+  </data>
+  <data name="About.Paths.Data" xml:space="preserve">
+    <value>数据目录</value>
+  </data>
+  <data name="About.Paths.Failed" xml:space="preserve">
+    <value>无法打开目录：{0}</value>
+  </data>
+  <data name="About.Diagnostics.Copy" xml:space="preserve">
+    <value>复制诊断信息</value>
+  </data>
+  <data name="About.Diagnostics.Hint" xml:space="preserve">
+    <value>版本、系统与目录路径，可直接粘贴到问题反馈里。</value>
+  </data>
+  <data name="About.Diagnostics.Copied" xml:space="preserve">
+    <value>诊断信息已复制到剪贴板。</value>
+  </data>
+  <data name="About.Diagnostics.Failed" xml:space="preserve">
+    <value>剪贴板被占用，请重试。</value>
+  </data>
+  <data name="About.Update.Check" xml:space="preserve">
+    <value>检查更新</value>
+  </data>
+  <data name="About.Update.Hint" xml:space="preserve">
+    <value>在浏览器中打开发布页。这里不会发出任何请求。</value>
+  </data>
+  <data name="About.Update.Failed" xml:space="preserve">
+    <value>无法打开浏览器。</value>
   </data>
 </root>

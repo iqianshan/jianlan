@@ -751,7 +751,7 @@
     <value>Recorded paths cleared</value>
   </data>
   <data name="Settings.About.Content" xml:space="preserve">
-    <value>Lingpane Preview (M1)&#10;Runtime: .NET {0}&#10;Data folder: {1}&#10;License: Apache-2.0</value>
+    <value>Lingpane {0}&#10;Data folder: {1}</value>
   </data>
   <data name="Common.Close" xml:space="preserve">
     <value>Close</value>
@@ -1392,5 +1392,130 @@
   </data>
   <data name="Settings.Behavior.PreviewAuto" xml:space="preserve">
     <value>Preview automatically when a file is selected</value>
+  </data>
+
+  <!-- 屏幕阅读器标签（FR-10.7）。给"自己不说话"的容器一个名字：
+       列表、导航栏、标签栏、地址栏、状态栏。可见文字已经能读出内容的控件不再重复给。 -->
+  <data name="A11y.FileList" xml:space="preserve">
+    <value>File list</value>
+  </data>
+  <data name="A11y.Nav" xml:space="preserve">
+    <value>Navigation pane</value>
+  </data>
+  <data name="A11y.TabStrip" xml:space="preserve">
+    <value>Tabs</value>
+  </data>
+  <data name="A11y.Address" xml:space="preserve">
+    <value>Address bar</value>
+  </data>
+  <data name="A11y.StatusBar" xml:space="preserve">
+    <value>Status bar</value>
+  </data>
+  <data name="A11y.Preview" xml:space="preserve">
+    <value>Preview pane</value>
+  </data>
+  <data name="A11y.PreviewText" xml:space="preserve">
+    <value>Preview text</value>
+  </data>
+  <data name="A11y.Toolbar" xml:space="preserve">
+    <value>Toolbar</value>
+  </data>
+
+  <!-- 关于页（FR-10.8）。许可证与依赖清单的正文不在这里：法律文本以原文为准，不翻译。 -->
+  <data name="About.Title" xml:space="preserve">
+    <value>About Lingpane</value>
+  </data>
+  <data name="About.Open" xml:space="preserve">
+    <value>About Lingpane…</value>
+  </data>
+  <data name="About.Tagline" xml:space="preserve">
+    <value>A quiet, keyboard-first file manager for Windows.</value>
+  </data>
+  <data name="About.Build" xml:space="preserve">
+    <value>build {0}</value>
+  </data>
+  <data name="About.Section.Environment" xml:space="preserve">
+    <value>Environment</value>
+  </data>
+  <data name="About.Env.Runtime" xml:space="preserve">
+    <value>Runtime</value>
+  </data>
+  <data name="About.Env.OS" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="About.Env.Arch" xml:space="preserve">
+    <value>Architecture</value>
+  </data>
+  <data name="About.Env.Memory" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="About.Env.MemoryValue" xml:space="preserve">
+    <value>{0} MB (working set)</value>
+  </data>
+  <data name="About.Section.License" xml:space="preserve">
+    <value>License</value>
+  </data>
+  <data name="About.Section.Tools" xml:space="preserve">
+    <value>Diagnostics &amp; updates</value>
+  </data>
+  <data name="About.License.Name" xml:space="preserve">
+    <value>License</value>
+  </data>
+  <data name="About.License.View" xml:space="preserve">
+    <value>Full license text</value>
+  </data>
+  <data name="About.License.Notice" xml:space="preserve">
+    <value>NOTICE</value>
+  </data>
+  <data name="About.License.ThirdParty" xml:space="preserve">
+    <value>Third-party notices</value>
+  </data>
+  <data name="About.License.Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="About.License.Copied" xml:space="preserve">
+    <value>Copied to the clipboard</value>
+  </data>
+  <data name="About.License.Missing" xml:space="preserve">
+    <value>The license file is missing from this build.</value>
+  </data>
+  <data name="About.Section.Paths" xml:space="preserve">
+    <value>Folders</value>
+  </data>
+  <data name="About.Paths.Portable" xml:space="preserve">
+    <value>Portable mode — settings and data live in the "data" folder next to Lingpane.exe.</value>
+  </data>
+  <data name="About.Paths.Config" xml:space="preserve">
+    <value>Settings folder</value>
+  </data>
+  <data name="About.Paths.Logs" xml:space="preserve">
+    <value>Log folder</value>
+  </data>
+  <data name="About.Paths.Data" xml:space="preserve">
+    <value>Data folder</value>
+  </data>
+  <data name="About.Paths.Failed" xml:space="preserve">
+    <value>Can't open the folder: {0}</value>
+  </data>
+  <data name="About.Diagnostics.Copy" xml:space="preserve">
+    <value>Copy diagnostics</value>
+  </data>
+  <data name="About.Diagnostics.Hint" xml:space="preserve">
+    <value>Version, system and folder paths, ready to paste into a bug report.</value>
+  </data>
+  <data name="About.Diagnostics.Copied" xml:space="preserve">
+    <value>Diagnostics copied to the clipboard.</value>
+  </data>
+  <data name="About.Diagnostics.Failed" xml:space="preserve">
+    <value>The clipboard is in use, please try again.</value>
+  </data>
+  <data name="About.Update.Check" xml:space="preserve">
+    <value>Check for updates</value>
+  </data>
+  <data name="About.Update.Hint" xml:space="preserve">
+    <value>Opens the releases page in your browser. Nothing is sent from here.</value>
+  </data>
+  <data name="About.Update.Failed" xml:space="preserve">
+    <value>Can't open the browser.</value>
   </data>
 </root>

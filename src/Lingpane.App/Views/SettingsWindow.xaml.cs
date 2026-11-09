@@ -39,7 +39,7 @@ public partial class SettingsWindow : Window
         AboutText.Text = string.Format(
             CultureInfo.CurrentCulture,
             Strings.Settings_About_Content,
-            Environment.Version,
+            AppInfo.DisplayVersion,
             AppPaths.Root);
 
         // 字体枚举与标签库条数都不进构造：两者都要读盘/遍历系统字体，
@@ -811,4 +811,10 @@ public partial class SettingsWindow : Window
     }
 
     private void OnClose(object sender, RoutedEventArgs e) => Close();
+
+    /// <summary>
+    /// 打开关于页（FR-10.8）。关于页覆盖在设置页之上而不是替换它：
+    /// 用户看完版本号多半还要回来继续改设置，关掉一扇就回到原处更顺手。
+    /// </summary>
+    private void OnOpenAbout(object sender, RoutedEventArgs e) => AboutWindow.ShowFor(this);
 }

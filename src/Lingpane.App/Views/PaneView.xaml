@@ -104,24 +104,31 @@
                     <Button Style="{StaticResource Button.Toolbar}"
                             Command="{Binding BackCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
                             Content="←"
-                            ToolTip="{loc:Tr Key=Toolbar.Back}"/>
+                            ToolTip="{loc:Tr Key=Toolbar.Back}"
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Back}"/>
                     <Button Style="{StaticResource Button.Toolbar}"
                             Command="{Binding ForwardCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
                             Content="→"
-                            ToolTip="{loc:Tr Key=Toolbar.Forward}"/>
+                            ToolTip="{loc:Tr Key=Toolbar.Forward}"
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Forward}"/>
                     <Button Style="{StaticResource Button.Toolbar}"
                             Command="{Binding UpCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
                             Content="↑"
-                            ToolTip="{loc:Tr Key=Toolbar.Up}"/>
+                            ToolTip="{loc:Tr Key=Toolbar.Up}"
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Up}"/>
                     <Button Style="{StaticResource Button.Toolbar}"
                             Command="{Binding RefreshCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
                             Content="⟳"
-                            ToolTip="{loc:Tr Key=Toolbar.Refresh}"/>
+                            ToolTip="{loc:Tr Key=Toolbar.Refresh}"
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Refresh}"/>
                 </StackPanel>
 
                 <!-- 地址栏：面包屑 ↔ 可编辑完整路径（Ctrl+L 或点击空白处切换） -->
                 <Grid Grid.Column="1" Margin="8,0,8,0" VerticalAlignment="Center">
-                    <ItemsControl x:Name="BreadcrumbHost" ItemsSource="{Binding Breadcrumbs}">
+                    <ItemsControl x:Name="BreadcrumbHost"
+                                  ItemsSource="{Binding Breadcrumbs}"
+                                  Focusable="False"
+                                  IsTabStop="False">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <StackPanel Orientation="Horizontal"/>
@@ -152,6 +159,7 @@
 
                     <TextBox x:Name="AddressBox"
                              Text="{Binding AddressText, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="{loc:Tr Key=A11y.Address}"
                              PreviewKeyDown="OnAddressKeyDown"
                              TextChanged="OnAddressTextChanged"
                              LostKeyboardFocus="OnAddressLostFocus">
@@ -341,12 +349,14 @@
                             Style="{StaticResource ViewButton.Details}"
                             Command="{Binding DetailsCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
                             Content="{loc:Tr Key=Toolbar.Details}"
-                            ToolTip="{loc:Tr Key=Toolbar.Details.Tip}"/>
+                            ToolTip="{loc:Tr Key=Toolbar.Details.Tip}"
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Details.Tip}"/>
                     <Button x:Name="ListButton"
                             Style="{StaticResource ViewButton.List}"
                             Command="{Binding ListViewCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
                             Content="{loc:Tr Key=Toolbar.List}"
-                            ToolTip="{loc:Tr Key=Toolbar.List.Tip}"/>
+                            ToolTip="{loc:Tr Key=Toolbar.List.Tip}"
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.List.Tip}"/>
 
                     <Border x:Name="SplitDivider"
                             Width="1"
@@ -528,6 +538,7 @@
             <Grid Grid.Row="1">
                 <ListBox x:Name="FileList"
                          ItemsSource="{Binding Entries}"
+                         AutomationProperties.Name="{loc:Tr Key=A11y.FileList}"
                          SelectionMode="Extended"
                          AllowDrop="True"
                          SelectionChanged="OnFileSelectionChanged"
@@ -689,6 +700,7 @@
         <!-- 状态栏：左侧数量与耗时，右侧选中统计，中间提示 -->
         <Border x:Name="StatusBarHost"
                 Grid.Row="2"
+                AutomationProperties.Name="{loc:Tr Key=A11y.StatusBar}"
                 Height="{DynamicResource Size.StatusBar.Height}"
                 Background="{DynamicResource Brush.Surface.Window}"
                 BorderBrush="{DynamicResource Brush.Border.Hairline}"

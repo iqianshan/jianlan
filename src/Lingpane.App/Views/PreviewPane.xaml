@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:loc="clr-namespace:Lingpane.App.Localization"
+             AutomationProperties.Name="{loc:Tr Key=A11y.Preview}"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True"
              TextOptions.TextFormattingMode="Display"
@@ -88,7 +89,9 @@
                        Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibility}}"/>
 
                 <!-- 文本。只读 TextBox 而不是 TextBlock：用户要能选中、复制其中一段，
-                     这在"看一眼配置文件"的场景里比什么都实用。 -->
+                     这在"看一眼配置文件"的场景里比什么都实用。
+                     它是预览窗格里唯一能用键盘操作的东西（方向键/PageUp 滚动、Ctrl+C 复制），
+                     所以给一条内描边焦点环——光标在这里不够醒目。 -->
                 <TextBox Text="{Binding TextContent, Mode=OneWay}"
                          IsReadOnly="True"
                          IsReadOnlyCaretVisible="True"
@@ -104,6 +107,8 @@
                          VerticalScrollBarVisibility="Auto"
                          HorizontalScrollBarVisibility="Auto"
                          VerticalAlignment="Stretch"
+                         FocusVisualStyle="{StaticResource FocusVisual.Inset}"
+                         AutomationProperties.Name="{loc:Tr Key=A11y.PreviewText}"
                          Visibility="{Binding HasText, Converter={StaticResource BoolToVisibility}}"/>
 
                 <!-- 系统预览处理器（FR-9.1.3）。它画在一个真实的子窗口里，

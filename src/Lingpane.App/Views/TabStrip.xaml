@@ -25,6 +25,10 @@
         <Style x:Key="TabClose" TargetType="Button">
             <Setter Property="Width" Value="18"/>
             <Setter Property="Height" Value="18"/>
+            <!-- 不参与 Tab 遍历（FR-10.7）：12 个标签就有 12 颗关闭按钮，
+                 让它们各占一个焦点停靠点会把"从标签栏走到内容区"变成十几下 Tab。
+                 键盘关闭走 Ctrl+W 与右键菜单里的「关闭」 -->
+            <Setter Property="IsTabStop" Value="False"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -63,7 +67,11 @@
                       VerticalScrollBarVisibility="Disabled"
                       CanContentScroll="False"
                       PreviewMouseWheel="OnStripMouseWheel">
-            <ItemsControl x:Name="TabItems" ItemsSource="{Binding Tabs}">
+            <ItemsControl x:Name="TabItems"
+                          ItemsSource="{Binding Tabs}"
+                          Focusable="False"
+                          IsTabStop="False"
+                          AutomationProperties.Name="{loc:Tr Key=A11y.TabStrip}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <StackPanel Orientation="Horizontal"/>
@@ -79,7 +87,10 @@
                                 BorderThickness="0,0,1,0"
                                 ContextMenuOpening="OnTabMenuOpening"
                                 PreviewMouseLeftButtonDown="OnTabMouseLeftButtonDown"
-                                PreviewMouseDown="OnTabMouseDown">
+                                PreviewMouseDown="OnTabMouseDown"
+                                Focusable="True"
+                                KeyDown="OnTabKeyDown"
+                                AutomationProperties.Name="{Binding DisplayName}">
                             <!-- 默认底色写在样式里而不是元素属性上：
                                  元素上的本地值优先级高于样式触发器，会让活动态永远不生效 -->
                             <Border.Style>
@@ -122,7 +133,6 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-
                                     <!-- 图标位：固定后换成实心图钉并染强调色（FR-2.9）。
                                          不另加一列徽标——标签最窄只有 100px，多一个 16px 的
                                          图形等于直接砍掉标题的可读宽度。 -->
@@ -174,6 +184,29 @@
                                                    VerticalAlignment="Center"/>
                                     </Button>
                                 </Grid>
+
+                                <!-- 键盘焦点环（FR-10.7）。Border 不是 Control，用不了
+                                     FocusVisualStyle，只能在模板里画一条内描边。
+                                     绑最近一层 Border（就是 TabRoot）的 IsKeyboardFocused：
+                                     鼠标点标签不会亮，只有 Tab/方向键走到这里才亮。 -->
+                                <Border Margin="1"
+                                        CornerRadius="3"
+                                        BorderBrush="{DynamicResource Brush.Border.Focus}"
+                                        BorderThickness="1"
+                                        IsHitTestVisible="False">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsKeyboardFocused,
+                                                                      RelativeSource={RelativeSource AncestorType={x:Type Border}}}"
+                                                             Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                </Border>
                             </Grid>
 
                             <Border.ContextMenu>

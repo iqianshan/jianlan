@@ -22,7 +22,7 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 | 方案 | 优点 | 缺点 | 结论 |
 |---|---|---|---|
 | A. 设置窗口内加「关于」分节 | 零新窗口 | 许可证全文 + 依赖清单是长文本，会把设置页拉得很长；设置页当前是单 `ScrollViewer` 顺序分区，加长后首屏要滚很久才能看到隐私开关 | ❌ |
-| B. **独立 `AboutWindow`（非模态，480×600）** | 长文本独立滚动；可单独截图传播；不干扰设置页布局 | 多一个窗口、多一份 XAML | ✅ **采用** |
+| B. **独立 `AboutWindow`（非模态，480×680）** | 长文本独立滚动；可单独截图传播；不干扰设置页布局 | 多一个窗口、多一份 XAML | ✅ **采用**（高度由 600 改 680，原因见 §六） |
 | C. 独立进程 | 隔离 | 与 P3 单进程单窗口冲突 | ❌ |
 
 入口：设置页底部（「隐私」分节之后）一个 `关于 Lingpane` 按钮。不加新快捷键（`F1` 已是快捷键帮助，
@@ -74,7 +74,14 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 
 ### 生成方式
 
-`tools/licenses/gen-third-party.ps1`：
+> **落地时改成"校验"（2026-11-09）。** 原计划是脚本生成整份清单，实际做下来发现：
+> 清单里除了包名与版本，还有"这个包为什么能再分发"这类需要人判断的段落
+> （例如 Windows SDK 投影走的是 SDK 条款而不是 MIT，按 MIT 写会让清单更"干净"但那是错的）。
+> 让脚本整篇重写等于把判断覆盖成机器猜出来的许可证名，比漏登记更糟。
+> 现在的分工是：**脚本保证"漏登记一定失败"，人负责"登记得对不对"**。
+> 两个判据都在 `tools/licenses/check-third-party.ps1` 里，CI 步骤名 `Third-party notices`。
+
+原计划的生成流程（保留作参考）：
 
 1. 读 `src/Lingpane.App/obj/project.assets.json` 的 `targets` 节点，取 `runtime` 依赖的包名 + 版本
    （含传递依赖）；
@@ -84,8 +91,15 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
    `https://github.com/dotnet/runtime/blob/main/LICENSE.TXT`；
 4. 输出 `THIRD-PARTY-NOTICES.md`（名称、版本、许可证、仓库地址四列）。
 
-**CI 校验**：`dotnet restore` 后重跑脚本，与仓库内文件 diff；不一致即失败（防止加了包忘了更新清单，
-这正是 AC-10 的实质要求）。
+**CI 校验（实现版）**：`dotnet build` 之后跑 `tools/licenses/check-third-party.ps1`，两条判据：
+
+1. `src/Lingpane.App/obj/project.assets.json` 里 `type=package` 且有 `runtime` 段的每个包，
+   包名必须出现在 `THIRD-PARTY-NOTICES.md` 里（版本号对不上只告警，不失败——升级后先改版本很正常）；
+2. `publish/` 里每个非 `Lingpane.*` 的 `*.dll`，文件名必须出现在清单里。
+
+第二条是必须的：本项目真正的第三方程序集（`Microsoft.Windows.SDK.NET.dll`、`WinRT.Runtime.dll`）
+来自目标框架的隐式引用，在 `project.assets.json` 里**没有** package 条目，
+只靠第一条会得出"零个第三方包"的假结论。
 
 ### 为什么不做成运行时动态生成
 
@@ -97,7 +111,7 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 
 | 项 | 做法 |
 |---|---|
-| 窗口 | `src/Lingpane.App/Views/AboutWindow.xaml(.cs)`，`WindowStartupLocation=CenterOwner`，`ResizeMode=CanResize`，`ShowInTaskbar=false` |
+| 窗口 | `src/Lingpane.App/Views/AboutWindow.xaml(.cs)`，`WindowStartupLocation=CenterOwner`，`ResizeMode=CanResize`，`ShowInTaskbar=false`，**480×680**（650 以上才装得下全部内容：实测内容 425px，600 高的窗里视口只有 401，首屏会把"目录"整段切掉） |
 | 版本号 | `Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion`；`+` 后为 commit，无 `+` 时只显示版本号 |
 | 打开目录 | `Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })`；路径不存在先 `Directory.CreateDirectory`（日志目录可能尚未创建）；异常 → 状态行提示，不弹原始异常 |
 | 复制诊断 | `Clipboard.SetText` 包在 try/catch（剪贴板被占用是常态），失败提示"剪贴板被占用，请重试" |
@@ -117,14 +131,15 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 
 ## 八、验收
 
-- [ ] 版本号与 `publish/Lingpane.exe` 文件版本一致，commit 短号与实际 HEAD 一致
-- [ ] 「查看许可证全文」能读到完整 Apache-2.0 文本（含附录）；NOTICE 内容与仓库一致
-- [ ] 依赖清单条目与 `project.assets.json` 一致（CI 脚本校验通过）
+- [x] 版本号取 `AppInfo.DisplayVersion`，`+` 之后的短 commit 另排小字（构建时 `-p:InformationalVersion=0.1.0+2d31cdc` 实测显示"构建 2d31cdc"）
+- [x] 「查看许可证全文」能读到完整 Apache-2.0 文本（含附录）；NOTICE 与依赖清单同样是内嵌资源，内容即仓库原文
+- [x] 依赖清单条目与产物一致（`tools/licenses/check-third-party.ps1`，正反两条路径都验过）
 - [ ] 三个目录按钮都能打开资源管理器并定位到正确路径（含日志目录尚不存在的首次运行）
-- [ ] 断网状态下全部功能可用（「检查更新」只是打开浏览器）
-- [ ] 深色、浅色、高对比度三模式下文字可读、无错位
-- [ ] 英文界面下无截断、无中文残留
-- [ ] 复制诊断信息成功，内容含版本/OS/架构/三个路径
+      —— 代码路径与设置页的"打开数据目录"同源，但离屏进程开不了资源管理器，**未实测**
+- [x] 断网状态下全部功能可用（「检查更新」只 `Process.Start` 一个 URL）
+- [x] 深色、浅色两模式文字可读、无错位（截图见走查）；高对比度未实测
+- [x] 英文界面下无截断、无中文残留（480×680 下逐屏看过）
+- [x] 复制诊断信息成功（`DiagnosticInfo` 7 条单测；剪贴板被占时给提示不崩）
 
 ## 九、工作量
 

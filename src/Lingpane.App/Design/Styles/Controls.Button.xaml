@@ -160,6 +160,9 @@
     <!-- 地址栏输入框：默认模板会带系统配色，这里显式收窄并去掉焦点光晕 -->
     <Style x:Key="TextBox.Address" TargetType="TextBox">
         <Setter Property="Height" Value="{DynamicResource Size.Row.Comfortable}"/>
+        <!-- 前面那行注释说"去掉焦点光晕"，但那之后没有补任何替代：
+             Tab 进地址栏/搜索框时只能靠一根闪烁的光标判断。这里补一条内描边 -->
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Inset}"/>
         <Setter Property="Padding" Value="8,0,8,0"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Background" Value="{DynamicResource Brush.Surface.Content}"/>

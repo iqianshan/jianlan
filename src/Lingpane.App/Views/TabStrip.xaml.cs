@@ -145,6 +145,60 @@ public partial class TabStrip : UserControl
         }
     }
 
+    // ── 键盘（FR-10.7）──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// 标签上的键盘操作。焦点环由模板画（Border 没有 FocusVisualStyle），
+    /// 这里只负责把按键翻译成动作。
+    ///
+    /// 方向键直接切换标签而不是"只移动焦点"：与系统 TabControl 一致，
+    /// 少按一次 Enter；不提供 Delete 关闭——误触会把正在用的标签关掉，
+    /// 键盘关闭走 Ctrl+W，和鼠标右键菜单是同一个动作。
+    /// </summary>
+    private void OnTabKeyDown(object sender, KeyEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: TabViewModel tab }) return;
+
+        switch (e.Key)
+        {
+            case Key.Enter:
+            case Key.Space:
+                _host?.Activate(tab);
+                e.Handled = true;
+                break;
+
+            case Key.Left:
+                MoveToSibling(tab, -1);
+                e.Handled = true;
+                break;
+
+            case Key.Right:
+                MoveToSibling(tab, 1);
+                e.Handled = true;
+                break;
+        }
+    }
+
+    private void MoveToSibling(TabViewModel tab, int delta)
+    {
+        if (_host is null) return;
+
+        int index = _host.Tabs.IndexOf(tab);
+        if (index < 0) return;
+
+        int next = Math.Clamp(index + delta, 0, _host.Tabs.Count - 1);
+        if (next == index) return;
+
+        TabViewModel target = _host.Tabs[next];
+        _host.Activate(target);
+
+        // 容器此刻可能还没生成（刚新建的标签），等一轮布局再落焦点
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+        {
+            if (FindContainer(target) is FrameworkElement container) container.Focus();
+        });
+    }
+
     // ── 鼠标：切换 / 中键关闭 / 拖拽排序 ────────────────────────────────────
 
     private void OnTabMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

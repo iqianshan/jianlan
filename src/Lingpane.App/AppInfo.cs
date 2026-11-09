@@ -24,6 +24,21 @@ internal static class AppInfo
     /// </summary>
     public static string DisplayVersion { get; } = CutBuildMetadata(Version);
 
+    /// <summary>
+    /// <c>+</c> 之后那段构建标识（通常是 7 位短 commit），没有时为 <c>null</c>。
+    /// 关于页把它排在版本号旁边的小字里：用户报 bug 时，三段版本号只能定位到"哪个版本"，
+    /// 带短号才能定位到"哪一次构建"。
+    /// </summary>
+    public static string? BuildTag { get; } = ResolveBuildTag();
+
+    private static string? ResolveBuildTag()
+    {
+        int plus = Version.IndexOf('+');
+        if (plus < 0 || plus == Version.Length - 1) return null;
+
+        return Version[(plus + 1)..].Trim();
+    }
+
     private static string Resolve()
     {
         Assembly asm = typeof(AppInfo).Assembly;

@@ -24,6 +24,12 @@ jobs:
       - name: Build
         run: dotnet build -c Release --no-restore
 
+      # AC-10：加了包却忘了更新 THIRD-PARTY-NOTICES.md 时在这里失败。
+      # 判据见 tools/licenses/check-third-party.ps1 文件头。
+      - name: Third-party notices
+        shell: pwsh
+        run: ./tools/licenses/check-third-party.ps1
+
       - name: Test
         run: dotnet test -c Release --no-build --verbosity normal
 

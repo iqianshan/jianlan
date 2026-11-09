@@ -56,9 +56,16 @@ internal static class Program
         string? thenSearch = null;
         string? navPath = null;
         bool enableSplit = false;
+        bool disableSplit = false;
         bool thenRefresh = false;
         string? thenPath = null;
         bool thenEscape = false;
+        bool showSettings = false;
+        bool showAbout = false;
+        string? licenseView = null;
+        int tabSteps = -1;
+        string? langSetting = null;
+        string? themeName = null;
 
         for (int i = 2; i < argv.Length; i++)
         {
@@ -115,6 +122,10 @@ internal static class Program
                     // Esc 走的也是 SearchQuery 置空这一条链，没有桌面可按键时这就是等价路径
                     thenSearch = argv[++i];
                     break;
+                case "--no-split":
+                    // 分屏状态是落盘的，上一条用例跑完还是分屏；关掉才能拍单窗格的 Tab 顺序
+                    disableSplit = true;
+                    break;
                 case "--split":
                     // 分屏后每格工具栏只剩半个窗口，用来核对搜索框收窄与地址栏是否还够用
                     enableSplit = true;
@@ -132,6 +143,31 @@ internal static class Program
                     // 直接调搜索框的 KeyDown 处理器。离屏进程没有可发送按键的桌面，
                     // 但 Esc 走的就是这一个函数，调它等价于"在搜索框里按了 Esc"
                     thenEscape = true;
+                    break;
+                case "--settings":
+                    // 设置页。改了关于分节之后要能自己出一张图，不用每次手工开窗口
+                    showSettings = true;
+                    break;
+                case "--about":
+                    // 关于页（FR-10.8）。拍的是关于窗口本身，不是主窗口
+                    showAbout = true;
+                    break;
+                case "--about-license" when i + 1 < argv.Length:
+                    // 许可证查看窗。参数取 license / notice / thirdparty
+                    licenseView = argv[++i];
+                    break;
+                case "--tab" when i + 1 < argv.Length:
+                    // 按 Tab 走 N 步并打印焦点链（FR-10.7）。走的是 WPF 处理 Tab 时
+                    // 同一个 MoveFocus(Next)，因此链的顺序就是真实按键的顺序
+                    _ = int.TryParse(argv[++i], out tabSteps);
+                    break;
+                case "--lang" when i + 1 < argv.Length:
+                    // 界面语言。英文走查要拍英文版，不能靠"这台机器是中文系统"
+                    langSetting = argv[++i];
+                    break;
+                case "--theme" when i + 1 < argv.Length:
+                    // 浅色 / 深色。默认跟随系统，走查三主题时必须显式指定
+                    themeName = argv[++i];
                     break;
             }
         }
@@ -160,14 +196,29 @@ internal static class Program
                     await Task.Delay(500);
                 }
 
-                if (enableSplit)
+                if (langSetting is not null)
+                {
+                    // 走的是设置页切语言的那条链：改设置 + 立即生效 + 存盘
+                    App.ApplyLanguage(langSetting);
+                    await Task.Delay(400);
+                }
+
+                if (themeName is not null)
+                {
+                    ApplyTheme(themeName);
+                    await Task.Delay(400);
+                }
+
+                if (enableSplit || disableSplit)
                 {
                     // 是"确保分屏"而不是"切换"：设置是落盘的，上一次跑完就已经是分屏，
                     // 再 toggle 一次反而把它关掉（与 --preview 同一个坑）
                     FieldInfo? splitField = typeof(MainWindow).GetField(
                         "_splitEnabled", BindingFlags.NonPublic | BindingFlags.Instance);
 
-                    if (splitField?.GetValue(window) is not true)
+                    bool isSplit = splitField?.GetValue(window) is true;
+
+                    if (isSplit != enableSplit)
                     {
                         MethodInfo? toggle = typeof(MainWindow).GetMethod(
                             "ToggleSplit", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -260,7 +311,30 @@ internal static class Program
 
                 if (dumpTree) DumpTree(window);
 
-                Save(window, outPath);
+                if (tabSteps >= 0) WalkTabChain(window, tabSteps);
+
+                Window target = window;
+
+                if (showSettings)
+                {
+                    target = OpenSettings(window);
+                    await Task.Delay(700);
+                }
+
+                if (showAbout || licenseView is not null)
+                {
+                    target = OpenAbout(window);
+                    await Task.Delay(600);
+                }
+
+                if (licenseView is not null)
+                {
+                    // 走关于页按钮自己的处理函数：这样读嵌入资源、建查看窗两条链都被真正跑过
+                    target = OpenLicense(target, licenseView);
+                    await Task.Delay(600);
+                }
+
+                Save(target, outPath);
                 Console.WriteLine($"已保存 {outPath}");
                 app.Shutdown(0);
             }
@@ -399,6 +473,217 @@ internal static class Program
 
         return pane;
     }
+
+    // ── 关于页与可访问性走查（FR-10.8 / FR-10.7）────────────────────────────
+
+    private static void ApplyTheme(string name)
+    {
+        Lingpane.Core.Settings.ThemeKind kind = name.ToLowerInvariant() switch
+        {
+            "light" => Lingpane.Core.Settings.ThemeKind.Light,
+            "dark" => Lingpane.Core.Settings.ThemeKind.Dark,
+            _ => Lingpane.Core.Settings.ThemeKind.System,
+        };
+
+        App.Settings.Appearance.Theme = kind;
+        Lingpane.App.Design.ThemeService.Apply(kind);
+    }
+
+    private static Window OpenSettings(Window owner)
+    {
+        MethodInfo? method = typeof(MainWindow).GetMethod(
+            "OpenSettings", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        if (method is null) throw new MissingMethodException("MainWindow.OpenSettings");
+
+        method.Invoke(owner, null);
+
+        Window settings = Application.Current.Windows.OfType<SettingsWindow>().LastOrDefault()
+                          ?? throw new InvalidOperationException("设置页没有出现");
+
+        // 关于分节在最底下，不滚到底拍不到
+        settings.UpdateLayout();
+        ScrollToEnd(settings);
+
+        return settings;
+    }
+
+    private static void ScrollToEnd(DependencyObject root)
+    {
+        var pending = new System.Collections.Generic.Queue<DependencyObject>();
+        pending.Enqueue(root);
+
+        while (pending.Count > 0)
+        {
+            DependencyObject node = pending.Dequeue();
+
+            if (node is System.Windows.Controls.ScrollViewer viewer)
+            {
+                viewer.ScrollToEnd();
+                return;
+            }
+
+            int count = VisualTreeHelper.GetChildrenCount(node);
+            for (int i = 0; i < count; i++) pending.Enqueue(VisualTreeHelper.GetChild(node, i));
+        }
+    }
+
+    /// <summary>打开关于页。调用的是设置页按钮走的那一个入口。</summary>
+    private static Window OpenAbout(Window owner)
+    {
+        AboutWindow.ShowFor(owner);
+
+        Window about = Application.Current.Windows.OfType<AboutWindow>().LastOrDefault()
+                       ?? throw new InvalidOperationException("关于页没有出现");
+
+        PrintScrollExtent(about);
+
+        return about;
+    }
+
+    /// <summary>
+    /// 关于页要不要滚动，靠读值而不是看图：截图只能看到首屏，
+    /// ExtentHeight - ViewportHeight 才是"还差多少像素"。
+    /// </summary>
+    private static void PrintScrollExtent(Window window)
+    {
+        window.UpdateLayout();
+
+        var pending = new System.Collections.Generic.Queue<DependencyObject>();
+        pending.Enqueue(window);
+
+        while (pending.Count > 0)
+        {
+            DependencyObject node = pending.Dequeue();
+
+            if (node is System.Windows.Controls.ScrollViewer viewer)
+            {
+                Console.WriteLine(
+                    $"ABOUT window={window.ActualWidth:F0}x{window.ActualHeight:F0} " +
+                    $"extent={viewer.ExtentHeight:F0} viewport={viewer.ViewportHeight:F0} " +
+                    $"overflow={viewer.ExtentHeight - viewer.ViewportHeight:F0}");
+
+                // 各区块高度：找"哪一段最占地方"比盯着截图猜快
+                if (viewer.Content is System.Windows.Controls.Panel panel)
+                {
+                    foreach (UIElement child in panel.Children)
+                    {
+                        string label = child switch
+                        {
+                            System.Windows.Controls.TextBlock tb => tb.Text,
+                            _ => child.GetType().Name,
+                        };
+
+                        Console.WriteLine(
+                            $"ABOUT   {child.GetType().Name,-12} h={((FrameworkElement)child).ActualHeight,4:F0}  {Truncate(label, 30)}");
+                    }
+                }
+
+                return;
+            }
+
+            int count = VisualTreeHelper.GetChildrenCount(node);
+            for (int i = 0; i < count; i++) pending.Enqueue(VisualTreeHelper.GetChild(node, i));
+        }
+
+        Console.WriteLine("ABOUT 没有找到 ScrollViewer");
+    }
+
+    /// <summary>
+    /// 打开许可证查看窗。不直接调 <c>LicenseWindow.ShowText</c>：
+    /// 那会跳过"读嵌入资源"这一步，而这一步恰恰是最可能被构建配置弄坏的地方。
+    /// </summary>
+    private static Window OpenLicense(Window about, string which)
+    {
+        string handler = which.ToLowerInvariant() switch
+        {
+            "notice" => "OnViewNotice",
+            "thirdparty" => "OnViewThirdParty",
+            _ => "OnViewLicense",
+        };
+
+        MethodInfo? method = typeof(AboutWindow).GetMethod(
+            handler, BindingFlags.NonPublic | BindingFlags.Instance);
+
+        if (method is null) throw new MissingMethodException($"AboutWindow.{handler}");
+
+        method.Invoke(about, [about, new RoutedEventArgs()]);
+
+        return Application.Current.Windows.OfType<LicenseWindow>().LastOrDefault()
+               ?? throw new InvalidOperationException("许可证窗口没有出现");
+    }
+
+    /// <summary>
+    /// 按 Tab 走 N 步并打印焦点链。用的是 WPF 处理 Tab 时调用的同一个
+    /// <c>MoveFocus(Next)</c>，因此链的顺序就是真实按键的顺序。
+    /// 走完停在最后一步上，截图里能直接看到焦点框。
+    /// </summary>
+    private static void WalkTabChain(Window window, int steps)
+    {
+        window.UpdateLayout();
+        window.MoveFocus(new System.Windows.Input.TraversalRequest(
+            System.Windows.Input.FocusNavigationDirection.First));
+
+        for (int i = 0; i < steps; i++)
+        {
+            var focused = System.Windows.Input.Keyboard.FocusedElement as DependencyObject;
+            Console.WriteLine($"TAB {i:D2} {DescribeFocus(focused)}");
+
+            // 从"当前焦点所在的元素"往下一步走，而不是每次都从窗口走：
+            // 与 WPF 处理 Tab 键的方式一致，也能正确地跨出嵌套的 tab scope
+            var request = new System.Windows.Input.TraversalRequest(
+                System.Windows.Input.FocusNavigationDirection.Next);
+
+            if (System.Windows.Input.Keyboard.FocusedElement is UIElement element)
+            {
+                element.MoveFocus(request);
+            }
+            else
+            {
+                window.MoveFocus(request);
+            }
+        }
+    }
+
+    private static string DescribeFocus(DependencyObject? element)
+    {
+        if (element is null) return "(none)";
+
+        var parts = new System.Collections.Generic.List<string>
+        {
+            element.GetType().Name,
+        };
+
+        if (element is FrameworkElement { Name.Length: > 0 } named) parts.Add($"#{named.Name}");
+
+        string automation = System.Windows.Automation.AutomationProperties.GetName(element);
+        if (automation.Length > 0) parts.Add($"name=\"{automation}\"");
+
+        // 焦点视觉（FR-10.7）：自绘模板里不再写 FocusVisualStyle={x:Null}，
+        // 每个停靠点都应该挂着一条自定义焦点样式。这里只能证明"挂上了"，
+        // 画出来什么样得有交互桌面时人眼看（WPF 只在真按过键之后才画）。
+        if (element is System.Windows.Controls.Control focusable)
+        {
+            parts.Add(focusable.FocusVisualStyle is null ? "focus=default" : "focus=custom");
+        }
+
+        string content = element switch
+        {
+            System.Windows.Controls.TextBox box => box.Text,
+            System.Windows.Controls.ContentControl control => control.Content?.ToString() ?? string.Empty,
+            _ => string.Empty,
+        };
+
+        if (content.Length > 0)
+        {
+            parts.Add($"text=\"{Truncate(content, 40)}\"");
+        }
+
+        return string.Join("  ", parts);
+    }
+
+    private static string Truncate(string value, int max) =>
+        value.Length <= max ? value : value[..max] + "…";
 
     /// <summary>
     /// 打开某一色的结果页。走的是侧栏点击调用的同一个方法，只是不经过鼠标——

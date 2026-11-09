@@ -749,7 +749,7 @@ public static class Strings
     /// <summary>Recorded paths cleared</summary>
     public static string Settings_Privacy_Cleared => LocalizationService.Instance.Get("Settings.Privacy.Cleared");
 
-    /// <summary>Lingpane Preview (M1) Runtime: .NET {0} Data folder: {1} License: Apache-2.0</summary>
+    /// <summary>Lingpane {0} Data folder: {1}</summary>
     public static string Settings_About_Content => LocalizationService.Instance.Get("Settings.About.Content");
     // 含占位符：string.Format(Strings.Settings_About_Content, ...)
 
@@ -1425,5 +1425,128 @@ public static class Strings
 
     /// <summary>Preview automatically when a file is selected</summary>
     public static string Settings_Behavior_PreviewAuto => LocalizationService.Instance.Get("Settings.Behavior.PreviewAuto");
+
+    /// <summary>File list</summary>
+    public static string A11y_FileList => LocalizationService.Instance.Get("A11y.FileList");
+
+    /// <summary>Navigation pane</summary>
+    public static string A11y_Nav => LocalizationService.Instance.Get("A11y.Nav");
+
+    /// <summary>Tabs</summary>
+    public static string A11y_TabStrip => LocalizationService.Instance.Get("A11y.TabStrip");
+
+    /// <summary>Address bar</summary>
+    public static string A11y_Address => LocalizationService.Instance.Get("A11y.Address");
+
+    /// <summary>Status bar</summary>
+    public static string A11y_StatusBar => LocalizationService.Instance.Get("A11y.StatusBar");
+
+    /// <summary>Preview pane</summary>
+    public static string A11y_Preview => LocalizationService.Instance.Get("A11y.Preview");
+
+    /// <summary>Preview text</summary>
+    public static string A11y_PreviewText => LocalizationService.Instance.Get("A11y.PreviewText");
+
+    /// <summary>Toolbar</summary>
+    public static string A11y_Toolbar => LocalizationService.Instance.Get("A11y.Toolbar");
+
+    /// <summary>About Lingpane</summary>
+    public static string About_Title => LocalizationService.Instance.Get("About.Title");
+
+    /// <summary>About Lingpane…</summary>
+    public static string About_Open => LocalizationService.Instance.Get("About.Open");
+
+    /// <summary>A quiet, keyboard-first file manager for Windows.</summary>
+    public static string About_Tagline => LocalizationService.Instance.Get("About.Tagline");
+
+    /// <summary>build {0}</summary>
+    public static string About_Build => LocalizationService.Instance.Get("About.Build");
+    // 含占位符：string.Format(Strings.About_Build, ...)
+
+    /// <summary>Environment</summary>
+    public static string About_Section_Environment => LocalizationService.Instance.Get("About.Section.Environment");
+
+    /// <summary>Runtime</summary>
+    public static string About_Env_Runtime => LocalizationService.Instance.Get("About.Env.Runtime");
+
+    /// <summary>System</summary>
+    public static string About_Env_OS => LocalizationService.Instance.Get("About.Env.OS");
+
+    /// <summary>Architecture</summary>
+    public static string About_Env_Arch => LocalizationService.Instance.Get("About.Env.Arch");
+
+    /// <summary>Memory</summary>
+    public static string About_Env_Memory => LocalizationService.Instance.Get("About.Env.Memory");
+
+    /// <summary>{0} MB (working set)</summary>
+    public static string About_Env_MemoryValue => LocalizationService.Instance.Get("About.Env.MemoryValue");
+    // 含占位符：string.Format(Strings.About_Env_MemoryValue, ...)
+
+    /// <summary>License</summary>
+    public static string About_Section_License => LocalizationService.Instance.Get("About.Section.License");
+
+    /// <summary>Diagnostics &amp; updates</summary>
+    public static string About_Section_Tools => LocalizationService.Instance.Get("About.Section.Tools");
+
+    /// <summary>License</summary>
+    public static string About_License_Name => LocalizationService.Instance.Get("About.License.Name");
+
+    /// <summary>Full license text</summary>
+    public static string About_License_View => LocalizationService.Instance.Get("About.License.View");
+
+    /// <summary>NOTICE</summary>
+    public static string About_License_Notice => LocalizationService.Instance.Get("About.License.Notice");
+
+    /// <summary>Third-party notices</summary>
+    public static string About_License_ThirdParty => LocalizationService.Instance.Get("About.License.ThirdParty");
+
+    /// <summary>Copy</summary>
+    public static string About_License_Copy => LocalizationService.Instance.Get("About.License.Copy");
+
+    /// <summary>Copied to the clipboard</summary>
+    public static string About_License_Copied => LocalizationService.Instance.Get("About.License.Copied");
+
+    /// <summary>The license file is missing from this build.</summary>
+    public static string About_License_Missing => LocalizationService.Instance.Get("About.License.Missing");
+
+    /// <summary>Folders</summary>
+    public static string About_Section_Paths => LocalizationService.Instance.Get("About.Section.Paths");
+
+    /// <summary>Portable mode — settings and data live in the "data" folder next to Lingpane.exe.</summary>
+    public static string About_Paths_Portable => LocalizationService.Instance.Get("About.Paths.Portable");
+
+    /// <summary>Settings folder</summary>
+    public static string About_Paths_Config => LocalizationService.Instance.Get("About.Paths.Config");
+
+    /// <summary>Log folder</summary>
+    public static string About_Paths_Logs => LocalizationService.Instance.Get("About.Paths.Logs");
+
+    /// <summary>Data folder</summary>
+    public static string About_Paths_Data => LocalizationService.Instance.Get("About.Paths.Data");
+
+    /// <summary>Can't open the folder: {0}</summary>
+    public static string About_Paths_Failed => LocalizationService.Instance.Get("About.Paths.Failed");
+    // 含占位符：string.Format(Strings.About_Paths_Failed, ...)
+
+    /// <summary>Copy diagnostics</summary>
+    public static string About_Diagnostics_Copy => LocalizationService.Instance.Get("About.Diagnostics.Copy");
+
+    /// <summary>Version, system and folder paths, ready to paste into a bug report.</summary>
+    public static string About_Diagnostics_Hint => LocalizationService.Instance.Get("About.Diagnostics.Hint");
+
+    /// <summary>Diagnostics copied to the clipboard.</summary>
+    public static string About_Diagnostics_Copied => LocalizationService.Instance.Get("About.Diagnostics.Copied");
+
+    /// <summary>The clipboard is in use, please try again.</summary>
+    public static string About_Diagnostics_Failed => LocalizationService.Instance.Get("About.Diagnostics.Failed");
+
+    /// <summary>Check for updates</summary>
+    public static string About_Update_Check => LocalizationService.Instance.Get("About.Update.Check");
+
+    /// <summary>Opens the releases page in your browser. Nothing is sent from here.</summary>
+    public static string About_Update_Hint => LocalizationService.Instance.Get("About.Update.Hint");
+
+    /// <summary>Can't open the browser.</summary>
+    public static string About_Update_Failed => LocalizationService.Instance.Get("About.Update.Failed");
 
 }

@@ -10,7 +10,9 @@
     -->
 
     <!-- 列表行：常态 / 悬停 / 选中（焦点条） -->
-    <Style x:Key="Row.Item" TargetType="{x:Type ListBoxItem}">        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    <Style x:Key="Row.Item" TargetType="{x:Type ListBoxItem}">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Padding" Value="0"/>
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Inset}"/>
@@ -55,6 +57,8 @@
     <!-- 导航项：高度随字号，选中态只换文字色，不加左侧竖条 -->
     <Style x:Key="Nav.Item" TargetType="{x:Type ListBoxItem}">
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <!-- 分区标题行没有 Name，绑定失败留空，退回 Content.ToString()，与改动前一致 -->
+        <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Height" Value="{DynamicResource Size.Nav.Item.Height}"/>
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Inset}"/>

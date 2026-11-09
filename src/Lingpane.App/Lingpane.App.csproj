@@ -36,4 +36,16 @@
           CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!--
+    同一份文本再以嵌入资源打一份（关于页的「查看许可证全文 / NOTICE / 依赖清单」读的是它）。
+    不用"读 exe 旁边的文件"这条路：用户可能把 exe 单独拖到别处，也可能被杀软把
+    散落的 .md 清掉，那时关于页就只剩三个点不动的按钮。多十几 KB 换"程序内一定能读到"。
+    LogicalName 固定成 Legal.*，与 Services/LegalResources.cs 里的常量对应。
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\LICENSE" LogicalName="Legal.LICENSE" />
+    <EmbeddedResource Include="..\..\NOTICE" LogicalName="Legal.NOTICE" />
+    <EmbeddedResource Include="..\..\THIRD-PARTY-NOTICES.md" LogicalName="Legal.ThirdParty" />
+  </ItemGroup>
+
 </Project>

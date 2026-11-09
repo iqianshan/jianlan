@@ -394,6 +394,7 @@
               MaxWidth="{DynamicResource Size.Nav.Width.Max}">
             <ListBox x:Name="QuickAccessList"
                      Style="{StaticResource Nav.Surface}"
+                     AutomationProperties.Name="{loc:Tr Key=A11y.Nav}"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      SelectionChanged="OnQuickAccessSelectionChanged"
                      AllowDrop="True"
@@ -435,7 +436,8 @@
                     Padding="{StaticResource Padding.NavItem}"
                     Style="{StaticResource Button.NavCommand}"
                     Click="OnSettingsButtonClick"
-                    ToolTip="{loc:Tr Key=Toolbar.Settings.Tip}">
+                    ToolTip="{loc:Tr Key=Toolbar.Settings.Tip}"
+                    AutomationProperties.Name="{loc:Tr Key=Toolbar.Settings}">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Margin="0,0,8,0"
                                VerticalAlignment="Center"

@@ -36,6 +36,7 @@
 
     <Style x:Key="ComboBox.Default" TargetType="ComboBox">
         <Setter Property="Height" Value="{DynamicResource Size.Row.Comfortable}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Ring}"/>
         <Setter Property="MinWidth" Value="160"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
         <Setter Property="FontSize" Value="{DynamicResource Font.Size.Body}"/>
@@ -109,6 +110,8 @@
 
     <Style x:Key="CheckBox.Default" TargetType="CheckBox">
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+        <!-- 自定义模板没有焦点反馈，不补的话 Tab 到复选框时屏幕上看不出变化（FR-10.7） -->
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Inset}"/>
         <Setter Property="FontSize" Value="{DynamicResource Font.Size.Body}"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Cursor" Value="Hand"/>

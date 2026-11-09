@@ -502,11 +502,19 @@
                 <!-- ══ 关于 ══ -->
                 <TextBlock Style="{StaticResource Text.SectionTitle}" Text="{loc:Tr Key=Settings.Section.About}"/>
                 <TextBlock x:Name="AboutText"
-                           Style="{StaticResource Text.Caption.Wrap}"
-                           Text=""/>
+                           Style="{StaticResource Text.Caption.Wrap}"/>
+
+                <!-- 版本号、运行环境、许可证全文、依赖清单、三个目录入口都在关于页（FR-10.8 / 10.9）。
+                     设置页只留这句摘要与入口：许可证全文是 11KB，放在这里会把隐私那一段推下首屏。 -->
+                <Button Margin="0,10,0,0"
+                        HorizontalAlignment="Left"
+                        Style="{StaticResource Button.Toolbar}"
+                        Content="{loc:Tr Key=About.Open}"
+                        Click="OnOpenAbout"/>
+
                 <!-- 隐私声明（FR-5.3.7）。放在设置页而不是只写进 README：
                      用户判断"这东西会不会偷偷联网"的地方，就是设置页。 -->
-                <TextBlock Margin="0,8,0,0"
+                <TextBlock Margin="0,10,0,0"
                            Style="{StaticResource Text.Caption.Wrap}"
                            Text="{loc:Tr Key=Settings.About.Privacy}"/>
             </StackPanel>
