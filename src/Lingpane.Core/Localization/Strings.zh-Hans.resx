@@ -256,6 +256,27 @@
   <data name="Status.OperationFailed" xml:space="preserve">
     <value>操作失败：{0}</value>
   </data>
+  <data name="Status.AccessTimeout" xml:space="preserve">
+    <value>无法访问该位置：3 秒内没有响应</value>
+  </data>
+  <data name="Status.OpenedInExplorer" xml:space="preserve">
+    <value>已在资源管理器中打开{0}</value>
+  </data>
+  <data name="Status.ShellOpenFailed" xml:space="preserve">
+    <value>资源管理器打不开，可能被系统策略阻止</value>
+  </data>
+  <data name="Crash.Banner.Text" xml:space="preserve">
+    <value>上次在 {0} 没有正常退出，日志已保留，可用于排查原因。</value>
+  </data>
+  <data name="Crash.Banner.TextUnknown" xml:space="preserve">
+    <value>上次没有正常退出，日志已保留，可用于排查原因。</value>
+  </data>
+  <data name="Crash.Banner.OpenLogs" xml:space="preserve">
+    <value>打开日志文件夹</value>
+  </data>
+  <data name="Crash.Banner.Dismiss" xml:space="preserve">
+    <value>关闭提示</value>
+  </data>
 
   <data name="Nav.Desktop" xml:space="preserve">
     <value>桌面</value>
@@ -287,6 +308,9 @@
   </data>
   <data name="Error.DeviceNotReady" xml:space="preserve">
     <value>设备未就绪，请检查磁盘是否插好或网络是否连通</value>
+  </data>
+  <data name="Error.Timeout" xml:space="preserve">
+    <value>网络位置没有响应</value>
   </data>
   <data name="Error.PathTooLong" xml:space="preserve">
     <value>路径过长，超出系统限制</value>
@@ -835,6 +859,21 @@
   </data>
   <data name="Nav.Home" xml:space="preserve">
     <value>主页</value>
+  </data>
+  <data name="Nav.RecycleBin" xml:space="preserve">
+    <value>回收站</value>
+  </data>
+  <data name="Nav.RecycleBin.Tip" xml:space="preserve">
+    <value>回收站由系统管理，点击后在资源管理器中打开</value>
+  </data>
+  <data name="Nav.Network" xml:space="preserve">
+    <value>网络</value>
+  </data>
+  <data name="Nav.Network.Tip" xml:space="preserve">
+    <value>网络位置在资源管理器中打开；在地址栏输入 \\服务器\共享 可直接在此访问</value>
+  </data>
+  <data name="Nav.Width.Tip" xml:space="preserve">
+    <value>拖动调整导航栏宽度，双击恢复默认</value>
   </data>
   <data name="Tab.Home" xml:space="preserve">
     <value>主页</value>

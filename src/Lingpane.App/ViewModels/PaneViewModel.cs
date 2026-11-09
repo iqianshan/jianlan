@@ -13,11 +13,36 @@ using Lingpane.Core.Tagging;
 namespace Lingpane.App.ViewModels;
 
 /// <summary>
-/// 左侧导航项。显示名与字形在 UI 层映射，Core 只给路径。
-/// <paramref name="IsHome"/> 为真的那一项是主页入口（FR-1.2.1）：它没有路径，
-/// 点击的语义是"把当前标签切到主页"，不是"导航到某个目录"。
+/// 导航栏系统节点的种类。它决定点击语义，不只是图标：
+/// <see cref="Home"/> 切成应用内主页视图，<see cref="Folder"/> 导航到路径，
+/// <see cref="RecycleBin"/> / <see cref="Network"/> 是 shell 命名空间——
+/// 它们没有文件系统路径，本程序的列表/标签/预览都按路径工作，所以交给资源管理器打开（FR-1.2.3）。
 /// </summary>
-public sealed record NavItem(string Name, string Glyph, string Path, bool IsHome = false) : INavRow;
+public enum NavItemKind
+{
+    Home,
+    Folder,
+    RecycleBin,
+    Network,
+}
+
+/// <summary>
+/// 左侧导航项。显示名与字形在 UI 层映射，Core 只给路径。
+/// <see cref="Kind"/> 为 <see cref="NavItemKind.Home"/> 的那一项是主页入口（FR-1.2.1）：
+/// 它没有路径，点击的语义是"把当前标签切到主页"，不是"导航到某个目录"。
+/// </summary>
+public sealed record NavItem(
+    string Name,
+    string Glyph,
+    string Path,
+    NavItemKind Kind = NavItemKind.Folder,
+    string? Tooltip = null) : INavRow
+{
+    public bool IsHome => Kind == NavItemKind.Home;
+
+    /// <summary>系统命名空间（回收站 / 网络）：点击由资源管理器接管，本窗口不列目录。</summary>
+    public bool IsShellNamespace => Kind is NavItemKind.RecycleBin or NavItemKind.Network;
+}
 
 /// <summary>
 /// 单个浏览区（窗格）的视图模型：负责"打开目录 → 过滤 → 排序 → 交给列表"，
@@ -394,7 +419,37 @@ public sealed class PaneViewModel : INotifyPropertyChanged
 
         long started = Stopwatch.GetTimestamp();
         bool withFileIds = _tags is { IsLoaded: true, Count: > 0 };
-        var result = await Task.Run(() => ReadDirectory(target, withFileIds)).ConfigureAwait(true);
+        Task<(bool Ok, List<FileEntry> List, string? Error, ulong Volume)> read =
+            Task.Run(() => ReadDirectory(target, withFileIds));
+
+        // 慢位置（网络 / 可移动设备）给 3 秒等待上限（S-04）。内核在 SMB 重试时是
+        // 阻塞在 Win32 调用里的，取消不掉——只能"不再等它"，把结果丢掉。
+        // 判据与等待都放在 Core（SlowLocations），那边能单测；这里只按结论走。
+        if (SlowLocations.NeedsTimeout(target) &&
+            !await SlowLocations.CompletedWithinAsync(read, SlowLocations.Timeout).ConfigureAwait(true))
+        {
+            // 票号自增：晚到的那次枚举回来时 token 已经对不上，会被下面的判断丢掉。
+            // 不这么做的话，20 秒后界面会突然从"无法访问"跳到一屏文件，像自己动了。
+            _navigationToken++;
+            IsLoading = false;
+
+            _all = [];
+            _volumeSerial = 0;
+            Entries = [];
+            CurrentPath = target;
+            AddressText = target;
+            Breadcrumbs = Breadcrumb.Build(target);
+            LastNavigationError = Strings.Error_Timeout;
+            _lastNavigationErrorCode = FsErrors.Timeout;
+            StatusText = Strings.Status_AccessTimeout;
+
+            Diagnostics.AppLog.Warn(
+                "nav.timeout", FsErrors.Timeout,
+                $"{target} · {SlowLocations.Timeout.TotalSeconds:0}s 无响应");  // i18n-ignore：只进 app.log
+            return;
+        }
+
+        var result = await read.ConfigureAwait(true);
 
         // 期间用户又导航了一次：丢弃本次结果，否则会把新目录覆盖成旧目录
         if (token != _navigationToken) return;
@@ -1154,10 +1209,10 @@ public sealed class PaneViewModel : INotifyPropertyChanged
 
     private static List<NavItem> BuildQuickAccess()
     {
-        var list = new List<NavItem>(8);
+        var list = new List<NavItem>(10);
 
         // 主页节点（FR-1.2.1）。排在最前：它是"回到起点"，比任何一个具体目录更像入口
-        list.Add(new NavItem(Strings.Nav_Home, IconGlyphs.Home, string.Empty, IsHome: true));
+        list.Add(new NavItem(Strings.Nav_Home, IconGlyphs.Home, string.Empty, NavItemKind.Home));
 
         foreach (var folder in Services.KnownFolderService.All)
         {
@@ -1174,6 +1229,21 @@ public sealed class PaneViewModel : INotifyPropertyChanged
 
             list.Add(new NavItem(name, glyph, folder.Path));
         }
+
+        // 回收站与网络（FR-1.2.3）。排在已知文件夹之后，与资源管理器侧栏的顺序一致。
+        //
+        // 这两项没有文件系统路径：回收站存在 $Recycle.Bin 里、网络是 Win32 网络命名空间，
+        // 本程序的列表/标签/预览/文件操作全部按路径工作。给它们做一个"能点开但什么都做不了"
+        // 的假目录比不做更糟，所以点击交给资源管理器（见 MainWindow.OnQuickAccessSelectionChanged）。
+        // 网络"3 秒无响应"的验收落在导航本身上：地址栏输入 \\服务器\共享 时按 3 秒兜底
+        // （SlowLocations / PaneViewModel.NavigateAsync），这才是真正会卡住用户的那条路。
+        list.Add(new NavItem(
+            Strings.Nav_RecycleBin, IconGlyphs.RecycleBin, string.Empty,
+            NavItemKind.RecycleBin, Strings.Nav_RecycleBin_Tip));
+
+        list.Add(new NavItem(
+            Strings.Nav_Network, IconGlyphs.Network, string.Empty,
+            NavItemKind.Network, Strings.Nav_Network_Tip));
 
         return list;
     }

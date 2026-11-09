@@ -57,6 +57,12 @@ internal static class Program
         bool printState = false;
         int thenIndex = -1;
         string? searchQuery = null;
+        bool focusSearch = false;
+        double navResizeDx = 0;
+        bool navReset = false;
+        string? navMiddleLabel = null;
+        string? navLeftLabel = null;
+        bool printPaneStatus = false;
         string? thenSearch = null;
         string? navPath = null;
         bool enableSplit = false;
@@ -112,6 +118,34 @@ internal static class Program
                     break;
                 case "--close-preview":
                     disablePreview = true;
+                    break;
+                case "--nav-resize" when i + 1 < argv.Length:
+                    // 合成一次分隔条拖动（FR-1.2.4）。不走真实鼠标：离屏进程没有可拖的桌面，
+                    // 但 GridSplitter 的全部逻辑都挂在 Thumb 的三个拖动事件上，直接抛事件
+                    // 与真拖的区别只剩"WPF 有没有把鼠标捕获交给它"。
+                    _ = double.TryParse(argv[++i], System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out navResizeDx);
+                    break;
+                case "--nav-reset":
+                    // 双击分隔条回默认宽度（FR-1.2.4）。同样走控件的处理器，不调内部方法
+                    navReset = true;
+                    break;
+                case "--nav-middle" when i + 1 < argv.Length:
+                    // 导航栏中键（FR-1.2.6）：按显示名找行，抛一个中键 MouseDown 给它
+                    navMiddleLabel = argv[++i];
+                    break;
+                case "--nav-left" when i + 1 < argv.Length:
+                    // 左键对照：同样的行，左键不该新开标签
+                    navLeftLabel = argv[++i];
+                    break;
+                case "--status":
+                    // 打完动作后把窗格的状态栏与路径打一行：超时、无法访问这类结论
+                    // 只看图会以为是"空目录"
+                    printPaneStatus = true;
+                    break;
+                case "--focus-search":
+                    // 聚焦搜索框，用来验证压缩态"收起 40 / 聚焦展开 150"这条链
+                    focusSearch = true;
                     break;
                 case "--search" when i + 1 < argv.Length:
                     // 当前目录搜索（FR-6.13）。空串表示"清空搜索"，
@@ -208,7 +242,11 @@ internal static class Program
             {
                 if (navPath is not null)
                 {
+                    Console.WriteLine($"nav.slow={Lingpane.Core.FileSystem.SlowLocations.NeedsTimeout(navPath)} " +
+                                      $"unc={Lingpane.Core.FileSystem.SlowLocations.IsUnc(navPath)} path={navPath}");
+                    var clock = System.Diagnostics.Stopwatch.StartNew();
                     await GetPane(window).ViewModel!.NavigateAsync(navPath);
+                    Console.WriteLine($"nav.elapsed={clock.ElapsedMilliseconds}ms");
                     await Task.Delay(500);
                 }
 
@@ -287,6 +325,45 @@ internal static class Program
                     // 250ms 防抖 + 后台过滤，600ms 足够看到结果；取整留一点余量
                     await Task.Delay(700);
                     PrintSearchState(window);
+                }
+
+                if (navResizeDx != 0)
+                {
+                    ResizeNav(window, navResizeDx);
+                    await Task.Delay(400);
+                }
+
+                if (navReset)
+                {
+                    ResetNav(window);
+                    await Task.Delay(300);
+                }
+
+                if (navLeftLabel is not null)
+                {
+                    ClickNav(window, navLeftLabel, System.Windows.Input.MouseButton.Left);
+                    await Task.Delay(900);
+                }
+
+                if (navMiddleLabel is not null)
+                {
+                    ClickNav(window, navMiddleLabel, System.Windows.Input.MouseButton.Middle);
+                    await Task.Delay(900);
+                }
+
+                if (focusSearch)
+                {
+                    FocusSearch(window);
+                    await Task.Delay(400);
+                }
+
+                if (printPaneStatus)
+                {
+                    PaneViewModel pane = GetPane(window).ViewModel ?? throw new MissingMemberException("PaneView.ViewModel");
+                    Console.WriteLine($"pane.path={pane.CurrentPath}");
+                    Console.WriteLine($"pane.status={pane.StatusText}");
+                    Console.WriteLine($"pane.error={pane.LastNavigationError}");
+                    Console.WriteLine($"pane.count={pane.TotalCount}");
                 }
 
                 if (thenSearch is not null)
@@ -440,6 +517,129 @@ internal static class Program
         }
 
         box.Text = query;
+    }
+
+    /// <summary>
+    /// 给导航栏某一行抛一次鼠标按下（FR-1.2.6 的走查口）。按显示名找行：行是模板生成的，
+    /// 拿不到引用，只能从 Items 里按 DataContext 的名字认。
+    /// 抛在容器上而不是列表上——真实点击的 OriginalSource 就是容器内部的那一层。
+    /// </summary>
+    private static void ClickNav(MainWindow window, string label, System.Windows.Input.MouseButton button)
+    {
+        if (window.FindName("QuickAccessList") is not System.Windows.Controls.ListBox list)
+        {
+            throw new MissingMemberException("QuickAccessList");
+        }
+
+        System.Windows.Controls.ListBoxItem? target = null;
+        foreach (object item in list.Items)
+        {
+            if (LabelOf(item) != label) continue;
+            list.UpdateLayout();
+            target = list.ItemContainerGenerator.ContainerFromItem(item) as System.Windows.Controls.ListBoxItem;
+            break;
+        }
+
+        if (target is null) throw new MissingMemberException($"导航行 {label}");
+
+        FieldInfo? tabsField = typeof(MainWindow).GetField("_tabs", BindingFlags.NonPublic | BindingFlags.Instance);
+        var host = (TabHostViewModel?)tabsField?.GetValue(window);
+        Console.WriteLine($"nav.click={label} button={button} tabs.before={host?.Tabs.Count}");
+
+        var args = new System.Windows.Input.MouseButtonEventArgs(
+            System.Windows.Input.Mouse.PrimaryDevice, Environment.TickCount, button)
+        {
+            RoutedEvent = System.Windows.UIElement.MouseDownEvent,
+        };
+
+        target.RaiseEvent(args);
+
+        Console.WriteLine($"nav.click={label} handled={args.Handled} tabs.after={host?.Tabs.Count}");
+    }
+
+    /// <summary>行的显示名：系统节点取 Name，其余取 Title（都带数量后缀的那几个正好是标题）不好统一，
+    /// 这里只认系统节点与标签行，够走查用。</summary>
+    private static string? LabelOf(object item) => item switch
+    {
+        NavItem nav => nav.Name,
+        NavTagRow tag => tag.Name,
+        NavWorkspaceRow workspace => workspace.Name,
+        _ => null,
+    };
+
+    /// <summary>
+    /// 合成一次导航栏分隔条的拖动，并打印拖动前后的列宽与落盘值（FR-1.2.4）。
+    /// 参数是水平位移（正值 = 变宽）。
+    /// </summary>
+    private static void ResizeNav(MainWindow window, double dx)
+    {
+        if (window.FindName("NavSplitter") is not System.Windows.Controls.GridSplitter splitter ||
+            window.FindName("NavColumn") is not System.Windows.Controls.ColumnDefinition column)
+        {
+            throw new MissingMemberException("NavSplitter/NavColumn");
+        }
+
+        Console.WriteLine($"nav.before={column.ActualWidth:0}");
+
+        splitter.RaiseEvent(new System.Windows.Controls.Primitives.DragStartedEventArgs(0, 0));
+        splitter.RaiseEvent(new System.Windows.Controls.Primitives.DragDeltaEventArgs(dx, 0));
+        window.UpdateLayout();
+        Console.WriteLine($"nav.during={column.ActualWidth:0}");
+
+        splitter.RaiseEvent(new System.Windows.Controls.Primitives.DragCompletedEventArgs(dx, 0, false));
+        window.UpdateLayout();
+        Console.WriteLine($"nav.after={column.ActualWidth:0} saved={App.Settings.Layout.NavWidth:0}");
+    }
+
+    /// <summary>双击分隔条回默认宽度，打印回弹前后的列宽与落盘值（FR-1.2.4）。</summary>
+    private static void ResetNav(MainWindow window)
+    {
+        if (window.FindName("NavSplitter") is not System.Windows.Controls.GridSplitter splitter ||
+            window.FindName("NavColumn") is not System.Windows.Controls.ColumnDefinition column)
+        {
+            throw new MissingMemberException("NavSplitter/NavColumn");
+        }
+
+        Console.WriteLine($"nav.reset.before={column.ActualWidth:0}");
+
+        var args = new System.Windows.Input.MouseButtonEventArgs(
+            System.Windows.Input.Mouse.PrimaryDevice, Environment.TickCount, System.Windows.Input.MouseButton.Left)
+        {
+            RoutedEvent = System.Windows.Controls.Control.MouseDoubleClickEvent,
+        };
+
+        splitter.RaiseEvent(args);
+        window.UpdateLayout();
+
+        Console.WriteLine($"nav.reset.after={column.ActualWidth:0} saved={App.Settings.Layout.NavWidth:0}");
+    }
+
+    /// <summary>
+    /// 聚焦工具栏搜索框，并把展开前后的宽度打出来（FR-1.2.4 之后分屏地址栏的配套改动）。
+    /// 光看截图只能看到"框变宽了"，宽度值才能说明收起态是 40、展开后是 150。
+    /// </summary>
+    private static void FocusSearch(MainWindow window)
+    {
+        PaneView pane = GetPane(window);
+
+        if (pane.FindName("SearchHost") is not FrameworkElement host ||
+            pane.FindName("SearchBox") is not System.Windows.Controls.TextBox box ||
+            pane.FindName("BreadcrumbHost") is not FrameworkElement breadcrumb)
+        {
+            throw new MissingMemberException("SearchHost/SearchBox/BreadcrumbHost");
+        }
+
+        Console.WriteLine($"search.compact={pane.IsCompactPane}");
+        Console.WriteLine($"search.width.collapsed={host.Width:0} address.collapsed={breadcrumb.ActualWidth:0}");
+
+        // 窗格先拿焦点：窗口没有活动焦点时 TextBox.Focus 会被 WPF 忽略
+        pane.Focus();
+        box.Focus();
+        System.Windows.Input.Keyboard.Focus(box);
+        pane.UpdateLayout();
+
+        Console.WriteLine($"search.width.focused={host.Width:0} address.focused={breadcrumb.ActualWidth:0} " +
+                          $"keyboardFocused={box.IsKeyboardFocused}");
     }
 
     /// <summary>

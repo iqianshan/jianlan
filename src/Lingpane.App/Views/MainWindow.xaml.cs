@@ -82,6 +82,10 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
 
+        // 导航栏宽度取设置里的值（FR-1.2.4）。必须在首帧前套上：放在 Loaded 里会让
+        // 侧栏先按默认宽度画一帧、再跳到用户拖过的宽度，看起来像闪了一下。
+        ApplyNavLayout();
+
         // 标签集合归窗口：两个窗格共用同一排标签（一个标签 = 一对窗格），
         // 标签不能属于某一边。浏览区的视图模型由它创建、由窗格 Attach。
         _splitEnabled = App.Settings.Layout.SplitEnabled;
@@ -198,6 +202,9 @@ public partial class MainWindow : Window
         Loaded += OnLoaded;
         ContentRendered += OnContentRendered;
         CompositionTarget.Rendering += OnFirstRender;
+
+        // 上次没退干净就在首帧里带上一条提示（FR-10.6）。构造期做，首帧即终态。
+        ShowSessionBannerIfNeeded();
 
         // 记录最后目录与标签列表供下次启动使用。这个处理器先于 App 的保存处理器执行，
         // 因此退出时写到盘上的是本窗口刚更新的值。
@@ -1110,10 +1117,9 @@ public partial class MainWindow : Window
     {
         AppSettings s = App.Settings;
 
-        NavColumn.Width = s.Appearance.ShowNavPane
-            ? new GridLength(1, GridUnitType.Auto)
-            : new GridLength(0);
-        QuickAccessList.Visibility = s.Appearance.ShowNavPane ? Visibility.Visible : Visibility.Collapsed;
+        // 导航栏的显示/隐藏与宽度都归 ApplyNavLayout（FR-1.2.4）：宽度现在有两个来源
+        // （设置里的像素值、设置页的开关），分在两处写就会出现"关掉侧栏后列宽还是 184"这类错位
+        ApplyNavLayout();
 
         // 设置入口那一行不跟"显示状态栏"走：状态栏是纯展示设置，
         // 不能顺带把唯一的设置入口藏掉（这一行高度固定为状态栏高度，见 MainWindow.xaml）。
@@ -1558,6 +1564,13 @@ public partial class MainWindow : Window
         {
             // FR-1.2.1：主页节点在当前标签内打开，而不是另开一个标签
             Tab.ShowHome();
+            return;
+        }
+
+        // 回收站 / 网络（FR-1.2.3）：shell 命名空间，没有文件系统路径，交给资源管理器
+        if (item.IsShellNamespace)
+        {
+            OpenShellLocation(item.Kind, item.Name);
             return;
         }
 

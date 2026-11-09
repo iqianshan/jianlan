@@ -23,6 +23,9 @@ public static class FsErrors
     /// <summary>删除被拒但原因判不细（Shell 只给了个未文档化的返回码）。</summary>
     public const string DeleteRefused = "E1007";
 
+    /// <summary>慢位置（网络 / 可移动设备）3 秒内没有响应，导航已放弃等待（见 SlowLocations）。</summary>
+    public const string Timeout = "E1008";
+
     /// <summary>按异常类型与 Win32 码归类。认不出来时归到"路径不存在"，不硬猜更细的码。</summary>
     public static string CodeOf(Exception ex) => ex switch
     {
@@ -88,6 +91,7 @@ public static class FsErrors
         PathTooLong => Strings.Error_PathTooLong,
         InUse => Strings.Error_InUse,
         DiskFull => Strings.Error_DiskFull,
+        Timeout => Strings.Error_Timeout,
         _ => Strings.Error_PathNotFound,
     };
 

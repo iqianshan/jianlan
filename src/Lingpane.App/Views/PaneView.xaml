@@ -20,12 +20,33 @@
     -->
 
     <UserControl.Resources>
+        <!-- 导航按钮（←/→/↑/⟳）。默认就是 Button.Toolbar；窗格窄到压缩态时收紧内边距，
+             四个按钮一共能省下约 32px，全部让给地址栏（见 PaneView.ApplySearchBoxWidth）。 -->
+        <Style x:Key="Nav.Command" TargetType="Button" BasedOn="{StaticResource Button.Toolbar}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsCompactPane,
+                                               RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="MinWidth" Value="26"/>
+                    <Setter Property="Padding" Value="2,0,2,0"/>
+                    <Setter Property="Margin" Value="0,0,2,0"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- 视图切换按钮：选中项用选中底色区分，不做边框加粗，避免工具栏跳动 -->
         <Style x:Key="ViewButton.Details" TargetType="Button" BasedOn="{StaticResource Button.Toolbar}">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsDetailsView}" Value="True">
                     <Setter Property="Background" Value="{DynamicResource Brush.Surface.Selected}"/>
                     <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnSelected}"/>
+                </DataTrigger>
+                <!-- 压缩态：文字两侧的留白从 8 收到 4。两个字的按钮省 8px，两颗省 16px -->
+                <DataTrigger Binding="{Binding IsCompactPane,
+                                               RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="Padding" Value="4,0,4,0"/>
+                    <Setter Property="Margin" Value="0,0,2,0"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -35,6 +56,12 @@
                 <DataTrigger Binding="{Binding IsListView}" Value="True">
                     <Setter Property="Background" Value="{DynamicResource Brush.Surface.Selected}"/>
                     <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnSelected}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsCompactPane,
+                                               RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="Padding" Value="4,0,4,0"/>
+                    <Setter Property="Margin" Value="0,0,2,0"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -92,7 +119,20 @@
                 Background="{DynamicResource Brush.Surface.Window}"
                 BorderBrush="{DynamicResource Brush.Border.Hairline}"
                 BorderThickness="0,0,0,1">
-            <Grid Margin="{StaticResource Padding.Toolbar}">
+            <!-- 内边距在压缩态从 12 收到 8：两侧各让 4px 给地址栏 -->
+            <Grid>
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Margin" Value="{StaticResource Padding.Toolbar}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsCompactPane,
+                                                           RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                                         Value="True">
+                                <Setter Property="Margin" Value="8,0,8,0"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -101,22 +141,22 @@
 
                 <!-- 导航命令：与快捷键共用同一批命令对象，禁用状态由 CanExecute 决定 -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Style="{StaticResource Button.Toolbar}"
+                    <Button Style="{StaticResource Nav.Command}"
                             Command="{Binding BackCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
                             Content="←"
                             ToolTip="{loc:Tr Key=Toolbar.Back}"
                             AutomationProperties.Name="{loc:Tr Key=Toolbar.Back}"/>
-                    <Button Style="{StaticResource Button.Toolbar}"
+                    <Button Style="{StaticResource Nav.Command}"
                             Command="{Binding ForwardCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
                             Content="→"
                             ToolTip="{loc:Tr Key=Toolbar.Forward}"
                             AutomationProperties.Name="{loc:Tr Key=Toolbar.Forward}"/>
-                    <Button Style="{StaticResource Button.Toolbar}"
+                    <Button Style="{StaticResource Nav.Command}"
                             Command="{Binding UpCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
                             Content="↑"
                             ToolTip="{loc:Tr Key=Toolbar.Up}"
                             AutomationProperties.Name="{loc:Tr Key=Toolbar.Up}"/>
-                    <Button Style="{StaticResource Button.Toolbar}"
+                    <Button Style="{StaticResource Nav.Command}"
                             Command="{Binding RefreshCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
                             Content="⟳"
                             ToolTip="{loc:Tr Key=Toolbar.Refresh}"
@@ -255,17 +295,20 @@
                         <TextBox x:Name="SearchBox"
                                  Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
                                  PreviewKeyDown="OnSearchKeyDown"
+                                 GotKeyboardFocus="OnSearchBoxGotFocus"
+                                 LostKeyboardFocus="OnSearchBoxLostFocus"
                                  ToolTip="{loc:Tr Key=Toolbar.Search.Tip}"
                                  AutomationProperties.Name="{loc:Tr Key=Toolbar.Search.Tip}">
                             <TextBox.Style>
                                 <Style TargetType="TextBox" BasedOn="{StaticResource TextBox.Search}">
                                     <Style.Triggers>
-                                        <!-- 窄窗格里连放大镜都放不下，把左右留白一起收掉，
-                                             否则 64px 宽的框里只剩十来个像素能显示文字 -->
+                                        <!-- 压缩态（40px）只放放大镜：左边留出 22px 给它，
+                                             右边不留"清除"按钮的位置（那颗按钮在压缩态也是收起的）。
+                                             聚焦时这个框会临时展开到 150，同一份留白继续够用。 -->
                                         <DataTrigger Binding="{Binding IsCompactPane,
                                                                        RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
                                                      Value="True">
-                                            <Setter Property="Padding" Value="6,0,6,0"/>
+                                            <Setter Property="Padding" Value="22,0,6,0"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -281,17 +324,6 @@
                                    Foreground="{DynamicResource Brush.Text.Tertiary}"
                                    IsHitTestVisible="False"
                                    Text="&#xE721;">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsCompactPane,
-                                                                       RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
-                                                     Value="True">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
                         </TextBlock>
 
                         <!-- 水印：TextBox 没有 Placeholder，叠一层。只在没有查询词时出现 -->
@@ -309,7 +341,7 @@
                                         <DataTrigger Binding="{Binding IsCompactPane,
                                                                        RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
                                                      Value="True">
-                                            <Setter Property="Margin" Value="6,0,0,0"/>
+                                            <Setter Property="Visibility" Value="Collapsed"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>

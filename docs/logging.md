@@ -48,13 +48,13 @@
 
 | 段 | 域 | 已登记 | 写入点 |
 |---|---|---|---|
-| `E1xxx` | 文件系统 | `E1001` 路径不存在 · `E1002` 无权限 · `E1003` 设备未就绪 · `E1004` 路径过长 · `E1005` 文件被占用 · `E1006` 磁盘空间不足 · `E1007` 删除被拒（原因判不细） | `MainViewModel.NavigateAsync` → `nav.open`；`FileOperations` → `fs.createFolder` / `fs.createFile` / `fs.rename` / `fs.copy` / `fs.move` / `fs.delete` |
-| `E2xxx` | Shell 互操作 | `E2001` 图标提取失败 · `E2002` 右键菜单失败 · `E2003` 属性页失败 | `MainWindow.Icons` → `icons.resolve` |
+| `E1xxx` | 文件系统 | `E1001` 路径不存在 · `E1002` 无权限 · `E1003` 设备未就绪 · `E1004` 路径过长 · `E1005` 文件被占用 · `E1006` 磁盘空间不足 · `E1007` 删除被拒（原因判不细） · `E1008` 慢位置 3 秒无响应（导航放弃等待） | `MainViewModel.NavigateAsync` → `nav.open` / `nav.timeout`；`FileOperations` → `fs.createFolder` / `fs.createFile` / `fs.rename` / `fs.copy` / `fs.move` / `fs.delete` |
+| `E2xxx` | Shell 互操作 | `E2001` 图标提取失败 · `E2002` 右键菜单失败 · `E2003` 属性页失败 · `E2004` 系统命名空间打不开（回收站 / 网络交给资源管理器失败） | `MainWindow.Icons` → `icons.resolve`；`MainWindow` → `nav.shellopen` |
 | `E3xxx` | 标签存储与 FileId 枚举 | `E3001` 标签库读取失败（备份重建）· `E3002` 跳过坏行 · `E3003` 写入失败（转只读）· `E3004` 压缩失败（转只读）· `E3005` 备份失败 · `E3006` 取不到 FileId（回落普通枚举）· `E3007` 初始化异常 | `TagStore` → `tags.load` / `tags.write` / `tags.compact` / `tags.backup`；`PaneViewModel` → `tags.enum`；`MainWindow` → `tags.init` |
 | `E4xxx` | 设置 | `E4001` 解析失败 · `E4002` 写入失败 · `E4003` 版本过高 | `App` → `settings.load` / `settings.save` |
 | `E5xxx` | 目录监视 | `E5001` 启动失败 · `E5002` 运行期错误 | `MainWindow.Watcher` → `watcher.start` / `watcher.error` |
 | `E6xxx` | 标签页 | `E6001` 复制路径写剪贴板失败 · `E6002` 已达标签数上限（改为当前窗格导航） | `TabStrip` → `tab.copyPath`；`MainWindow` → `tab.limit` |
-| `E7xxx` | 窗口与输入 | `E7001` 全局热键注册失败 | `MainWindow` → `hotkey.register` |
+| `E7xxx` | 窗口与输入 | `E7001` 全局热键注册失败 · `E7002` 会话标记写失败 · `E7003` 上次会话未正常结束 / 日志目录打不开 | `MainWindow` → `hotkey.register`；`App` → `session.mark`；`MainWindow` → `session.recovered` / `session.openlogs` |
 | `E8xxx` | 预览 | `E8001` Handler 缺失 · `E8002` 超时 · `E8003` 崩溃 | 预留（0.2.0） |
 | `E9xxx` | 组织（工作区） | `E9001` 工作区读取失败（备份重建）· `E9002` 写入失败 · `E9003` 读入告警（含版本过高） | `WorkspaceStore` → `workspace.load` / `workspace.save`；`MainWindow` → `workspace.load` |
 

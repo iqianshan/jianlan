@@ -397,8 +397,12 @@ public partial class PaneView : UserControl
     ///
     /// 用三档而不是按比例连续缩放：宽度连续变化时输入框会跟着拖拽一直抖，
     /// 而"切到分屏那一刻变窄一次"是看得懂的。三个宽度都取自 DesignTokens。
+    ///
+    /// 压缩档只有 40：那个宽度只放得下放大镜，聚焦时临时展开到
+    /// <see cref="ExpandedSearchWidth"/>（见 OnSearchBoxGotFocus），
+    /// 这样"平时"地址栏拿走全部剩余宽度，"输入时"搜索框接管——两者不必同时挤着。
     /// </summary>
-    private void ApplySearchBoxWidth(double paneWidth)
+    private void ApplySearchBoxWidth(double paneWidth, bool force = false)
     {
         string key = paneWidth switch
         {
@@ -409,10 +413,41 @@ public partial class PaneView : UserControl
 
         IsCompactPane = key == "Size.Search.Width.Compact";
 
-        if (key == _searchWidthKey) return;
+        // 正在输入时不要把它缩回去：窗口被拖动/分屏切换都可能触发这里，
+        // 缩到 40 会让用户看着自己的输入一半不见
+        if (IsCompactPane && SearchBox.IsKeyboardFocusWithin)
+        {
+            SearchHost.Width = ExpandedSearchWidth;
+            _searchWidthKey = string.Empty;
+            return;
+        }
+
+        if (key == _searchWidthKey && !force) return;
 
         _searchWidthKey = key;
         SearchHost.SetResourceReference(WidthProperty, key);
+    }
+
+    /// <summary>压缩态展开时的宽度，与"单窗格"档同值：展开就是临时回到常规宽度。</summary>
+    private const double ExpandedSearchWidth = 150;
+
+    private void OnSearchBoxGotFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        // 只有压缩态需要展开；其它档位本来就够宽，改宽度只会让工具栏抖一下
+        if (!IsCompactPane) return;
+
+        SearchHost.Width = ExpandedSearchWidth;
+    }
+
+    private void OnSearchBoxLostFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (!IsCompactPane) return;
+
+        // 搜索词还在就保持展开：筛选还生效，缩回去会让"东西去哪了"失去线索。
+        // 清空搜索（Esc）或没输过就离开时收回去，把宽度还给地址栏。
+        if (!string.IsNullOrEmpty(_viewModel?.SearchQuery)) return;
+
+        ApplySearchBoxWidth(ActualWidth, force: true);
     }
 
     /// <summary>布局诊断：列头实际宽度与可视位置，确认"列被裁掉"还是"列不存在"。</summary>

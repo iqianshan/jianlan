@@ -46,4 +46,10 @@ public static class IconGlyphs
     /// 码位是先渲染出来看过再定的——别照抄图标表，E8B7 的教训。
     /// </summary>
     public const string Workspace = "\uE81E";
+
+    /// <summary>回收站（FR-1.2.3）。MDL2 里没有垃圾桶这个对象本身，E74D 是最接近的"带盖桶"。</summary>
+    public const string RecycleBin = "\uE74D";
+
+    /// <summary>网络（FR-1.2.3）。E968 是 MDL2 的 Network：一台机器接着一条线。</summary>
+    public const string Network = "\uE968";
 }

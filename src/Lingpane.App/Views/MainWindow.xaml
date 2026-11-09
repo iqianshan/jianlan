@@ -35,12 +35,13 @@
             两套的话点了收藏、快速访问那边还亮着，得再写一处手动互斥。
         -->
 
-        <!-- 系统节点：主页、桌面、文档、下载、图片、音乐、视频 -->
+        <!-- 系统节点：主页、桌面、文档、下载、图片、音乐、视频、回收站、网络 -->
         <DataTemplate DataType="{x:Type vm:NavItem}">
             <!-- 用两列 Grid 而不是横向 StackPanel：StackPanel 横向测量时给子项无限宽，
                  TextTrimming 永远不触发，文字只会被硬裁。 -->
             <Grid Margin="{StaticResource Padding.NavItem}"
-                  VerticalAlignment="Center">
+                  VerticalAlignment="Center"
+                  ToolTip="{Binding Tooltip}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -352,8 +353,16 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition x:Name="NavColumn" Width="Auto"/>
-            <ColumnDefinition Width="1"/>
+            <!-- 导航栏（FR-1.2.4）。宽度是像素值，启动时按设置填、拖动后写回设置。
+                 MinWidth/MaxWidth 挂在列上而不是内层 Grid 上：GridSplitter 只按
+                 ColumnDefinition 的上下限夹取，写在内层 Grid 上拖动时可以一路拖到 0。 -->
+            <ColumnDefinition x:Name="NavColumn"
+                              Width="Auto"
+                              MinWidth="{DynamicResource Size.Nav.Width.Min}"
+                              MaxWidth="{DynamicResource Size.Nav.Width.Max}"/>
+            <!-- 导航栏分隔条（FR-1.2.4）。原来是 1px 的静态竖线，现在是"线 + 两侧各 2px 的拖动热区"：
+                 1px 的线用鼠标点很难点中，把热区做宽又不加粗这条线，只能靠一列 5px 的空白格。 -->
+            <ColumnDefinition x:Name="NavSplitterColumn" Width="5"/>
             <ColumnDefinition Width="*"/>
             <!-- 预览窗格（FR-9.1.1）。两列都留在这里，开关只改宽度：
                  关掉时宽度归零，界面上看不出差别，但分隔条与窗格的实例都还在——
@@ -381,22 +390,20 @@
         </Border>
 
         <!-- 导航栏（FR-1.2 + FR-7.3）。系统节点与收藏区在**同一条列表**里，
-             行模板按类型挑（见 Window.Resources）。宽度取内容宽度并夹在 184–320 之间
-             （AC-06 走查修正）：原来写死 184，英文 24pt 下 "Documents / Downloads" 比栏宽还长，
-             被 ListBox 直接切掉、连省略号都没有。改为随内容增长，
-             中文与常规字号下内容不足 184，宽度与原来完全一致。
+             行模板按类型挑（见 Window.Resources）。宽度由列上的 Min/Max 夹在 160–320 之间
+             （AC-06 走查修正：原来写死 184，英文 24pt 下 "Documents / Downloads" 比栏宽还长，
+             被 ListBox 直接切掉、连省略号都没有；现在默认仍是 184，但可以拖动并记住）。
 
              ItemsSource 在代码里赋（NavPanelViewModel.Rows）：这一列的内容是
              "窗格的系统节点 + 窗口的收藏"两部分拼起来的，任何一个 DataContext 都不完整。 -->
         <Grid Grid.Column="0"
-              Grid.Row="1"
-              MinWidth="{DynamicResource Size.Nav.Width.Default}"
-              MaxWidth="{DynamicResource Size.Nav.Width.Max}">
+              Grid.Row="1">
             <ListBox x:Name="QuickAccessList"
                      Style="{StaticResource Nav.Surface}"
                      AutomationProperties.Name="{loc:Tr Key=A11y.Nav}"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      SelectionChanged="OnQuickAccessSelectionChanged"
+                     MouseDown="OnNavMouseDown"
                      AllowDrop="True"
                      DragOver="OnNavDragOver"
                      DragLeave="OnNavDragLeave"
@@ -416,7 +423,26 @@
                        IsHitTestVisible="False"/>
         </Grid>
 
-        <Border Grid.Column="1" Grid.Row="1" Grid.RowSpan="2" Background="{DynamicResource Brush.Border.Hairline}"/>
+        <!-- 导航栏的分隔线 + 拖动热区（FR-1.2.4）。两条同列叠放：
+             下面那条 1px 才是看得见的线，上面这块透明的是鼠标真正的落点。
+             热区 5px、线 1px，拖起来才不需要瞄准；拖宽之后线仍在原来的位置居中。 -->
+        <Border x:Name="NavDivider"
+                Grid.Column="1" Grid.Row="1" Grid.RowSpan="2"
+                Width="1"
+                HorizontalAlignment="Center"
+                Background="{DynamicResource Brush.Border.Hairline}"/>
+
+        <GridSplitter x:Name="NavSplitter"
+                      Grid.Column="1" Grid.Row="1" Grid.RowSpan="2"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      ResizeDirection="Columns"
+                      ResizeBehavior="PreviousAndNext"
+                      Background="Transparent"
+                      ToolTip="{loc:Tr Key=Nav.Width.Tip}"
+                      AutomationProperties.Name="{loc:Tr Key=Nav.Width.Tip}"
+                      DragCompleted="OnNavSplitterDragCompleted"
+                      MouseDoubleClick="OnNavSplitterDoubleClick"/>
 
         <!-- 设置入口（FR-5.1）。占的是第 2 行——与窗格状态栏同一行、同一高度（28）。
              放在这里而不是导航列表下面：列表下面那一块会随窗口长高而变大，
@@ -449,16 +475,68 @@
             </Button>
         </Border>
 
-        <!-- 浏览区宿主（FR-3）。平时只放主窗格；开分屏时第二列（或第二行）显示第二个
-             PaneView，中间是可拖的分隔条。两个 PaneView 各自持有工具栏/列头/列表/状态栏，
-             因为两个窗格的路径、选中、项数都是独立的。
+        <!-- 浏览区外层：上面一条"上次异常退出"提示（FR-10.6），下面才是窗格宿主。
+             提示条单独占一行（Auto），显示时才撑开高度；它压在 PaneHost 之上而不是盖在
+             它头上，否则会把窗格自己的工具栏挡住——那是用户此刻要用的东西。 -->
+        <Grid Grid.Column="2" Grid.Row="1" Grid.RowSpan="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-             不用两个 Grid 切换形态：行列定义固定为 3×3，切换左右/上下时只改
-             "哪些行列非零"和子元素的 Grid 定位（见 MainWindow.ApplySplitLayout），
-             这样分隔条的拖拽逻辑不用写两份。 -->
-        <Grid x:Name="PaneHost"
-              Grid.Column="2" Grid.Row="1" Grid.RowSpan="2"
-              Background="{DynamicResource Brush.Surface.Window}">
+            <!-- 异常退出提示条（FR-10.6）。不阻塞启动、不需要确认：一行字 + 两个动作，
+                 关掉就消失。日志入口在这里，是因为"出过一次事"的那一刻最想找的就是日志。 -->
+            <Border x:Name="CrashBanner"
+                    Grid.Row="0"
+                    Visibility="Collapsed"
+                    Background="{DynamicResource Brush.Surface.Selected}"
+                    BorderBrush="{DynamicResource Brush.Border.Hairline}"
+                    BorderThickness="0,0,0,1"
+                    Padding="12,0">
+                <Grid Height="36">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Margin="0,0,8,0"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource Text.Glyph}"
+                               Text="&#xE7BA;"/>
+
+                    <TextBlock x:Name="CrashBannerText"
+                               Grid.Column="1"
+                               Margin="0,0,8,0"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis"
+                               Style="{StaticResource Text.Secondary}"/>
+
+                    <Button Grid.Column="2"
+                            Style="{StaticResource Button.Toolbar}"
+                            Content="{loc:Tr Key=Crash.Banner.OpenLogs}"
+                            Click="OnCrashBannerOpenLogs"/>
+
+                    <Button Grid.Column="3"
+                            Style="{StaticResource Button.Toolbar}"
+                            Content="{loc:Tr Key=Crash.Banner.Dismiss}"
+                            Margin="0"
+                            Click="OnCrashBannerDismiss"/>
+                </Grid>
+            </Border>
+
+            <!-- 浏览区宿主（FR-3）。平时只放主窗格；开分屏时第二列（或第二行）显示第二个
+                 PaneView，中间是可拖的分隔条。两个 PaneView 各自持有工具栏/列头/列表/状态栏，
+                 因为两个窗格的路径、选中、项数都是独立的。
+
+                 不用两个 Grid 切换形态：行列定义固定为 3×3，切换左右/上下时只改
+                 "哪些行列非零"和子元素的 Grid 定位（见 MainWindow.ApplySplitLayout），
+                 这样分隔条的拖拽逻辑不用写两份。 -->
+            <Grid x:Name="PaneHost"
+                  Grid.Row="1"
+                  Background="{DynamicResource Brush.Surface.Window}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="FirstColumn" Width="*"/>
                 <ColumnDefinition x:Name="SplitterColumn" Width="0"/>
@@ -534,6 +612,7 @@
             </GridSplitter>
 
             <views:PaneView x:Name="Pane2" Grid.Column="2" Grid.Row="0" Visibility="Collapsed"/>
+            </Grid>
         </Grid>
 
         <!-- 预览分隔条。ResizeBehavior 取 PreviousAndNext：左边是列表（星号列）、

@@ -225,6 +225,13 @@ public sealed class AppSettings
         }
 
         Layout.PreviewWidth = Math.Clamp(Layout.PreviewWidth, MinPreviewWidth, MaxPreviewWidth);
+
+        if (double.IsNaN(Layout.NavWidth) || double.IsInfinity(Layout.NavWidth) || Layout.NavWidth <= 0)
+        {
+            Layout.NavWidth = DefaultNavWidth;
+        }
+
+        Layout.NavWidth = Math.Clamp(Layout.NavWidth, MinNavWidth, MaxNavWidth);
     }
 
     // ── 恢复默认值（FR-5.3.8）─────────────────────────────────────────────
@@ -265,6 +272,7 @@ public sealed class AppSettings
         Layout.SplitRatio = DefaultSplitRatio;
         Layout.SplitVertical = false;
         Layout.PreviewWidth = DefaultPreviewWidth;
+        Layout.NavWidth = DefaultNavWidth;
     }
 
     /// <summary>
@@ -289,6 +297,14 @@ public sealed class AppSettings
     public const double MinPreviewWidth = 240;
     public const double MaxPreviewWidth = 720;
     public const double DefaultPreviewWidth = 320;
+
+    /// <summary>
+    /// 导航栏宽度的上下限（FR-1.2.4）。与 DesignTokens 里的 Size.Nav.Width.* 同值：
+    /// 下限 160 是"图标 + 四个汉字"还放得下，上限 320 是侧栏不该比内容区还宽。
+    /// </summary>
+    public const double MinNavWidth = 160;
+    public const double MaxNavWidth = 320;
+    public const double DefaultNavWidth = 184;
 
     public const double MinColumnWidth = 56;
     public const double MaxColumnWidth = 400;
@@ -842,6 +858,12 @@ public sealed class LayoutSettings
     /// 没拖过时落盘的就是默认值，所以这里不必区分"有没有设过"。
     /// </summary>
     public double PreviewWidth { get; set; } = AppSettings.DefaultPreviewWidth;
+
+    /// <summary>
+    /// 导航栏宽度（FR-1.2.4）。与预览宽度同理：没拖过就是默认值 184，
+    /// 拖过之后才是用户的选择，双击分隔条可回到默认。
+    /// </summary>
+    public double NavWidth { get; set; } = AppSettings.DefaultNavWidth;
 
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }

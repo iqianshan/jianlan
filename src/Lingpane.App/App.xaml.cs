@@ -44,6 +44,15 @@ public partial class App : Application
     /// <summary>诊断探针模式：不得写设置文件，否则会污染测量并覆盖用户窗口尺寸。</summary>
     private static bool _isProbeMode;
 
+    /// <summary>
+    /// 本进程是否真的写下了会话标记（FR-10.6）。
+    ///
+    /// 必须有这个标志：单实例转交时第二个进程会在 OnStartup 里 Shutdown()，
+    /// 那条路也会走 OnExit——若无条件删标记，用户"双击一个文件夹让已有窗口跳过去"，
+    /// 就把正在运行的那个实例的标记删了，之后它真崩了也不会被发现。
+    /// </summary>
+    private bool _sessionMarked;
+
     private SingleInstanceGuard? _singleInstance;
 
     /// <summary>
@@ -60,6 +69,12 @@ public partial class App : Application
 
     /// <summary>首次启动命令行里带的目录，优先于上次打开的目录。null 表示没带。</summary>
     public static string? StartupDirectory { get; private set; }
+
+    /// <summary>
+    /// 上一次会话没有正常结束时的标记（FR-10.6）。null = 上次是干净退出的。
+    /// 由主窗口在首帧之后读取并决定要不要显示提示条——读它不进启动路径。
+    /// </summary>
+    public static Core.Diagnostics.SessionStamp? PreviousSession { get; private set; }
 
     /// <summary>
     /// 在 跟随系统 → 浅色 → 深色 之间循环，并把选择写回设置。
@@ -121,6 +136,14 @@ public partial class App : Application
 
         // 崩溃记录要在任何业务代码之前挂上，否则启动期异常会静默消失
         Diagnostics.CrashLogger.Attach(this);
+
+        // 关机/注销时提前摘掉会话标记（FR-10.6）：OnExit 通常仍会走到，
+        // 但关机走的是另一条路，提前删一次可以把"关机"从"异常退出"里排除，
+        // 否则每天早上开机都会看到一条假的崩溃提示。
+        SessionEnding += (_, _) =>
+        {
+            if (_sessionMarked) Core.Diagnostics.SessionMarker.Clear(AppPaths.Root);
+        };
     }
 
     protected override void OnStartup(StartupEventArgs e)
@@ -157,6 +180,27 @@ public partial class App : Application
             _singleInstance = guard;
         }
         StartupTrace.Mark("singleinstance");
+
+        // 上次是否干净退出（FR-10.6）：先读、再写，顺序不能反——先写就把旧标记盖掉了。
+        // 探针模式不参与：它没有界面、没有"提示"可给，退出路径也不走 OnExit，
+        // 写了标记只会在下一次正常启动时多出一条假警报。
+        if (!_isProbeMode)
+        {
+            PreviousSession = Core.Diagnostics.SessionMarker.Read(AppPaths.Root);
+
+            try
+            {
+                Core.Diagnostics.SessionMarker.Write(
+                    AppPaths.Root,
+                    new Core.Diagnostics.SessionStamp(Environment.ProcessId, DateTimeOffset.Now, AppInfo.Version));
+                _sessionMarked = true;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // 只读盘 / 便携盘被拔：这次没有检测能力，不影响启动
+                Diagnostics.AppLog.Warn("session.mark", "E7002", $"{ex.GetType().Name}: {ex.Message}");
+            }
+        }
 
         // 首帧前只读 appearance 与 session 两组（settings-schema §4）：
         // 这两组决定窗口尺寸与配色，首帧后再读会看到尺寸跳变与主题闪变。
@@ -304,6 +348,11 @@ public partial class App : Application
         // 兜底：正常情况下 Closing 已经存过，这里只会走到"值未变直接返回"。
         // 不能依赖 Current.MainWindow——窗口关闭时 WPF 会把它置空，见 PersistWindowState 注释。
         PersistWindowState(_mainWindow);
+
+        // 正常退出 = 摘掉标记（FR-10.6）。这一步失败也无所谓：下次会多提示一次，
+        // 不会丢数据；反过来说，少了这一步，每次启动都会报"上次异常退出"。
+        if (_sessionMarked) Core.Diagnostics.SessionMarker.Clear(AppPaths.Root);
+
         _singleInstance?.Dispose();
         base.OnExit(e);
     }

@@ -244,6 +244,29 @@ public static class Strings
     public static string Status_OperationFailed => LocalizationService.Instance.Get("Status.OperationFailed");
     // 含占位符：string.Format(Strings.Status_OperationFailed, ...)
 
+    /// <summary>Can't reach this location: no response within 3 seconds</summary>
+    public static string Status_AccessTimeout => LocalizationService.Instance.Get("Status.AccessTimeout");
+
+    /// <summary>Opened {0} in File Explorer</summary>
+    public static string Status_OpenedInExplorer => LocalizationService.Instance.Get("Status.OpenedInExplorer");
+    // 含占位符：string.Format(Strings.Status_OpenedInExplorer, ...)
+
+    /// <summary>File Explorer could not be opened</summary>
+    public static string Status_ShellOpenFailed => LocalizationService.Instance.Get("Status.ShellOpenFailed");
+
+    /// <summary>The previous session ended unexpectedly at {0}. The log has been kept for troubleshooting.</summary>
+    public static string Crash_Banner_Text => LocalizationService.Instance.Get("Crash.Banner.Text");
+    // 含占位符：string.Format(Strings.Crash_Banner_Text, ...)
+
+    /// <summary>The previous session ended unexpectedly. The log has been kept for troubleshooting.</summary>
+    public static string Crash_Banner_TextUnknown => LocalizationService.Instance.Get("Crash.Banner.TextUnknown");
+
+    /// <summary>Open log folder</summary>
+    public static string Crash_Banner_OpenLogs => LocalizationService.Instance.Get("Crash.Banner.OpenLogs");
+
+    /// <summary>Dismiss</summary>
+    public static string Crash_Banner_Dismiss => LocalizationService.Instance.Get("Crash.Banner.Dismiss");
+
     /// <summary>Desktop</summary>
     public static string Nav_Desktop => LocalizationService.Instance.Get("Nav.Desktop");
 
@@ -273,6 +296,9 @@ public static class Strings
 
     /// <summary>Device not ready — check the disk or network connection</summary>
     public static string Error_DeviceNotReady => LocalizationService.Instance.Get("Error.DeviceNotReady");
+
+    /// <summary>The network location is not responding</summary>
+    public static string Error_Timeout => LocalizationService.Instance.Get("Error.Timeout");
 
     /// <summary>Path is longer than the system limit</summary>
     public static string Error_PathTooLong => LocalizationService.Instance.Get("Error.PathTooLong");
@@ -850,6 +876,21 @@ public static class Strings
 
     /// <summary>Home</summary>
     public static string Nav_Home => LocalizationService.Instance.Get("Nav.Home");
+
+    /// <summary>Recycle Bin</summary>
+    public static string Nav_RecycleBin => LocalizationService.Instance.Get("Nav.RecycleBin");
+
+    /// <summary>Recycle Bin — managed by Windows, opens in File Explorer</summary>
+    public static string Nav_RecycleBin_Tip => LocalizationService.Instance.Get("Nav.RecycleBin.Tip");
+
+    /// <summary>Network</summary>
+    public static string Nav_Network => LocalizationService.Instance.Get("Nav.Network");
+
+    /// <summary>Network locations — opens in File Explorer; type \\server\share in the address bar to open one here</summary>
+    public static string Nav_Network_Tip => LocalizationService.Instance.Get("Nav.Network.Tip");
+
+    /// <summary>Drag to resize the navigation pane; double-click to reset</summary>
+    public static string Nav_Width_Tip => LocalizationService.Instance.Get("Nav.Width.Tip");
 
     /// <summary>Home</summary>
     public static string Tab_Home => LocalizationService.Instance.Get("Tab.Home");

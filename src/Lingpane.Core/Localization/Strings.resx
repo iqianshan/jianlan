@@ -265,6 +265,27 @@
   <data name="Status.OperationFailed" xml:space="preserve">
     <value>Operation failed: {0}</value>
   </data>
+  <data name="Status.AccessTimeout" xml:space="preserve">
+    <value>Can't reach this location: no response within 3 seconds</value>
+  </data>
+  <data name="Status.OpenedInExplorer" xml:space="preserve">
+    <value>Opened {0} in File Explorer</value>
+  </data>
+  <data name="Status.ShellOpenFailed" xml:space="preserve">
+    <value>File Explorer could not be opened</value>
+  </data>
+  <data name="Crash.Banner.Text" xml:space="preserve">
+    <value>The previous session ended unexpectedly at {0}. The log has been kept for troubleshooting.</value>
+  </data>
+  <data name="Crash.Banner.TextUnknown" xml:space="preserve">
+    <value>The previous session ended unexpectedly. The log has been kept for troubleshooting.</value>
+  </data>
+  <data name="Crash.Banner.OpenLogs" xml:space="preserve">
+    <value>Open log folder</value>
+  </data>
+  <data name="Crash.Banner.Dismiss" xml:space="preserve">
+    <value>Dismiss</value>
+  </data>
 
   <!-- 侧栏常用位置 -->
   <data name="Nav.Desktop" xml:space="preserve">
@@ -298,6 +319,9 @@
   </data>
   <data name="Error.DeviceNotReady" xml:space="preserve">
     <value>Device not ready — check the disk or network connection</value>
+  </data>
+  <data name="Error.Timeout" xml:space="preserve">
+    <value>The network location is not responding</value>
   </data>
   <data name="Error.PathTooLong" xml:space="preserve">
     <value>Path is longer than the system limit</value>
@@ -848,6 +872,21 @@
   </data>
   <data name="Nav.Home" xml:space="preserve">
     <value>Home</value>
+  </data>
+  <data name="Nav.RecycleBin" xml:space="preserve">
+    <value>Recycle Bin</value>
+  </data>
+  <data name="Nav.RecycleBin.Tip" xml:space="preserve">
+    <value>Recycle Bin — managed by Windows, opens in File Explorer</value>
+  </data>
+  <data name="Nav.Network" xml:space="preserve">
+    <value>Network</value>
+  </data>
+  <data name="Nav.Network.Tip" xml:space="preserve">
+    <value>Network locations — opens in File Explorer; type \\server\share in the address bar to open one here</value>
+  </data>
+  <data name="Nav.Width.Tip" xml:space="preserve">
+    <value>Drag to resize the navigation pane; double-click to reset</value>
   </data>
   <data name="Tab.Home" xml:space="preserve">
     <value>Home</value>

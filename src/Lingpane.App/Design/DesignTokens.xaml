@@ -96,8 +96,9 @@
     <sys:Double x:Key="Size.Search.Width.Narrow">120</sys:Double>
     <!-- 分屏后每格只剩约 420px：四个导航按钮 + 三个视图按钮已经占掉 240，
          搜索框再宽一点地址栏就整条消失（实测 96 时左窗格面包屑一点也看不到）。
-         72 是"还能看见 4 个汉字、且地址栏还留得下 'D: › work'"的折中。 -->
-    <sys:Double x:Key="Size.Search.Width.Compact">72</sys:Double>
+         压缩态收到 40——此时它只剩一个放大镜的形状，点一下（或 Ctrl+F）会展开到
+         150 并接管地址栏的位置，输入完失焦/清空再收回去。见 PaneView 的搜索框宽度分档。 -->
+    <sys:Double x:Key="Size.Search.Width.Compact">40</sys:Double>
 
     <sys:Double x:Key="Size.Nav.Item.Height">28</sys:Double>
     <sys:Double x:Key="Size.Nav.Width.Default">184</sys:Double>
