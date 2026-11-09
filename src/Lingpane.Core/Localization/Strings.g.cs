@@ -1391,6 +1391,12 @@ public static class Strings
     /// <summary>No preview available for this type.</summary>
     public static string Preview_Note_NoThumbnail => LocalizationService.Instance.Get("Preview.Note.NoThumbnail");
 
+    /// <summary>Preparing preview…</summary>
+    public static string Preview_HandlerPreparing => LocalizationService.Instance.Get("Preview.HandlerPreparing");
+
+    /// <summary>The system preview handler is unavailable, so this is a thumbnail.</summary>
+    public static string Preview_Note_HandlerFallback => LocalizationService.Instance.Get("Preview.Note.HandlerFallback");
+
     /// <summary>Show preview pane</summary>
     public static string Settings_Appearance_ShowPreview => LocalizationService.Instance.Get("Settings.Appearance.ShowPreview");
 

@@ -1345,6 +1345,12 @@
   <data name="Preview.Note.NoThumbnail" xml:space="preserve">
     <value>此类型没有可用的预览。</value>
   </data>
+  <data name="Preview.HandlerPreparing" xml:space="preserve">
+    <value>正在准备预览…</value>
+  </data>
+  <data name="Preview.Note.HandlerFallback" xml:space="preserve">
+    <value>系统预览组件不可用，这里显示的是缩略图。</value>
+  </data>
   <data name="Settings.Appearance.ShowPreview" xml:space="preserve">
     <value>显示预览窗格</value>
   </data>

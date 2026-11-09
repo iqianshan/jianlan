@@ -2,8 +2,11 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -30,6 +33,9 @@ internal static class Program
     [STAThread]
     private static int Main(string[] argv)
     {
+        // 输出被 Python 脚本按 UTF-8 读，不设这个会得到一屏乱码
+        Console.OutputEncoding = System.Text.Encoding.UTF8;
+
         string outPath = argv.Length > 0
             ? Path.GetFullPath(argv[0])
             : Path.Combine(Environment.CurrentDirectory, "shot.png");
@@ -41,11 +47,32 @@ internal static class Program
         int[] selectIndexes = [];
         bool enablePreview = false;
         bool disablePreview = false;
+        string? surfacePath = null;
+        bool dumpTree = false;
+        bool printState = false;
+        int thenIndex = -1;
 
         for (int i = 2; i < argv.Length; i++)
         {
             switch (argv[i])
             {
+                case "--surface" when i + 1 < argv.Length:
+                    // 预览处理器画在自己的子窗口里（HwndHost 的空域），RenderTargetBitmap 拍不到，
+                    // 只能单独对这个窗口 PrintWindow
+                    surfacePath = Path.GetFullPath(argv[++i]);
+                    break;
+                case "--then" when i + 1 < argv.Length:
+                    // 选中另一个序号再等一会儿，用来验证"切走之后处理器有没有被卸载"
+                    _ = int.TryParse(argv[++i], out thenIndex);
+                    break;
+                case "--state":
+                    // 直接把预览视图模型的状态打出来，比看图判断"有没有提示文字"可靠
+                    printState = true;
+                    break;
+                case "--tree":
+                    // 打印窗口树：处理器可能把内容画在自己的子窗口里，先看清画在哪
+                    dumpTree = true;
+                    break;
                 case "--tag" when i + 1 < argv.Length:
                     tagName = argv[++i];
                     break;
@@ -108,9 +135,22 @@ internal static class Program
                 {
                     SelectFile(window, selectIndexes);
 
-                    // 300ms 防抖 + 读盘/解码，1.5s 足够拍到结果
+                    // 300ms 防抖 + 读盘/解码，1.5s 足够拍到结果；
+                    // 走处理器的类型还要拉起 prevhost.exe，多留一倍时间
+                    await Task.Delay(surfacePath is null ? 1500 : 3000);
+                }
+
+                if (thenIndex >= 0)
+                {
+                    SelectFile(window, [thenIndex]);
                     await Task.Delay(1500);
                 }
+
+                if (surfacePath is not null) SaveSurface(window, surfacePath);
+
+                if (printState) PrintState(window);
+
+                if (dumpTree) DumpTree(window);
 
                 Save(window, outPath);
                 Console.WriteLine($"已保存 {outPath}");
@@ -162,6 +202,9 @@ internal static class Program
         {
             throw new MissingMemberException("FileList");
         }
+
+        // 先清空：--then 的语义是"再选另一个"，不是"加选"
+        list.SelectedItems.Clear();
 
         foreach (int index in indexes)
         {
@@ -236,6 +279,256 @@ internal static class Program
         Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
         using FileStream stream = File.Create(outPath);
         encoder.Save(stream);
+    }
+
+    /// <summary>
+    /// 单独拍预览处理器的窗口。
+    ///
+    /// 为什么不能靠 <see cref="Save"/>：处理器画在一个真实的子窗口里（HwndHost），
+    /// WPF 的渲染管线完全不包含它——RenderTargetBitmap 拍出来的那块区域是空的。
+    /// 只能按窗口句柄自己 PrintWindow。
+    /// </summary>
+    private static void SaveSurface(Window window, string outPath)
+    {
+        IntPtr host = new WindowInteropHelper(window).Handle;
+        IntPtr surface = FindSurface(host);
+
+        if (surface == IntPtr.Zero)
+        {
+            Console.Error.WriteLine("没找到处理器窗口（LingpanePreviewSurface）");
+            return;
+        }
+
+        // 处理器往往不在我们给的那个窗口上画，而是在里面再开一个自己的窗口
+        // （搜狗 PDF 用 Qt，就多一层 Qt5152QWindowIcon）。两个都拍一张。
+        Capture(surface, outPath);
+
+        IntPtr content = FindContentWindow(surface);
+        if (content != IntPtr.Zero && content != surface)
+        {
+            Capture(content, Path.Combine(
+                Path.GetDirectoryName(outPath)!,
+                Path.GetFileNameWithoutExtension(outPath) + "-content" + Path.GetExtension(outPath)));
+        }
+    }
+
+    private static void Capture(IntPtr hwnd, string outPath)
+    {
+        IntPtr surface = hwnd;
+
+        Native.GetWindowRect(surface, out Native.NativeRect rect);
+
+        int width = rect.Right - rect.Left;
+        int height = rect.Bottom - rect.Top;
+
+        if (width <= 0 || height <= 0)
+        {
+            Console.Error.WriteLine($"处理器窗口尺寸非法：{width}x{height}");
+            return;
+        }
+
+        IntPtr screen = Native.GetDC(IntPtr.Zero);
+        IntPtr memory = Native.CreateCompatibleDC(screen);
+        IntPtr bitmap = Native.CreateCompatibleBitmap(screen, width, height);
+        IntPtr previous = Native.SelectObject(memory, bitmap);
+
+        try
+        {
+            // PW_RENDERFULLCONTENT(2)：不加这个标志，DirectComposition 渲染的窗口会得到全黑
+            bool captured = Native.PrintWindow(surface, memory, 2);
+
+            // Qt（搜狗 PDF 预览就是）不处理 WM_PRINT，PrintWindow 直接返回 false。
+            // 退一步直接从窗口 DC 上 BitBlt：它的像素确实落在窗口 DC 上，只是不肯"配合打印"。
+            if (!captured)
+            {
+                IntPtr windowDc = Native.GetWindowDC(surface);
+
+                try
+                {
+                    captured = Native.BitBlt(memory, 0, 0, width, height, windowDc, 0, 0, Native.SrcCopy);
+                }
+                finally
+                {
+                    Native.ReleaseDC(surface, windowDc);
+                }
+
+                Console.WriteLine($"PrintWindow=false → BitBlt={(captured ? "OK" : "false")}  {width}x{height}");
+            }
+            else
+            {
+                Console.WriteLine($"PrintWindow=OK  {width}x{height}");
+            }
+
+            BitmapSource image = Imaging.CreateBitmapSourceFromHBitmap(
+                bitmap, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(image));
+
+            Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
+            using FileStream stream = File.Create(outPath);
+            encoder.Save(stream);
+
+            Console.WriteLine($"已保存处理器窗口 {outPath}");
+        }
+        finally
+        {
+            Native.SelectObject(memory, previous);
+            Native.DeleteObject(bitmap);
+            Native.DeleteDC(memory);
+            Native.ReleaseDC(IntPtr.Zero, screen);
+        }
+    }
+
+    /// <summary>
+    /// 打印预览视图模型的关键状态。判断"处理器是否接管、是否已渲染完、是否退到缩略图"
+    /// 靠这些字段，比在截图里找一行灰字可靠得多。
+    /// </summary>
+    private static void PrintState(MainWindow window)
+    {
+        var field = typeof(MainWindow).GetField("_preview", BindingFlags.NonPublic | BindingFlags.Instance);
+        if (field?.GetValue(window) is not PreviewViewModel vm)
+        {
+            Console.Error.WriteLine("取不到 _preview");
+            return;
+        }
+
+        Console.WriteLine(
+            $"STATE handler={vm.HasHandler} handlerPath={vm.HandlerPath} " +
+            $"image={vm.HasImage} text={vm.HasText} note={vm.HasNote} empty={vm.IsEmpty} multiple={vm.IsMultiple}");
+
+        Console.WriteLine($"STATE footer={vm.FooterText}");
+        Console.WriteLine($"STATE noteText={vm.NoteText}");
+    }
+
+    /// <summary>打印整棵子窗口树。处理器可能不在我们给的那个窗口上画，得先看清层次。</summary>
+    private static void DumpTree(Window window)
+    {
+        IntPtr host = new WindowInteropHelper(window).Handle;
+        var seen = new System.Collections.Generic.HashSet<IntPtr>();
+
+        void Walk(IntPtr parent, int depth)
+        {
+            Native.EnumChildWindows(parent, (hwnd, _) =>
+            {
+                // EnumChildWindows 给的是所有后代，递归会把同一句打很多遍
+                if (!seen.Add(hwnd)) return true;
+
+                var name = new StringBuilder(128);
+                Native.GetClassName(hwnd, name, name.Capacity);
+                Native.GetWindowRect(hwnd, out Native.NativeRect rect);
+
+                Console.WriteLine(
+                    $"TREE {depth} {name} {rect.Right - rect.Left}x{rect.Bottom - rect.Top} " +
+                    $"visible={Native.IsWindowVisible(hwnd)}");
+
+                Walk(hwnd, depth + 1);
+                return true;
+            }, IntPtr.Zero);
+        }
+
+        Walk(host, 0);
+    }
+
+    /// <summary>surface 里面积最大的可见子窗口——通常才是真正画内容的那一个。</summary>
+    private static IntPtr FindContentWindow(IntPtr surface)
+    {
+        IntPtr best = IntPtr.Zero;
+        long bestArea = 0;
+
+        Native.EnumChildWindows(surface, (hwnd, _) =>
+        {
+            if (!Native.IsWindowVisible(hwnd)) return true;
+
+            Native.GetWindowRect(hwnd, out Native.NativeRect rect);
+            long area = (long)(rect.Right - rect.Left) * (rect.Bottom - rect.Top);
+
+            if (area <= bestArea) return true;
+
+            best = hwnd;
+            bestArea = area;
+            return true;
+        }, IntPtr.Zero);
+
+        return best;
+    }
+
+    private static IntPtr FindSurface(IntPtr parent)
+    {
+        IntPtr found = IntPtr.Zero;
+
+        Native.EnumChildWindows(parent, (hwnd, _) =>
+        {
+            var name = new StringBuilder(64);
+            Native.GetClassName(hwnd, name, name.Capacity);
+
+            if (!string.Equals(name.ToString(), "LingpanePreviewSurface", StringComparison.Ordinal)) return true;
+
+            found = hwnd;
+            return false;
+        }, IntPtr.Zero);
+
+        return found;
+    }
+
+    private static class Native
+    {
+        public delegate bool EnumChildProc(IntPtr hwnd, IntPtr param);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct NativeRect
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [DllImport("user32.dll")]
+        public static extern bool EnumChildWindows(IntPtr parent, EnumChildProc callback, IntPtr param);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "GetClassNameW")]
+        public static extern int GetClassName(IntPtr hwnd, StringBuilder name, int capacity);
+
+        [DllImport("user32.dll")]
+        public static extern bool GetWindowRect(IntPtr hwnd, out NativeRect rect);
+
+        [DllImport("user32.dll")]
+        public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
+
+        [DllImport("user32.dll")]
+        public static extern bool IsWindowVisible(IntPtr hwnd);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetWindowDC(IntPtr hwnd);
+
+        [DllImport("gdi32.dll")]
+        public static extern bool BitBlt(
+            IntPtr destination, int x, int y, int width, int height,
+            IntPtr source, int sourceX, int sourceY, uint operation);
+
+        public const uint SrcCopy = 0x00CC_0020;
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetDC(IntPtr hwnd);
+
+        [DllImport("user32.dll")]
+        public static extern int ReleaseDC(IntPtr hwnd, IntPtr dc);
+
+        [DllImport("gdi32.dll")]
+        public static extern IntPtr CreateCompatibleDC(IntPtr dc);
+
+        [DllImport("gdi32.dll")]
+        public static extern IntPtr CreateCompatibleBitmap(IntPtr dc, int width, int height);
+
+        [DllImport("gdi32.dll")]
+        public static extern IntPtr SelectObject(IntPtr dc, IntPtr obj);
+
+        [DllImport("gdi32.dll")]
+        public static extern bool DeleteObject(IntPtr obj);
+
+        [DllImport("gdi32.dll")]
+        public static extern bool DeleteDC(IntPtr dc);
     }
 }
 

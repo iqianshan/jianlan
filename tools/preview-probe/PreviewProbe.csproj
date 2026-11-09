@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    一次性探针：验证"x64 进程能不能把这个扩展名的预览处理器激活起来"。
+    不进解决方案，只用来回答一个具体问题——激活走的是本进程内加载（位宽必须一致）
+    还是 COM 代理拉起的 prevhost.exe（位宽可以不同）。
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0-windows10.0.17763.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>PreviewProbe</RootNamespace>
+  </PropertyGroup>
+
+</Project>

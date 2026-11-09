@@ -1358,6 +1358,12 @@
   <data name="Preview.Note.NoThumbnail" xml:space="preserve">
     <value>No preview available for this type.</value>
   </data>
+  <data name="Preview.HandlerPreparing" xml:space="preserve">
+    <value>Preparing preview…</value>
+  </data>
+  <data name="Preview.Note.HandlerFallback" xml:space="preserve">
+    <value>The system preview handler is unavailable, so this is a thumbnail.</value>
+  </data>
   <data name="Settings.Appearance.ShowPreview" xml:space="preserve">
     <value>Show preview pane</value>
   </data>

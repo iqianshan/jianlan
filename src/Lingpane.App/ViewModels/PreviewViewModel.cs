@@ -7,6 +7,7 @@ using Lingpane.App.Services;
 using Lingpane.App.Shell;
 using Lingpane.Core.FileSystem;
 using Lingpane.Core.Localization;
+using Lingpane.Core.Preview;
 
 namespace Lingpane.App.ViewModels;
 
@@ -47,6 +48,10 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
     private bool _hasText;
     private bool _hasNote;
     private bool _canRetry;
+    private bool _hasHandler;
+
+    private string _handlerPath = string.Empty;
+    private Guid _handlerClsid;
 
     private string _titleText = string.Empty;
     private string _metaText = string.Empty;
@@ -136,6 +141,31 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
         private set => Set(ref _canRetry, value, nameof(CanRetry));
     }
 
+    /// <summary>
+    /// 这一项由系统预览处理器渲染（FR-9.1.3）。视图看到它为 true 就建宿主并交给处理器。
+    ///
+    /// 之所以用"路径 + CLSID"两个独立属性而不是传一个对象：视图在属性变更通知里
+    /// 只拿得到属性名，看不到值；分开的话「先写路径与 CLSID、最后置 true」这个顺序
+    /// 就能保证视图动手时两样都已就位。
+    /// </summary>
+    public bool HasHandler
+    {
+        get => _hasHandler;
+        private set => Set(ref _hasHandler, value, nameof(HasHandler));
+    }
+
+    public string HandlerPath
+    {
+        get => _handlerPath;
+        private set => Set(ref _handlerPath, value, nameof(HandlerPath));
+    }
+
+    public Guid HandlerClsid
+    {
+        get => _handlerClsid;
+        private set => Set(ref _handlerClsid, value, nameof(HandlerClsid));
+    }
+
     public string TitleText
     {
         get => _titleText;
@@ -209,7 +239,7 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
     public void Retry()
     {
         _timer.Stop();
-        if (_selection.Count == 1) _ = LoadAsync(_selection[0]);
+        if (_selection.Count == 1) Prepare(_selection[0], force: true);
     }
 
     /// <summary>
@@ -223,6 +253,7 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
 
         _selection = [];
         _current = null;
+        ClearHandler();
         Image = null;
         TextContent = string.Empty;
         IsEmpty = true;
@@ -257,6 +288,7 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
 
     private void ApplySummary(IReadOnlyList<FileEntry> selection)
     {
+        ClearHandler();
         _current = null;
         HasImage = false;
         HasText = false;
@@ -295,9 +327,20 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
 
         FileEntry entry = _selection[0];
         ApplyHeader(entry);
+        Prepare(entry, force: false);
+    }
 
+    /// <summary>
+    /// 决定这一份文件怎么预览。防抖之后的唯一入口，<see cref="Retry"/> 也走这里。
+    ///
+    /// 顺序是刻意的：先排除根本不需要读盘的（目录、延后触发、超体积），
+    /// 再问注册表——查注册表虽有缓存，但没必要为一张 2GB 的视频去问。
+    /// </summary>
+    private void Prepare(FileEntry entry, bool force)
+    {
         if (entry.IsDirectory)
         {
+            ClearHandler();
             _current = entry;
             IsEmpty = false;
             IsMultiple = false;
@@ -309,8 +352,9 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
             return;
         }
 
-        if (!AutoPreview || IsSlowPath(entry.FullPath))
+        if (!force && (!AutoPreview || IsSlowPath(entry.FullPath)))
         {
+            ClearHandler();
             _current = entry;
             IsEmpty = false;
             IsMultiple = false;
@@ -322,7 +366,105 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
             return;
         }
 
+        PreviewKind kind = PreviewClassifier.Classify(entry.FullPath, entry.Size, entry.IsDirectory);
+
+        // 超体积在这一层挡掉：走处理器的路不经过 PreviewLoader，那边还有一道检查，
+        // 但等到那边才拦就晚了——处理器已经拉起，prevhost.exe 已经开始解析文件头
+        long limit = PreviewClassifier.LimitFor(kind, entry.FullPath);
+        if (limit > 0 && entry.Size > limit)
+        {
+            ClearHandler();
+            _current = entry;
+            IsEmpty = false;
+            IsMultiple = false;
+            HasImage = false;
+            HasText = false;
+            HasNote = true;
+            CanRetry = false;
+            NoteText = string.Format(
+                CultureInfo.CurrentCulture, Strings.Preview_Note_TooLarge, PreviewLoader.DescribeLimit(limit));
+            return;
+        }
+
+        Guid clsid = PreviewRouter.NeedsHandlerLookup(kind)
+            ? PreviewHandlerRegistry.Find(entry.FullPath)
+            : Guid.Empty;
+
+        if (PreviewRouter.Decide(kind, clsid != Guid.Empty) == PreviewRoute.Handler)
+        {
+            StartHandler(entry, clsid);
+            return;
+        }
+
         _ = LoadAsync(entry);
+    }
+
+    private void StartHandler(FileEntry entry, Guid clsid)
+    {
+        CancelInFlight();
+
+        // 从"另一个处理器文件"切过来时，HasHandler 本来就为 true；
+        // 不先落回 false 的话视图收不到变化通知，会继续显示上一个文件
+        ClearHandler();
+
+        _current = entry;
+        IsEmpty = false;
+        IsMultiple = false;
+        HasImage = false;
+        HasText = false;
+        HasNote = false;
+        TextContent = string.Empty;
+        Image = null;
+        CanRetry = false;
+
+        // "正在准备"写在脚注而不是内容区：处理器的窗口是 HwndHost（真实子窗口），
+        // 它一出现就把内容区整块盖住（WPF 的空域问题），写在里面等于看不见
+        FooterText = Strings.Preview_HandlerPreparing;
+
+        HandlerPath = entry.FullPath;
+        HandlerClsid = clsid;
+
+        // 放最后：视图收到这个通知时，路径与 CLSID 必须已经在位
+        HasHandler = true;
+    }
+
+    /// <summary>处理器把内容画出来了（FR-9.1.3）。收掉"正在准备"那一行提示。</summary>
+    public void HandlerReady()
+    {
+        // 已经切走了：这条是上一个文件的迟到通知，别把新文件的提示也清掉
+        if (!_hasHandler) return;
+
+        HasNote = false;
+        NoteText = string.Empty;
+        FooterText = string.Empty;
+    }
+
+    /// <summary>
+    /// 处理器没干成（没装、激活失败、渲染返回错误）。
+    ///
+    /// 处理方式分两步：先把这一类的处理器记成不可用，避免下次选中同类文件再走一遍
+    /// 同样的失败；再退回缩略图——缩略图只是第一页，但比一片空白有用。
+    /// </summary>
+    public void HandlerFailed()
+    {
+        // 同 HandlerReady：迟到的失败不能拿来标记当前选中的另一个文件
+        if (!_hasHandler || _current is null) return;
+
+        FileEntry entry = _current;
+        PreviewHandlerRegistry.MarkBroken(entry.FullPath);
+
+        ClearHandler();
+        _ = LoadAsync(entry, handlerFailed: true);
+    }
+
+    /// <summary>放弃处理器渲染：视图据此卸载处理器并拆掉宿主窗口。</summary>
+    private void ClearHandler()
+    {
+        if (!_hasHandler) return;
+
+        HasHandler = false;
+        HandlerPath = string.Empty;
+        HandlerClsid = Guid.Empty;
     }
 
     /// <summary>先把"选的是谁"写上去，再等内容。否则防抖那 300ms 里窗格还挂着上一个文件的标题。</summary>
@@ -342,9 +484,10 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
         MetaText = string.Join(" · ", parts);
     }
 
-    private async Task LoadAsync(FileEntry entry)
+    private async Task LoadAsync(FileEntry entry, bool handlerFailed = false)
     {
         CancelInFlight();
+        ClearHandler();
 
         int generation = _generation;
         var cts = new CancellationTokenSource();
@@ -367,10 +510,10 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
         // 票号对不上 = 用户已经选了别的文件，这份结果作废（FR-9.2.4）
         if (generation != _generation) return;
 
-        ApplyResult(result, entry);
+        ApplyResult(result, entry, handlerFailed);
     }
 
-    private void ApplyResult(PreviewResult result, FileEntry entry)
+    private void ApplyResult(PreviewResult result, FileEntry entry, bool handlerFailed)
     {
         bool tooHeavy = result.EstimatedBytes > BudgetBytes;
 
@@ -378,6 +521,10 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
         {
             Image = image;
             HasImage = true;
+
+            // 缩略图是处理器的替补，得说清楚"这里只有一张图"，否则用户会以为 PDF 只有一页
+            if (handlerFailed) FooterText = Strings.Preview_Note_HandlerFallback;
+
             return;
         }
 
