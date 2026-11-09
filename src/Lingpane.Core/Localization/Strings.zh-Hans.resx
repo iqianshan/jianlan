@@ -140,6 +140,27 @@
   <data name="Menu.Properties" xml:space="preserve">
     <value>属性</value>
   </data>
+  <data name="Menu.Columns.MoveLeft" xml:space="preserve">
+    <value>左移</value>
+  </data>
+  <data name="Menu.Columns.MoveRight" xml:space="preserve">
+    <value>右移</value>
+  </data>
+  <data name="Menu.Columns.Reset" xml:space="preserve">
+    <value>重置本目录类型的列</value>
+  </data>
+  <data name="Menu.Columns.Hint" xml:space="preserve">
+    <value>名称列始终显示</value>
+  </data>
+  <data name="Settings.Section.Columns" xml:space="preserve">
+    <value>列</value>
+  </data>
+  <data name="Settings.Columns.Hint" xml:space="preserve">
+    <value>对该类型的目录生效；拖动列边缘可调宽度，右键列头可调顺序。</value>
+  </data>
+  <data name="Settings.Columns.Reset" xml:space="preserve">
+    <value>重置全部列配置</value>
+  </data>
 
   <data name="Column.Name" xml:space="preserve">
     <value>名称</value>
@@ -1202,6 +1223,9 @@
   </data>
   <data name="Settings.ResetAll.Done" xml:space="preserve">
     <value>全部设置已恢复默认</value>
+  </data>
+  <data name="Settings.ResetLayout.Done" xml:space="preserve">
+    <value>列配置已恢复默认</value>
   </data>
   <data name="Dialog.ResetAll.Title" xml:space="preserve">
     <value>恢复全部默认</value>

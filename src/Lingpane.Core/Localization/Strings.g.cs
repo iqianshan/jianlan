@@ -126,6 +126,27 @@ public static class Strings
     /// <summary>Properties</summary>
     public static string Menu_Properties => LocalizationService.Instance.Get("Menu.Properties");
 
+    /// <summary>Move left</summary>
+    public static string Menu_Columns_MoveLeft => LocalizationService.Instance.Get("Menu.Columns.MoveLeft");
+
+    /// <summary>Move right</summary>
+    public static string Menu_Columns_MoveRight => LocalizationService.Instance.Get("Menu.Columns.MoveRight");
+
+    /// <summary>Reset columns for this folder type</summary>
+    public static string Menu_Columns_Reset => LocalizationService.Instance.Get("Menu.Columns.Reset");
+
+    /// <summary>The name column is always shown</summary>
+    public static string Menu_Columns_Hint => LocalizationService.Instance.Get("Menu.Columns.Hint");
+
+    /// <summary>Columns</summary>
+    public static string Settings_Section_Columns => LocalizationService.Instance.Get("Settings.Section.Columns");
+
+    /// <summary>Applies to folders of the same type; drag a column edge to resize, right-click a header to reorder.</summary>
+    public static string Settings_Columns_Hint => LocalizationService.Instance.Get("Settings.Columns.Hint");
+
+    /// <summary>Reset all column settings</summary>
+    public static string Settings_Columns_Reset => LocalizationService.Instance.Get("Settings.Columns.Reset");
+
     /// <summary>Name</summary>
     public static string Column_Name => LocalizationService.Instance.Get("Column.Name");
 
@@ -1242,6 +1263,9 @@ public static class Strings
 
     /// <summary>All settings are back to default</summary>
     public static string Settings_ResetAll_Done => LocalizationService.Instance.Get("Settings.ResetAll.Done");
+
+    /// <summary>Column settings are back to default</summary>
+    public static string Settings_ResetLayout_Done => LocalizationService.Instance.Get("Settings.ResetLayout.Done");
 
     /// <summary>Reset all settings</summary>
     public static string Dialog_ResetAll_Title => LocalizationService.Instance.Get("Dialog.ResetAll.Title");

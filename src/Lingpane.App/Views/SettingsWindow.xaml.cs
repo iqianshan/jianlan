@@ -82,6 +82,7 @@ public partial class SettingsWindow : Window
         ShowExtensionsCheck.IsChecked = Settings.Behavior.ShowExtensions;
         ConfirmDeleteCheck.IsChecked = Settings.Behavior.ConfirmDelete;
         ConfirmBatchCheck.IsChecked = Settings.Behavior.ConfirmBatch;
+        LoadColumnChecks();
         CloseLastToHomeCheck.IsChecked = Settings.Behavior.CloseLastTabToHome;
         OpenModeCombo.SelectedIndex = Settings.Behavior.DoubleClickOpens ? 0 : 1;
         OpenFolderInNewTabCheck.IsChecked = Settings.Behavior.OpenFolderInNewTab;
@@ -438,6 +439,49 @@ public partial class SettingsWindow : Window
         if (_loading) return;
         Settings.Behavior.ConfirmBatch = ConfirmBatchCheck.IsChecked == true;
         App.SaveSettings();
+    }
+
+    // ── 列显示（FR-6.4）────────────────────────────────────────────────────
+    //
+    // 设置页改的是**默认档**：列配置按目录类型分档，而设置页没有"当前目录"这个上下文。
+    // 在列头上改则只影响眼前这个档。提示语里写清楚这一点，否则用户会以为
+    // "在这里取消勾选，图片目录也该跟着变"。
+
+    private void LoadColumnChecks()
+    {
+        ColumnProfileSettings columns = Settings.Layout.Standard;
+        ColumnDateCheck.IsChecked = columns.ShowDate;
+        ColumnTypeCheck.IsChecked = columns.ShowType;
+        ColumnSizeCheck.IsChecked = columns.ShowSize;
+    }
+
+    private void OnColumnVisibilityChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+
+        ColumnProfileSettings columns = Settings.Layout.Standard;
+        columns.ShowDate = ColumnDateCheck.IsChecked == true;
+        columns.ShowType = ColumnTypeCheck.IsChecked == true;
+        columns.ShowSize = ColumnSizeCheck.IsChecked == true;
+
+        Owner_?.ApplySettingsToUi();
+        App.SaveSettings();
+    }
+
+    private void OnResetColumns(object sender, RoutedEventArgs e)
+    {
+        // 重置所有档位而不只是默认档：这个按钮存在的理由就是"我把列弄乱了，全部回原样"，
+        // 只清默认档会留下几个还保持原样的目录类型，反而更难收拾。
+        Settings.ResetLayout();
+
+        _loading = true;
+        LoadColumnChecks();
+        _loading = false;
+
+        Owner_?.ApplySettingsToUi();
+        App.SaveSettings();
+
+        FontHint.Text = Strings.Settings_ResetLayout_Done;
     }
 
     /// <summary>关闭最后一个标签时的行为（FR-2.8）。下一次关标签就生效，不用重启。</summary>

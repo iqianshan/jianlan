@@ -180,9 +180,37 @@ public sealed class AppSettings
             Appearance.TabStripPosition = AppearanceSettings.TabTop;
         }
 
-        Layout.ColumnDateWidth = ClampColumn(Layout.ColumnDateWidth, DefaultColumnDateWidth);
-        Layout.ColumnTypeWidth = ClampColumn(Layout.ColumnTypeWidth, DefaultColumnTypeWidth);
-        Layout.ColumnSizeWidth = ClampColumn(Layout.ColumnSizeWidth, DefaultColumnSizeWidth);
+        // 列配置（FR-6.4）：档位名归一成小写，手改配置写成 "Pictures" 也能认，
+        // 否则那条配置永远读不到、用户会以为"我改了但没生效"。
+        Layout.Columns ??= [];
+        Layout.Columns = Layout.Columns
+            .Where(p => !string.IsNullOrWhiteSpace(p.Key) && p.Value is not null)
+            .GroupBy(p => p.Key.Trim().ToLowerInvariant(), StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Last().Value, StringComparer.Ordinal);
+
+        foreach (ColumnProfileSettings profile in Layout.Columns.Values)
+        {
+            profile.Normalize();
+        }
+
+        // 旧版只有三个全局宽度字段（columnDateWidth 等）。它们现在进了 Extra，
+        // 这里捡回来填进默认档——不然升级之后用户的列宽会毫无理由地归位。
+        if (!Layout.Columns.ContainsKey("default") && Layout.Extra is { } legacy)
+        {
+            double? date = ReadLegacyWidth(legacy, "columnDateWidth");
+            double? type = ReadLegacyWidth(legacy, "columnTypeWidth");
+            double? size = ReadLegacyWidth(legacy, "columnSizeWidth");
+
+            if (date is not null || type is not null || size is not null)
+            {
+                ColumnProfileSettings standard = Layout.Standard;
+                if (date is not null) standard.DateWidth = ColumnLayout.ClampWidth(date.Value, DefaultColumnDateWidth);
+                if (type is not null) standard.TypeWidth = ColumnLayout.ClampWidth(type.Value, DefaultColumnTypeWidth);
+                if (size is not null) standard.SizeWidth = ColumnLayout.ClampWidth(size.Value, DefaultColumnSizeWidth);
+            }
+        }
+
+        Layout.Standard.Normalize();
 
         if (double.IsNaN(Layout.SplitRatio) || double.IsInfinity(Layout.SplitRatio))
         {
@@ -219,6 +247,30 @@ public sealed class AppSettings
         ResetAppearance();
         ResetBehavior();
         ResetPrivacy();
+        ResetLayout();
+    }
+
+    /// <summary>布局恢复默认：列配置、分屏形态都回出厂值。</summary>
+    public void ResetLayout()
+    {
+        Layout.ResetColumns();
+        Layout.SplitEnabled = false;
+        Layout.SplitRatio = DefaultSplitRatio;
+        Layout.SplitVertical = false;
+    }
+
+    /// <summary>
+    /// 读旧版的三列宽度并从 Extra 里摘掉：留着会一直被写回 settings.json，
+    /// 文件里就有两份真值，下次读的人分不清哪份算数。
+    /// </summary>
+    private static double? ReadLegacyWidth(Dictionary<string, System.Text.Json.JsonElement> extra, string key)
+    {
+        if (!extra.TryGetValue(key, out System.Text.Json.JsonElement element)) return null;
+
+        extra.Remove(key);
+        return element.ValueKind == System.Text.Json.JsonValueKind.Number && element.TryGetDouble(out double value)
+            ? value
+            : null;
     }
 
     /// <summary>分屏比例的上下限：低于 15% 的那一栏连列头都放不下，等于"分了个看不见的屏"。</summary>
@@ -231,13 +283,6 @@ public sealed class AppSettings
     public const double DefaultColumnDateWidth = 110;
     public const double DefaultColumnTypeWidth = 110;
     public const double DefaultColumnSizeWidth = 90;
-
-    /// <summary>非有限值（NaN/Infinity）或被写成 0 的列宽一律回落到默认值。</summary>
-    private static double ClampColumn(double value, double fallback)
-    {
-        if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0) return fallback;
-        return Math.Clamp(value, MinColumnWidth, MaxColumnWidth);
-    }
 }
 
 /// <summary>
@@ -638,16 +683,115 @@ public sealed class BookmarkGroup
 }
 
 /// <summary>
-/// 列表列宽。名称列是星号列，随窗口伸缩，因此不在此处保存；
-/// 日期/类型/大小三列是固定宽度，可拖拽并记住（settings-schema §3.5）。
+/// 布局与列表列配置。名称列是星号列，随窗口伸缩，因此不保存宽度；
+/// 日期/类型/大小三列可显隐、可换序、可拖宽，并按目录类型分档记忆（FR-6.4）。
+///
+/// 为什么配置在这里而不是按标签各存一份：同一目录在两个标签里显示不同列宽，
+/// 用户第一反应是"界面坏了"。列配置是**目录的属性**，不是标签的属性。
 /// </summary>
 public sealed class LayoutSettings
 {
-    public double ColumnDateWidth { get; set; } = AppSettings.DefaultColumnDateWidth;
+    /// <summary>档位名（<see cref="ColumnProfileKind"/> 的小写名）→ 列配置。</summary>
+    public Dictionary<string, ColumnProfileSettings> Columns { get; set; } = [];
 
-    public double ColumnTypeWidth { get; set; } = AppSettings.DefaultColumnTypeWidth;
+    /// <summary>
+    /// 默认档。不存在时惰性创建——每次访问都判一次空并在读路径上写字典，
+    /// 读的人会怀疑"这个字典什么时候被填的"；集中在这里就只有一处。
+    ///
+    /// 必须标 JsonIgnore：它只是 <see cref="Columns"/> 的访问器，
+    /// 不标的话序列化会多写一份 "standard"，文件里就有两份默认档。
+    /// </summary>
+    [JsonIgnore]
+    public ColumnProfileSettings Standard
+    {
+        get
+        {
+            string key = ProfileKey(ColumnProfileKind.Default);
+            if (!Columns.TryGetValue(key, out ColumnProfileSettings? profile) || profile is null)
+            {
+                profile = new ColumnProfileSettings();
+                Columns[key] = profile;
+            }
 
-    public double ColumnSizeWidth { get; set; } = AppSettings.DefaultColumnSizeWidth;
+            return profile;
+        }
+    }
+
+    /// <summary>读配置：没有这一档就回落默认档（不写字典）。</summary>
+    public ColumnProfileSettings Get(ColumnProfileKind kind)
+        => Columns.TryGetValue(ProfileKey(kind), out ColumnProfileSettings? profile) && profile is not null
+            ? profile
+            : Standard;
+
+    /// <summary>写配置：没有这一档就建一份，从默认档复制（继承默认的列宽与顺序）。</summary>
+    public ColumnProfileSettings GetOrAdd(ColumnProfileKind kind)
+    {
+        string key = ProfileKey(kind);
+        if (Columns.TryGetValue(key, out ColumnProfileSettings? existing) && existing is not null)
+        {
+            return existing;
+        }
+
+        var created = kind == ColumnProfileKind.Default
+            ? new ColumnProfileSettings()
+            : Clone(Standard);
+
+        Columns[key] = created;
+        return created;
+    }
+
+    public void ResetColumns()
+    {
+        Columns.Clear();
+        Standard.Reset();
+    }
+
+    /// <summary>
+    /// 兼容旧字段（0.2.0 之前只有三列共用的固定宽度）。只读不写：
+    /// 三个旧字段已经并入 <c>columns.default</c>，再留一份写入路径必然分叉。
+    /// </summary>
+    [JsonIgnore]
+    public double ColumnDateWidth
+    {
+        get => Standard.DateWidth;
+        set => Standard.DateWidth = ColumnLayout.ClampWidth(value, AppSettings.DefaultColumnDateWidth);
+    }
+
+    [JsonIgnore]
+    public double ColumnTypeWidth
+    {
+        get => Standard.TypeWidth;
+        set => Standard.TypeWidth = ColumnLayout.ClampWidth(value, AppSettings.DefaultColumnTypeWidth);
+    }
+
+    [JsonIgnore]
+    public double ColumnSizeWidth
+    {
+        get => Standard.SizeWidth;
+        set => Standard.SizeWidth = ColumnLayout.ClampWidth(value, AppSettings.DefaultColumnSizeWidth);
+    }
+
+    public static string ProfileKey(ColumnProfileKind kind) => kind switch
+    {
+        ColumnProfileKind.Desktop => "desktop",
+        ColumnProfileKind.Documents => "documents",
+        ColumnProfileKind.Downloads => "downloads",
+        ColumnProfileKind.Pictures => "pictures",
+        ColumnProfileKind.Music => "music",
+        ColumnProfileKind.Videos => "videos",
+        _ => "default",
+    };
+
+    private static ColumnProfileSettings Clone(ColumnProfileSettings source) => new()
+    {
+        Order = [.. source.Order],
+        ShowDate = source.ShowDate,
+        ShowType = source.ShowType,
+        ShowSize = source.ShowSize,
+        DateWidth = source.DateWidth,
+        TypeWidth = source.TypeWidth,
+        SizeWidth = source.SizeWidth,
+    };
 
     /// <summary>双窗格是否开启（FR-3.3）。关掉窗口再打开时保持上次的形态。</summary>
     public bool SplitEnabled { get; set; }

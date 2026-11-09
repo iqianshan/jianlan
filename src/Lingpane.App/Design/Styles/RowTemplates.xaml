@@ -55,19 +55,30 @@
                        Text="{Binding DisplayName}"
                        ToolTip="{Binding Name}"/>
 
-            <TextBlock Grid.Column="3"
+            <!-- 三个数据列的槽位与显隐跟着列配置走（FR-6.4）。资源由 PaneView 写入
+                 它自己的资源字典，双窗格各自一份，互不干扰。 -->
+            <!-- 数据列右侧留 8px：列宽是"单元格宽"，文字贴着列边界时，
+                 两列相邻的内容会连成一片（换序后「1 B」与「11-09 11:20」粘在一起）。
+                 Padding 只缩可用文字区，不改元素宽度，因此列头与行仍然对齐。 -->
+            <TextBlock Grid.Column="{DynamicResource Column.Date.Slot}"
                        Width="{DynamicResource Column.Date.Width}"
+                       Padding="0,0,8,0"
+                       Visibility="{DynamicResource Column.Date.Visible}"
                        Style="{StaticResource Text.Secondary}"
                        Typography.NumeralAlignment="Tabular"
                        Text="{Binding DateText}"/>
 
-            <TextBlock Grid.Column="4"
+            <TextBlock Grid.Column="{DynamicResource Column.Type.Slot}"
                        Width="{DynamicResource Column.Type.Width}"
+                       Padding="0,0,8,0"
+                       Visibility="{DynamicResource Column.Type.Visible}"
                        Style="{StaticResource Text.Secondary}"
                        Text="{Binding TypeText}"/>
 
-            <TextBlock Grid.Column="5"
+            <TextBlock Grid.Column="{DynamicResource Column.Size.Slot}"
                        Width="{DynamicResource Column.Size.Width}"
+                       Padding="0,0,8,0"
+                       Visibility="{DynamicResource Column.Size.Visible}"
                        Style="{StaticResource Text.Number}"
                        Text="{Binding SizeText}"/>
         </Grid>

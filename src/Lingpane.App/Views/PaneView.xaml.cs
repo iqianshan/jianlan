@@ -6,10 +6,12 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 using System.Windows.Threading;
+using Lingpane.App.Services;
 using Lingpane.App.ViewModels;
 using Lingpane.Core.Diagnostics;
 using Lingpane.Core.FileSystem;
 using Lingpane.Core.Localization;
+using Lingpane.Core.Navigation;
 using Lingpane.Core.Settings;
 
 namespace Lingpane.App.Views;
@@ -40,6 +42,7 @@ public partial class PaneView : UserControl
         InitializeComponent();
         RegisterCommands();
         HookRowHover();
+        InitializeColumns();
         Unloaded += OnPaneUnloaded;
         SizeChanged += OnPaneSizeChanged;
     }
@@ -75,6 +78,7 @@ public partial class PaneView : UserControl
             previous.NavigationCompleted -= StartWatching;
             previous.NavigationCompleted -= ScheduleFolderIcons;
             previous.NavigationCompleted -= RestoreAfterReload;
+            previous.PropertyChanged -= OnPanePropertyChanged;
             StopWatching();
         }
 
@@ -83,13 +87,16 @@ public partial class PaneView : UserControl
         _pendingRestore = null;
         DataContext = viewModel;
 
-        // 列宽要在首帧前就位，否则会看到一次"默认宽度 → 记忆宽度"的跳动
+        // 列配置要在首帧前就位，否则会看到一次"默认宽度 → 记忆宽度"的跳动。
+        // 档位先按路径定下来：切标签等于换了目录类型，图片档与下载档的列宽本来就不一样。
+        _columnKind = ColumnProfiles.Resolve(viewModel.CurrentPath, KnownFolderService.All);
         ApplyColumnWidths();
 
         // 监听与图标补充挂在视图模型上：它们的目标是"这个窗格正在看的目录"
         viewModel.NavigationCompleted += StartWatching;
         viewModel.NavigationCompleted += ScheduleFolderIcons;
         viewModel.NavigationCompleted += RestoreAfterReload;
+        viewModel.PropertyChanged += OnPanePropertyChanged;
 
         RestoreViewState(viewModel);
     }
@@ -288,6 +295,7 @@ public partial class PaneView : UserControl
             previous.NavigationCompleted -= StartWatching;
             previous.NavigationCompleted -= ScheduleFolderIcons;
             previous.NavigationCompleted -= RestoreAfterReload;
+            previous.PropertyChanged -= OnPanePropertyChanged;
             StopWatching();
         }
 
@@ -319,83 +327,13 @@ public partial class PaneView : UserControl
     /// <summary>是否显示状态栏，供宿主查询（单实例时用于诊断日志）。</summary>
     public Visibility StatusBarVisibility => StatusBarHost.Visibility;
 
-    // ── 列宽 ────────────────────────────────────────────────────────────────
-    //
-    // 列宽不放 ViewModel：它只影响显示，且行模板与列头共用同三个 DynamicResource
-    // 令牌（Column.Date/Type/Size.Width），改令牌即生效，不需要重建列表。
-    // 名称列是星号列，宽度随窗口伸缩，因此不参与拖拽。
-    //
-    // 令牌写在窗格自己的 Resources 里而不是 App 级：双窗格时两个窗格的可用宽度
-    // 不同，各自持有一份可以避免一格的拖拽影响另一格。
-
-    /// <summary>
-    /// 窗格窄到放不下三列时的收缩顺序：**先缩回默认宽度，再按 大小 → 类型 → 日期 折叠**
-    /// （ui-guidelines A-05：先扩列宽，再折叠列，最后才允许省略）。
-    ///
-    /// 双窗格把这个问题的出现门槛从"窗口很窄"变成了"一直"：1100px 窗口分屏后每栏约 460px，
-    /// 三列按用户拖过的宽度（比如 220+156+113）会把名称列挤成 0——文件名整个看不见。
-    ///
-    /// 为什么先缩再折：用户把日期列拖到 220 是为了看完整时间戳，但"看完整时间戳"的
-    /// 优先级低于"看得见文件名"；缩回默认 110 还能保住这一列，直接折掉就一点信息都没了。
-    /// 折叠只是把令牌置 0，设置里的宽度不动，拉宽窗口就回来。
-    /// </summary>
-    private void ApplyResponsiveColumns(double paneWidth)
-    {
-        if (paneWidth <= 0 || double.IsNaN(paneWidth)) return;
-
-        AppSettings s = App.Settings;
-
-        // 名称列至少要留这么多，否则不如把这列折掉换给文件名
-        const double NameMinWidth = 150;
-        const double Padding = 44;          // 列头左右各 8 + 行内边距 + 图标槽位
-
-        double available = paneWidth - Padding;
-
-        double[] widths = [s.Layout.ColumnDateWidth, s.Layout.ColumnTypeWidth, s.Layout.ColumnSizeWidth];
-        double[] defaults = [AppSettings.DefaultColumnDateWidth, AppSettings.DefaultColumnTypeWidth, AppSettings.DefaultColumnSizeWidth];
-        bool[] shown = [true, true, true];
-
-        double Fixed() => shown.Select((on, i) => on ? widths[i] : 0).Sum();
-
-        // ① 缩：把"超过默认值"的列逐个缩回默认，缩到名称列放得下为止
-        while (Fixed() > available - NameMinWidth)
-        {
-            int widest = -1;
-            for (int i = 0; i < widths.Length; i++)
-            {
-                if (!shown[i] || widths[i] <= defaults[i]) continue;
-                if (widest < 0 || widths[i] - defaults[i] > widths[widest] - defaults[widest]) widest = i;
-            }
-
-            if (widest < 0) break;
-            widths[widest] = defaults[widest];
-        }
-
-        // ② 折：从最不重要的列开始丢，日期留到最后
-        foreach (int i in new[] { 2, 1, 0 })
-        {
-            if (Fixed() <= available - NameMinWidth) break;
-            shown[i] = false;
-        }
-
-        Resources["Column.Date.Width"] = shown[0] ? widths[0] : 0d;
-        Resources["Column.Type.Width"] = shown[1] ? widths[1] : 0d;
-        Resources["Column.Size.Width"] = shown[2] ? widths[2] : 0d;
-
-        if (MainWindow.KeyDebug)
-        {
-            MainWindow.WriteKeyLog(
-                $"columns pane={paneWidth:0} in={s.Layout.ColumnDateWidth}/{s.Layout.ColumnTypeWidth}/{s.Layout.ColumnSizeWidth} " +
-                $"out={widths[0]:0}/{widths[1]:0}/{widths[2]:0} shown={shown[0]}/{shown[1]}/{shown[2]}");
-        }
-    }
-
-    private void ApplyColumnWidths() => ApplyResponsiveColumns(ActualWidth);
 
     /// <summary>窗格变窄/变宽要重新决定哪些列还放得下（分屏、拖分隔条、拉窗口都会触发）。</summary>
     private void OnPaneSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        if (e.WidthChanged) ApplyResponsiveColumns(e.NewSize.Width);
+        // 传新宽度而不是让 ApplyColumns 去读 ActualWidth：SizeChanged 触发时
+        // ActualWidth 还是旧值，读它会慢一帧，表现为"拖动分隔条时列晚一步折叠"。
+        if (e.WidthChanged) ApplyColumns(e.NewSize.Width);
     }
 
     /// <summary>布局诊断：列头实际宽度与可视位置，确认"列被裁掉"还是"列不存在"。</summary>
@@ -447,74 +385,6 @@ public partial class PaneView : UserControl
         }
     }
 
-    // 名称列（星号列）的最小可视宽度，与 DesignTokens 的 Column.Name.MinWidth 对齐。
-    // 拖宽其他列时不能把名称列压到这条线以下，否则文件名不可读、
-    // 且星号列被压到 0 后 Grid 会整体溢出，把最右侧的列挤出可视区。
-    private const double MinNameWidth = 160;
-
-    private void OnColumnResize(object sender, DragDeltaEventArgs e)
-    {
-        if (sender is not Thumb { Tag: string token }) return;
-
-        double current = ReadColumnWidth(token);
-
-        // 把手挂在列的左边缘：向右拖（HorizontalChange > 0）= 把分隔线右推，
-        // 本列变窄、左邻列变宽；向左拖则相反。取反后分隔线始终跟着鼠标，
-        // 而不是"列宽变了、边界却不动"。
-        double next = current - e.HorizontalChange;
-
-        // 只有本列变宽时受限：最多吃掉名称列让出的富余宽度，避免溢出
-        if (next > current)
-        {
-            double nameSlack = HeaderGrid.ColumnDefinitions[2].ActualWidth - MinNameWidth;
-            next = Math.Min(next, current + Math.Max(0, nameSlack));
-        }
-
-        next = Math.Clamp(next, AppSettings.MinColumnWidth, AppSettings.MaxColumnWidth);
-
-        if (Math.Abs(next - current) < 0.5) return;
-
-        WriteColumnWidth(token, next);
-        Resources[token] = next;
-    }
-
-    private void OnColumnResizeDone(object sender, DragCompletedEventArgs e)
-    {
-        if (sender is not Thumb thumb) return;
-
-        // 一次拖拽只落盘一次，不跟随每个 DragDelta 写文件
-        App.SaveSettings();
-
-        if (MainWindow.KeyDebug)
-        {
-            AppSettings s = App.Settings;
-            MainWindow.WriteKeyLog($"columns done {thumb.Tag} delta={e.HorizontalChange:0.#} " +
-                        $"out={s.Layout.ColumnDateWidth:0.#}/{s.Layout.ColumnTypeWidth:0.#}/{s.Layout.ColumnSizeWidth:0.#}");
-        }
-    }
-
-    private static double ReadColumnWidth(string token) => token switch
-    {
-        "Column.Date.Width" => App.Settings.Layout.ColumnDateWidth,
-        "Column.Type.Width" => App.Settings.Layout.ColumnTypeWidth,
-        _ => App.Settings.Layout.ColumnSizeWidth,
-    };
-
-    private static void WriteColumnWidth(string token, double value)
-    {
-        switch (token)
-        {
-            case "Column.Date.Width":
-                App.Settings.Layout.ColumnDateWidth = value;
-                break;
-            case "Column.Type.Width":
-                App.Settings.Layout.ColumnTypeWidth = value;
-                break;
-            default:
-                App.Settings.Layout.ColumnSizeWidth = value;
-                break;
-        }
-    }
 
     // ── 导航 ────────────────────────────────────────────────────────────────
 

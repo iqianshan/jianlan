@@ -146,6 +146,27 @@
   <data name="Menu.Properties" xml:space="preserve">
     <value>Properties</value>
   </data>
+  <data name="Menu.Columns.MoveLeft" xml:space="preserve">
+    <value>Move left</value>
+  </data>
+  <data name="Menu.Columns.MoveRight" xml:space="preserve">
+    <value>Move right</value>
+  </data>
+  <data name="Menu.Columns.Reset" xml:space="preserve">
+    <value>Reset columns for this folder type</value>
+  </data>
+  <data name="Menu.Columns.Hint" xml:space="preserve">
+    <value>The name column is always shown</value>
+  </data>
+  <data name="Settings.Section.Columns" xml:space="preserve">
+    <value>Columns</value>
+  </data>
+  <data name="Settings.Columns.Hint" xml:space="preserve">
+    <value>Applies to folders of the same type; drag a column edge to resize, right-click a header to reorder.</value>
+  </data>
+  <data name="Settings.Columns.Reset" xml:space="preserve">
+    <value>Reset all column settings</value>
+  </data>
 
   <!-- 列表列头与排序 -->
   <data name="Column.Name" xml:space="preserve">
@@ -1215,6 +1236,9 @@
   </data>
   <data name="Settings.ResetAll.Done" xml:space="preserve">
     <value>All settings are back to default</value>
+  </data>
+  <data name="Settings.ResetLayout.Done" xml:space="preserve">
+    <value>Column settings are back to default</value>
   </data>
   <data name="Dialog.ResetAll.Title" xml:space="preserve">
     <value>Reset all settings</value>

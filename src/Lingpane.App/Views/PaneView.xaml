@@ -285,7 +285,59 @@
                     Height="{DynamicResource Size.Row.Header}"
                     Background="{DynamicResource Brush.Surface.Window}"
                     BorderBrush="{DynamicResource Brush.Border.Hairline}"
-                    BorderThickness="0,0,0,1">
+                    BorderThickness="0,0,0,1"
+                    PreviewMouseRightButtonDown="OnColumnHeaderRightDown">
+                <!-- 列配置入口（FR-6.4）。右键列头比放进设置页更贴近操作位置：
+                     调整列的人此刻正盯着列头，让他先去设置里找一遍是多余的。
+                     菜单项在打开时按当前档位刷新勾选与可用状态。 -->
+                <Border.ContextMenu>
+                    <ContextMenu Style="{StaticResource ContextMenu.Default}"
+                                 Opened="OnColumnMenuOpened">
+                        <MenuItem x:Name="ColumnNameItem"
+                                  Style="{StaticResource MenuItem.Default}"
+                                  IsCheckable="True"
+                                  IsChecked="True"
+                                  IsEnabled="False"
+                                  Header="{loc:Tr Key=Column.Name}"/>
+                        <MenuItem x:Name="ColumnDateItem"
+                                  Style="{StaticResource MenuItem.Default}"
+                                  IsCheckable="True"
+                                  Tag="Date"
+                                  Header="{loc:Tr Key=Column.DateModified}"
+                                  Click="OnToggleColumn"/>
+                        <MenuItem x:Name="ColumnTypeItem"
+                                  Style="{StaticResource MenuItem.Default}"
+                                  IsCheckable="True"
+                                  Tag="Type"
+                                  Header="{loc:Tr Key=Column.Type}"
+                                  Click="OnToggleColumn"/>
+                        <MenuItem x:Name="ColumnSizeItem"
+                                  Style="{StaticResource MenuItem.Default}"
+                                  IsCheckable="True"
+                                  Tag="Size"
+                                  Header="{loc:Tr Key=Column.Size}"
+                                  Click="OnToggleColumn"/>
+                        <Separator Style="{StaticResource Menu.Separator}"/>
+                        <MenuItem x:Name="ColumnMoveLeftItem"
+                                  Style="{StaticResource MenuItem.Default}"
+                                  Tag="-1"
+                                  Header="{loc:Tr Key=Menu.Columns.MoveLeft}"
+                                  Click="OnMoveColumn"/>
+                        <MenuItem x:Name="ColumnMoveRightItem"
+                                  Style="{StaticResource MenuItem.Default}"
+                                  Tag="1"
+                                  Header="{loc:Tr Key=Menu.Columns.MoveRight}"
+                                  Click="OnMoveColumn"/>
+                        <Separator Style="{StaticResource Menu.Separator}"/>
+                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                  IsEnabled="False"
+                                  Header="{loc:Tr Key=Menu.Columns.Hint}"/>
+                        <MenuItem x:Name="ColumnResetItem"
+                                  Style="{StaticResource MenuItem.Default}"
+                                  Header="{loc:Tr Key=Menu.Columns.Reset}"
+                                  Click="OnResetColumns"/>
+                    </ContextMenu>
+                </Border.ContextMenu>
                 <Border.Style>
                     <Style TargetType="Border">
                         <Style.Triggers>
@@ -316,44 +368,53 @@
                             Tag="Name"
                             Click="OnSortClick"
                             ToolTip="{loc:Tr Key=Sort.ByName}"/>
-                    <Button Grid.Column="3"
+                    <!-- 三个数据列的槽位、宽度、显隐都由 PaneView.Columns.cs 写入本窗格的资源。
+                         用 DynamicResource 而不是绑定：列配置变一次要同时改列头与每一行，
+                         而每行各持一份 Grid 列定义，靠绑定同步就意味着上万行各挂一条通知。 -->
+                    <Button Grid.Column="{DynamicResource Column.Date.Slot}"
                             x:Name="DateHeaderButton"
                             Style="{StaticResource Button.Header}"
                             Width="{DynamicResource Column.Date.Width}"
+                            Visibility="{DynamicResource Column.Date.Visible}"
                             Content="{Binding DateHeader}"
                             Tag="Date"
                             Click="OnSortClick"
                             ToolTip="{loc:Tr Key=Sort.ByDateModified}"/>
-                    <Thumb Grid.Column="3"
+                    <Thumb Grid.Column="{DynamicResource Column.Date.Slot}"
                            Style="{StaticResource Thumb.ColumnResize}"
-                           Tag="Column.Date.Width"
+                           Visibility="{DynamicResource Column.Date.Visible}"
+                           Tag="Date"
                            DragDelta="OnColumnResize"
                            DragCompleted="OnColumnResizeDone"/>
-                    <Button Grid.Column="4"
+                    <Button Grid.Column="{DynamicResource Column.Type.Slot}"
                             x:Name="TypeHeaderButton"
                             Style="{StaticResource Button.Header}"
                             Width="{DynamicResource Column.Type.Width}"
+                            Visibility="{DynamicResource Column.Type.Visible}"
                             Content="{Binding TypeHeader}"
                             Tag="Type"
                             Click="OnSortClick"
                             ToolTip="{loc:Tr Key=Sort.ByType}"/>
-                    <Thumb Grid.Column="4"
+                    <Thumb Grid.Column="{DynamicResource Column.Type.Slot}"
                            Style="{StaticResource Thumb.ColumnResize}"
-                           Tag="Column.Type.Width"
+                           Visibility="{DynamicResource Column.Type.Visible}"
+                           Tag="Type"
                            DragDelta="OnColumnResize"
                            DragCompleted="OnColumnResizeDone"/>
-                    <Button Grid.Column="5"
+                    <Button Grid.Column="{DynamicResource Column.Size.Slot}"
                             x:Name="SizeHeaderButton"
                             Style="{StaticResource Button.Header}"
                             Width="{DynamicResource Column.Size.Width}"
+                            Visibility="{DynamicResource Column.Size.Visible}"
                             Content="{Binding SizeHeader}"
                             Tag="Size"
                             Click="OnSortClick"
                             HorizontalContentAlignment="Right"
                             ToolTip="{loc:Tr Key=Sort.BySize}"/>
-                    <Thumb Grid.Column="5"
+                    <Thumb Grid.Column="{DynamicResource Column.Size.Slot}"
                            Style="{StaticResource Thumb.ColumnResize}"
-                           Tag="Column.Size.Width"
+                           Visibility="{DynamicResource Column.Size.Visible}"
+                           Tag="Size"
                            DragDelta="OnColumnResize"
                            DragCompleted="OnColumnResizeDone"/>
                 </Grid>

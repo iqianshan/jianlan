@@ -69,9 +69,18 @@
   },
 
   "layout": {
-    "columnDateWidth": 110,     // 56–400
-    "columnTypeWidth": 110,     // 56–400
-    "columnSizeWidth": 90,      // 56–400
+    "columns": {                // 列配置按目录类型分档（FR-6.4）
+      "default": {
+        "order": ["date", "type", "size"],   // 除名称外的三列顺序
+        "showDate": true,
+        "showType": true,
+        "showSize": true,
+        "dateWidth": 110,       // 56–400
+        "typeWidth": 110,
+        "sizeWidth": 90
+      },
+      "pictures": { ... }       // 未出现过的档位一律回落 default
+    },
     "splitEnabled": false,      // 双窗格开关，窗口级（FR-3.3）
     "splitRatio": 0.5,          // 第一窗格占比，0.15–0.85
     "splitVertical": false      // false = 左右，true = 上下（FR-3.1）
@@ -102,7 +111,10 @@
 | `session.tabPinned` | 与 `tabs` 等长 | 短了补 `false`（默认不固定）、长了截断。固定是用户主动设的意图，丢了会被当成功能失效，所以必须落盘而不是只活在内存里 |
 | `appearance.tabStripPosition` | `top` / `bottom` | 无法识别回落 `top`：落到一个不存在的位置上，标签栏会直接看不见 |
 | `behavior.startupWorkspace` | `null` 或非空工作区名 | 空白归一为 `null`；**不校验该工作区是否还在**（工作区文件按需加载，启动恢复时才去找，找不到就退回会话恢复）。非 `null` 时 `Normalize()` 把 `restoreLastSession` 置 `false`：两项都表达"启动时放什么"，显式选择的那一项胜出，而不是让两套逻辑抢 |
-| `columnDate/Type/SizeWidth` | 56–400（单位：DIP） | 夹取；`0`、`NaN`、`Infinity` 回落默认值 |
+| `columns` | 键是档位名（`default` / `desktop` / `documents` / `downloads` / `pictures` / `music` / `videos`），值见下 | 键大小写归一为小写并去重（手写 `Pictures` 也能认）；缺失的档位回落 `default`；`default` 不存在时自动建一份 |
+| `columns.*.order` | 三个元素，取值 `date`/`type`/`size` | 未知项、重复项、`name` 一律剔除（名称列恒在首位）；缺失项按默认顺序补在末尾。少一项会让某列消失，重复会让两个列元素叠在同一格 |
+| `columns.*.showDate/Type/Size` | 布尔 | 三项可同时为 `false`（只剩文件名，等同列表视图）；名称列不可隐藏，属输入校验 |
+| `columns.*.date/Type/SizeWidth` | 56–400（单位：DIP，字号基线下的逻辑宽度） | 夹取；`0`、`NaN`、`Infinity` 回落默认值。实际显示宽度 = 本值 × 字号缩放，因此换字号不会把用户拖出来的宽度改掉 |
 | `splitRatio` | 0.15–0.85 | 夹取；`NaN`/`Infinity` 回落 0.5。夹到 0.15 以下等于把一个窗格压成 0 宽，没有意义 |
 
 > **路径合法性不在归一化里判**：盘符可能暂时不在（U 盘没插），判了就把标签吃掉。
@@ -112,6 +124,12 @@
 >
 > 名称列是星号列（宽度随窗口伸缩），因此**没有**对应字段，也不参与拖拽。
 > 列宽只在拖拽结束时落盘一次，不跟随每个拖动事件写文件。
+>
+> **列配置为什么按目录类型分档而不是按路径逐个记**：逐路径记会在用户拖几次列宽之后
+> 让这个文件里长出一张与访问历史等长的表，而收益只在"回到同一目录"时体现。
+> 档位用系统给的已知文件夹（`KnownFolderService`），数量固定、不需要内容探测；
+> 判定走最长前缀匹配，所以 `Documents\Downloads` 归下载档而不是文档档。
+> 分档是**每个窗格各算各的**：双窗格可以左边图片、右边代码，两边的列宽本来就该不同。
 >
 > `splitEnabled` / `splitRatio` / `splitVertical` 三者都是**用户动作当场落盘**
 > （`F3`、拖完分隔条、双击复位、右键改方向），不走"退出时尺寸变了才存"的兜底路径：

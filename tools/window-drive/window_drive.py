@@ -263,6 +263,18 @@ def main() -> int:
         print("已发送 WM_CLOSE")
         return 0
 
+    if action == "move":
+        # 搬到指定位置并定尺寸。多显示器下截图必须先把窗口挪回主屏：
+        # capture 走 GetDC(0)（主屏 DC），窗口在第二屏时 BitBlt 按坐标抓到的
+        # 是主屏同一块区域——图里出现的是别的程序，而不是目标窗口。
+        x, y, width, height = (int(v) for v in sys.argv[3:7])
+        if not user32.MoveWindow(hwnd, x, y, width, height, True):
+            print(f"MoveWindow 失败：{ctypes.get_last_error()}")
+            return 1
+        time.sleep(0.5)
+        print(f"已移动：{get_rect(hwnd)}")
+        return 0
+
     if action == "max":
         # SW_MAXIMIZE = 3
         user32.ShowWindow(hwnd, 3)

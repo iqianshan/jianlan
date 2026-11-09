@@ -134,10 +134,12 @@ public partial class PaneView
 
         _debounceTimer?.Stop();
         StopWatching();
+        ReleaseColumns();
 
         if (_viewModel is not { } vm) return;
 
         vm.NavigationCompleted -= StartWatching;
         vm.NavigationCompleted -= ScheduleFolderIcons;
+        vm.PropertyChanged -= OnPanePropertyChanged;
     }
 }

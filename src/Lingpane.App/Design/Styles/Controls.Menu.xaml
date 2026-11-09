@@ -49,7 +49,19 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <ContentPresenter Grid.Column="0"
+                            <!-- 勾选位（列配置菜单用）。IsCheckable 的项整个右移 20px 给勾留位，
+                                 其余菜单项的缩进不受影响——统一加宽会让所有菜单文本莫名右挪。
+                                 未勾选时只把勾隐形而不收起，避免勾选时整行文字左右跳。 -->
+                            <TextBlock x:Name="Check"
+                                       Grid.Column="0"
+                                       HorizontalAlignment="Left"
+                                       VerticalAlignment="Center"
+                                       FontFamily="{StaticResource Font.Family.Icon}"
+                                       FontSize="{DynamicResource Font.Size.Caption}"
+                                       Text="&#xE73E;"
+                                       Visibility="Collapsed"/>
+                            <ContentPresenter x:Name="HeaderHost"
+                                              Grid.Column="0"
                                               ContentSource="Header"
                                               RecognizesAccessKey="True"
                                               VerticalAlignment="Center"/>
@@ -108,6 +120,14 @@
                              ContextMenu 里带子项的项算 SubmenuHeader。 -->
                         <Trigger Property="Role" Value="SubmenuHeader">
                             <Setter TargetName="Arrow" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <!-- 可勾选项：左侧留出勾位并显示勾，取消勾选时勾透明（对齐不跳） -->
+                        <Trigger Property="IsCheckable" Value="True">
+                            <Setter TargetName="Check" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="HeaderHost" Property="Margin" Value="18,0,0,0"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="False">
+                            <Setter TargetName="Check" Property="Opacity" Value="0"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

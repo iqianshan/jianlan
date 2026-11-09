@@ -348,6 +348,42 @@
                            Style="{StaticResource Text.FieldHint}"
                            Text="{loc:Tr Key=Settings.Behavior.ConfirmBatch.Hint}"/>
 
+                <!-- ══ 列（FR-6.4）══
+                     改的是默认档：用户正在图片目录里调完再去设置页看，看到的是默认档，
+                     这一点必须写在提示里，否则"我明明取消勾选了，图片目录还是三列"就成了 bug 报告。 -->
+                <TextBlock Style="{StaticResource Text.SectionTitle}" Text="{loc:Tr Key=Settings.Section.Columns}"/>
+
+                <TextBlock Margin="0,0,0,8"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Columns.Hint}"/>
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <CheckBox x:Name="ColumnDateCheck"
+                              Margin="0,0,20,0"
+                              Style="{StaticResource CheckBox.Default}"
+                              Content="{loc:Tr Key=Column.DateModified}"
+                              Checked="OnColumnVisibilityChanged"
+                              Unchecked="OnColumnVisibilityChanged"/>
+                    <CheckBox x:Name="ColumnTypeCheck"
+                              Margin="0,0,20,0"
+                              Style="{StaticResource CheckBox.Default}"
+                              Content="{loc:Tr Key=Column.Type}"
+                              Checked="OnColumnVisibilityChanged"
+                              Unchecked="OnColumnVisibilityChanged"/>
+                    <CheckBox x:Name="ColumnSizeCheck"
+                              Style="{StaticResource CheckBox.Default}"
+                              Content="{loc:Tr Key=Column.Size}"
+                              Checked="OnColumnVisibilityChanged"
+                              Unchecked="OnColumnVisibilityChanged"/>
+                </StackPanel>
+
+                <Button x:Name="ResetColumnsButton"
+                        Margin="0,0,0,16"
+                        HorizontalAlignment="Left"
+                        Style="{StaticResource Button.Toolbar}"
+                        Content="{loc:Tr Key=Settings.Columns.Reset}"
+                        Click="OnResetColumns"/>
+
                 <!-- ══ 启动 ══
                      FR-5.2.9 的两项在同一组里：它们在语义上互斥（一个说"回到上次的现场"，
                      一个说"每次固定打开这一份"），分开放反而要用户自己推。 -->
