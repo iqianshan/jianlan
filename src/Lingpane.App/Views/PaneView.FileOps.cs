@@ -287,7 +287,7 @@ public partial class PaneView
         SelectPaths(selectPaths);
     }
 
-    private void SelectPaths(IReadOnlyList<string> selectPaths)
+    internal void SelectPaths(IReadOnlyList<string> selectPaths)
     {
         if (selectPaths.Count == 0)
         {

@@ -837,6 +837,32 @@ public static class Strings
     /// <summary>The home tab has no second pane to split</summary>
     public static string Status_HomeNoSplit => LocalizationService.Instance.Get("Status.HomeNoSplit");
 
+    /// <summary>Tags: {0}</summary>
+    public static string Tab_TagResults => LocalizationService.Instance.Get("Tab.TagResults");
+    // 含占位符：string.Format(Strings.Tab_TagResults, ...)
+
+    /// <summary>Every item carrying this color, wherever it lives</summary>
+    public static string Tab_TagResults_Tip => LocalizationService.Instance.Get("Tab.TagResults.Tip");
+
+    /// <summary>{0} items · double-click one to jump to its folder</summary>
+    public static string Tag_Results_Hint => LocalizationService.Instance.Get("Tag.Results.Hint");
+    // 含占位符：string.Format(Strings.Tag_Results_Hint, ...)
+
+    /// <summary>Nothing has this color yet.</summary>
+    public static string Tag_Results_Empty => LocalizationService.Instance.Get("Tag.Results.Empty");
+
+    /// <summary>That item's folder no longer exists.</summary>
+    public static string Status_TagResultMissing => LocalizationService.Instance.Get("Status.TagResultMissing");
+
+    /// <summary>Locations</summary>
+    public static string Nav_Locations => LocalizationService.Instance.Get("Nav.Locations");
+
+    /// <summary>Tags</summary>
+    public static string Nav_Tags => LocalizationService.Instance.Get("Nav.Tags");
+
+    /// <summary>No tags yet. Right-click a file to add one.</summary>
+    public static string Nav_Tags_Empty => LocalizationService.Instance.Get("Nav.Tags.Empty");
+
     /// <summary>Bookmarks</summary>
     public static string Nav_Bookmarks => LocalizationService.Instance.Get("Nav.Bookmarks");
 
@@ -862,7 +888,7 @@ public static class Strings
     public static string Status_BookmarkFull => LocalizationService.Instance.Get("Status.BookmarkFull");
     // 含占位符：string.Format(Strings.Status_BookmarkFull, ...)
 
-    /// <summary>The home tab cannot be bookmarked</summary>
+    /// <summary>Nothing to bookmark here</summary>
     public static string Status_BookmarkHome => LocalizationService.Instance.Get("Status.BookmarkHome");
 
     /// <summary>Open</summary>

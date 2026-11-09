@@ -47,6 +47,9 @@ public partial class MainWindow : Window
     /// <summary>主页视图模型。窗口级单例，所有主页标签共用。</summary>
     private readonly HomeViewModel _home;
 
+    /// <summary>标签结果页（FR-4.1.5）。同为主页那种"窗口级单份、多个标签共用"的形态。</summary>
+    private readonly TagResultsViewModel _tagResults = new();
+
     /// <summary>
     /// 导航栏的完整内容（系统节点 + 收藏，FR-1.2 + FR-7.3）。
     /// 系统节点由窗格视图模型提供：已知文件夹的解析与刷新归它管，这里不复制一份。
@@ -89,9 +92,11 @@ public partial class MainWindow : Window
         _bookmarks = new BookmarkStore(App.Settings.Bookmarks);
         _home = new HomeViewModel(_history, _bookmarks);
 
-        // 导航栏：系统节点从窗格视图模型取（它管已知文件夹的解析），收藏从本窗口的存储取。
+        // 导航栏：系统节点从窗格视图模型取（它管已知文件夹的解析），收藏从本窗口的存储取，
+        // 标签从应用级标签库取（同一次运行里所有窗口共用一份）。
         // 用委托而不是直接传 QuickAccess，因为此刻还没有活动标签，Vm 取不到东西。
-        _nav = new NavPanelViewModel(_bookmarks, () => _tabs.Active is { } t ? t.ActivePane.QuickAccess : []);
+        _nav = new NavPanelViewModel(_bookmarks,
+            () => _tabs.Active is { } t ? t.ActivePane.QuickAccess : [], App.Tags);
         QuickAccessList.ItemsSource = _nav.Rows;
 
         // 新建标签走「设置 → 新标签页默认目录」，没设就是主页（FR-2.1）；关掉最后一个标签
@@ -101,6 +106,9 @@ public partial class MainWindow : Window
         _tabs.TabKindChanged += OnTabKindChanged;
         _tabs.CloseWindowRequested += Close;
         TabBar.Host = _tabs;
+
+        TagResults.Attach(_tagResults);
+        TagResults.ItemActivated += OnTagResultActivated;
 
         RestoreTabs();
 
@@ -310,7 +318,7 @@ public partial class MainWindow : Window
 
             // 第二窗格只记路径：窗格本身等"这个标签被激活且开着分屏"时才建，
             // 否则启动时就把 12 个标签的另一半全建出来，首帧预算立刻见底。
-            if (!tab.IsHome && Directory.Exists(second)) tab.PrepareSecondaryPending(second);
+            if (tab.Kind == TabKind.Files && Directory.Exists(second)) tab.PrepareSecondaryPending(second);
         }
 
         _tabs.ActivateAt(Math.Clamp(session.ActiveTabIndex, 0, restored.Count - 1));
@@ -606,6 +614,7 @@ public partial class MainWindow : Window
         if (tab.IsHome)
         {
             Home.Visibility = Visibility.Visible;
+            TagResults.Visibility = Visibility.Collapsed;
             Pane.Visibility = Visibility.Collapsed;
             Pane2.Visibility = Visibility.Collapsed;
 
@@ -616,7 +625,20 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (tab.IsTagResults)
+        {
+            Home.Visibility = Visibility.Collapsed;
+            TagResults.Visibility = Visibility.Visible;
+            Pane.Visibility = Visibility.Collapsed;
+            Pane2.Visibility = Visibility.Collapsed;
+
+            // 同一颜色来回切不重算（Load 内部判重）；换了颜色才重新取一遍
+            _tagResults.Load(App.Tags, tab.TagFilter, tab.TagFilterName);
+            return;
+        }
+
         Home.Visibility = Visibility.Collapsed;
+        TagResults.Visibility = Visibility.Collapsed;
         Pane.Visibility = Visibility.Visible;
         Pane.Attach(tab.Primary);
 
@@ -645,7 +667,11 @@ public partial class MainWindow : Window
         ApplySplitLayout();
         RefreshPaneFocus();
         DataContext = tab.ActivePane;
-        SyncNavSelection(tab.ActivePane.CurrentPath);
+
+        // 标签结果页没有路径，高亮要落在侧栏对应的那个颜色节点上，
+        // 而不是被空路径带跑到「主页」
+        SyncNavSelection(tab.IsTagResults ? _nav.FindTagRow(tab.TagFilter) : null,
+            tab.ActivePane.CurrentPath);
 
         // 不在这里补一次 LoadPanesAsync：引起形态变化的那个动作本身就是一次导航
         // （主页点卡片 / Alt+← 回退），再发一次只会让两次枚举互相作废。
@@ -669,10 +695,10 @@ public partial class MainWindow : Window
     /// </summary>
     private void ToggleSplit()
     {
-        if (Tab.IsHome)
+        if (Tab.Kind != TabKind.Files)
         {
-            // 主页是"没有位置"的形态，分不出第二栏。给一句话比让 F3 静默失效好——
-            // 否则用户会以为分屏快捷键坏了。
+            // 主页与标签结果页都是"没有位置"的形态，分不出第二栏。
+            // 给一句话比让 F3 静默失效好——否则用户会以为分屏快捷键坏了。
             Vm.SetStatus(Strings.Status_HomeNoSplit);
             return;
         }
@@ -770,14 +796,20 @@ public partial class MainWindow : Window
         Grid.SetColumnSpan(Pane2, 1);
         Grid.SetRowSpan(Pane2, 1);
 
-        // 主页横跨整个 PaneHost。放在分屏判断之前：主页标签下无论窗口是否"开着分屏"，
-        // 都只有一个内容区——否则切到主页会看到右边留着一条空白的分屏列。
+        // 主页与标签结果页都横跨整个 PaneHost。放在分屏判断之前：
+        // 这两种形态下无论窗口是否"开着分屏"，都只有一个内容区——
+        // 否则切过去会看到右边（或下边）留着一条空白的分屏列。
         Grid.SetColumn(Home, 0);
         Grid.SetRow(Home, 0);
-        if (Tab.IsHome)
+        Grid.SetColumn(TagResults, 0);
+        Grid.SetRow(TagResults, 0);
+
+        if (Tab.IsHome || Tab.IsTagResults)
         {
-            Grid.SetColumnSpan(Home, 3);
-            Grid.SetRowSpan(Home, 3);
+            FrameworkElement solo = Tab.IsHome ? Home : TagResults;
+            Grid.SetColumnSpan(solo, 3);
+            Grid.SetRowSpan(solo, 3);
+
             FirstColumn.Width = new GridLength(1, GridUnitType.Star);
             FirstRow.Height = new GridLength(1, GridUnitType.Star);
             ColumnSplitter.Visibility = Visibility.Collapsed;
@@ -787,6 +819,8 @@ public partial class MainWindow : Window
 
         Grid.SetColumnSpan(Home, 1);
         Grid.SetRowSpan(Home, 1);
+        Grid.SetColumnSpan(TagResults, 1);
+        Grid.SetRowSpan(TagResults, 1);
 
         if (!_splitEnabled)
         {
@@ -976,14 +1010,20 @@ public partial class MainWindow : Window
     /// 切标签换了目录，但导航栏的选中项还是上一个标签留下的那一条——
     /// 看起来像是"导航栏指向 A，列表显示 B"。
     /// </summary>
-    private void SyncNavSelection(string path)
+    private void SyncNavSelection(string path) => SyncNavSelection(null, path);
+
+    /// <summary>
+    /// 把导航栏高亮挪到 <paramref name="row"/>（非空时优先）或某个路径上。
+    /// 标签结果页没有路径可查，只能直接给行。
+    /// </summary>
+    private void SyncNavSelection(INavRow? row, string path)
     {
         if (!App.Settings.Appearance.ShowNavPane) return;
 
         _syncingNavSelection = true;
         try
         {
-            QuickAccessList.SelectedItem = _nav.FindRow(path);
+            QuickAccessList.SelectedItem = row ?? _nav.FindRow(path);
         }
         finally
         {
@@ -1456,6 +1496,14 @@ public partial class MainWindow : Window
         if (QuickAccessList.SelectedItem is NavSectionRow or NavEmptyRow)
         {
             SyncNavSelection(Vm.CurrentPath);
+            return;
+        }
+
+        // 标签节点（FR-4.1.5）：在当前标签里换成"这一色的全部条目"。
+        // Ctrl+单击与点收藏一致，新开一个标签看，原目录留着不动。
+        if (QuickAccessList.SelectedItem is NavTagRow tagRow)
+        {
+            OpenTagResults(tagRow.Color, tagRow.Name, newTab: Keyboard.Modifiers == ModifierKeys.Control);
             return;
         }
 

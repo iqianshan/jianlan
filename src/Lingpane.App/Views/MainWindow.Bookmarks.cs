@@ -31,9 +31,9 @@ public partial class MainWindow
     /// </summary>
     private void BookmarkCurrent()
     {
-        if (Tab.IsHome)
+        if (Tab.Kind != TabKind.Files)
         {
-            // 主页不"位于"任何目录，收藏它没有意义（收藏的是路径，主页没有）
+            // 主页与标签结果页都不"位于"任何目录，收藏它们没有意义（收藏的是路径）
             Vm.SetStatus(Strings.Status_BookmarkHome);
             return;
         }
@@ -109,6 +109,16 @@ public partial class MainWindow
 
     /// <summary>分区标题与空态提示：吃掉点击，不让它们被 ListBox 选中（选中也没有对应动作）。</summary>
     private void OnNavInertRowClick(object sender, MouseButtonEventArgs e) => e.Handled = true;
+
+    /// <summary>
+    /// 「位置」「标签」两个分区的标题没有管理动作，右键菜单里一项都不会显示。
+    /// 空菜单仍会弹出一个小空框——在 Opened 里直接关掉，比让它闪一下体面。
+    /// </summary>
+    private void OnNavSectionMenuOpening(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ContextMenu menu) return;
+        if (menu.DataContext is NavSectionRow { HasMenu: false }) menu.IsOpen = false;
+    }
 
     /// <summary>
     /// 收藏项上的鼠标：中键 → 新标签；双击文件 → 交给系统打开（FR-7.2 验收）。

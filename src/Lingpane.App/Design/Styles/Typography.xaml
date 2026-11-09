@@ -56,6 +56,24 @@
         <Setter Property="Foreground" Value="{DynamicResource Brush.Accent.Default}"/>
     </Style>
 
+    <!--
+        导航栏分区标题（位置 / 收藏 / 标签 / 工作区）。
+
+        和条目拉开层次靠三样，缺一样就会"糊成一片"：
+          ① 颜色降到次级（条目用主文字色）；
+          ② 字重加粗（条目是常规）；
+          ③ 上方留足空白（在模板里给，不在这里——首个分区不需要）。
+
+        以前这里用的是 Text.Header：三级灰、无声调、比条目还小，
+        于是"收藏"读起来像上一段的注释，而不是新一段的开头。
+    -->
+    <Style x:Key="Text.NavSection" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Base}">
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Caption}"/>
+        <Setter Property="LineHeight" Value="{DynamicResource Font.LineHeight.Caption}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
+        <Setter Property="FontWeight" Value="{StaticResource Font.Weight.Emphasis}"/>
+    </Style>
+
     <!-- 标签页标题 -->
     <Style x:Key="Text.Tab" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Base}">
         <Setter Property="FontSize" Value="{DynamicResource Font.Size.Body}"/>

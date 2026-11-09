@@ -338,6 +338,34 @@ public sealed class TagStore
     }
 
     /// <summary>
+    /// 八色各有多少条，一条记录可同时计入多色（一条记录可以是红+蓝）。
+    ///
+    /// 侧栏要给八个颜色节点标数量。用八次 <see cref="OfColor"/> 也能算出来，
+    /// 但每次都要 <see cref="Snapshot"/> 一份新列表——五万条上限下就是复制八遍，
+    /// 而这里只需要一遍遍历、一次加锁。
+    /// </summary>
+    public IReadOnlyDictionary<TagColors, int> CountByColor()
+    {
+        var counts = new Dictionary<TagColors, int>(TagPalette.All.Count);
+        foreach (TagColors color in TagPalette.All) counts[color] = 0;
+
+        lock (_gate)
+        {
+            if (!_loaded) Parse();
+
+            foreach (TagRecord record in _byKey.Values)
+            {
+                foreach (TagColors color in TagPalette.All)
+                {
+                    if ((record.Colors & color) != 0) counts[color]++;
+                }
+            }
+        }
+
+        return counts;
+    }
+
+    /// <summary>
     /// 把追加日志重写成"一条记录一行"的快照，返回重写后的行数。
     /// 记录数不变，只是文件变小、加载变快。
     /// </summary>

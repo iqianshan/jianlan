@@ -121,7 +121,7 @@ public partial class MainWindow
 
         foreach (TabViewModel tab in _tabs.Tabs)
         {
-            if (tab.IsHome) continue;
+            if (tab.Kind != TabKind.Files) continue;
 
             (string primary, string second) = tab.SnapshotPaths();
             if (string.IsNullOrEmpty(primary)) continue;

@@ -1,0 +1,119 @@
+<UserControl x:Class="Lingpane.App.Views.TagResultsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:loc="clr-namespace:Lingpane.App.Localization"
+             mc:Ignorable="d"
+             d:DesignWidth="800" d:DesignHeight="500">
+
+    <!--
+        标签结果页（FR-4.1.5）：某一颜色下的全部条目，跨目录。
+
+        为什么不是弹窗：结果要能"双击跳过去、跳完再切回来"，这是标签页的语义。
+        为什么不做成虚拟目录：主窗格的导航栈、目录监听、地址栏全都建立在"路径存在"上，
+        为一种临时聚合视图去伪造路径，会把那些路径判断全部拖下水。
+        这里只借了标签页的壳，内容是一份内存列表。
+    -->
+
+    <Grid Background="{DynamicResource Brush.Surface.Window}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="24,20,24,12">
+            <StackPanel Orientation="Horizontal">
+                <Ellipse Width="12" Height="12"
+                         VerticalAlignment="Center"
+                         Margin="0,0,8,0"
+                         Fill="{Binding ColorHex}"/>
+                <TextBlock Style="{StaticResource Text.Subtitle}" Text="{Binding TitleText}"/>
+            </StackPanel>
+            <TextBlock Margin="20,6,0,0"
+                       Style="{StaticResource Text.Caption}"
+                       Text="{Binding HintText}"/>
+        </StackPanel>
+
+        <ListBox x:Name="ResultList"
+                 Grid.Row="1"
+                 Margin="8,0,8,8"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 ItemsSource="{Binding Items}"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 VirtualizingStackPanel.IsVirtualizing="True"
+                 VirtualizingStackPanel.VirtualizationMode="Recycling"
+                 VirtualizingPanel.ScrollUnit="Pixel"
+                 MouseDoubleClick="OnItemDoubleClick">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Inset}"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <Grid Background="Transparent">
+                                    <Border x:Name="Sel"
+                                            Margin="4,0,4,0"
+                                            Background="Transparent"
+                                            CornerRadius="{StaticResource CornerRadius.Control}"/>
+                                    <ContentPresenter VerticalAlignment="Center"/>
+                                </Grid>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Sel" Property="Background"
+                                                Value="{DynamicResource Brush.Surface.Hover}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Sel" Property="Background"
+                                                Value="{DynamicResource Brush.Surface.Selected}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </ListBox.ItemContainerStyle>
+
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid Height="{DynamicResource Size.Row.Comfortable}"
+                          Margin="12,0,12,0"
+                          ToolTip="{Binding Tooltip}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="260"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0" Width="16" Margin="0,0,8,0">
+                            <Ellipse Width="8" Height="8"
+                                     VerticalAlignment="Center"
+                                     HorizontalAlignment="Left"
+                                     Margin="3,0,0,0"
+                                     Fill="{Binding Hex}"/>
+                        </Grid>
+                        <TextBlock Grid.Column="1"
+                                   Style="{StaticResource Text.Base}"
+                                   Text="{Binding Name}"
+                                   TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2"
+                                   Style="{StaticResource Text.Secondary}"
+                                   Text="{Binding Directory}"
+                                   TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- 空态叠在列表位置：这个颜色可能刚被清空，此时只剩一行说明比空白画面有用 -->
+        <TextBlock Grid.Row="1"
+                   Margin="24,0"
+                   VerticalAlignment="Top"
+                   Style="{StaticResource Text.Caption}"
+                   Text="{loc:Tr Key=Tag.Results.Empty}"
+                   Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}"/>
+    </Grid>
+</UserControl>

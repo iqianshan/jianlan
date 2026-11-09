@@ -57,31 +57,49 @@
             </Grid>
         </DataTemplate>
 
-        <!-- 分区标题（"收藏" / "工作区"）。不可选中，也不吃鼠标——点它没有任何该发生的事。
+        <!-- 分区标题（位置 / 收藏 / 标签 / 工作区）。不可选中，也不吃鼠标——点它没有任何该发生的事。
              右键是该分区的管理入口：收藏区是新建分组/清理失效项（FR-7.3 / FR-7.7），
-             工作区是"保存当前标签"（FR-8.1）。两份菜单靠 IsBookmarks / IsWorkspaces 互斥。 -->
+             工作区是"保存当前标签"（FR-8.1）。两份菜单靠 IsBookmarks / IsWorkspaces 互斥。
+
+             四个分区标题是侧栏的"自报身份"：位置（系统给的）、收藏（你钉的）、
+             标签（条目上的颜色）、工作区（一组标签页快照）是四件互不相干的事，
+             没有名字时它们会被读成同一棵树的不同层级。
+             第一分区不画上方分隔线——它上面只有主页，再切一刀反而像断了。 -->
         <DataTemplate DataType="{x:Type vm:NavSectionRow}">
-            <TextBlock Margin="12,10,8,4"
-                       Style="{StaticResource Text.Header}"
-                       Text="{Binding Title}"
-                       PreviewMouseLeftButtonDown="OnNavInertRowClick">
-                <TextBlock.ContextMenu>
-                    <ContextMenu Style="{StaticResource ContextMenu.Default}">
-                        <MenuItem Style="{StaticResource MenuItem.Default}"
-                                  Header="{loc:Tr Key=Bookmark.Group.NewMenu}"
-                                  Click="OnBookmarkNewGroup"
-                                  Visibility="{Binding IsBookmarks, Converter={StaticResource BoolToVisibility}}"/>
-                        <MenuItem Style="{StaticResource MenuItem.Default}"
-                                  Header="{loc:Tr Key=Bookmark.CleanMissing}"
-                                  Click="OnBookmarkCleanMissing"
-                                  Visibility="{Binding IsBookmarks, Converter={StaticResource BoolToVisibility}}"/>
-                        <MenuItem Style="{StaticResource MenuItem.Default}"
-                                  Header="{loc:Tr Key=Nav.Workspace.SaveCurrent}"
-                                  Click="OnWorkspaceSaveCurrent"
-                                  Visibility="{Binding IsWorkspaces, Converter={StaticResource BoolToVisibility}}"/>
-                    </ContextMenu>
-                </TextBlock.ContextMenu>
-            </TextBlock>
+            <StackPanel Background="Transparent">
+                <Border x:Name="Rule"
+                        Height="1"
+                        Margin="10,10,10,0"
+                        Background="{DynamicResource Brush.Border.Hairline}"/>
+                <TextBlock x:Name="Label"
+                           Margin="12,6,8,4"
+                           Style="{StaticResource Text.NavSection}"
+                           Text="{Binding Title}"
+                           PreviewMouseLeftButtonDown="OnNavInertRowClick">
+                    <TextBlock.ContextMenu>
+                        <ContextMenu Style="{StaticResource ContextMenu.Default}"
+                                     Opened="OnNavSectionMenuOpening">
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Bookmark.Group.NewMenu}"
+                                      Click="OnBookmarkNewGroup"
+                                      Visibility="{Binding IsBookmarks, Converter={StaticResource BoolToVisibility}}"/>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Bookmark.CleanMissing}"
+                                      Click="OnBookmarkCleanMissing"
+                                      Visibility="{Binding IsBookmarks, Converter={StaticResource BoolToVisibility}}"/>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Nav.Workspace.SaveCurrent}"
+                                      Click="OnWorkspaceSaveCurrent"
+                                      Visibility="{Binding IsWorkspaces, Converter={StaticResource BoolToVisibility}}"/>
+                        </ContextMenu>
+                    </TextBlock.ContextMenu>
+                </TextBlock>
+            </StackPanel>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsFirst}" Value="True">
+                    <Setter TargetName="Rule" Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
         </DataTemplate>
 
         <!-- 空态提示。折行显示：窄侧栏里"按 Ctrl+D 收藏当前位置"一行放不下 -->
@@ -293,6 +311,33 @@
                 </TextBlock>
             </Grid>
         </DataTemplate>
+
+        <!-- 标签分区的一行（FR-4.1.5）：实心色点 + 颜色名 + 数量。
+             点一下在当前标签里打开该色的聚合视图（列出所有带这个颜色的条目，
+             不论它们分散在哪个目录）。 -->
+        <DataTemplate DataType="{x:Type vm:NavTagRow}">
+            <Grid Margin="{StaticResource Padding.NavItem}"
+                  Background="Transparent"
+                  VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <!-- 色点用定宽容器，与上面那些 16px 的字形图标左对齐 -->
+                <Grid Grid.Column="0" Width="16" Margin="0,0,8,0">
+                    <Ellipse Width="10" Height="10"
+                             VerticalAlignment="Center"
+                             HorizontalAlignment="Left"
+                             Margin="3,0,0,0"
+                             Fill="{Binding Hex}"/>
+                </Grid>
+                <TextBlock Grid.Column="1"
+                           Style="{StaticResource Text.Nav}"
+                           Text="{Binding Title}"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center"/>
+            </Grid>
+        </DataTemplate>
     </Window.Resources>
 
     <!--
@@ -422,6 +467,10 @@
                  多个主页标签共用它。显示主页时它会横跨整个 PaneHost，两个窗格一起让位——
                  主页不"位于"任何目录，没有第二个位置可以分屏。 -->
             <views:HomeView x:Name="Home" Grid.Column="0" Grid.Row="0" Visibility="Collapsed"/>
+
+            <!-- 标签结果（FR-4.1.5）。同样是窗口级单件：结果列表按当前标签的颜色现取，
+                 开多个标签看不同颜色时共用这一份视图模型，切换时只重填内容。 -->
+            <views:TagResultsView x:Name="TagResults" Grid.Column="0" Grid.Row="0" Visibility="Collapsed"/>
 
             <views:PaneView x:Name="Pane" Grid.Column="0" Grid.Row="0"/>
 

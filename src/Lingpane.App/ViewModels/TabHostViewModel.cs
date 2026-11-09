@@ -133,6 +133,26 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     public bool IsFull => Tabs.Count >= SessionSettings.MaxTabs;
 
     /// <summary>
+    /// 新开一个标签结果页（FR-4.1.5）。到标签上限时返回 null ——
+    /// 与 Ctrl+T 一样由调用方决定是提示还是退化成"在当前标签打开"。
+    /// </summary>
+    public TabViewModel? OpenTagResults(TagColors color, string colorName)
+    {
+        if (IsFull) return null;
+
+        var tab = new TabViewModel(_settings, null, _onVisited, tags: _tags);
+        tab.KindChanged += OnTabKindChanged;
+        Tabs.Add(tab);
+
+        // 先进集合再切形态：KindChanged 里宿主会判"是不是活动标签"，
+        // 不在集合里的标签一律被忽略，切早了这次变化就丢了
+        tab.ShowTagResults(color, colorName);
+        Activate(tab);
+
+        return tab;
+    }
+
+    /// <summary>
     /// 还能不能再新建一个标签。给界面的 `+` 按钮用：到上限时按钮变灰，
     /// 比"点了没反应"清楚。Ctrl+T 与外部的"在新标签打开"仍要各自判一次。
     /// </summary>
@@ -253,7 +273,7 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
             {
                 // 不销毁这个标签，只把它送回默认目录：用户刚关掉的是"这个地方"，
                 // 不是"这个窗口"。历史栈保留，Alt+← 还能回退到刚才关掉的目录。
-                RememberClosed(tab.IsHome ? HomeMarker : tab.Primary.CurrentPath);
+                RememberClosed(TabMarker(tab));
 
                 if (tab.IsHome)
                 {
@@ -270,7 +290,7 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
             return;
         }
 
-        RememberClosed(tab.IsHome ? HomeMarker : tab.Primary.CurrentPath);
+        RememberClosed(TabMarker(tab));
 
         bool wasActive = ReferenceEquals(_active, tab);
         Tabs.RemoveAt(index);
@@ -357,8 +377,8 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
 
     /// <summary>退出时写进会话的路径列表（空的标签不写，否则下次启动多出一个没内容的标签）。</summary>
     public List<string> SnapshotPaths()
-        => Tabs.Select(t => t.IsHome ? HomeMarker : t.Primary.CurrentPath)
-               .Where(p => IsPersistable(p))
+        => Tabs.Select(TabMarker)
+               .Where(IsPersistable)
                .Take(SessionSettings.MaxTabs)
                .ToList();
 
@@ -373,13 +393,26 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
                .Take(SessionSettings.MaxTabs)
                .ToList();
 
-    /// <summary>主页标签在会话里也是有效的一条，不能因为"没有路径"被过滤掉。</summary>
+    /// <summary>
+    /// 一个标签在会话里用什么表示。
+    ///
+    /// 主页有专属哨兵（不能因为"没有路径"被过滤掉）；标签结果页**故意给空串**：
+    /// 它是"这次运行里看过的某一色"，重启后恢复它没有意义，
+    /// 恢复出来还会占掉一个标签位。
+    /// </summary>
+    private static string TabMarker(TabViewModel tab) => tab.Kind switch
+    {
+        TabKind.Home => HomeMarker,
+        TabKind.TagResults => string.Empty,
+        _ => tab.Primary.CurrentPath,
+    };
+
     private static bool IsPersistable(string? path)
         => !string.IsNullOrWhiteSpace(path);
 
     /// <summary>固定标记，与 <see cref="SnapshotPaths"/> 等长（FR-2.9）。</summary>
     public List<bool> SnapshotPinned()
-        => Tabs.Where(t => t.IsHome || !string.IsNullOrWhiteSpace(t.Primary.CurrentPath))
+        => Tabs.Where(t => IsPersistable(TabMarker(t)))
                .Select(t => t.IsPinned)
                .Take(SessionSettings.MaxTabs)
                .ToList();

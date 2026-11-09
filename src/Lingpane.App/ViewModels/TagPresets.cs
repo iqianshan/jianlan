@@ -14,8 +14,13 @@ public static class TagPresets
 {
     public sealed record ColorPreset(TagColors Value, string Name, string Hex);
 
-    /// <summary>八色，顺序与 <see cref="TagPalette.All"/> 一致（位序即顺序）。</summary>
-    public static IReadOnlyList<ColorPreset> Colors { get; } = Build();
+    /// <summary>
+    /// 八色，顺序与 <see cref="TagPalette.All"/> 一致（位序即顺序）。
+    ///
+    /// 每次访问重新拼：颜色名是本地化文案，缓存成静态字段后切语言就再也拿不到新名字。
+    /// 八项、每项一个 switch，代价可以忽略；真正贵的资源（画刷、图片）才值得缓存。
+    /// </summary>
+    public static IReadOnlyList<ColorPreset> Colors => Build();
 
     private static List<ColorPreset> Build()
     {

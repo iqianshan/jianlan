@@ -79,6 +79,21 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+        <Style.Triggers>
+            <!--
+                分区标题行高自适应：标题要装下分隔线与上方留白，
+                28px 的固定行高会把它们挤掉。只有 NavSectionRow 带 IsSection，
+                其余行绑定失败、不触发，行高仍是 28。
+            -->
+            <DataTrigger Binding="{Binding IsSection}" Value="True">
+                <Setter Property="Height" Value="Auto"/>
+            </DataTrigger>
+            <!-- 空态提示要能折成两行：窄侧栏里"右键文件即可添加颜色标记"一行放不下，
+                固定 28px 会把它从中间裁断 -->
+            <DataTrigger Binding="{Binding IsHint}" Value="True">
+                <Setter Property="Height" Value="Auto"/>
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <!--

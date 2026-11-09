@@ -8,6 +8,7 @@ using Lingpane.App.Shell;
 using Lingpane.Core.Localization;
 using Lingpane.Core.Navigation;
 using Lingpane.Core.Settings;
+using Lingpane.Core.Tagging;
 using Lingpane.Core.Workspaces;
 
 namespace Lingpane.App.ViewModels;
@@ -21,7 +22,13 @@ public interface INavRow;
 /// <summary>收藏区的行（分区标题 / 空态 / 分组 / 收藏项）的共同基类。</summary>
 public abstract class NavRow : INavRow;
 
-/// <summary>分区标题（如"收藏"）。不可选中，点击无动作；右键出该分区的管理菜单。</summary>
+/// <summary>
+/// 分区标题（如"收藏"）。不可选中，点击无动作；右键出该分区的管理菜单。
+///
+/// 四个分区标题的作用不是装饰，而是"自报身份"：侧栏里同时住着系统位置、
+/// 用户钉住的路径、条目上的颜色标记、成组的标签页快照，四者互不相干。
+/// 每块顶上一个名字，用户才知道"这一段是什么"，而不是把它们读成一棵树的层级。
+/// </summary>
 public sealed class NavSectionRow : NavRow
 {
     public required string Title { get; init; }
@@ -29,14 +36,37 @@ public sealed class NavSectionRow : NavRow
     /// <summary>这份标题属于哪个分区。模板据此决定右键菜单里出哪几项。</summary>
     public NavSectionKind Kind { get; init; } = NavSectionKind.Bookmarks;
 
+    /// <summary>
+    /// 是否列表里的第一个分区。第一个标题上方不画分隔线——
+    /// 它上面只有主页，再画一条横线会像"这里被切断了"。
+    /// </summary>
+    public bool IsFirst { get; init; }
+
+    /// <summary>
+    /// 标记"这一行是分区标题"，供列表项容器把固定行高放开：
+    /// 标题行要装下分隔线与上下留白，28px 的正常行高装不进。
+    /// 其它行没有这个属性，绑定失败即不触发，不需要给每个行类型都加一遍。
+    /// </summary>
+    public bool IsSection => true;
+
     public bool IsBookmarks => Kind == NavSectionKind.Bookmarks;
 
     public bool IsWorkspaces => Kind == NavSectionKind.Workspaces;
+
+    /// <summary>位置与标签分区没有管理动作，右键菜单要整份关掉（空菜单弹出一个小空框更糟）。</summary>
+    public bool HasMenu => Kind is NavSectionKind.Bookmarks or NavSectionKind.Workspaces;
 }
 
 public enum NavSectionKind
 {
+    /// <summary>系统解析出来的已知文件夹（桌面 / 文档 / 下载 / …）。</summary>
+    Locations,
+
     Bookmarks,
+
+    /// <summary>彩色标签（FR-4.1.5）：按颜色归类查看所有已标记项。</summary>
+    Tags,
+
     Workspaces,
 }
 
@@ -44,6 +74,9 @@ public enum NavSectionKind
 public sealed class NavEmptyRow : NavRow
 {
     public required string Text { get; init; }
+
+    /// <summary>提示行要能折行，行高交给内容（见 Nav.Item 里的触发器）。</summary>
+    public bool IsHint => true;
 }
 
 /// <summary>
@@ -119,6 +152,34 @@ public sealed class NavWorkspaceRow : NavRow
         => IsStartup ? Strings.Workspace_ClearStartup : Strings.Workspace_SetStartup;
 }
 
+/// <summary>
+/// 标签分区的一行（FR-4.1.5）：一种颜色 + 该色下的条目数。
+///
+/// 行尾给的是"这一色有几项"而不是总数：八个颜色节点各自是可点的入口，
+/// 数量要能回答"点进去会看到多少东西"。
+/// </summary>
+public sealed class NavTagRow : NavRow
+{
+    public NavTagRow(TagColors color, string name, string hex, int count)
+    {
+        Color = color;
+        Name = name;
+        Hex = hex;
+        Count = count;
+    }
+
+    public TagColors Color { get; }
+
+    public string Name { get; }
+
+    /// <summary>圆点颜色。<c>#RRGGBB</c>，与列表行尾那个圆点取自同一张色表。</summary>
+    public string Hex { get; }
+
+    public int Count { get; }
+
+    public string Title => $"{Name} ({Count})";
+}
+
 /// <summary>一条收藏（FR-7.1 / FR-7.2）。失效项标灰并给出提示（FR-7.7）。</summary>
 public sealed class NavBookmarkRow : NavRow, INotifyPropertyChanged
 {
@@ -155,8 +216,14 @@ public sealed class NavBookmarkRow : NavRow, INotifyPropertyChanged
 
     public string Tooltip { get; }
 
-    /// <summary>自定义图标优先（FR-7.5），否则按"文件夹 / 文件"给一个（FR-7.2）。</summary>
-    public string Glyph => Entry.Icon ?? (Entry.Kind == BookmarkKind.Folder ? IconGlyphs.Folder : IconGlyphs.File);
+    /// <summary>
+    /// 自定义图标优先（FR-7.5），否则给星标。
+    ///
+    /// 默认不用文件夹字形：系统位置那七项已经全是文件夹图标，
+    /// 收藏再用同一个形状，一行行看下来就分不清"这是位置还是我钉的收藏"。
+    /// 星标本身就是"收藏"的通用记号。
+    /// </summary>
+    public string Glyph => Entry.Icon ?? IconGlyphs.Star;
 
     /// <summary>自定义颜色（FR-7.5）。null = 跟随主题图标色；解析失败的色值也当没设过。</summary>
     public Brush? GlyphBrush { get; }
@@ -207,10 +274,15 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
     /// <summary>启动时自动恢复的那份工作区名（FR-8.4），只用来在行尾标个点。</summary>
     private string? _startupWorkspace;
 
-    public NavPanelViewModel(BookmarkStore store, Func<IReadOnlyList<NavItem>> systemRows)
+    /// <summary>标签库（FR-4.1.5）。null = 这个宿主不支持标签（单测、将来的无标签形态）。</summary>
+    private readonly TagStore? _tags;
+
+    public NavPanelViewModel(BookmarkStore store, Func<IReadOnlyList<NavItem>> systemRows,
+        TagStore? tags = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _systemRows = systemRows ?? throw new ArgumentNullException(nameof(systemRows));
+        _tags = tags;
 
         // 这里**不**调 Rebuild：systemRows 要读窗口的活动标签，而本对象在
         // "标签集合刚建出来"之前就被构造了，此时取不到东西（一取就是空引用）。
@@ -247,9 +319,28 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
     {
         Rows.Clear();
 
-        foreach (NavItem item in _systemRows()) Rows.Add(item);
+        NavItem[] system = [.. _systemRows()];
 
-        Rows.Add(new NavSectionRow { Title = Strings.Nav_Bookmarks });
+        // 主页置顶、不归任何分区：它不是一个"位置"，而是应用内的一个视图。
+        // 塞进「位置」下面会让那一块的第一项与其余七项不是同一类东西。
+        foreach (NavItem item in system)
+        {
+            if (item.IsHome) Rows.Add(item);
+        }
+
+        Rows.Add(new NavSectionRow
+        {
+            Title = Strings.Nav_Locations,
+            Kind = NavSectionKind.Locations,
+            IsFirst = true,
+        });
+
+        foreach (NavItem item in system)
+        {
+            if (!item.IsHome) Rows.Add(item);
+        }
+
+        Rows.Add(new NavSectionRow { Title = Strings.Nav_Bookmarks, Kind = NavSectionKind.Bookmarks });
 
         if (_store.Count == 0)
         {
@@ -273,8 +364,73 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
         }
 
         Raise(nameof(HasBookmarks));
+        AddTagRows();
         AddWorkspaceRows();
         _ = CheckMissingAsync();
+    }
+
+    /// <summary>
+    /// 标签一段（FR-4.1.5）。只列**用过的**颜色：八个全摆出来更像调色板，
+    /// 而这里要回答的是"我标过哪些颜色的东西"。
+    ///
+    /// 标签库是懒加载的，加载完成前 <see cref="TagStore.Count"/> 为 0，
+    /// 于是先出空态、加载完由宿主再重建一次（见 MainWindow.LoadTagsAsync）。
+    /// </summary>
+    private void AddTagRows()
+    {
+        Rows.Add(new NavSectionRow { Title = Strings.Nav_Tags, Kind = NavSectionKind.Tags });
+        foreach (INavRow row in BuildTagRows()) Rows.Add(row);
+    }
+
+    /// <summary>标签分区的内容行（不含分区标题），空库时是一行空态提示。</summary>
+    private List<INavRow> BuildTagRows()
+    {
+        var rows = new List<INavRow>();
+
+        if (_tags is null || _tags.Count == 0)
+        {
+            rows.Add(new NavEmptyRow { Text = Strings.Nav_Tags_Empty });
+            return rows;
+        }
+
+        IReadOnlyDictionary<TagColors, int> counts = _tags.CountByColor();
+
+        foreach (TagPresets.ColorPreset preset in TagPresets.Colors)
+        {
+            int count = counts.TryGetValue(preset.Value, out int n) ? n : 0;
+            if (count == 0) continue;
+
+            rows.Add(new NavTagRow(preset.Value, preset.Name, preset.Hex, count));
+        }
+
+        return rows;
+    }
+
+    /// <summary>
+    /// 只重建标签分区，不动别的行。
+    ///
+    /// 标签库是懒加载的（首帧后才读），读完要把"空态"换成真实颜色；
+    /// 用户打一次标也要让数量跟上。这时整条 <see cref="Rebuild"/> 会把当前选中的
+    /// 系统节点一起清掉——加个标签，侧栏却闪一下跳回顶部，像出了故障。
+    /// </summary>
+    public void RefreshTagRows()
+    {
+        int start = -1;
+        for (int i = 0; i < Rows.Count; i++)
+        {
+            if (Rows[i] is NavSectionRow { Kind: NavSectionKind.Tags }) { start = i; break; }
+        }
+
+        if (start < 0) return;
+
+        // 分区到下一个分区标题为止
+        int end = start + 1;
+        while (end < Rows.Count && Rows[end] is not NavSectionRow) end++;
+
+        for (int i = end - 1; i > start; i--) Rows.RemoveAt(i);
+
+        int insert = start;
+        foreach (INavRow row in BuildTagRows()) Rows.Insert(++insert, row);
     }
 
     /// <summary>工作区一段（FR-8.6）。数据没接上时整段都不出，不留一个空标题。</summary>
@@ -306,6 +462,10 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
         _store.SetGroupExpanded(group.Name, group.IsExpanded);
         Rebuild();
     }
+
+    /// <summary>找出某一色的标签节点。标签结果页没有路径，侧栏高亮只能按颜色找。</summary>
+    public NavTagRow? FindTagRow(TagColors color)
+        => Rows.OfType<NavTagRow>().FirstOrDefault(row => row.Color == color);
 
     /// <summary>
     /// 找出与某个路径对应的行（系统节点或收藏项）。导航栏高亮用它——

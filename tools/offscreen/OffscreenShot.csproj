@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    离屏截图工具（不属产品，不进解决方案）。
+    桌面被锁/被占时 window_drive 的 capture 只能拍到壁纸，走查无法进行。
+    WPF 的内容由 DWM 合成，PrintWindow 也拿不到。这里用 RenderTargetBitmap
+    在自己的进程里把窗口画出来——不依赖桌面可见。
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows10.0.17763.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <AssemblyName>OffscreenShot</AssemblyName>
+    <RootNamespace>OffscreenShot</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Lingpane.App\Lingpane.App.csproj" />
+  </ItemGroup>
+
+</Project>

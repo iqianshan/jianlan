@@ -300,4 +300,33 @@ public sealed class TagStoreTests : IDisposable
         // 没有失效项就不该追加 del 行（否则每点一次文件都长一截）
         Assert.Equal(before, new FileInfo(File_).Length);
     }
+    [Fact]
+    public void 按颜色计数时一条记录会计入它带的每一种颜色()
+    {
+        TagStore store = Open();
+        store.Set(Target(11, @"D://a.txt"), TagColors.Red);
+        store.Set(Target(12, @"D://b.txt"), TagColors.Red | TagColors.Blue);
+        store.Set(Target(13, @"D://c.txt"), TagColors.Blue);
+
+        IReadOnlyDictionary<TagColors, int> counts = store.CountByColor();
+
+        Assert.Equal(2, counts[TagColors.Red]);
+        Assert.Equal(2, counts[TagColors.Blue]);
+        Assert.Equal(0, counts[TagColors.Green]);
+
+        // 八色都要有键：侧栏靠"取不到就跳过"来隐藏没用过的颜色，
+        // 少了键与计数为 0 是两件事，这里要求两者等价
+        Assert.Equal(TagPalette.All.Count, counts.Count);
+    }
+
+    [Fact]
+    public void 空库按颜色计数全是零()
+    {
+        TagStore store = Open();
+        store.EnsureLoaded();
+
+        IReadOnlyDictionary<TagColors, int> counts = store.CountByColor();
+
+        Assert.All(TagPalette.All, color => Assert.Equal(0, counts[color]));
+    }
 }

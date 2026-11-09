@@ -822,6 +822,30 @@
   <data name="Status.HomeNoSplit" xml:space="preserve">
     <value>主页标签没有可分屏的第二窗格</value>
   </data>
+  <data name="Tab.TagResults" xml:space="preserve">
+    <value>标签：{0}</value>
+  </data>
+  <data name="Tab.TagResults.Tip" xml:space="preserve">
+    <value>所有带这个颜色的条目，不论在哪个目录</value>
+  </data>
+  <data name="Tag.Results.Hint" xml:space="preserve">
+    <value>{0} 项 · 双击任一项目跳转到它所在的目录</value>
+  </data>
+  <data name="Tag.Results.Empty" xml:space="preserve">
+    <value>这个颜色下还没有标记。</value>
+  </data>
+  <data name="Status.TagResultMissing" xml:space="preserve">
+    <value>该项所在的文件夹已不存在。</value>
+  </data>
+  <data name="Nav.Locations" xml:space="preserve">
+    <value>位置</value>
+  </data>
+  <data name="Nav.Tags" xml:space="preserve">
+    <value>标签</value>
+  </data>
+  <data name="Nav.Tags.Empty" xml:space="preserve">
+    <value>还没有标签。右键文件即可添加。</value>
+  </data>
   <data name="Nav.Bookmarks" xml:space="preserve">
     <value>收藏</value>
   </data>
@@ -844,7 +868,7 @@
     <value>收藏已达上限（{0} 条）</value>
   </data>
   <data name="Status.BookmarkHome" xml:space="preserve">
-    <value>主页不能收藏</value>
+    <value>当前位置不能收藏</value>
   </data>
   <data name="Bookmark.Open" xml:space="preserve">
     <value>打开</value>

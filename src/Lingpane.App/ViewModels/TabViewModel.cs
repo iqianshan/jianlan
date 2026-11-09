@@ -17,6 +17,13 @@ public enum TabKind
 
     /// <summary>主页（FR-1.1）：常用目录、驱动器、最近访问、收藏。</summary>
     Home = 1,
+
+    /// <summary>
+    /// 标签结果（FR-4.1.5）：列出某一颜色下的全部条目，不论它们分散在哪个目录。
+    /// 与主页一样是"没有路径"的形态，因此不参与分屏、也不进会话恢复——
+    /// 重启后恢复一个"上次看过哪些红标文件"没有意义。
+    /// </summary>
+    TagResults = 2,
 }
 
 /// <summary>
@@ -42,6 +49,12 @@ public sealed class TabViewModel : INotifyPropertyChanged
     private readonly TagStore? _tags;
 
     private TabKind _kind;
+
+    /// <summary>标签结果形态下看的是哪一种颜色（FR-4.1.5）。</summary>
+    private TagColors _tagFilter;
+
+    /// <summary>那个颜色的本地化名，切换语言后不会自己变——重建标签时重取。</summary>
+    private string _tagFilterName = string.Empty;
 
     private PaneViewModel _activePane;
     private bool _isTabActive;
@@ -88,13 +101,23 @@ public sealed class TabViewModel : INotifyPropertyChanged
             Raise(nameof(TabTooltip));
             Raise(nameof(IconGlyph));
             Raise(nameof(IsHome));
+            Raise(nameof(IsTagResults));
             KindChanged?.Invoke(this);
         }
     }
 
     public bool IsHome => _kind == TabKind.Home;
 
-    /// <summary>标签栏上的图标。主页用房子图标，否则是文件夹。</summary>
+    /// <summary>这个标签是不是某一色的标签结果页（FR-4.1.5）。</summary>
+    public bool IsTagResults => _kind == TabKind.TagResults;
+
+    /// <summary>标签结果页看的是哪一色。非该形态时是 <see cref="TagColors.None"/>。</summary>
+    public TagColors TagFilter => _kind == TabKind.TagResults ? _tagFilter : TagColors.None;
+
+    /// <summary>那个颜色的名字，头部标题与侧栏高亮都用它。</summary>
+    public string TagFilterName => _tagFilterName;
+
+    /// <summary>标签栏上的图标。主页用房子、标签结果用文件夹，其余也是文件夹。</summary>
     public string IconGlyph => IsHome ? IconGlyphs.Home : IconGlyphs.Folder;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -118,14 +141,22 @@ public sealed class TabViewModel : INotifyPropertyChanged
     /// 标签标题跟随**活动窗格**，而不是固定取主窗格：用户把焦点放到右边并导航到别处时，
     /// 标签名必须跟着变，否则看起来像"标签没响应"。
     /// </summary>
-    public string DisplayName => IsHome ? Strings.Tab_Home : _activePane.DisplayName;
+    public string DisplayName => _kind switch
+    {
+        TabKind.Home => Strings.Tab_Home,
+        TabKind.TagResults => string.Format(Strings.Tab_TagResults, _tagFilterName),
+        _ => _activePane.DisplayName,
+    };
 
     /// <summary>分屏时 tooltip 给两条路径，单窗格时与之前一致。</summary>
-    public string TabTooltip => IsHome
-        ? Strings.Tab_Home_Tip
-        : Secondary is { } second
+    public string TabTooltip => _kind switch
+    {
+        TabKind.Home => Strings.Tab_Home_Tip,
+        TabKind.TagResults => string.Format(Strings.Tab_TagResults_Tip, _tagFilterName),
+        _ => Secondary is { } second
             ? $"{Primary.TabTooltip}{Environment.NewLine}{second.TabTooltip}"
-            : _activePane.TabTooltip;
+            : _activePane.TabTooltip,
+    };
 
     /// <summary>本标签是否为当前标签。标签栏据此区分活动/非活动配色。</summary>
     public bool IsTabActive
@@ -258,9 +289,9 @@ public sealed class TabViewModel : INotifyPropertyChanged
             return;
         }
 
-        // 从主页点了某个目录：标签形态跟着变成"浏览目录"。反过来不做——
-        // 导航到一个真实目录后标签就该显示那个目录，而不是继续叫"主页"。
-        if (e.PropertyName == nameof(PaneViewModel.CurrentPath) && IsHome &&
+        // 从主页 / 标签结果页点了某个目录：标签形态跟着变成"浏览目录"。反过来不做——
+        // 导航到一个真实目录后标签就该显示那个目录，而不是继续叫"主页"或"红标"。
+        if (e.PropertyName == nameof(PaneViewModel.CurrentPath) && _kind != TabKind.Files &&
             !string.IsNullOrEmpty(_activePane.CurrentPath))
         {
             Kind = TabKind.Files;
@@ -278,6 +309,47 @@ public sealed class TabViewModel : INotifyPropertyChanged
         DropSecondary();
         Primary.DetachToHome();
         Kind = TabKind.Home;
+    }
+
+    /// <summary>
+    /// 从非目录形态（主页 / 标签结果）切回目录浏览。
+    ///
+    /// 宿主在"要跳到一个真实目录"之前先调它，而不是等窗格的 CurrentPath 变化来触发：
+    /// 那要经过一次导航完成，此时视图还停在主页上，选中项无处可放。
+    /// </summary>
+    public void ShowFiles()
+    {
+        if (_kind == TabKind.Files) return;
+        Kind = TabKind.Files;
+    }
+
+    /// <summary>
+    /// 把标签切到"某一色的标签结果"（FR-4.1.5）。同一个标签再点别的颜色，就换筛选条件、
+    /// 不新开标签——用户点颜色是在"换个角度看标记"，不是"再看一份"。
+    ///
+    /// 窗格只能丢弃：标签结果页没有路径，留着两半窗格既不能显示也没人用得上。
+    /// 丢掉的那一半只是丢内容，路径仍在 <see cref="PrepareSecondaryPending"/> 记着，
+    /// 之后从结果页双击跳到目录、再开分屏时会带回来。
+    /// </summary>
+    public void ShowTagResults(TagColors color, string colorName)
+    {
+        DropSecondary();
+        if (_kind != TabKind.TagResults) Primary.DetachToHome();
+
+        _tagFilter = color;
+        _tagFilterName = colorName;
+
+        if (_kind == TabKind.TagResults)
+        {
+            // 形态没变，宿主不会收到 KindChanged，得自己把标题重算一遍
+            Raise(nameof(DisplayName));
+            Raise(nameof(TabTooltip));
+            Raise(nameof(TagFilter));
+            KindChanged?.Invoke(this);
+            return;
+        }
+
+        Kind = TabKind.TagResults;
     }
 
     private void Raise(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

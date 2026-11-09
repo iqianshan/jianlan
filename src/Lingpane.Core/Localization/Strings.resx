@@ -835,6 +835,30 @@
   <data name="Status.HomeNoSplit" xml:space="preserve">
     <value>The home tab has no second pane to split</value>
   </data>
+  <data name="Tab.TagResults" xml:space="preserve">
+    <value>Tags: {0}</value>
+  </data>
+  <data name="Tab.TagResults.Tip" xml:space="preserve">
+    <value>Every item carrying this color, wherever it lives</value>
+  </data>
+  <data name="Tag.Results.Hint" xml:space="preserve">
+    <value>{0} items · double-click one to jump to its folder</value>
+  </data>
+  <data name="Tag.Results.Empty" xml:space="preserve">
+    <value>Nothing has this color yet.</value>
+  </data>
+  <data name="Status.TagResultMissing" xml:space="preserve">
+    <value>That item's folder no longer exists.</value>
+  </data>
+  <data name="Nav.Locations" xml:space="preserve">
+    <value>Locations</value>
+  </data>
+  <data name="Nav.Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Nav.Tags.Empty" xml:space="preserve">
+    <value>No tags yet. Right-click a file to add one.</value>
+  </data>
   <data name="Nav.Bookmarks" xml:space="preserve">
     <value>Bookmarks</value>
   </data>
@@ -857,7 +881,7 @@
     <value>Bookmark limit reached ({0})</value>
   </data>
   <data name="Status.BookmarkHome" xml:space="preserve">
-    <value>The home tab cannot be bookmarked</value>
+    <value>Nothing to bookmark here</value>
   </data>
   <data name="Bookmark.Open" xml:space="preserve">
     <value>Open</value>
