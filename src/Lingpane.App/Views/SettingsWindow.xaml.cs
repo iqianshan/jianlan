@@ -10,6 +10,7 @@ using Lingpane.App.Typography;
 using Lingpane.Core.Diagnostics;
 using Lingpane.Core.FileSystem;
 using Lingpane.Core.Localization;
+using Lingpane.Core.Preview;
 using Lingpane.Core.Settings;
 
 namespace Lingpane.App.Views;
@@ -43,11 +44,12 @@ public partial class SettingsWindow : Window
             AppPaths.Root);
 
         // 字体枚举与标签库条数都不进构造：两者都要读盘/遍历系统字体，
-        // 放在首帧之后跑，窗口才是"先出来再填"。
+        // 放在首帧之后跑，窗口才是"先出来再填"。缓存占用同理（要遍历上万个小文件）。
         Loaded += async (_, _) =>
         {
             await LoadFontsAsync();
             await RefreshTagCountAsync();
+            await RefreshThumbCacheSizeAsync();
         };
     }
 
@@ -107,12 +109,41 @@ public partial class SettingsWindow : Window
         int limitIndex = Array.FindIndex(HistoryLimits, n => n >= Settings.Privacy.HistoryLimit);
         HistoryLimitCombo.SelectedIndex = limitIndex >= 0 ? limitIndex : HistoryLimits.Length - 1;
 
+        // 缓存上限只由这里的下拉框修改，但旧版本留下的默认值是 512（不在档位里）。
+        // 取"最接近的一档"并落盘归一：否则下拉框显示 1024、占用行写着上限 512 MB、
+        // 实际也按 512 淘汰——三个数字各说一套，用户只能猜。
+        int cacheIndex = NearestCacheLimitIndex(Settings.Privacy.CacheLimitMb);
+        CacheLimitCombo.SelectedIndex = cacheIndex;
+
+        if (Settings.Privacy.CacheLimitMb != CacheLimits[cacheIndex])
+        {
+            Settings.Privacy.CacheLimitMb = CacheLimits[cacheIndex];
+            ThumbnailCache.CapBytes = Settings.Privacy.CacheLimitMb * 1024L * 1024;
+            App.SaveSettings();
+        }
+
         FollowSystemFontCheck.IsChecked = Settings.Appearance.FontSizePt is null;
         UpdateFontSizeText();
     }
 
     /// <summary>历史条数上限的可选值（FR-5.3.4）。</summary>
     private static readonly int[] HistoryLimits = [50, 100, 200, 500];
+
+    /// <summary>缩略图缓存上限的可选值，单位 MB（FR-5.3.5）。</summary>
+    private static readonly int[] CacheLimits = [128, 256, 500, 1024, 2048];
+
+    /// <summary>离 value 最近的一档。差一样近时取小的：上限宁小勿大。</summary>
+    private static int NearestCacheLimitIndex(int value)
+    {
+        int best = 0;
+
+        for (int i = 1; i < CacheLimits.Length; i++)
+        {
+            if (Math.Abs(CacheLimits[i] - value) < Math.Abs(CacheLimits[best] - value)) best = i;
+        }
+
+        return best;
+    }
 
     /// <summary>
     /// 语言切换立即生效，不需要重启窗口：界面上的 {loc:Tr} 绑定与视图模型都会收到通知。
@@ -781,6 +812,119 @@ public partial class SettingsWindow : Window
 
         TagCountText.Text = string.Format(
             CultureInfo.CurrentCulture, Strings.Settings_Privacy_TagStore_Count, count);
+    }
+
+    // ── 缩略图缓存（FR-5.3.5）──────────────────────────────────────────────
+
+    /// <summary>
+    /// 统计缓存占用。遍历整个缓存目录（上万个小文件），必须在后台跑：
+    /// 即便目录元数据多半已在系统缓存里，也是几十到几百毫秒的量级，
+    /// 放 UI 线程上就是"打开设置页卡一下"。
+    /// </summary>
+    private async Task RefreshThumbCacheSizeAsync()
+    {
+        ThumbCacheText.Text = Strings.Settings_Privacy_ThumbCache_Measuring;
+
+        long bytes = await Task.Run(ThumbnailCache.Measure).ConfigureAwait(true);
+
+        UpdateThumbCacheText(bytes);
+    }
+
+    /// <summary>
+    /// 占用行同时写出"用了多少"与"上限多少"。上限取设置里的真实值而不是下拉框选中项：
+    /// 手改过 json 的非标准值会让两者不同，这时候宁可让数字准。
+    /// </summary>
+    private void UpdateThumbCacheText(long bytes) =>
+        ThumbCacheText.Text = string.Format(
+            CultureInfo.CurrentCulture,
+            Strings.Settings_Privacy_ThumbCache_Size,
+            FileEntry.FormatSizeText(bytes),
+            FileEntry.FormatSizeText(Settings.Privacy.CacheLimitMb * 1024L * 1024));
+
+    /// <summary>
+    /// 改上限（FR-5.3.5）。除了写设置，还要立刻按新上限清理一次：
+    /// 把 2048 改成 128 之后磁盘上仍占着 2GB、等下一次攒满 200 次写入才动，
+    /// 用户会当成"设置没生效"。
+    /// </summary>
+    private async void OnCacheLimitChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading) return;
+
+        int index = Math.Clamp(CacheLimitCombo.SelectedIndex, 0, CacheLimits.Length - 1);
+        int megabytes = CacheLimits[index];
+
+        Settings.Privacy.CacheLimitMb = megabytes;
+        App.SaveSettings();
+
+        long cap = megabytes * 1024L * 1024;
+        ThumbnailCache.CapBytes = cap;
+
+        long bytes = await Task.Run(() =>
+        {
+            ThumbnailCache.Trim(cap);
+            return ThumbnailCache.Measure();
+        }).ConfigureAwait(true);
+
+        UpdateThumbCacheText(bytes);
+
+        PrivacyStatus.Text = string.Format(
+            CultureInfo.CurrentCulture,
+            Strings.Settings_Privacy_ThumbCache_LimitApplied,
+            FileEntry.FormatSizeText(cap),
+            FileEntry.FormatSizeText(bytes));
+    }
+
+    /// <summary>
+    /// 一键清除（FR-5.3.5）。先算一次占用是为了把"将删除多少"写进确认框，
+    /// 也为了事后能说出"释放了多少"——只说"已清除"，用户无法判断这条命令到底有没有做。
+    ///
+    /// 删的只是缩略图，原文件不受影响；这一点必须写在确认框里，
+    /// 否则"清除缓存"在文件管理器里听起来像会动文件。
+    /// </summary>
+    private async void OnClearThumbCache(object sender, RoutedEventArgs e)
+    {
+        long before = await Task.Run(ThumbnailCache.Measure).ConfigureAwait(true);
+
+        if (before == 0)
+        {
+            UpdateThumbCacheText(0);
+            PrivacyStatus.Text = string.Format(
+                CultureInfo.CurrentCulture,
+                Strings.Settings_Privacy_ThumbCache_Cleared,
+                FileEntry.FormatSizeText(0));
+            return;
+        }
+
+        if (!ConfirmWindow.Ask(
+                this,
+                Strings.Settings_Privacy_ThumbCache_ClearConfirm_Title,
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    Strings.Settings_Privacy_ThumbCache_ClearConfirm_Body,
+                    FileEntry.FormatSizeText(before))))
+        {
+            return;
+        }
+
+        long after = await Task.Run(() =>
+        {
+            ThumbnailCache.Clear();
+            return ThumbnailCache.Measure();
+        }).ConfigureAwait(true);
+
+        UpdateThumbCacheText(after);
+
+        // Clear 吞掉所有 IO 异常（缓存清不掉不该影响任何可见功能），所以"清没清干净"
+        // 只能靠清完再量一次来判断。剩下的是正被占用的文件，换个说法比报"失败"准确。
+        PrivacyStatus.Text = after > 0
+            ? string.Format(
+                CultureInfo.CurrentCulture,
+                Strings.Settings_Privacy_ThumbCache_ClearBlocked,
+                FileEntry.FormatSizeText(after))
+            : string.Format(
+                CultureInfo.CurrentCulture,
+                Strings.Settings_Privacy_ThumbCache_Cleared,
+                FileEntry.FormatSizeText(before));
     }
 
     // ── 其他 ────────────────────────────────────────────────────────────────

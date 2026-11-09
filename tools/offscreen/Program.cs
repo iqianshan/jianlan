@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -27,6 +28,9 @@ namespace OffscreenShot;
 ///   OffscreenShot.exe &lt;输出png&gt; [等待毫秒] [--tag 颜色名] [--activate 序号]
 ///                                        [--preview] [--select 序号] [--close-preview]
 ///                                        [--search 关键词]
+///                                        [--settings [--scroll-to 控件名]]
+///                                        [--about] [--about-license license|notice|thirdparty]
+///                                        [--tab N] [--lang 语言] [--theme 主题]
 /// 数据目录由 exe 旁边的 portable.flag + data\ 决定（便携模式），演示数据自己放进去。
 /// </summary>
 internal static class Program
@@ -61,6 +65,8 @@ internal static class Program
         string? thenPath = null;
         bool thenEscape = false;
         bool showSettings = false;
+        string? scrollTo = null;
+        int cacheLimitMb = -1;
         bool showAbout = false;
         string? licenseView = null;
         int tabSteps = -1;
@@ -147,6 +153,16 @@ internal static class Program
                 case "--settings":
                     // 设置页。改了关于分节之后要能自己出一张图，不用每次手工开窗口
                     showSettings = true;
+                    break;
+                case "--scroll-to" when i + 1 < argv.Length:
+                    // 滚到设置页里某个 x:Name 的控件。默认滚到底（ScrollToEnd）是为了拍
+                    // 关于分节；缓存那一节在隐私区中段，滚到底会被带过去
+                    scrollTo = argv[++i];
+                    break;
+                case "--cache-limit" when i + 1 < argv.Length:
+                    // 在下拉框里选一档（FR-5.3.5）。选完会真的触发 Trim 与占用刷新，
+                    // 用来验"调低上限是不是立刻删文件"，不需要反射调私有方法
+                    _ = int.TryParse(argv[++i], out cacheLimitMb);
                     break;
                 case "--about":
                     // 关于页（FR-10.8）。拍的是关于窗口本身，不是主窗口
@@ -319,6 +335,19 @@ internal static class Program
                 {
                     target = OpenSettings(window);
                     await Task.Delay(700);
+
+                    if (scrollTo is not null)
+                    {
+                        ScrollToElement(target, scrollTo);
+                        await Task.Delay(300);
+                    }
+
+                    if (cacheLimitMb > 0)
+                    {
+                        SetCacheLimit(target, cacheLimitMb);
+                        await Task.Delay(1500);
+                        PrintCacheLine(target);
+                    }
                 }
 
                 if (showAbout || licenseView is not null)
@@ -508,8 +537,7 @@ internal static class Program
         return settings;
     }
 
-    private static void ScrollToEnd(DependencyObject root)
-    {
+    private static void ScrollToEnd(DependencyObject root)    {
         var pending = new System.Collections.Generic.Queue<DependencyObject>();
         pending.Enqueue(root);
 
@@ -526,6 +554,60 @@ internal static class Program
             int count = VisualTreeHelper.GetChildrenCount(node);
             for (int i = 0; i < count; i++) pending.Enqueue(VisualTreeHelper.GetChild(node, i));
         }
+    }
+
+    /// <summary>
+    /// 把设置页滚到指定 x:Name 的控件。用 BringIntoView 而不是算偏移：
+    /// 各个分节的高度随字号与语言变，算出来的偏移量换个语言就不准。
+    /// </summary>
+    private static void ScrollToElement(Window window, string name)
+    {
+        if (window.FindName(name) is not FrameworkElement element)
+        {
+            Console.WriteLine($"SCROLL 没有找到 {name}");
+            return;
+        }
+
+        element.BringIntoView();
+        window.UpdateLayout();
+
+        Console.WriteLine($"SCROLL 已滚到 {name}");
+    }
+
+    /// <summary>
+    /// 改缓存上限（FR-5.3.5）。给下拉框设 SelectedIndex 就等于用户选了一档，
+    /// SelectionChanged 会真的走到 OnCacheLimitChanged——含 Trim 与占用刷新。
+    /// </summary>
+    private static void SetCacheLimit(Window window, int megabytes)
+    {
+        if (window.FindName("CacheLimitCombo") is not ComboBox combo)
+        {
+            Console.WriteLine("CACHE 没有找到 CacheLimitCombo");
+            return;
+        }
+
+        for (int i = 0; i < combo.Items.Count; i++)
+        {
+            if (combo.Items[i] is ComboBoxItem item
+                && int.TryParse(item.Content?.ToString(), out int value)
+                && value == megabytes)
+            {
+                Console.WriteLine($"CACHE 选中 {megabytes} MB（第 {i} 档）");
+                combo.SelectedIndex = i;
+                window.UpdateLayout();
+                return;
+            }
+        }
+
+        Console.WriteLine($"CACHE 下拉框里没有 {megabytes} 这一档");
+    }
+
+    /// <summary>把占用行与状态行原样打出来：截图只能看，断言要读文本。</summary>
+    private static void PrintCacheLine(Window window)
+    {
+        if (window.FindName("ThumbCacheText") is TextBlock text) Console.WriteLine($"CACHE 占用：{text.Text}");
+
+        if (window.FindName("PrivacyStatus") is TextBlock status) Console.WriteLine($"CACHE 状态：{status.Text}");
     }
 
     /// <summary>打开关于页。调用的是设置页按钮走的那一个入口。</summary>

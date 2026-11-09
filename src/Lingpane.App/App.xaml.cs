@@ -6,6 +6,7 @@ using Lingpane.App.Typography;
 using Lingpane.App.Views;
 using Lingpane.Core.Diagnostics;
 using Lingpane.Core.Localization;
+using Lingpane.Core.Preview;
 using Lingpane.Core.Settings;
 using Lingpane.Core.Tagging;
 using Lingpane.Core.Workspaces;
@@ -167,6 +168,10 @@ public partial class App : Application
         _loadedLastPath = Settings.Session.LastPath;
         _loadedTabs = [.. Settings.Session.Tabs];
 
+        // 缩略图缓存上限（FR-5.3.5）以设置为准。ThumbnailCache 是静态设施，写入侧
+        // （缩略图服务、预览、列表滚动）不该为了一个数字多传一个参数，所以在启动这里注入一次。
+        // 用 1024L 而不是 1024：CacheLimitMb 最大 4096，乘完超出 int 范围会变成负数。
+        ThumbnailCache.CapBytes = Settings.Privacy.CacheLimitMb * 1024L * 1024;
         // 一条启动记录，回答"这份日志来自哪个版本、哪种数据目录"。
         // 便携模式下用户不知道数据落在解压目录里，这一行往往是他们唯一的线索；
         // 版本串带短 commit，能对上到底是哪一次构建，而 0.1.0.0 对不上。

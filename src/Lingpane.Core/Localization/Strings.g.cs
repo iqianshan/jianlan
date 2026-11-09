@@ -1289,6 +1289,44 @@ public static class Strings
     /// <summary>Checks every tag against the file it points to</summary>
     public static string Settings_Privacy_TagPrune_Tip => LocalizationService.Instance.Get("Settings.Privacy.TagPrune.Tip");
 
+    /// <summary>Thumbnail cache</summary>
+    public static string Settings_Privacy_ThumbCache => LocalizationService.Instance.Get("Settings.Privacy.ThumbCache");
+
+    /// <summary>Measuring…</summary>
+    public static string Settings_Privacy_ThumbCache_Measuring => LocalizationService.Instance.Get("Settings.Privacy.ThumbCache.Measuring");
+
+    /// <summary>{0} used · limit {1}</summary>
+    public static string Settings_Privacy_ThumbCache_Size => LocalizationService.Instance.Get("Settings.Privacy.ThumbCache.Size");
+    // 含占位符：string.Format(Strings.Settings_Privacy_ThumbCache_Size, ...)
+
+    /// <summary>Limit</summary>
+    public static string Settings_Privacy_ThumbCache_Limit => LocalizationService.Instance.Get("Settings.Privacy.ThumbCache.Limit");
+
+    /// <summary>When the cache exceeds its limit, the oldest thumbnails are evicted first. Lowering the limit cleans up immediately.</summary>
+    public static string Settings_Privacy_ThumbCache_Limit_Hint => LocalizationService.Instance.Get("Settings.Privacy.ThumbCache.Limit.Hint");
+
+    /// <summary>Clear cache</summary>
+    public static string Settings_Privacy_ThumbCache_Clear => LocalizationService.Instance.Get("Settings.Privacy.ThumbCache.Clear");
+
+    /// <summary>Cache cleared, {0} freed</summary>
+    public static string Settings_Privacy_ThumbCache_Cleared => LocalizationService.Instance.Get("Settings.Privacy.ThumbCache.Cleared");
+    // 含占位符：string.Format(Strings.Settings_Privacy_ThumbCache_Cleared, ...)
+
+    /// <summary>{0} could not be deleted (likely in use). Try again later.</summary>
+    public static string Settings_Privacy_ThumbCache_ClearBlocked => LocalizationService.Instance.Get("Settings.Privacy.ThumbCache.ClearBlocked");
+    // 含占位符：string.Format(Strings.Settings_Privacy_ThumbCache_ClearBlocked, ...)
+
+    /// <summary>Limit set to {0} · cache is now {1}</summary>
+    public static string Settings_Privacy_ThumbCache_LimitApplied => LocalizationService.Instance.Get("Settings.Privacy.ThumbCache.LimitApplied");
+    // 含占位符：string.Format(Strings.Settings_Privacy_ThumbCache_LimitApplied, ...)
+
+    /// <summary>Clear the thumbnail cache?</summary>
+    public static string Settings_Privacy_ThumbCache_ClearConfirm_Title => LocalizationService.Instance.Get("Settings.Privacy.ThumbCache.ClearConfirm.Title");
+
+    /// <summary>This deletes {0} of thumbnails. Your files are not touched; thumbnails are generated again the next time you browse them</summary>
+    public static string Settings_Privacy_ThumbCache_ClearConfirm_Body => LocalizationService.Instance.Get("Settings.Privacy.ThumbCache.ClearConfirm.Body");
+    // 含占位符：string.Format(Strings.Settings_Privacy_ThumbCache_ClearConfirm_Body, ...)
+
     /// <summary>Reset behaviour</summary>
     public static string Settings_ResetBehavior => LocalizationService.Instance.Get("Settings.ResetBehavior");
 

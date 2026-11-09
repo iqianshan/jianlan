@@ -15,7 +15,10 @@ namespace Lingpane.Core.Preview;
 /// </summary>
 public static class ThumbnailCache
 {
-    /// <summary>缓存上限 500MB（FR-5.3.5 的默认值）。</summary>
+    /// <summary>
+    /// 缓存上限默认 500MB（FR-5.3.5）。与 <c>Settings.Privacy.CacheLimitMb</c> 的默认值是同一个数，
+    /// 改一个必须改另一个——这里只是"设置还没读到时"的兜底。
+    /// </summary>
     public const long DefaultCapBytes = 500L << 20;
 
     /// <summary>淘汰到上限的九成，避免"刚删完又写满、每分钟淘汰一次"。</summary>
@@ -24,9 +27,22 @@ public static class ThumbnailCache
     private static readonly object Gate = new();
     private static readonly string RootPath = ResolveRoot();
     private static int _writesSinceTrim;
+    private static long _capBytes = DefaultCapBytes;
 
     /// <summary>缓存目录。<c>%LOCALAPPDATA%\Lingpane\cache\thumbs</c>。</summary>
     public static string Root => RootPath;
+
+    /// <summary>
+    /// 生效中的上限（FR-5.3.5）。设置页改上限时由 App 层赋值，自动淘汰按它算。
+    ///
+    /// 不用构造函数注入：缓存是"到处都在写"的静态设施，缩略图服务、预览、
+    /// 列表滚动都会调用，把上限沿调用链传下去只会让每个调用点多一个参数。
+    /// </summary>
+    public static long CapBytes
+    {
+        get => Interlocked.Read(ref _capBytes);
+        set => Interlocked.Exchange(ref _capBytes, value > 0 ? value : DefaultCapBytes);
+    }
 
     /// <summary>
     /// 缓存键：路径 + 大小 + 修改时间 + 目标像素。
@@ -131,21 +147,20 @@ public static class ThumbnailCache
     /// </summary>
     public static void Trim(long capBytes = 0)
     {
-        long cap = capBytes > 0 ? capBytes : DefaultCapBytes;
-
         lock (Gate)
         {
             try
             {
                 if (!Directory.Exists(RootPath)) return;
 
-                var files = new List<FileInfo>();
+                var files = new List<CacheEntry>();
 
                 foreach (string path in Directory.EnumerateFiles(RootPath, "*.png", SearchOption.AllDirectories))
                 {
                     try
                     {
-                        files.Add(new FileInfo(path));
+                        var info = new FileInfo(path);
+                        files.Add(new CacheEntry(info.FullName, info.Length, info.LastWriteTimeUtc));
                     }
                     catch (IOException)
                     {
@@ -153,22 +168,11 @@ public static class ThumbnailCache
                     }
                 }
 
-                long total = 0;
-                foreach (FileInfo file in files) total += file.Length;
-
-                if (total <= cap) return;
-
-                long target = (long)(cap * TrimTarget);
-                files.Sort(static (a, b) => a.LastWriteTimeUtc.CompareTo(b.LastWriteTimeUtc));
-
-                foreach (FileInfo file in files)
+                foreach (CacheEntry doomed in PlanTrim(files, capBytes))
                 {
-                    if (total <= target) break;
-
                     try
                     {
-                        total -= file.Length;
-                        file.Delete();
+                        File.Delete(doomed.Path);
                     }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                     {
@@ -181,6 +185,43 @@ public static class ThumbnailCache
                 // 缓存清理失败不该影响任何可见功能
             }
         }
+    }
+
+    /// <summary>
+    /// 算出该删哪些文件。返回空列表表示不用删。
+    ///
+    /// 单拎成纯函数是为了能测："淘汰到九成"以前只能在磁盘上造 500MB 缩略图才验得了，
+    /// 而 FR-5.3.5 让上限变成用户可调的数字，边界会被人一个个试过去，得有断言兜着。
+    /// 规则与 <see cref="Trim"/> 完全一致，只是不碰磁盘。
+    /// </summary>
+    public static IReadOnlyList<CacheEntry> PlanTrim(IReadOnlyList<CacheEntry> files, long capBytes)
+    {
+        if (files.Count == 0) return [];
+
+        long cap = capBytes > 0 ? capBytes : CapBytes;
+
+        long total = 0;
+        foreach (CacheEntry file in files) total += file.Size;
+
+        if (total <= cap) return [];
+
+        long target = (long)(cap * TrimTarget);
+
+        // OrderBy 是稳定排序：同一次写入批次里的文件时间戳常常一样，
+        // 稳定排序让"同样的输入得到同样的结果"，否则测试会随机失败。
+        var ordered = files.OrderBy(static f => f.LastWriteUtc).ToList();
+
+        var doomed = new List<CacheEntry>();
+
+        foreach (CacheEntry file in ordered)
+        {
+            if (total <= target) break;
+
+            total -= file.Size;
+            doomed.Add(file);
+        }
+
+        return doomed;
     }
 
     /// <summary>清空缓存（设置页的"清除"按钮）。</summary>
@@ -205,3 +246,6 @@ public static class ThumbnailCache
         return Path.Combine(local, "Lingpane", "cache", "thumbs");
     }
 }
+
+/// <summary>缓存目录里的一个文件。<see cref="ThumbnailCache.PlanTrim"/> 的输入单位。</summary>
+public readonly record struct CacheEntry(string Path, long Size, DateTime LastWriteUtc);

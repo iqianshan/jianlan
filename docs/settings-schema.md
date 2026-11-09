@@ -56,7 +56,7 @@
   "privacy": {
     "historyEnabled": true,
     "historyLimit": 100,
-    "cacheLimitMb": 512
+    "cacheLimitMb": 500       // 缩略图缓存上限（FR-5.3.5）。设置页只给五档，手改的其他值打开设置页时吸附到最近一档
   },
 
   "session": {
@@ -106,7 +106,7 @@
 | `doubleClickOpens` | 布尔 | `false` = 单击打开（FR-5.2.5）。切换后列表悬停高亮的延迟随之变化（单击模式 600ms） |
 | `density` | 两值枚举 | 回落 `comfortable` |
 | `historyLimit` | 0–500 | 夹取 |
-| `cacheLimitMb` | 64–4096 | 夹取 |
+| `cacheLimitMb` | 64–4096，默认 500（与 `ThumbnailCache.DefaultCapBytes` 同值） | 夹取；打开设置页时吸附到 128/256/500/1024/2048 最近一档并落盘，否则下拉框、占用行与实际淘汰各说一套 |
 | `windowWidth/Height` | ≥ 最小窗口尺寸 | 夹取 |
 | `session.tabs` | 每条为非空路径；最多 12 条 | 空串剔除；超出截断到前 12 条 |
 | `session.activeTabIndex` | 0 ≤ 索引 < `tabs.length` | 夹取 |

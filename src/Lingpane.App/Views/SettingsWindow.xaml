@@ -492,12 +492,62 @@
                             ToolTip="{loc:Tr Key=Settings.Privacy.TagPrune.Tip}"/>
                 </WrapPanel>
 
+                <!-- 缩略图缓存（FR-5.3.5）。放在标签库之后、隐私声明之前：
+                     用户会找"这东西占了我多少空间"的地方，就是这一块。
+                     占用在这里同步不下（要遍历几万个文件），打开设置页后异步统计。 -->
+                <TextBlock Margin="0,0,0,4"
+                           Style="{StaticResource Text.Subtitle}"
+                           Text="{loc:Tr Key=Settings.Privacy.ThumbCache}"/>
+                <TextBlock x:Name="ThumbCacheText"
+                           Margin="0,0,0,8"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Privacy.ThumbCache.Measuring}"/>
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Privacy.ThumbCache.Limit}"/>
+                    <ComboBox x:Name="CacheLimitCombo"
+                              Style="{StaticResource ComboBox.Default}"
+                              SelectionChanged="OnCacheLimitChanged">
+                        <ComboBoxItem Content="128"/>
+                        <ComboBoxItem Content="256"/>
+                        <ComboBoxItem Content="500"/>
+                        <ComboBoxItem Content="1024"/>
+                        <ComboBoxItem Content="2048"/>
+                    </ComboBox>
+                    <TextBlock Margin="6,0,0,0"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource Text.FieldHint}"
+                               Text="MB"/>
+                </StackPanel>
+                <TextBlock Margin="0,0,0,8"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Privacy.ThumbCache.Limit.Hint}"/>
+
+                <WrapPanel Margin="0,0,0,8">
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            Content="{loc:Tr Key=Settings.Privacy.ThumbCache.Clear}"
+                            Click="OnClearThumbCache"/>
+                </WrapPanel>
+
                 <!-- 隐私组的操作结果落在这里。之前借用字体那一行提示，
-                     结果"清空历史"的反馈出现在"外观"分组下面。 -->
+                     结果"清空历史"的反馈出现在"外观"分组下面。
+
+                     没有内容时折叠：这一行夹在两个分组之间，空着就是一段来源不明的空白，
+                     看起来像漏了个控件。用触发器而不是在每个赋值点手动置 Visibility——
+                     写入点有七处，漏一个就会在某个操作后突然多出一条空白。 -->
                 <TextBlock x:Name="PrivacyStatus"
                            Margin="0,0,0,16"
-                           TextWrapping="Wrap"
-                           Style="{StaticResource Text.FieldHint}"/>
+                           TextWrapping="Wrap">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Text.FieldHint}">
+                            <Style.Triggers>
+                                <Trigger Property="Text" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
 
                 <!-- ══ 关于 ══ -->
                 <TextBlock Style="{StaticResource Text.SectionTitle}" Text="{loc:Tr Key=Settings.Section.About}"/>

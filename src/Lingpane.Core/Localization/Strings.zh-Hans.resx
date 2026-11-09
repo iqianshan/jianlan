@@ -1247,6 +1247,39 @@
   <data name="Settings.Privacy.TagPrune.Tip" xml:space="preserve">
     <value>逐条核对标记指向的文件是否还在</value>
   </data>
+  <data name="Settings.Privacy.ThumbCache" xml:space="preserve">
+    <value>缩略图缓存</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Measuring" xml:space="preserve">
+    <value>正在统计…</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Size" xml:space="preserve">
+    <value>已用 {0} · 上限 {1}</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Limit" xml:space="preserve">
+    <value>上限</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Limit.Hint" xml:space="preserve">
+    <value>缓存超过上限时按最久未用淘汰。调低上限会立即清理。</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Clear" xml:space="preserve">
+    <value>清除缓存</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Cleared" xml:space="preserve">
+    <value>已清除缓存，释放 {0}</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.ClearBlocked" xml:space="preserve">
+    <value>有 {0} 未能删除（可能正被占用），稍后再试</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.LimitApplied" xml:space="preserve">
+    <value>上限已改为 {0}，当前占用 {1}</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.ClearConfirm.Title" xml:space="preserve">
+    <value>清除缩略图缓存？</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.ClearConfirm.Body" xml:space="preserve">
+    <value>将删除 {0} 的缩略图缓存。文件本身不受影响，下次浏览时重新生成。</value>
+  </data>
   <data name="Settings.ResetBehavior" xml:space="preserve">
     <value>重置行为</value>
   </data>

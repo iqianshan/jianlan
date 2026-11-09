@@ -1260,6 +1260,39 @@
   <data name="Settings.Privacy.TagPrune.Tip" xml:space="preserve">
     <value>Checks every tag against the file it points to</value>
   </data>
+  <data name="Settings.Privacy.ThumbCache" xml:space="preserve">
+    <value>Thumbnail cache</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Measuring" xml:space="preserve">
+    <value>Measuring…</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Size" xml:space="preserve">
+    <value>{0} used · limit {1}</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Limit" xml:space="preserve">
+    <value>Limit</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Limit.Hint" xml:space="preserve">
+    <value>When the cache exceeds its limit, the oldest thumbnails are evicted first. Lowering the limit cleans up immediately.</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Clear" xml:space="preserve">
+    <value>Clear cache</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Cleared" xml:space="preserve">
+    <value>Cache cleared, {0} freed</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.ClearBlocked" xml:space="preserve">
+    <value>{0} could not be deleted (likely in use). Try again later.</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.LimitApplied" xml:space="preserve">
+    <value>Limit set to {0} · cache is now {1}</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.ClearConfirm.Title" xml:space="preserve">
+    <value>Clear the thumbnail cache?</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.ClearConfirm.Body" xml:space="preserve">
+    <value>This deletes {0} of thumbnails. Your files are not touched; thumbnails are generated again the next time you browse them.</value>
+  </data>
   <data name="Settings.ResetBehavior" xml:space="preserve">
     <value>Reset behaviour</value>
   </data>

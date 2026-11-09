@@ -497,7 +497,12 @@ public sealed class PrivacySettings
 
     public int HistoryLimit { get; set; } = 100;
 
-    public int CacheLimitMb { get; set; } = 512;
+    /// <summary>
+    /// 缩略图磁盘缓存上限（FR-5.3.5，单位 MB）。默认 500，与
+    /// <see cref="Preview.ThumbnailCache.DefaultCapBytes"/> 是同一个数——
+    /// 两处各写一个默认值必然对不上，而"设置里显示 500、实际按 512 淘汰"没人查得出来。
+    /// </summary>
+    public int CacheLimitMb { get; set; } = 500;
 
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
