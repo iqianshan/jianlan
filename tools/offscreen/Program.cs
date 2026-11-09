@@ -78,6 +78,13 @@ internal static class Program
         int tabSteps = -1;
         string? langSetting = null;
         string? themeName = null;
+        string? cuesShotPath = null;
+        int focusStop = -1;
+        string? postKey = null;
+        int postCount = 1;
+        bool printTabs = false;
+        int activeTabIndex = -1;
+        string? extraTabPath = null;
 
         for (int i = 2; i < argv.Length; i++)
         {
@@ -218,6 +225,40 @@ internal static class Program
                 case "--theme" when i + 1 < argv.Length:
                     // 浅色 / 深色。默认跟随系统，走查三主题时必须显式指定
                     themeName = argv[++i];
+                    break;
+                case "--cues-shot" when i + 1 < argv.Length:
+                    // 焦点视觉的像素级证据（FR-10.7 / AC-08）。先按当前状态拍一张，
+                    // 再翻窗口的 UI state（WM_UPDATEUISTATE）拍第二张——两张逐像素相减，
+                    // 相差的那几圈就是焦点框。WPF 不给程序化开关，但这条消息是系统层入口。
+                    cuesShotPath = Path.GetFullPath(argv[++i]);
+                    break;
+                case "--focus-stop" when i + 1 < argv.Length:
+                    // 把焦点停在第 N 个 Tab 停靠点上（从 0 起）。按下标而不是按控件名，
+                    // 是因为要在"完全不知道界面结构"的前提下也能复现
+                    _ = int.TryParse(argv[++i], out focusStop);
+                    break;
+                case "--post-key" when i + 1 < argv.Length:
+                    // 往真实 HWND 投递按键（tab / enter / space / left / right …）。
+                    // 与 --tab 的区别：--tab 直接调 MoveFocus，只证明"链的顺序"；
+                    // 这条走 WPF 自己的消息处理，能证明按键绑定真的接上了
+                    postKey = argv[++i];
+                    break;
+                case "--post-count" when i + 1 < argv.Length:
+                    _ = int.TryParse(argv[++i], out postCount);
+                    break;
+                case "--tabs-state":
+                    // 打印当前活动标签序号与标签数，用来证明按键真的切换了标签
+                    printTabs = true;
+                    break;
+                case "--active-tab" when i + 1 < argv.Length:
+                    // 把活动标签钉到第 N 个再开始按键。活动标签是落盘的，
+                    // 不钉住的话上一次走查的结果就是下一次的起点，方向键测试会时对时错
+                    _ = int.TryParse(argv[++i], out activeTabIndex);
+                    break;
+                case "--extra-tab" when i + 1 < argv.Length:
+                    // 再开一个标签并导航到指定目录。方向键切换至少要有两个标签，
+                    // 而标签数是会话恢复出来的，不显式造就没有稳定的测试前提
+                    extraTabPath = Path.GetFullPath(argv[++i]);
                     break;
             }
         }
@@ -438,6 +479,83 @@ internal static class Program
                     // 走关于页按钮自己的处理函数：这样读嵌入资源、建查看窗两条链都被真正跑过
                     target = OpenLicense(target, licenseView);
                     await Task.Delay(600);
+                }
+
+                if (extraTabPath is not null)
+                {
+                    MethodInfo? newTab = typeof(MainWindow).GetMethod("NewTab",
+                        BindingFlags.NonPublic | BindingFlags.Instance);
+
+                    if (newTab is null) throw new MissingMethodException("MainWindow.NewTab");
+
+                    newTab.Invoke(window, null);
+                    await Task.Delay(600);
+
+                    if (typeof(MainWindow).GetField("_tabs", BindingFlags.NonPublic | BindingFlags.Instance)
+                            ?.GetValue(window) is Lingpane.App.ViewModels.TabHostViewModel tabs)
+                    {
+                        tabs.ActivateAt(tabs.Tabs.Count - 1);
+                        await tabs.Tabs[^1].ActivePane.NavigateAsync(extraTabPath);
+                        await Task.Delay(800);
+                        Console.WriteLine($"tabs.extra={tabs.Tabs.Count} index={tabs.ActiveIndex}");
+                    }
+                }
+
+                if (activeTabIndex >= 0)
+                {
+                    FieldInfo? tabsField = typeof(MainWindow).GetField("_tabs",
+                        BindingFlags.NonPublic | BindingFlags.Instance);
+
+                    if (tabsField?.GetValue(window) is Lingpane.App.ViewModels.TabHostViewModel host)
+                    {
+                        host.ActivateAt(Math.Clamp(activeTabIndex, 0, Math.Max(0, host.Tabs.Count - 1)));
+                        await Task.Delay(500);
+                        Console.WriteLine($"tabs.set={host.ActiveIndex}");
+                    }
+                }
+
+                if (focusStop >= 0)
+                {
+                    FocusStop(window, focusStop);
+                    await Task.Delay(250);
+                }
+
+                if (printTabs)
+                {
+                    PrintTabs(window, "before");
+                }
+
+                if (postKey is not null)
+                {
+                    await PostKeys(window, postKey, postCount);
+
+                    if (printTabs) PrintTabs(window, "after");
+                }
+
+                if (cuesShotPath is not null)
+                {
+                    // 先拍"没有焦点框"的那张，再翻 UI state 拍第二张。
+                    // 两张逐像素相减，多出来的那几圈就是键盘焦点视觉——
+                    // 这样既能证明它确实画出来了，也能证明它平时确实不画。
+                    Save(window, cuesShotPath);
+                    Console.WriteLine($"已保存 {cuesShotPath}（未开启键盘线索）");
+
+                    EnableKeyboardCues(window);
+
+                    // 焦点视觉是挂在"焦点变化"那一刻的：已经聚焦的元素在
+                    // ShowKeyboardCues 翻转后不会自己补一圈。必须让焦点重新走一遍。
+                    if (focusStop >= 0)
+                    {
+                        FocusStop(window, 0);
+                        FocusStop(window, focusStop);
+                    }
+
+                    await Task.Delay(500);
+
+                    Save(window, outPath);
+                    Console.WriteLine($"已保存 {outPath}（键盘线索已开启）");
+                    app.Shutdown(0);
+                    return;
                 }
 
                 Save(target, outPath);
@@ -925,6 +1043,145 @@ internal static class Program
                 window.MoveFocus(request);
             }
         }
+    }
+
+    // ---- 键盘可访问性（FR-10.7 / AC-08）的三个系统层入口 ----
+
+    private const int WM_UPDATEUISTATE = 0x0128;
+    private const int UIS_CLEAR = 0x0002;
+    private const int UISF_HIDEFOCUS = 0x0001;
+    private const int WM_KEYDOWN = 0x0100;
+    private const int WM_KEYUP = 0x0101;
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool PostMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+    /// <summary>
+    /// 把焦点停在第 <paramref name="index"/> 个停靠点上（0 起）。
+    /// 走的是 MoveFocus，所以"第几个"与真实按 Tab 的次序一致。
+    /// </summary>
+    private static void FocusStop(Window window, int index)
+    {
+        window.UpdateLayout();
+        window.MoveFocus(new System.Windows.Input.TraversalRequest(
+            System.Windows.Input.FocusNavigationDirection.First));
+
+        for (int i = 0; i < index; i++)
+        {
+            var request = new System.Windows.Input.TraversalRequest(
+                System.Windows.Input.FocusNavigationDirection.Next);
+
+            if (System.Windows.Input.Keyboard.FocusedElement is UIElement element) element.MoveFocus(request);
+            else window.MoveFocus(request);
+        }
+
+        Console.WriteLine($"focus.stop={index} {DescribeFocus(System.Windows.Input.Keyboard.FocusedElement as DependencyObject)}");
+    }
+
+    /// <summary>
+    /// 打印活动标签序号与总数。按键走查时它比截图可靠：
+    /// "按了右键"和"标签真的换了"是两件事，只有序号能分开。
+    /// </summary>
+    private static void PrintTabs(Window window, string when)
+    {
+        FieldInfo? field = typeof(MainWindow).GetField("_tabs", BindingFlags.NonPublic | BindingFlags.Instance);
+        object? tabs = field?.GetValue(window);
+
+        if (tabs is Lingpane.App.ViewModels.TabHostViewModel host)
+        {
+            Console.WriteLine($"tabs.{when}=index:{host.ActiveIndex} count:{host.Tabs.Count}");
+            return;
+        }
+
+        Console.WriteLine($"tabs.{when}=(读不到 _tabs)");
+    }
+
+    /// <summary>
+    /// 向真实窗口句柄投递按键，走 WPF 自己的消息处理链。
+    ///
+    /// 与 <see cref="WalkTabChain"/> 的区别很重要：那个直接调 <c>MoveFocus</c>，
+    /// 只能证明"停靠点顺序是那样"；这条消息进的是 <c>HwndSource</c>，
+    /// 能被 <c>OnPreviewKeyDown</c> 与控件自己的按键处理器收到，
+    /// 因此能证明"按键绑定接上了"。投递不经过全局钩子——那是设计如此，
+    /// 见 `docs/shortcuts.md` §10 最后一条。
+    /// </summary>
+    private static async Task PostKeys(Window window, string spec, int count)
+    {
+        IntPtr hwnd = new WindowInteropHelper(window).Handle;
+        Console.WriteLine($"key.start focus={DescribeFocus(System.Windows.Input.Keyboard.FocusedElement as DependencyObject)}");
+
+        foreach (string name in spec.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            int vk = name.ToLowerInvariant() switch
+            {
+                "tab" => 0x09,
+                "enter" => 0x0D,
+                "space" => 0x20,
+                "left" => 0x25,
+                "up" => 0x26,
+                "right" => 0x27,
+                "down" => 0x28,
+                "esc" => 0x1B,
+                "delete" => 0x2E,
+                _ => throw new ArgumentOutOfRangeException(nameof(spec), name, "未知键名"),
+            };
+
+            for (int i = 0; i < count; i++)
+            {
+                _ = PostMessage(hwnd, WM_KEYDOWN, (IntPtr)vk, (IntPtr)1);
+                _ = PostMessage(hwnd, WM_KEYUP, (IntPtr)vk, unchecked((IntPtr)(int)0xC0000001));
+
+                // 我们在 dispatcher 回调里，不交出控制权消息泵就不会转，
+                // 焦点看起来"根本没动"——这个 await 是功能性的，不是等待
+                await Task.Delay(120);
+
+                Console.WriteLine($"key.{name.ToLowerInvariant()}[{i}] focus={DescribeFocus(System.Windows.Input.Keyboard.FocusedElement as DependencyObject)}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// 翻窗口的键盘线索位，让 WPF 画焦点视觉。
+    ///
+    /// WPF 把"用户是不是在用键盘"存在窗口的 UI state 里（WM_UPDATEUISTATE），
+    /// 不是自己的开关，<c>KeyboardNavigation.ShowKeyboardCues</c> 也是 internal。
+    /// 但既然是系统层的窗口状态，就能发消息改——这就是像素级确认能在此完成的原因。
+    /// </summary>
+    private static void EnableKeyboardCues(Window window)
+    {
+        IntPtr hwnd = new WindowInteropHelper(window).Handle;
+        IntPtr wParam = (IntPtr)((UIS_CLEAR << 16) | UISF_HIDEFOCUS);
+
+        _ = SendMessage(hwnd, WM_UPDATEUISTATE, wParam, IntPtr.Zero);
+
+        // 发消息不够用：HwndSource 不处理 WM_UPDATEUISTATE（实测两张图逐像素相同）。
+        // 真正决定画不画的是 KeyboardNavigation 上一个 internal 的 attached DP，
+        // 它标了 Inherits，并且不是只读 DP——拿到引用就能直接设，设完往下传。
+        FieldInfo? dpField = typeof(System.Windows.Input.KeyboardNavigation).GetField(
+            "ShowKeyboardCuesProperty",
+            BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Public);
+
+        if (dpField?.GetValue(null) is not DependencyProperty dp)
+        {
+            Console.WriteLine("cues.dp=missing");
+            return;
+        }
+
+        window.SetValue(dp, true);
+        UIElement? focused = System.Windows.Input.Keyboard.FocusedElement as UIElement;
+        focused?.SetValue(dp, true);
+
+        // 焦点视觉画在 AdornerLayer 上。窗口模板里没有 AdornerDecorator 的话，
+        // FocusVisualStyle 挂得再对也画不出来——这正是像素级确认要回答的问题。
+        var layer = focused is null ? null : System.Windows.Documents.AdornerLayer.GetAdornerLayer(focused);
+        int adorners = layer is null || focused is null ? -1 : layer.GetAdorners(focused)?.Length ?? -1;
+
+        Console.WriteLine($"cues.dp=set value={window.GetValue(dp)} " +
+                          $"layer={(layer is null ? "none" : "ok")} adorners={adorners} hwnd=0x{hwnd:X}");
     }
 
     private static string DescribeFocus(DependencyObject? element)

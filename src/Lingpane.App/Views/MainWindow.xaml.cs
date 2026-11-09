@@ -1377,6 +1377,18 @@ public partial class MainWindow : Window
             _ => e.Key,
         };
 
+        // 标签上的 Enter / Space / ← / → 归标签自己处理（FR-10.7）。
+        // 窗口级 PreviewKeyDown 先于元素的 KeyDown 执行，不在这里让路的话，
+        // 焦点在标签上按 Enter 会被"打开选中项"先吃掉——表现是"选好标签按 Enter，
+        // 结果打开了旁边列表里的文件，标签纹丝不动"。Space 能过是因为它不在键位表里，
+        // 两条路径行为不一致本身就是这个 bug 的证据（AC-08 走查发现）。
+        if (Keyboard.Modifiers == ModifierKeys.None
+            && key is Key.Enter or Key.Space or Key.Left or Key.Right
+            && Keyboard.FocusedElement is FrameworkElement { DataContext: TabViewModel })
+        {
+            return;
+        }
+
         // 分屏时 Tab 在两窗格之间换焦点（FR-3.5）。不给 KeyBindings 注册：
         // 它只在分屏时才有意义，登记成全局键位会让单窗格下的 Tab 也被吞掉。
         if (_splitEnabled && key == Key.Tab && Keyboard.Modifiers == ModifierKeys.None

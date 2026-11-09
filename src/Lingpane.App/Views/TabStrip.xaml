@@ -252,6 +252,7 @@
                 IsEnabled="{Binding CanAdd}"
                 Content="&#xE710;"
                 Click="OnNewTabClick"
+                AutomationProperties.Name="{Binding ToolTip, RelativeSource={RelativeSource Self}}"
                 ToolTipService.ShowOnDisabled="True">
             <Button.Style>
                 <Style TargetType="Button" BasedOn="{StaticResource Button.Toolbar}">

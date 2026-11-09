@@ -39,7 +39,10 @@
 
     <SolidColorBrush x:Key="Brush.Text.Primary" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Brush.Text.Secondary" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Brush.Text.Tertiary" Color="{x:Static SystemColors.GrayTextColor}" po:Freeze="True"/>
+    <!-- 三级文字也走 WindowText。HC Black 下 GrayText 是 #686868，黑底上只有 2.92:1，
+         「类型」「大小」「修改日期」这些列的实测量出来的就是这个值——它们不是禁用态，
+         读不出来就是信息丢失。禁用态（Brush.Text.Disabled）保留 GrayText：那本来就该更弱。 -->
+    <SolidColorBrush x:Key="Brush.Text.Tertiary" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Brush.Text.Disabled" Color="{x:Static SystemColors.GrayTextColor}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Brush.Text.OnAccent" Color="{x:Static SystemColors.HighlightTextColor}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Brush.Text.OnSelected" Color="{x:Static SystemColors.HighlightTextColor}" po:Freeze="True"/>
