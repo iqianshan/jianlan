@@ -186,9 +186,29 @@ public static class Strings
     /// <summary>Can't access this folder</summary>
     public static string Empty_Inaccessible => LocalizationService.Instance.Get("Empty.Inaccessible");
 
+    /// <summary>No items match your search</summary>
+    public static string Empty_NoMatch => LocalizationService.Instance.Get("Empty.NoMatch");
+
+    /// <summary>Search</summary>
+    public static string Search_Placeholder => LocalizationService.Instance.Get("Search.Placeholder");
+
+    /// <summary>Clear search (Esc)</summary>
+    public static string Search_Clear_Tip => LocalizationService.Instance.Get("Search.Clear.Tip");
+
+    /// <summary>Search in this folder (Ctrl+F)</summary>
+    public static string Toolbar_Search_Tip => LocalizationService.Instance.Get("Toolbar.Search.Tip");
+
     /// <summary>{0} items · enumerated {1} ms</summary>
     public static string Status_Summary => LocalizationService.Instance.Get("Status.Summary");
     // 含占位符：string.Format(Strings.Status_Summary, ...)
+
+    /// <summary>{0} matches of {1} items</summary>
+    public static string Status_SearchSummary => LocalizationService.Instance.Get("Status.SearchSummary");
+    // 含占位符：string.Format(Strings.Status_SearchSummary, ...)
+
+    /// <summary>Showing first {0} of {1} matches</summary>
+    public static string Status_SearchTruncated => LocalizationService.Instance.Get("Status.SearchTruncated");
+    // 含占位符：string.Format(Strings.Status_SearchTruncated, ...)
 
     /// <summary>{0} selected</summary>
     public static string Status_SelectedCount => LocalizationService.Instance.Get("Status.SelectedCount");
@@ -520,6 +540,9 @@ public static class Strings
 
     /// <summary>Focus address bar</summary>
     public static string Command_FocusAddress => LocalizationService.Instance.Get("Command.FocusAddress");
+
+    /// <summary>Search in this folder</summary>
+    public static string Command_Search => LocalizationService.Instance.Get("Command.Search");
 
     /// <summary>Open</summary>
     public static string Command_Open => LocalizationService.Instance.Get("Command.Open");

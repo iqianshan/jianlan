@@ -26,6 +26,7 @@ namespace OffscreenShot;
 /// 用法：
 ///   OffscreenShot.exe &lt;输出png&gt; [等待毫秒] [--tag 颜色名] [--activate 序号]
 ///                                        [--preview] [--select 序号] [--close-preview]
+///                                        [--search 关键词]
 /// 数据目录由 exe 旁边的 portable.flag + data\ 决定（便携模式），演示数据自己放进去。
 /// </summary>
 internal static class Program
@@ -51,6 +52,13 @@ internal static class Program
         bool dumpTree = false;
         bool printState = false;
         int thenIndex = -1;
+        string? searchQuery = null;
+        string? thenSearch = null;
+        string? navPath = null;
+        bool enableSplit = false;
+        bool thenRefresh = false;
+        string? thenPath = null;
+        bool thenEscape = false;
 
         for (int i = 2; i < argv.Length; i++)
         {
@@ -92,6 +100,39 @@ internal static class Program
                 case "--close-preview":
                     disablePreview = true;
                     break;
+                case "--search" when i + 1 < argv.Length:
+                    // 当前目录搜索（FR-6.13）。空串表示"清空搜索"，
+                    // 这样"清空后列表回满"也能用同一张图证明
+                    searchQuery = argv[++i];
+                    break;
+                case "--path" when i + 1 < argv.Length:
+                    // 先导航到指定目录再拍。走查大目录（性能夹具）时不能靠会话恢复，
+                    // 那取决于上一次运行停在哪
+                    navPath = Path.GetFullPath(argv[++i]);
+                    break;
+                case "--then-search" when i + 1 < argv.Length:
+                    // 先把 --search 拍完，再改成这个值。用来验证"清空后列表回满"——
+                    // Esc 走的也是 SearchQuery 置空这一条链，没有桌面可按键时这就是等价路径
+                    thenSearch = argv[++i];
+                    break;
+                case "--split":
+                    // 分屏后每格工具栏只剩半个窗口，用来核对搜索框收窄与地址栏是否还够用
+                    enableSplit = true;
+                    break;
+                case "--then-refresh":
+                    // 同目录刷新（F5 / 文件操作后的重读盘）。验证搜索词是否被保留——
+                    // 丢了的话用户"删掉一条搜索结果，搜索框自己空了"
+                    thenRefresh = true;
+                    break;
+                case "--then-path" when i + 1 < argv.Length:
+                    // 换目录。验证搜索词被清掉：搜索的范围是"这个目录里的这些条目"
+                    thenPath = Path.GetFullPath(argv[++i]);
+                    break;
+                case "--then-escape":
+                    // 直接调搜索框的 KeyDown 处理器。离屏进程没有可发送按键的桌面，
+                    // 但 Esc 走的就是这一个函数，调它等价于"在搜索框里按了 Esc"
+                    thenEscape = true;
+                    break;
             }
         }
 
@@ -113,6 +154,32 @@ internal static class Program
 
             try
             {
+                if (navPath is not null)
+                {
+                    await GetPane(window).ViewModel!.NavigateAsync(navPath);
+                    await Task.Delay(500);
+                }
+
+                if (enableSplit)
+                {
+                    // 是"确保分屏"而不是"切换"：设置是落盘的，上一次跑完就已经是分屏，
+                    // 再 toggle 一次反而把它关掉（与 --preview 同一个坑）
+                    FieldInfo? splitField = typeof(MainWindow).GetField(
+                        "_splitEnabled", BindingFlags.NonPublic | BindingFlags.Instance);
+
+                    if (splitField?.GetValue(window) is not true)
+                    {
+                        MethodInfo? toggle = typeof(MainWindow).GetMethod(
+                            "ToggleSplit", BindingFlags.NonPublic | BindingFlags.Instance);
+
+                        if (toggle is null) throw new MissingMethodException("MainWindow.ToggleSplit");
+
+                        toggle.Invoke(window, null);
+                    }
+
+                    await Task.Delay(800);
+                }
+
                 if (tagName is not null)
                 {
                     OpenTagResults(window, tagName);
@@ -144,6 +211,47 @@ internal static class Program
                 {
                     SelectFile(window, [thenIndex]);
                     await Task.Delay(1500);
+                }
+
+                if (searchQuery is not null)
+                {
+                    ApplySearch(window, searchQuery);
+
+                    // 250ms 防抖 + 后台过滤，600ms 足够看到结果；取整留一点余量
+                    await Task.Delay(700);
+                    PrintSearchState(window);
+                }
+
+                if (thenSearch is not null)
+                {
+                    ApplySearch(window, thenSearch);
+                    await Task.Delay(700);
+                    Console.WriteLine("-- after --");
+                    PrintSearchState(window);
+                }
+
+                if (thenRefresh)
+                {
+                    await GetPane(window).ViewModel!.RefreshAsync();
+                    await Task.Delay(700);
+                    Console.WriteLine("-- after refresh --");
+                    PrintSearchState(window);
+                }
+
+                if (thenPath is not null)
+                {
+                    await GetPane(window).ViewModel!.NavigateAsync(thenPath);
+                    await Task.Delay(700);
+                    Console.WriteLine("-- after navigate --");
+                    PrintSearchState(window);
+                }
+
+                if (thenEscape)
+                {
+                    RaiseSearchKey(window, System.Windows.Input.Key.Escape);
+                    await Task.Delay(300);
+                    Console.WriteLine("-- after escape --");
+                    PrintSearchState(window);
                 }
 
                 if (surfacePath is not null) SaveSurface(window, surfacePath);
@@ -214,6 +322,82 @@ internal static class Program
         }
 
         list.ScrollIntoView(list.Items[indexes[0]]);
+    }
+
+    /// <summary>
+    /// 往工具栏搜索框里写字。走 TextBox.Text 而不是直接改视图模型：
+    /// 绑定是 <c>UpdateSourceTrigger=PropertyChanged</c>，设 Text 就是用户逐字输入的同一条链，
+    /// 防抖、后台过滤、状态栏刷新全部会真实发生。
+    /// </summary>
+    private static void ApplySearch(MainWindow window, string query)
+    {
+        if (GetPane(window).FindName("SearchBox") is not System.Windows.Controls.TextBox box)
+        {
+            throw new MissingMemberException("SearchBox");
+        }
+
+        box.Text = query;
+    }
+
+    /// <summary>
+    /// 把搜索态的四个观察点打到 stdout。图只能看出"列表短了"，
+    /// 但"命中几项/状态栏怎么说/是不是还在搜索态"必须读值才确定。
+    /// </summary>
+    private static void PrintSearchState(MainWindow window)
+    {
+        PaneView pane = GetPane(window);
+        PaneViewModel vm = pane.ViewModel ?? throw new MissingMemberException("PaneView.ViewModel");
+
+        FieldInfo? listField = typeof(PaneView).GetField("FileList", BindingFlags.NonPublic | BindingFlags.Instance);
+        if (listField?.GetValue(pane) is not System.Windows.Controls.ListBox list)
+        {
+            throw new MissingMemberException("FileList");
+        }
+
+        Console.WriteLine($"search.query={vm.SearchQuery}");
+        Console.WriteLine($"search.isSearching={vm.IsSearching}");
+        Console.WriteLine($"search.visible={list.Items.Count}");
+        Console.WriteLine($"search.total={vm.TotalCount}");
+        Console.WriteLine($"search.status={vm.StatusText}");
+    }
+
+    /// <summary>
+    /// 把一次按键交给搜索框的处理函数。用合成的 <see cref="KeyEventArgs"/> 而不是 SendInput：
+    /// 离屏进程没有可发送按键的桌面，而 Esc 的全部逻辑就在 <c>OnSearchKeyDown</c> 里，
+    /// 直接调它与真实按下的区别只剩"WPF 有没有把事件路由到这里"，那一段是框架行为。
+    /// </summary>
+    private static void RaiseSearchKey(MainWindow window, System.Windows.Input.Key key)
+    {
+        PaneView pane = GetPane(window);
+
+        if (pane.FindName("SearchBox") is not System.Windows.Controls.TextBox box)
+        {
+            throw new MissingMemberException("SearchBox");
+        }
+
+        PresentationSource source = PresentationSource.FromVisual(pane)
+                                    ?? throw new InvalidOperationException("pane 还没有 PresentationSource");
+
+        var args = new System.Windows.Input.KeyEventArgs(
+            System.Windows.Input.Keyboard.PrimaryDevice, source, 0, key)
+        {
+            RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent,
+        };
+
+        MethodInfo? handler = typeof(PaneView).GetMethod(
+            "OnSearchKeyDown", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        if (handler is null) throw new MissingMethodException("PaneView.OnSearchKeyDown");
+
+        handler.Invoke(pane, [box, args]);
+    }
+
+    private static PaneView GetPane(MainWindow window)
+    {
+        FieldInfo? paneField = typeof(MainWindow).GetField("Pane", BindingFlags.NonPublic | BindingFlags.Instance);
+        if (paneField?.GetValue(window) is not PaneView pane) throw new MissingMemberException("Pane");
+
+        return pane;
     }
 
     /// <summary>

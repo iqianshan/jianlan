@@ -210,10 +210,30 @@
   <data name="Empty.Inaccessible" xml:space="preserve">
     <value>Can't access this folder</value>
   </data>
+  <data name="Empty.NoMatch" xml:space="preserve">
+    <value>No items match your search</value>
+  </data>
+
+  <!-- 当前目录搜索（FR-6.13） -->
+  <data name="Search.Placeholder" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Search.Clear.Tip" xml:space="preserve">
+    <value>Clear search (Esc)</value>
+  </data>
+  <data name="Toolbar.Search.Tip" xml:space="preserve">
+    <value>Search in this folder (Ctrl+F)</value>
+  </data>
 
   <!-- 状态栏 -->
   <data name="Status.Summary" xml:space="preserve">
     <value>{0} items · enumerated {1} ms</value>
+  </data>
+  <data name="Status.SearchSummary" xml:space="preserve">
+    <value>{0} matches of {1} items</value>
+  </data>
+  <data name="Status.SearchTruncated" xml:space="preserve">
+    <value>Showing first {0} of {1} matches</value>
   </data>
   <data name="Status.SelectedCount" xml:space="preserve">
     <value>{0} selected</value>
@@ -525,6 +545,9 @@
   </data>
   <data name="Command.FocusAddress" xml:space="preserve">
     <value>Focus address bar</value>
+  </data>
+  <data name="Command.Search" xml:space="preserve">
+    <value>Search in this folder</value>
   </data>
   <data name="Command.Open" xml:space="preserve">
     <value>Open</value>

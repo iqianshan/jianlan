@@ -110,6 +110,16 @@ public partial class PaneView
             Execute = BeginAddressEdit,
         });
 
+        // 当前目录搜索（FR-6.13）。与 Ctrl+L 同一类：只把焦点送到工具栏上的那个输入框。
+        // 搜索框常驻，所以没有"打开/关闭搜索"这个状态，也就没有对应的按钮。
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.FocusSearch,
+            TitleFactory = () => Strings.Command_Search,
+            Gesture = "Ctrl+F",
+            Execute = BeginSearch,
+        });
+
         // 分屏开关按钮。**故意不进 _commands 注册表**：F3 已经由窗口表处理，
         // 同一个 Id 出现在窗格表里会让 Dispatch 的"先窗格后窗口"规则多出一条
         // 语义相同的岔路，排查时反而分不清按 F3 走的是哪一条。

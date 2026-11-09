@@ -178,6 +178,26 @@ public partial class PaneView : UserControl
     }
 
     /// <summary>
+    /// 条目集合换过之后重试"等读盘"的那次选中恢复。
+    ///
+    /// 为什么需要它：搜索态下的过滤结果是异步回来的，<c>NavigationCompleted</c> 触发时
+    /// 列表还是空的（搜索分支没有同步填 <c>Entries</c>），<c>RestoreAfterReload</c> 必然
+    /// 一条也找不到。没有这一步，切回一个正在搜索的标签，选中项会莫名丢掉。
+    /// </summary>
+    private void RetryPendingRestore()
+    {
+        if (_pendingRestore is not { } viewModel || !ReferenceEquals(_viewModel, viewModel)) return;
+        if (viewModel.SelectedPaths.Count == 0)
+        {
+            _pendingRestore = null;
+            return;
+        }
+
+        // 恢复了才清标记；还没恢复就留着，等下一次 Entries 变化（比如过滤完成）
+        if (RestoreSelection(viewModel, viewModel.SelectedPaths)) _pendingRestore = null;
+    }
+
+    /// <summary>
     /// 按路径恢复选中。返回 <c>false</c> 表示"有路径要选、但一条都没找到"——
     /// 这只发生在内容已被释放、正等着重新读盘的时候。
     /// </summary>
@@ -344,7 +364,55 @@ public partial class PaneView : UserControl
     {
         // 传新宽度而不是让 ApplyColumns 去读 ActualWidth：SizeChanged 触发时
         // ActualWidth 还是旧值，读它会慢一帧，表现为"拖动分隔条时列晚一步折叠"。
-        if (e.WidthChanged) ApplyColumns(e.NewSize.Width);
+        if (!e.WidthChanged) return;
+
+        ApplyColumns(e.NewSize.Width);
+        ApplySearchBoxWidth(e.NewSize.Width);
+    }
+
+    /// <summary>当前搜索框宽度档位的资源键。只在跨档时改写，避免每次拖窗都刷一遍资源引用。</summary>
+    private string _searchWidthKey = "Size.Search.Width";
+
+    public static readonly DependencyProperty IsCompactPaneProperty = DependencyProperty.Register(
+        nameof(IsCompactPane),
+        typeof(bool),
+        typeof(PaneView),
+        new PropertyMetadata(false));
+
+    /// <summary>
+    /// 窗格窄到连搜索框的装饰都放不下（分屏后的常态）。界面靠它收起放大镜、
+    /// 清除按钮与左右留白——都是纯装饰，功能一项不少（Esc 仍能清空、Ctrl+F 仍能聚焦）。
+    /// 行内元素通过相对源绑定读它，所以必须是依赖属性。
+    /// </summary>
+    public bool IsCompactPane
+    {
+        get => (bool)GetValue(IsCompactPaneProperty);
+        private set => SetValue(IsCompactPaneProperty, value);
+    }
+
+    /// <summary>
+    /// 搜索框宽度分三档（FR-6.13）。分屏后每个窗格只有半个窗口，工具栏上还挤着
+    /// 四个导航按钮、地址栏与三个视图按钮；搜索框固定 150 会把地址栏压到只剩几个像素，
+    /// 面包屑彻底点不到（实测分屏 50/50 时一条路径都看不到）。
+    ///
+    /// 用三档而不是按比例连续缩放：宽度连续变化时输入框会跟着拖拽一直抖，
+    /// 而"切到分屏那一刻变窄一次"是看得懂的。三个宽度都取自 DesignTokens。
+    /// </summary>
+    private void ApplySearchBoxWidth(double paneWidth)
+    {
+        string key = paneWidth switch
+        {
+            >= 720 => "Size.Search.Width",
+            >= 520 => "Size.Search.Width.Narrow",
+            _ => "Size.Search.Width.Compact",
+        };
+
+        IsCompactPane = key == "Size.Search.Width.Compact";
+
+        if (key == _searchWidthKey) return;
+
+        _searchWidthKey = key;
+        SearchHost.SetResourceReference(WidthProperty, key);
     }
 
     /// <summary>布局诊断：列头实际宽度与可视位置，确认"列被裁掉"还是"列不存在"。</summary>
@@ -575,6 +643,70 @@ public partial class PaneView : UserControl
         }
     }
 
+    // ── 当前目录搜索（FR-6.13） ────────────────────────────────────────────
+
+    /// <summary>
+    /// Ctrl+F 的出口：聚焦搜索框并全选。
+    /// 不切换任何"搜索模式"——搜索框常驻在工具栏上，这里只是把焦点送过去。
+    /// </summary>
+    internal void BeginSearch()
+    {
+        if (_viewModel is null) return;
+
+        SearchBox.Focus();
+        SearchBox.SelectAll();
+    }
+
+    private void OnClearSearchClick(object sender, RoutedEventArgs e)
+    {
+        _viewModel?.ClearSearch();
+
+        // 点"清除"的人是来改词的，不是来关搜索的：焦点留在输入框里
+        SearchBox.Focus();
+    }
+
+    /// <summary>
+    /// 搜索框里的键。
+    ///
+    /// 这里能直接处理 Esc，是因为窗口级的 <c>OnPreviewKeyDown</c> 见到
+    /// <see cref="System.Windows.Controls.Primitives.TextBoxBase"/> 就提前返回（否则地址栏里
+    /// 按 Delete 会变成删除文件）。搜索框自己的语义必须自己收：Esc 清词、回车与 ↓ 落地到列表。
+    /// </summary>
+    private void OnSearchKeyDown(object sender, KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Escape:
+                if (_viewModel is { IsSearching: true })
+                {
+                    // 第一下清空、第二下回列表——用户按 Esc 十次有九次是想"退出搜索"
+                    _viewModel.ClearSearch();
+                }
+                else
+                {
+                    FileList.Focus();
+                }
+
+                e.Handled = true;
+                break;
+
+            case Key.Enter:
+            case Key.Down:
+                // 资源管理器的习惯：在搜索框里回车/↓ 就跳到结果，选中第一项
+                FocusFirstResult();
+                e.Handled = true;
+                break;
+        }
+    }
+
+    /// <summary>把焦点交给结果列表并选中第一项；没有结果时只交焦点，不制造一次空选中。</summary>
+    private void FocusFirstResult()
+    {
+        FileList.Focus();
+
+        if (FileList.SelectedIndex < 0 && FileList.Items.Count > 0) FileList.SelectedIndex = 0;
+    }
+
     // ── 列表交互 ────────────────────────────────────────────────────────────
 
     private void OnSortClick(object sender, RoutedEventArgs e)
@@ -630,16 +762,29 @@ public partial class PaneView : UserControl
     private void OnCancelFolderSize(object sender, RoutedEventArgs e) => _viewModel?.CancelFolderSizeScan();
 
     /// <summary>
-    /// 列表上的 Esc：正在算文件夹大小时取消（FR-6.16 的键盘入口）。
-    /// 只在计算中才吃这个键——平时 Esc 在文件列表上没有语义，不能顺手吞掉，
-    /// 否则以后给列表加的 Esc 行为会莫名失效。
+    /// 列表上的 Esc：正在算文件夹大小时取消（FR-6.16 的键盘入口），
+    /// 处于搜索态时退出搜索（FR-6.13）。两者都不满足才不吃这个键——平时 Esc
+    /// 在文件列表上没有语义，不能顺手吞掉，否则以后给列表加的 Esc 行为会莫名失效。
+    ///
+    /// 计算中的优先级更高：用户刚点了"计算大小"，此刻按 Esc 想停的多半是那件事，
+    /// 而不是清掉搜索词。
     /// </summary>
     private void OnFileListKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Escape || _viewModel is not { IsCalculatingSize: true }) return;
+        if (e.Key != Key.Escape) return;
 
-        _viewModel.CancelFolderSizeScan();
-        e.Handled = true;
+        if (_viewModel is { IsCalculatingSize: true })
+        {
+            _viewModel.CancelFolderSizeScan();
+            e.Handled = true;
+            return;
+        }
+
+        if (_viewModel is { IsSearching: true })
+        {
+            _viewModel.ClearSearch();
+            e.Handled = true;
+        }
     }
 
     private void ApplyMenuGestures()

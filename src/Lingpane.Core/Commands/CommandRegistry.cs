@@ -16,6 +16,9 @@ public static class CommandIds
     public const string ViewList = "view.list";
     public const string FocusAddress = "nav.focusAddress";
 
+    /// <summary>聚焦工具栏搜索框（FR-6.13）。搜索框常驻，这条命令只负责把焦点送过去。</summary>
+    public const string FocusSearch = "nav.focusSearch";
+
     // 文件操作（M1 批 3）
     public const string OpenItem = "file.open";
     public const string NewFolder = "file.newFolder";

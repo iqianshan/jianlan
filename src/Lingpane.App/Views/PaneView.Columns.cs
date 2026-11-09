@@ -55,6 +55,15 @@ public partial class PaneView
     /// <summary>路径一变就重判档位（导航、会话恢复、切标签都会走到这里）。</summary>
     private void OnPanePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(PaneViewModel.Entries))
+        {
+            // 条目集合换过，可能可以把"等读盘"的那次选中恢复补上了。搜索态下
+            // 这一轮是异步回来的：NavigationCompleted 触发时列表还是空的，
+            // 恢复只能等到这里（否则切回一个正在搜索的标签，选中项会莫名丢掉）。
+            RetryPendingRestore();
+            return;
+        }
+
         if (e.PropertyName != nameof(PaneViewModel.CurrentPath)) return;
         SyncColumnProfile((sender as PaneViewModel)?.CurrentPath);
     }

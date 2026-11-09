@@ -202,9 +202,29 @@
   <data name="Empty.Inaccessible" xml:space="preserve">
     <value>无法访问此文件夹</value>
   </data>
+  <data name="Empty.NoMatch" xml:space="preserve">
+    <value>没有匹配的项</value>
+  </data>
+
+  <!-- 当前目录搜索（FR-6.13） -->
+  <data name="Search.Placeholder" xml:space="preserve">
+    <value>搜索</value>
+  </data>
+  <data name="Search.Clear.Tip" xml:space="preserve">
+    <value>清除搜索（Esc）</value>
+  </data>
+  <data name="Toolbar.Search.Tip" xml:space="preserve">
+    <value>在当前文件夹中搜索（Ctrl+F）</value>
+  </data>
 
   <data name="Status.Summary" xml:space="preserve">
     <value>{0} 项 · 枚举 {1} ms</value>
+  </data>
+  <data name="Status.SearchSummary" xml:space="preserve">
+    <value>匹配 {0} 项，共 {1} 项</value>
+  </data>
+  <data name="Status.SearchTruncated" xml:space="preserve">
+    <value>匹配 {1} 项，仅显示前 {0} 项</value>
   </data>
   <data name="Status.SelectedCount" xml:space="preserve">
     <value>选中 {0} 项</value>
@@ -512,6 +532,9 @@
   </data>
   <data name="Command.FocusAddress" xml:space="preserve">
     <value>定位地址栏</value>
+  </data>
+  <data name="Command.Search" xml:space="preserve">
+    <value>在当前文件夹中搜索</value>
   </data>
   <data name="Command.Open" xml:space="preserve">
     <value>打开</value>

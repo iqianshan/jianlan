@@ -234,6 +234,109 @@
                      分屏同理。第二窗格不显示这颗按钮（见 PaneView.ShowSplitButton），
                      否则分屏时会冒出两颗一模一样的开关。 -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!--
+                        当前目录搜索（FR-6.13）。放在视图切换左侧而不是塞进地址栏：
+                        它过滤的是"这一份列表"，与"列表长什么样"同属这块区域，
+                        用户找"在这个目录里找东西"时会先看这里。
+                        分屏时每个窗格各有一个，各自过滤各自的目录，互不影响。
+                    -->
+                    <Grid x:Name="SearchHost"
+                          Width="{DynamicResource Size.Search.Width}"
+                          Margin="0,0,8,0"
+                          VerticalAlignment="Center">
+                        <TextBox x:Name="SearchBox"
+                                 Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                                 PreviewKeyDown="OnSearchKeyDown"
+                                 ToolTip="{loc:Tr Key=Toolbar.Search.Tip}"
+                                 AutomationProperties.Name="{loc:Tr Key=Toolbar.Search.Tip}">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox" BasedOn="{StaticResource TextBox.Search}">
+                                    <Style.Triggers>
+                                        <!-- 窄窗格里连放大镜都放不下，把左右留白一起收掉，
+                                             否则 64px 宽的框里只剩十来个像素能显示文字 -->
+                                        <DataTrigger Binding="{Binding IsCompactPane,
+                                                                       RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                                                     Value="True">
+                                            <Setter Property="Padding" Value="6,0,6,0"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <!-- 放大镜：不吃鼠标，点它等于点输入框 -->
+                        <TextBlock Margin="8,0,0,0"
+                                   HorizontalAlignment="Left"
+                                   VerticalAlignment="Center"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource Brush.Text.Tertiary}"
+                                   IsHitTestVisible="False"
+                                   Text="&#xE721;">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsCompactPane,
+                                                                       RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                                                     Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- 水印：TextBox 没有 Placeholder，叠一层。只在没有查询词时出现 -->
+                        <TextBlock VerticalAlignment="Center"
+                                   IsHitTestVisible="False"
+                                   Text="{loc:Tr Key=Search.Placeholder}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Secondary}">
+                                    <Setter Property="Margin" Value="26,0,0,0"/>
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSearching}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsCompactPane,
+                                                                       RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                                                     Value="True">
+                                            <Setter Property="Margin" Value="6,0,0,0"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <Button x:Name="SearchClearButton"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Click="OnClearSearchClick"
+                                ToolTip="{loc:Tr Key=Search.Clear.Tip}"
+                                AutomationProperties.Name="{loc:Tr Key=Search.Clear.Tip}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource Button.SearchClear}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <!-- 窄窗格没有位置放这颗按钮：Esc 一样能清空，不损失功能 -->
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsSearching}" Value="True"/>
+                                                <Condition Binding="{Binding IsCompactPane,
+                                                                              RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                                                           Value="False"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <TextBlock FontFamily="Segoe MDL2 Assets"
+                                       FontSize="9"
+                                       Text="&#xE711;"/>
+                        </Button>
+                    </Grid>
+
                     <Button x:Name="DetailsButton"
                             Style="{StaticResource ViewButton.Details}"
                             Command="{Binding DetailsCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
@@ -560,6 +663,12 @@
                                     </MultiDataTrigger.Conditions>
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </MultiDataTrigger>
+                                <!-- 搜索无结果时说"没有匹配的项"，而不是"这个文件夹是空的"——
+                                     后者会让用户以为目录真的空了。放在"无法访问"之前：
+                                     打不开的目录里搜索同样为空，那种情况要说清是打不开。 -->
+                                <DataTrigger Binding="{Binding IsSearching}" Value="True">
+                                    <Setter Property="Text" Value="{loc:Tr Key=Empty.NoMatch}"/>
+                                </DataTrigger>
                                 <DataTrigger Binding="{Binding HasNavigationError}" Value="True">
                                     <Setter Property="Text" Value="{loc:Tr Key=Empty.Inaccessible}"/>
                                 </DataTrigger>

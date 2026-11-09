@@ -169,4 +169,26 @@
         <Setter Property="FontSize" Value="{DynamicResource Font.Size.Body}"/>
     </Style>
 
+    <!--
+        工具栏搜索框（FR-6.13）。左右各留出一块：左边叠放大镜，右边叠"清除"按钮。
+        TextBox 没有 Placeholder，水印由界面叠一层 TextBlock 实现，样式这里只管留白。
+    -->
+    <Style x:Key="TextBox.Search" TargetType="TextBox" BasedOn="{StaticResource TextBox.Address}">
+        <Setter Property="Padding" Value="26,0,24,0"/>
+    </Style>
+
+    <!--
+        搜索框里的"清除"小按钮。不复用 Button.Toolbar：那个最小宽度 32，
+        会把 32px 高的输入框撑出一个方块，看起来像输入框里嵌了一颗正常按钮。
+    -->
+    <Style x:Key="Button.SearchClear" TargetType="Button" BasedOn="{StaticResource Button.Toolbar}">
+        <Setter Property="Width" Value="18"/>
+        <Setter Property="Height" Value="18"/>
+        <Setter Property="MinWidth" Value="18"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Margin" Value="0,0,5,0"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Inset}"/>
+    </Style>
+
 </ResourceDictionary>

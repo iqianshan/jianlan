@@ -88,6 +88,17 @@
     <sys:Double x:Key="Size.StatusBar.Height">28</sys:Double>
     <sys:Double x:Key="Size.TitleBar.Height">40</sys:Double>
 
+    <!-- 工具栏搜索框（FR-6.13）。150 是"能看见 8~10 个汉字"的宽度：
+         再宽会在分屏时把地址栏压没，再窄连一个常见关键词都显示不全。
+         不随语言变——地址栏才是按语言给宽度的那个控件。
+         分屏后每个窗格只有半个窗口，靠下面两档收窄，见 PaneView.ApplySearchBoxWidth。 -->
+    <sys:Double x:Key="Size.Search.Width">150</sys:Double>
+    <sys:Double x:Key="Size.Search.Width.Narrow">120</sys:Double>
+    <!-- 分屏后每格只剩约 420px：四个导航按钮 + 三个视图按钮已经占掉 240，
+         搜索框再宽一点地址栏就整条消失（实测 96 时左窗格面包屑一点也看不到）。
+         72 是"还能看见 4 个汉字、且地址栏还留得下 'D: › work'"的折中。 -->
+    <sys:Double x:Key="Size.Search.Width.Compact">72</sys:Double>
+
     <sys:Double x:Key="Size.Nav.Item.Height">28</sys:Double>
     <sys:Double x:Key="Size.Nav.Width.Default">184</sys:Double>
     <sys:Double x:Key="Size.Nav.Width.Min">160</sys:Double>

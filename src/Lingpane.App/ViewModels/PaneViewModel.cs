@@ -72,6 +72,31 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     /// <summary>导航序号：用于丢弃过期的异步枚举结果（快速连按时防止旧目录覆盖新目录）。</summary>
     private int _navigationToken;
 
+    // ── 当前目录搜索（FR-6.13） ─────────────────────────────────────────────
+    //
+    // 搜索只是"对已枚举条目的再过滤"，不读盘、不递归：见 EntryFilter 的说明。
+    // 两个数字分开存——列表里最多 1000 项，状态栏要说的是命中总数。
+
+    /// <summary>输入防抖时长。250ms 是"打字停顿时才过滤"与"感觉不到延迟"的交点。</summary>
+    private const int SearchDebounceMs = 250;
+
+    private string _searchQuery = string.Empty;
+    private int _searchMatched;
+    private bool _searchTruncated;
+
+    /// <summary>
+    /// 过滤序号：搜索在后台线程跑，回来时用它判断"这批结果还算不算数"。
+    /// 用户在 250ms 内连打两个字，第一次的结果绝不能覆盖第二次的。
+    /// </summary>
+    private int _filterGeneration;
+
+    /// <summary>
+    /// 防抖计时器。只取消、不释放：`Task.Delay` 在取消后会自行摘掉注册，
+    /// 而提前 Dispose 一个"可能还有等待者"的 CTS 会让那一轮要么抛 ObjectDisposedException、
+    /// 要么永远等不到完成。这类 CTS 没有原生句柄，交给 GC 即可。
+    /// </summary>
+    private CancellationTokenSource? _searchDebounceCts;
+
     /// <summary>
     /// 彩色标签库（FR-4）。可空：没有它就只是"这个窗格不显示标签"，
     /// 浏览功能一律照常——标签是装饰，不该成为打开目录的前提。
@@ -353,6 +378,11 @@ public sealed class PaneViewModel : INotifyPropertyChanged
         string target = path.Trim().Trim('"');
         int token = ++_navigationToken;
 
+        // 换目录时搜索失效：搜索的范围是"这个目录里的这些条目"，换个目录还留着词
+        // 只会得到一个莫名其妙的空列表。同一目录的刷新（F5、文件操作后）则保留，
+        // 否则"删除搜到的一项之后搜索框自己空了"，用户还得把词重打一遍。
+        if (!string.Equals(target, _currentPath, StringComparison.OrdinalIgnoreCase)) ResetSearch();
+
         // 已经为首屏读过盘，pending 的使命结束（无论成败）
         HasPendingContent = false;
 
@@ -621,6 +651,9 @@ public sealed class PaneViewModel : INotifyPropertyChanged
         // 少了这一步，释放会呈现"切一次省了、多切两次又回来了"的假象。
         _navigationToken++;
 
+        // 在途的搜索过滤同理：它持有释放前的快照，回来会把结果装进一个已经空掉的窗格
+        _filterGeneration++;
+
         CancelFolderSizeScan();
         _sizeScanTargets = [];
         IsCalculatingSize = false;
@@ -650,6 +683,9 @@ public sealed class PaneViewModel : INotifyPropertyChanged
         _sizeScanTargets = [];
         IsCalculatingSize = false;
         SizeProgressText = string.Empty;
+
+        // 主页没有"当前目录"，搜索框再留着一个词就是死状态
+        ResetSearch();
 
         _all = [];
         Entries = [];
@@ -720,40 +756,177 @@ public sealed class PaneViewModel : INotifyPropertyChanged
         private set => Set(ref _hintText, value);
     }
 
-    /// <summary>给一次性提示（路径不存在、视图不可用等）用，下一次导航时清空。</summary>
-    public void SetHint(string message) => HintText = message;
+    // ── 当前目录搜索（FR-6.13） ─────────────────────────────────────────────
 
-    /// <summary>"显示隐藏文件 / 系统文件"开关：只在内存过滤，不重新枚举。</summary>
+    /// <summary>
+    /// 搜索框文本。界面双向绑定它（<c>UpdateSourceTrigger=PropertyChanged</c>）。
+    ///
+    /// 写入即防抖 250ms 后过滤，但**清空是同步生效的**：用户删掉最后一个字符或按 Esc，
+    /// 期望的是"马上看到完整列表"，再等 250ms 会让人以为没反应。
+    /// </summary>
+    public string SearchQuery
+    {
+        get => _searchQuery;
+        set
+        {
+            string next = value ?? string.Empty;
+            if (!Set(ref _searchQuery, next)) return;
+
+            Raise(nameof(IsSearching));
+
+            if (next.Length == 0)
+            {
+                _searchDebounceCts?.Cancel();
+                ApplyFilter();
+                return;
+            }
+
+            ScheduleSearch();
+        }
+    }
+
+    /// <summary>是否处于搜索态。空态提示、清除按钮、Esc 行为都看它。</summary>
+    public bool IsSearching => _searchQuery.Length > 0;
+
+    /// <summary>清空搜索并立即恢复完整列表。Esc 与"清除"按钮共用。</summary>
+    public void ClearSearch() => SearchQuery = string.Empty;
+
+    /// <summary>只清状态、不重算列表。换目录时用——紧接着的导航会自己 ApplyFilter。</summary>
+    private void ResetSearch()
+    {
+        _searchDebounceCts?.Cancel();
+        if (_searchQuery.Length == 0) return;
+
+        _searchQuery = string.Empty;
+        Raise(nameof(SearchQuery));
+        Raise(nameof(IsSearching));
+    }
+
+    private void ScheduleSearch()
+    {
+        _searchDebounceCts?.Cancel();
+
+        var cts = new CancellationTokenSource();
+        _searchDebounceCts = cts;
+        _ = DebouncedSearchAsync(cts);
+    }
+
+    private async Task DebouncedSearchAsync(CancellationTokenSource cts)
+    {
+        try
+        {
+            await Task.Delay(SearchDebounceMs, cts.Token).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            // 用户又敲了一个字：这一轮不必过滤，等最后一次输入
+            return;
+        }
+
+        // 被取消过但异常还没轮到执行时，新一轮可能已经在跑；以字段里的那一份为准
+        if (!ReferenceEquals(_searchDebounceCts, cts)) return;
+
+        ApplyFilter();
+    }
+
+    /// <summary>"显示隐藏文件 / 系统文件"开关与搜索词一起生效，只在内存过滤，不重新枚举。</summary>
     public void ApplyFilter()
     {
         bool showHidden = _settings.Behavior.ShowHidden;
         bool showSystem = _settings.Behavior.ShowSystem;
+        string query = _searchQuery;
 
-        if (showHidden && showSystem)
+        if (query.Length == 0)
         {
-            Entries = _all;
-        }
-        else
-        {
-            var visible = new List<FileEntry>(_all.Count);
-            foreach (var entry in _all)
+            // 作废在途的搜索过滤：它回来时不能把完整列表又换回上一次的结果集
+            _filterGeneration++;
+            _searchMatched = 0;
+            _searchTruncated = false;
+
+            if (showHidden && showSystem)
             {
-                // 两个属性各判一次：带 H+S 的条目（desktop.ini）要两个开关都开才出现，
-                // 不能写成"任一位被允许就显示"。
-                if (!showHidden && entry.IsHidden) continue;
-                if (!showSystem && entry.IsSystem) continue;
-                visible.Add(entry);
+                // 零拷贝：万项目录下这一条省掉一次整表复制，是最常见的路径
+                Entries = _all;
+            }
+            else
+            {
+                var visible = new List<FileEntry>(_all.Count);
+                foreach (var entry in _all)
+                {
+                    // 两个属性各判一次：带 H+S 的条目（desktop.ini）要两个开关都开才出现，
+                    // 不能写成"任一位被允许就显示"。
+                    if (!EntryFilter.IsVisible(entry, showHidden, showSystem)) continue;
+                    visible.Add(entry);
+                }
+
+                Entries = visible;
             }
 
-            Entries = visible;
+            UpdateStatus();
+            return;
         }
 
+        BeginSearchFilter(showHidden, showSystem, query);
+    }
+
+    /// <summary>
+    /// 搜索过滤放后台线程（需求写明）。这里先复制一份条目引用的快照：
+    /// 遍历期间 UI 线程可能因为排序原地 Sort(_all)，或在导航时整个换掉它，
+    /// 直接传 _all 会在万项目录排序时抛"集合被修改"，而那种异常出现在后台任务里
+    /// 只会变成一次静默的空白列表。复制一万个引用不到 0.1ms。
+    /// </summary>
+    private void BeginSearchFilter(bool showHidden, bool showSystem, string query)
+    {
+        int generation = ++_filterGeneration;
+        FileEntry[] snapshot = _all.ToArray();
+        _ = SearchFilterAsync(generation, snapshot, showHidden, showSystem, query);
+    }
+
+    private async Task SearchFilterAsync(
+        int generation, FileEntry[] snapshot, bool showHidden, bool showSystem, string query)
+    {
+        (List<FileEntry> matched, int total) = await Task.Run(() =>
+        {
+            var list = new List<FileEntry>(Math.Min(snapshot.Length, EntryFilter.MaxSearchResults));
+            int count = EntryFilter.Fill(
+                snapshot, showHidden, showSystem, query, list, EntryFilter.MaxSearchResults);
+            return (list, count);
+        }).ConfigureAwait(true);
+
+        // 期间用户又改了词、换了目录或换了排序：这批结果已经不代表当前状态
+        if (generation != _filterGeneration) return;
+
+        _searchMatched = total;
+        _searchTruncated = total > EntryFilter.MaxSearchResults;
+        Entries = matched;
         UpdateStatus();
     }
 
-    /// <summary>显示隐藏文件之后，需要重算状态栏的条目数。</summary>
+    /// <summary>给一次性提示（路径不存在、视图不可用等）用，下一次导航时清空。</summary>
+    public void SetHint(string message) => HintText = message;
+
+    /// <summary>
+    /// 状态栏的条目统计。三种口径：普通、隐藏了若干项、搜索结果。
+    /// 搜索态下"耗时"让位给"命中多少"——用户此刻关心的是有没有搜到，不是枚举用了多久。
+    /// </summary>
     public void UpdateStatus()
     {
+        if (_searchQuery.Length > 0)
+        {
+            StatusText = _searchTruncated
+                ? string.Format(
+                    CultureInfo.CurrentCulture,
+                    Strings.Status_SearchTruncated,
+                    EntryFilter.MaxSearchResults,
+                    _searchMatched)
+                : string.Format(
+                    CultureInfo.CurrentCulture,
+                    Strings.Status_SearchSummary,
+                    _entries.Count,
+                    _all.Count);
+            return;
+        }
+
         int visible = _entries.Count;
         StatusText = _all.Count == visible
             ? string.Format(Strings.Status_Summary, visible, LastEnumerateMs)

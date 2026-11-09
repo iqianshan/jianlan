@@ -78,6 +78,8 @@ internal static class KeyBindings
         new(Key.Right, Vk.Right, ModifierKeys.Alt, CommandIds.GoForward, "→"),
         new(Key.Back, Vk.Back, ModifierKeys.None, CommandIds.GoUp, "Backspace"),
         new(Key.L, Vk.L, ModifierKeys.Control, CommandIds.FocusAddress, "L"),
+        // 当前目录搜索（FR-6.13）。与浏览器/资源管理器一致，用户不必重新学。
+        new(Key.F, Vk.F, ModifierKeys.Control, CommandIds.FocusSearch, "F"),
         new(Key.F5, Vk.F5, ModifierKeys.None, CommandIds.Refresh, "F5"),
         new(Key.R, Vk.R, ModifierKeys.Control, CommandIds.Refresh, "R"),
 
@@ -216,6 +218,7 @@ internal static class KeyBindings
         public const int Z = 0x5A;
         public const int Apps = 0x5D;
         public const int E = 0x45;
+        public const int F = 0x46;
         public const int F2 = 0x71;
         public const int F3 = 0x72;
         public const int F6 = 0x75;
