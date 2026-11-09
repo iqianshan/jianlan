@@ -217,7 +217,7 @@ AC-06 视觉走查（`ac06-visual-acceptance.md`）、FR-2.1–2.11、FR-3.1–3
 |---|---|---|
 | AC-10 依赖清单 | **`THIRD-PARTY-NOTICES.md` 不存在**，`gen-third-party.ps1` 也不存在 | 项目**目前零 NuGet 依赖**，只有 .NET 运行时与 Windows SDK 引用。清单可以手写：.NET 9（MIT）、Windows SDK 互操作程序集（MIT），再加上 WPF 本身。脚本可以后补，文件必须先有 |
 | AC-09 便携包 | `AppPaths` 认 `portable.marker`，需求 FR-10.3 写的是 `portable.flag` 或 `data` 目录 | **改代码而不是改需求**：两个标记名都认，`data` 目录存在也认。已发布的说明文档不必跟着改 |
-| 便携 zip | 无打包脚本 | `publish.ps1`：`dotnet publish` → 拷 LICENSE/NOTICE/THIRD-PARTY-NOTICES.md → 打 zip。顺带解决"发布产物手工拼"的隐患 |
+| 便携 zip | 已解决（`tools/release/publish.ps1`） | 发版走它；另外 `tools/release/publish-local.ps1` 只刷新仓库根的 `publish\`（框架依赖，供本机点开验证），并在产物被占用时先报错而不是抛一堆 MSB 错误 |
 | 版本号 | `AssemblyInformationalVersion` 未与 CHANGELOG 对齐 | 发版前统一到 `0.1.0+<短 commit>`（关于页要用，见 §4.8） |
 
 ### 2.5 延后到 0.2.0 的 P1（2026-11-08 定范围：三项全部纳入 0.2.0）
