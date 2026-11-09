@@ -127,8 +127,13 @@ public partial class PaneView
             ? string.Format(Strings.Dialog_DeleteItem, items[0].Name)
             : string.Format(Strings.Dialog_DeleteItems, items.Count);
 
-        // 永久删除无论如何都要确认；普通删除看设置（默认开）
-        if (permanent || App.Settings.Behavior.ConfirmDelete)
+        // 永久删除无论如何都要确认；普通删除看设置（默认开）。
+        // 批量与单删分开判（FR-5.2.8）：嫌单删啰嗦的人会关掉那一项，
+        // 但一次删掉一整批时仍要拦一道——两个意图不该被同一个开关绑在一起。
+        bool needsConfirm = permanent
+            || (items.Count >= 2 ? App.Settings.Behavior.ConfirmBatch : App.Settings.Behavior.ConfirmDelete);
+
+        if (needsConfirm)
         {
             string question = permanent
                 ? string.Format(Strings.Dialog_DeleteConfirmPermanent, what)

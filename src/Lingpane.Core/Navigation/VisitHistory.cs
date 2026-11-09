@@ -64,6 +64,21 @@ public sealed class VisitHistory
     public IReadOnlyList<HistoryEntry> Recent(int count = HistorySettings.HomePageLimit)
         => count <= 0 ? [] : _store.Entries.Take(count).ToList();
 
+    /// <summary>
+    /// 按当前上限裁剪，返回裁掉的条数（FR-5.3.4）。
+    /// 上限调小时立即生效——不裁的话文件里还留着旧上限的条目，
+    /// 要等下次启动归一化才消失，用户会以为设置没生效。
+    /// </summary>
+    public int Trim()
+    {
+        int limit = Math.Max(0, _limit());
+        int before = _store.Entries.Count;
+        if (before <= limit) return 0;
+
+        _store.Entries.RemoveRange(limit, before - limit);
+        return before - _store.Entries.Count;
+    }
+
     /// <summary>一键清空（FR-1.1.2 / FR-5.3.2）。只动历史，不碰会话与收藏。</summary>
     public void Clear() => _store.Entries.Clear();
 }

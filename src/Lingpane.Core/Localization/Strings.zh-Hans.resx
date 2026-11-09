@@ -1083,4 +1083,163 @@
   <data name="Status.Tag.Full" xml:space="preserve">
     <value>标签数量已达上限（{0}）</value>
   </data>
+  <data name="Settings.Behavior.ShowSystem" xml:space="preserve">
+    <value>显示系统文件</value>
+  </data>
+  <data name="Settings.Behavior.ShowSystem.Hint" xml:space="preserve">
+    <value>pagefile.sys、System Volume Information 这类条目。同时带隐藏与系统属性的条目要两个开关都开才显示。</value>
+  </data>
+  <data name="Settings.Behavior.OpenMode" xml:space="preserve">
+    <value>打开方式</value>
+  </data>
+  <data name="Settings.Behavior.OpenMode.Double" xml:space="preserve">
+    <value>双击</value>
+  </data>
+  <data name="Settings.Behavior.OpenMode.Single" xml:space="preserve">
+    <value>单击</value>
+  </data>
+  <data name="Settings.Behavior.OpenMode.Hint" xml:space="preserve">
+    <value>单击模式下，鼠标在行上停留 600 ms 后才显示高亮，扫过列表不会误开。</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmBatch" xml:space="preserve">
+    <value>批量操作前确认</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmBatch.Hint" xml:space="preserve">
+    <value>一次处理两项及以上时先询问。</value>
+  </data>
+  <data name="Settings.Behavior.CloseLastToHome" xml:space="preserve">
+    <value>关闭最后一个标签时回到主页</value>
+  </data>
+  <data name="Settings.Behavior.CloseLastToHome.Hint" xml:space="preserve">
+    <value>关掉这一项则改为关闭窗口。</value>
+  </data>
+  <data name="Settings.Section.Startup" xml:space="preserve">
+    <value>启动</value>
+  </data>
+  <data name="Settings.Behavior.Startup" xml:space="preserve">
+    <value>启动时</value>
+  </data>
+  <data name="Settings.Behavior.Startup.None" xml:space="preserve">
+    <value>打开默认目录</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Session" xml:space="preserve">
+    <value>恢复上次会话</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Hint" xml:space="preserve">
+    <value>恢复上次会话会把退出时开着的标签带回来。</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Workspace" xml:space="preserve">
+    <value>固定打开工作区</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Workspace.None" xml:space="preserve">
+    <value>不设置</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Workspace.Hint" xml:space="preserve">
+    <value>选定工作区后会自动关掉会话恢复——两者不能同时生效。</value>
+  </data>
+  <data name="Settings.Privacy.HistoryLimit" xml:space="preserve">
+    <value>历史条数</value>
+  </data>
+  <data name="Settings.Privacy.HistoryLimit.Hint" xml:space="preserve">
+    <value>超过上限后最早的一条被挤掉。调小会立即裁剪已有记录。</value>
+  </data>
+  <data name="Settings.Privacy.ClearHistory" xml:space="preserve">
+    <value>清空历史记录</value>
+  </data>
+  <data name="Settings.Privacy.HistoryCleared" xml:space="preserve">
+    <value>已清空 {0} 条记录</value>
+  </data>
+  <data name="Settings.Privacy.TagStore" xml:space="preserve">
+    <value>颜色标签</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Count" xml:space="preserve">
+    <value>共 {0} 条标记</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Loading" xml:space="preserve">
+    <value>正在统计…</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Empty" xml:space="preserve">
+    <value>还没有任何标记</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Pruning" xml:space="preserve">
+    <value>正在扫描…</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Pruned" xml:space="preserve">
+    <value>已清理 {0} 条失效标记</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.PruneNone" xml:space="preserve">
+    <value>没有找到失效项</value>
+  </data>
+  <data name="Settings.Privacy.TagPrune" xml:space="preserve">
+    <value>清理失效标记</value>
+  </data>
+  <data name="Settings.Privacy.TagPrune.Tip" xml:space="preserve">
+    <value>逐条核对标记指向的文件是否还在</value>
+  </data>
+  <data name="Settings.ResetBehavior" xml:space="preserve">
+    <value>重置行为</value>
+  </data>
+  <data name="Settings.ResetBehavior.Tip" xml:space="preserve">
+    <value>回到默认视图、排序与各项开关</value>
+  </data>
+  <data name="Settings.ResetPrivacy" xml:space="preserve">
+    <value>重置隐私</value>
+  </data>
+  <data name="Settings.ResetPrivacy.Tip" xml:space="preserve">
+    <value>回到默认的历史与缓存设置，已记录的历史保留。</value>
+  </data>
+  <data name="Settings.ResetAll" xml:space="preserve">
+    <value>恢复全部默认</value>
+  </data>
+  <data name="Settings.ResetAll.Tip" xml:space="preserve">
+    <value>外观、行为、隐私全部复位。收藏、历史、标签、工作区不受影响。</value>
+  </data>
+  <data name="Settings.ResetBehavior.Done" xml:space="preserve">
+    <value>行为设置已恢复默认</value>
+  </data>
+  <data name="Settings.ResetPrivacy.Done" xml:space="preserve">
+    <value>隐私设置已恢复默认</value>
+  </data>
+  <data name="Settings.ResetAll.Done" xml:space="preserve">
+    <value>全部设置已恢复默认</value>
+  </data>
+  <data name="Dialog.ResetAll.Title" xml:space="preserve">
+    <value>恢复全部默认</value>
+  </data>
+  <data name="Dialog.ResetAll.Body" xml:space="preserve">
+    <value>外观、行为、隐私三组设置将回到默认值。收藏、历史、颜色标签与工作区不会被改动。要继续吗？</value>
+  </data>
+  <data name="Dialog.TagPrune.Title" xml:space="preserve">
+    <value>清理失效标记</value>
+  </data>
+  <data name="Dialog.TagPrune.Body" xml:space="preserve">
+    <value>将逐条核对 {0} 条标记，移除文件已不存在或已指向其他文件的项。离线磁盘（拔掉的 U 盘、断开的网络盘）上的标记也会一并移除。要继续吗？</value>
+  </data>
+  <data name="Settings.Appearance.Accent" xml:space="preserve">
+    <value>强调色</value>
+  </data>
+  <data name="Settings.Appearance.Accent.System" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="Accent.Blue" xml:space="preserve">
+    <value>蓝</value>
+  </data>
+  <data name="Accent.Teal" xml:space="preserve">
+    <value>青</value>
+  </data>
+  <data name="Accent.Green" xml:space="preserve">
+    <value>绿</value>
+  </data>
+  <data name="Accent.Orange" xml:space="preserve">
+    <value>橙</value>
+  </data>
+  <data name="Accent.Purple" xml:space="preserve">
+    <value>紫</value>
+  </data>
+  <data name="Accent.Red" xml:space="preserve">
+    <value>红</value>
+  </data>
+  <data name="Settings.About.Privacy" xml:space="preserve">
+    <value>不收集遥测，不联网上传。唯一的对外动作是你手动点「检查更新」时在浏览器中打开发布页。</value>
+  </data>
 </root>

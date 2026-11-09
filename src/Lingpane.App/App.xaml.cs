@@ -196,6 +196,9 @@ public partial class App : Application
 
         ThemeService.Apply(Settings.Appearance.Theme);
 
+        // 强调色（FR-5.1.3）。必须排在主题之后：浅底那一项要按当前主题底色算。
+        AccentService.Apply(Settings.Appearance.Accent);
+
         FontScaleService.Apply(
             Settings.Appearance.FontSizePt,
             Settings.Appearance.Density == DensityKind.Compact);

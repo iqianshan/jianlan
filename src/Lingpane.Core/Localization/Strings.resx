@@ -1096,4 +1096,163 @@
   <data name="Status.Tag.Full" xml:space="preserve">
     <value>Tag limit reached ({0})</value>
   </data>
+  <data name="Settings.Behavior.ShowSystem" xml:space="preserve">
+    <value>Show system files</value>
+  </data>
+  <data name="Settings.Behavior.ShowSystem.Hint" xml:space="preserve">
+    <value>Items like pagefile.sys and System Volume Information. An item marked both hidden and system needs both switches on.</value>
+  </data>
+  <data name="Settings.Behavior.OpenMode" xml:space="preserve">
+    <value>Open items with</value>
+  </data>
+  <data name="Settings.Behavior.OpenMode.Double" xml:space="preserve">
+    <value>Double-click</value>
+  </data>
+  <data name="Settings.Behavior.OpenMode.Single" xml:space="preserve">
+    <value>Single click</value>
+  </data>
+  <data name="Settings.Behavior.OpenMode.Hint" xml:space="preserve">
+    <value>In single-click mode a row only highlights after the pointer rests on it for 600 ms, so sweeping across the list opens nothing.</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmBatch" xml:space="preserve">
+    <value>Confirm batch operations</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmBatch.Hint" xml:space="preserve">
+    <value>Asks before acting on two or more items at once.</value>
+  </data>
+  <data name="Settings.Behavior.CloseLastToHome" xml:space="preserve">
+    <value>Closing the last tab goes back to Home</value>
+  </data>
+  <data name="Settings.Behavior.CloseLastToHome.Hint" xml:space="preserve">
+    <value>Turn this off to close the window instead.</value>
+  </data>
+  <data name="Settings.Section.Startup" xml:space="preserve">
+    <value>Startup</value>
+  </data>
+  <data name="Settings.Behavior.Startup" xml:space="preserve">
+    <value>On launch</value>
+  </data>
+  <data name="Settings.Behavior.Startup.None" xml:space="preserve">
+    <value>Open the default folder</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Session" xml:space="preserve">
+    <value>Restore the last session</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Hint" xml:space="preserve">
+    <value>Restoring the last session brings back the tabs that were open when you quit.</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Workspace" xml:space="preserve">
+    <value>Always open workspace</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Workspace.None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Workspace.Hint" xml:space="preserve">
+    <value>Picking a workspace turns session restore off — the two cannot run at once.</value>
+  </data>
+  <data name="Settings.Privacy.HistoryLimit" xml:space="preserve">
+    <value>History entries</value>
+  </data>
+  <data name="Settings.Privacy.HistoryLimit.Hint" xml:space="preserve">
+    <value>Older entries are dropped once the limit is reached. Lowering it also trims what is already recorded.</value>
+  </data>
+  <data name="Settings.Privacy.ClearHistory" xml:space="preserve">
+    <value>Clear history</value>
+  </data>
+  <data name="Settings.Privacy.HistoryCleared" xml:space="preserve">
+    <value>Cleared {0} entries</value>
+  </data>
+  <data name="Settings.Privacy.TagStore" xml:space="preserve">
+    <value>Colour tags</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Count" xml:space="preserve">
+    <value>{0} tagged items</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Loading" xml:space="preserve">
+    <value>Counting…</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Empty" xml:space="preserve">
+    <value>No tags yet</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Pruning" xml:space="preserve">
+    <value>Scanning…</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Pruned" xml:space="preserve">
+    <value>Removed {0} stale tags</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.PruneNone" xml:space="preserve">
+    <value>Nothing stale found</value>
+  </data>
+  <data name="Settings.Privacy.TagPrune" xml:space="preserve">
+    <value>Remove stale tags</value>
+  </data>
+  <data name="Settings.Privacy.TagPrune.Tip" xml:space="preserve">
+    <value>Checks every tag against the file it points to</value>
+  </data>
+  <data name="Settings.ResetBehavior" xml:space="preserve">
+    <value>Reset behaviour</value>
+  </data>
+  <data name="Settings.ResetBehavior.Tip" xml:space="preserve">
+    <value>Back to the default view, sort order and switches</value>
+  </data>
+  <data name="Settings.ResetPrivacy" xml:space="preserve">
+    <value>Reset privacy</value>
+  </data>
+  <data name="Settings.ResetPrivacy.Tip" xml:space="preserve">
+    <value>Back to default history and cache settings. Recorded history is kept.</value>
+  </data>
+  <data name="Settings.ResetAll" xml:space="preserve">
+    <value>Reset all settings</value>
+  </data>
+  <data name="Settings.ResetAll.Tip" xml:space="preserve">
+    <value>Appearance, behaviour and privacy. Bookmarks, history, tags and workspaces are kept.</value>
+  </data>
+  <data name="Settings.ResetBehavior.Done" xml:space="preserve">
+    <value>Behaviour settings are back to default</value>
+  </data>
+  <data name="Settings.ResetPrivacy.Done" xml:space="preserve">
+    <value>Privacy settings are back to default</value>
+  </data>
+  <data name="Settings.ResetAll.Done" xml:space="preserve">
+    <value>All settings are back to default</value>
+  </data>
+  <data name="Dialog.ResetAll.Title" xml:space="preserve">
+    <value>Reset all settings</value>
+  </data>
+  <data name="Dialog.ResetAll.Body" xml:space="preserve">
+    <value>Appearance, behaviour and privacy settings go back to default. Bookmarks, history, colour tags and workspaces are not touched. Continue?</value>
+  </data>
+  <data name="Dialog.TagPrune.Title" xml:space="preserve">
+    <value>Remove stale tags</value>
+  </data>
+  <data name="Dialog.TagPrune.Body" xml:space="preserve">
+    <value>Checks all {0} tags and removes those whose file is gone or now points somewhere else. Tags on offline drives (unplugged USB, disconnected network shares) go too. Continue?</value>
+  </data>
+  <data name="Settings.Appearance.Accent" xml:space="preserve">
+    <value>Accent colour</value>
+  </data>
+  <data name="Settings.Appearance.Accent.System" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="Accent.Blue" xml:space="preserve">
+    <value>Blue</value>
+  </data>
+  <data name="Accent.Teal" xml:space="preserve">
+    <value>Teal</value>
+  </data>
+  <data name="Accent.Green" xml:space="preserve">
+    <value>Green</value>
+  </data>
+  <data name="Accent.Orange" xml:space="preserve">
+    <value>Orange</value>
+  </data>
+  <data name="Accent.Purple" xml:space="preserve">
+    <value>Purple</value>
+  </data>
+  <data name="Accent.Red" xml:space="preserve">
+    <value>Red</value>
+  </data>
+  <data name="Settings.About.Privacy" xml:space="preserve">
+    <value>No telemetry, no uploads. The only outbound action is opening the releases page in your browser when you choose Check for updates.</value>
+  </data>
 </root>

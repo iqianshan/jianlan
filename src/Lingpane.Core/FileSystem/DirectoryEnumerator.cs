@@ -36,7 +36,8 @@ public static class DirectoryEnumerator
                 entry.IsDirectory,
                 entry.IsDirectory ? 0L : entry.Length,
                 entry.LastWriteTimeUtc.LocalDateTime,
-                (entry.Attributes & FileAttributes.Hidden) != 0),
+                (entry.Attributes & FileAttributes.Hidden) != 0,
+                (entry.Attributes & FileAttributes.System) != 0),
             Options);
 
         return enumerable;
@@ -97,6 +98,7 @@ public static class DirectoryEnumerator
                 entry.Size,
                 entry.LastWriteTime,
                 entry.IsHidden,
+                entry.IsSystem,
                 entry.FileId));
         }
 

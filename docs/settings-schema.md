@@ -26,6 +26,7 @@
     "theme": "system",          // system | light | dark
     "fontSizePt": null,         // null = 跟随系统；8–24 整数
     "fontFamily": null,         // null = 默认字体栈；否则为系统字体族名
+    "accent": null,             // null = 跟随系统；否则 #RRGGBB（FR-5.1.3）。派生色由 AccentService 现算
     "density": "comfortable",   // comfortable(32px) | compact(26px)
     "showNavPane": true,
     "showStatusBar": true,
@@ -38,8 +39,10 @@
     "sortDescending": false,
     "foldersFirst": true,
     "showHidden": false,
+    "showSystem": false,        // 系统文件单独一位（FR-5.2.4）；带 H+S 的条目要两个开关都开
     "showExtensions": true,
     "confirmDelete": true,
+    "confirmBatch": true,       // 一次处理两项及以上时确认（FR-5.2.8 的「批量」）
     "doubleClickOpens": true,
     "openFolderInNewTab": false,      // 双击/回车进目录时开新标签（FR-2.10）；分屏时不生效，进目录恒在当前窗格（FR-3.2）
     "openNewTabInBackground": false,  // 中键/Ctrl+左键开出的标签是否留在后台（FR-2.10 可选项）
@@ -85,6 +88,10 @@
 | `theme` | 三值枚举，且系统高对比度开启时强制 `HighContrast` | 回落 `system` |
 | `fontSizePt` | `null` 或 8–24 整数 | 超范围夹取到边界 |
 | `fontFamily` | 必须存在于系统字体列表 | 不存在则回落默认栈，不报错 |
+| `accent` | `null` 或 `#RRGGBB` | 三位写法、颜色名、非十六进制一律归为 `null`（跟随系统）：让界面去猜颜色名只会得到一块读不出来的黑洞。派生色（悬停/按下/浅底）不落盘，由 `AccentService` 按当前主题现算 |
+| `showSystem` | 布尔 | 与 `showHidden` 各管一位；带 H+S 的条目（`desktop.ini`）要两个开关都开才显示。只做内存过滤，不重新枚举 |
+| `confirmBatch` | 布尔 | 与 `confirmDelete` 分开：允许"单删不弹、批量弹"。一次处理 ≥2 项时用这一项 |
+| `doubleClickOpens` | 布尔 | `false` = 单击打开（FR-5.2.5）。切换后列表悬停高亮的延迟随之变化（单击模式 600ms） |
 | `density` | 两值枚举 | 回落 `comfortable` |
 | `historyLimit` | 0–500 | 夹取 |
 | `cacheLimitMb` | 64–4096 | 夹取 |

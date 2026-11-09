@@ -39,6 +39,11 @@ public static class ThemeService
         }
 
         Current = target;
+
+        // 底色变了，强调色的"浅底"那一项要按新底色重算（FR-5.1.3）。
+        // 放在这里而不是让每个调用方自己记得调：漏一处就是"换主题后强调色底块发灰"。
+        AccentService.Reapply();
+
         return Current;
     }
 

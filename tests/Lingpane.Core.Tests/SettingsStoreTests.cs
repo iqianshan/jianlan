@@ -389,4 +389,63 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Null(settings.Bookmarks.Items[0].Name);
         Assert.Equal(@"C:\a", settings.Bookmarks.Items[0].Path);
     }
+
+    [Theory]
+    [InlineData("#2F6BE0", "#2F6BE0")]
+    [InlineData("#abcdef", "#ABCDEF")]
+    [InlineData("  #0F7B8A  ", "#0F7B8A")]
+    [InlineData("red", null)]
+    [InlineData("#F00", null)]
+    [InlineData("#GGGGGG", null)]
+    [InlineData("", null)]
+    public void 强调色只接受六位十六进制(string input, string? expected)
+    {
+        // FR-5.1.3：手改成颜色名或三位写法一律当"跟随系统"，
+        // 让界面去猜颜色名只会得到一块读不出来的黑洞。
+        var settings = new AppSettings();
+        settings.Appearance.Accent = input;
+
+        settings.Normalize();
+
+        Assert.Equal(expected, settings.Appearance.Accent);
+    }
+
+    [Fact]
+    public void 重置外观不动用户数据()
+    {
+        var settings = new AppSettings();
+        settings.History.Entries = [new HistoryEntry { Path = @"C:\a", VisitedAt = DateTimeOffset.UtcNow }];
+        settings.Bookmarks.Items = [new BookmarkEntry { Path = @"C:\b" }];
+        settings.Appearance.Theme = ThemeKind.Dark;
+        settings.Appearance.FontSizePt = 18;
+
+        settings.ResetAppearance();
+
+        Assert.Equal(ThemeKind.System, settings.Appearance.Theme);
+        Assert.Null(settings.Appearance.FontSizePt);
+
+        // 历史与收藏是用户攒下来的东西，"恢复默认"不该动它们
+        Assert.Single(settings.History.Entries);
+        Assert.Single(settings.Bookmarks.Items);
+    }
+
+    [Fact]
+    public void 重置隐私保留历史条目与收藏()
+    {
+        var settings = new AppSettings();
+        settings.History.Entries = [new HistoryEntry { Path = @"C:\a", VisitedAt = DateTimeOffset.UtcNow }];
+        settings.Bookmarks.Items = [new BookmarkEntry { Path = @"C:\b" }];
+        settings.Privacy.HistoryLimit = 500;
+        settings.Privacy.HistoryEnabled = false;
+
+        settings.ResetPrivacy();
+
+        Assert.Equal(100, settings.Privacy.HistoryLimit);
+        Assert.True(settings.Privacy.HistoryEnabled);
+
+        // 复用同一段对象（VisitHistory / BookmarkStore 持有它的引用），
+        // 换对象会让它们继续读写旧实例
+        Assert.Single(settings.History.Entries);
+        Assert.Single(settings.Bookmarks.Items);
+    }
 }

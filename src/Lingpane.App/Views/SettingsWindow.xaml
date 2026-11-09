@@ -66,6 +66,39 @@
                     </ComboBox>
                 </StackPanel>
 
+                <!-- 强调色（FR-5.1.3）。项由代码生成：色板真值在 AccentService.Presets 里，
+                     XAML 再抄一份颜色值就成了两处定义，改一处必然漏一处。 -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Appearance.Accent}"/>
+                    <ComboBox x:Name="AccentCombo"
+                              Width="200"
+                              Style="{StaticResource ComboBox.Default}"
+                              SelectionChanged="OnAccentChanged">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Width="12" Height="12"
+                                            Margin="0,0,8,0"
+                                            CornerRadius="6"
+                                            VerticalAlignment="Center">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{Binding Swatch}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasSwatch}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                    </Border>
+                                    <TextBlock VerticalAlignment="Center" Text="{Binding Name}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                     <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Appearance.Font}"/>
                     <ComboBox x:Name="FontCombo"
@@ -199,9 +232,21 @@
                           Content="{loc:Tr Key=Settings.Behavior.OpenNewTabInBackground}"
                           Checked="OnOpenNewTabInBackgroundChanged"
                           Unchecked="OnOpenNewTabInBackgroundChanged"/>
-                <TextBlock Margin="0,0,0,16"
+                <TextBlock Margin="0,0,0,12"
                            Style="{StaticResource Text.FieldHint}"
                            Text="{loc:Tr Key=Settings.Behavior.OpenNewTabInBackground.Hint}"/>
+
+                <!-- 关闭最后一个标签的行为（FR-2.8）。默认回主页：
+                     顺手关掉最后一个标签就把整个窗口关掉，代价与提示都不成比例。 -->
+                <CheckBox x:Name="CloseLastToHomeCheck"
+                          Margin="0,0,0,4"
+                          Style="{StaticResource CheckBox.Default}"
+                          Content="{loc:Tr Key=Settings.Behavior.CloseLastToHome}"
+                          Checked="OnCloseLastToHomeChanged"
+                          Unchecked="OnCloseLastToHomeChanged"/>
+                <TextBlock Margin="0,0,0,16"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Behavior.CloseLastToHome.Hint}"/>
 
                 <!-- ══ 行为 ══ -->
                 <TextBlock Style="{StaticResource Text.SectionTitle}" Text="{loc:Tr Key=Settings.Section.Behavior}"/>
@@ -247,12 +292,37 @@
                               Unchecked="OnSortOptionChanged"/>
                 </StackPanel>
 
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,4">
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Behavior.OpenMode}"/>
+                    <ComboBox x:Name="OpenModeCombo"
+                              Style="{StaticResource ComboBox.Default}"
+                              SelectionChanged="OnOpenModeChanged">
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Behavior.OpenMode.Double}"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Behavior.OpenMode.Single}"/>
+                    </ComboBox>
+                </StackPanel>
+                <TextBlock Margin="0,0,0,12"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Behavior.OpenMode.Hint}"/>
+
                 <CheckBox x:Name="ShowHiddenCheck"
                           Margin="0,0,0,10"
                           Style="{StaticResource CheckBox.Default}"
                           Content="{loc:Tr Key=Settings.Behavior.ShowHidden}"
                           Checked="OnShowHiddenChanged"
                           Unchecked="OnShowHiddenChanged"/>
+
+                <!-- 系统文件与隐藏文件分开（FR-5.2.4）：pagefile.sys 这类东西
+                     与"以点开头的配置目录"是两种意图，绑在一个开关上必然有一边不合意 -->
+                <CheckBox x:Name="ShowSystemCheck"
+                          Margin="0,0,0,4"
+                          Style="{StaticResource CheckBox.Default}"
+                          Content="{loc:Tr Key=Settings.Behavior.ShowSystem}"
+                          Checked="OnShowSystemChanged"
+                          Unchecked="OnShowSystemChanged"/>
+                <TextBlock Margin="0,0,0,10"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Behavior.ShowSystem.Hint}"/>
 
                 <CheckBox x:Name="ShowExtensionsCheck"
                           Margin="0,0,0,10"
@@ -262,11 +332,59 @@
                           Unchecked="OnShowExtensionsChanged"/>
 
                 <CheckBox x:Name="ConfirmDeleteCheck"
-                          Margin="0,0,0,16"
+                          Margin="0,0,0,10"
                           Style="{StaticResource CheckBox.Default}"
                           Content="{loc:Tr Key=Settings.Behavior.ConfirmDelete}"
                           Checked="OnConfirmDeleteChanged"
                           Unchecked="OnConfirmDeleteChanged"/>
+
+                <CheckBox x:Name="ConfirmBatchCheck"
+                          Margin="0,0,0,4"
+                          Style="{StaticResource CheckBox.Default}"
+                          Content="{loc:Tr Key=Settings.Behavior.ConfirmBatch}"
+                          Checked="OnConfirmBatchChanged"
+                          Unchecked="OnConfirmBatchChanged"/>
+                <TextBlock Margin="0,0,0,16"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Behavior.ConfirmBatch.Hint}"/>
+
+                <!-- ══ 启动 ══
+                     FR-5.2.9 的两项在同一组里：它们在语义上互斥（一个说"回到上次的现场"，
+                     一个说"每次固定打开这一份"），分开放反而要用户自己推。 -->
+                <TextBlock Style="{StaticResource Text.SectionTitle}" Text="{loc:Tr Key=Settings.Section.Startup}"/>
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Behavior.Startup}"/>
+                    <ComboBox x:Name="StartupCombo"
+                              Style="{StaticResource ComboBox.Default}"
+                              SelectionChanged="OnStartupModeChanged">
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Behavior.Startup.None}"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Behavior.Startup.Session}"/>
+                    </ComboBox>
+                </StackPanel>
+                <TextBlock Margin="0,0,0,12"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Behavior.Startup.Hint}"/>
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Behavior.Startup.Workspace}"/>
+                    <ComboBox x:Name="StartupWorkspaceCombo"
+                              Width="240"
+                              Style="{StaticResource ComboBox.Default}"
+                              SelectionChanged="OnStartupWorkspaceChanged">
+                        <!-- 用 ItemTemplate 而不是 DisplayMemberPath：后者靠 ComboBox 内部生成的
+                             属性描述符，对嵌套的私有 record 拿不到值，会回落成 ToString()，
+                             下拉里就出现 "WorkspaceChoice { Name = , Display…" 这种字样（走查发现）。 -->
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding DisplayName}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+                <TextBlock Margin="0,0,0,16"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Behavior.Startup.Workspace.Hint}"/>
 
                 <!-- ══ 隐私 ══ -->
                 <TextBlock Style="{StaticResource Text.SectionTitle}" Text="{loc:Tr Key=Settings.Section.Privacy}"/>
@@ -277,20 +395,66 @@
                           Content="{loc:Tr Key=Settings.Privacy.RememberPath}"
                           Checked="OnRememberPathChanged"
                           Unchecked="OnRememberPathChanged"/>
-                <TextBlock Style="{StaticResource Text.FieldHint}"
+                <TextBlock Margin="0,0,0,12"
+                           Style="{StaticResource Text.FieldHint}"
                            Text="{loc:Tr Key=Settings.Privacy.RememberPath.Hint}"/>
 
-                <Button Margin="0,12,0,16"
-                        HorizontalAlignment="Left"
-                        Style="{StaticResource Button.Toolbar}"
-                        Content="{loc:Tr Key=Settings.Privacy.ClearPath}"
-                        Click="OnClearRecentPath"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Privacy.HistoryLimit}"/>
+                    <ComboBox x:Name="HistoryLimitCombo"
+                              Style="{StaticResource ComboBox.Default}"
+                              SelectionChanged="OnHistoryLimitChanged">
+                        <ComboBoxItem Content="50"/>
+                        <ComboBoxItem Content="100"/>
+                        <ComboBoxItem Content="200"/>
+                        <ComboBoxItem Content="500"/>
+                    </ComboBox>
+                </StackPanel>
+                <TextBlock Margin="0,0,0,12"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Privacy.HistoryLimit.Hint}"/>
+
+                <WrapPanel Margin="0,0,0,16">
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            Content="{loc:Tr Key=Settings.Privacy.ClearHistory}"
+                            Click="OnClearHistory"/>
+                </WrapPanel>
+
+                <!-- 标签库（FR-5.3.6）。这里只做"看有多少条"与"清掉对不上的"，
+                     导出/导入属于 FR-4.2.7（P2），不在这批里。
+                     标题用 Text.Subtitle 而不是 Text.FieldLabel：后者带固定宽度、
+                     且是给"标签+控件"水平行用的，单独占一行时会水平居中（走查看出来的）。 -->
+                <TextBlock Margin="0,0,0,4"
+                           Style="{StaticResource Text.Subtitle}"
+                           Text="{loc:Tr Key=Settings.Privacy.TagStore}"/>
+                <TextBlock x:Name="TagCountText"
+                           Margin="0,0,0,8"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Privacy.TagStore.Loading}"/>
+                <WrapPanel Margin="0,0,0,8">
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            Content="{loc:Tr Key=Settings.Privacy.TagPrune}"
+                            Click="OnPruneTags"
+                            ToolTip="{loc:Tr Key=Settings.Privacy.TagPrune.Tip}"/>
+                </WrapPanel>
+
+                <!-- 隐私组的操作结果落在这里。之前借用字体那一行提示，
+                     结果"清空历史"的反馈出现在"外观"分组下面。 -->
+                <TextBlock x:Name="PrivacyStatus"
+                           Margin="0,0,0,16"
+                           TextWrapping="Wrap"
+                           Style="{StaticResource Text.FieldHint}"/>
 
                 <!-- ══ 关于 ══ -->
                 <TextBlock Style="{StaticResource Text.SectionTitle}" Text="{loc:Tr Key=Settings.Section.About}"/>
                 <TextBlock x:Name="AboutText"
                            Style="{StaticResource Text.Caption.Wrap}"
                            Text=""/>
+                <!-- 隐私声明（FR-5.3.7）。放在设置页而不是只写进 README：
+                     用户判断"这东西会不会偷偷联网"的地方，就是设置页。 -->
+                <TextBlock Margin="0,8,0,0"
+                           Style="{StaticResource Text.Caption.Wrap}"
+                           Text="{loc:Tr Key=Settings.About.Privacy}"/>
             </StackPanel>
         </ScrollViewer>
 
@@ -316,6 +480,18 @@
                             Content="{loc:Tr Key=Settings.ResetAppearance}"
                             Click="OnResetAppearance"
                             ToolTip="{loc:Tr Key=Settings.ResetAppearance.Tip}"/>
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            Content="{loc:Tr Key=Settings.ResetBehavior}"
+                            Click="OnResetBehavior"
+                            ToolTip="{loc:Tr Key=Settings.ResetBehavior.Tip}"/>
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            Content="{loc:Tr Key=Settings.ResetPrivacy}"
+                            Click="OnResetPrivacy"
+                            ToolTip="{loc:Tr Key=Settings.ResetPrivacy.Tip}"/>
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            Content="{loc:Tr Key=Settings.ResetAll}"
+                            Click="OnResetAll"
+                            ToolTip="{loc:Tr Key=Settings.ResetAll.Tip}"/>
                     <Button Style="{StaticResource Button.Toolbar}"
                             Content="{loc:Tr Key=Settings.OpenDataDir}"
                             Click="OnOpenDataDir"/>

@@ -723,10 +723,13 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     /// <summary>给一次性提示（路径不存在、视图不可用等）用，下一次导航时清空。</summary>
     public void SetHint(string message) => HintText = message;
 
-    /// <summary>"显示隐藏文件"开关：只在内存过滤，不重新枚举。</summary>
+    /// <summary>"显示隐藏文件 / 系统文件"开关：只在内存过滤，不重新枚举。</summary>
     public void ApplyFilter()
     {
-        if (_settings.Behavior.ShowHidden)
+        bool showHidden = _settings.Behavior.ShowHidden;
+        bool showSystem = _settings.Behavior.ShowSystem;
+
+        if (showHidden && showSystem)
         {
             Entries = _all;
         }
@@ -735,7 +738,11 @@ public sealed class PaneViewModel : INotifyPropertyChanged
             var visible = new List<FileEntry>(_all.Count);
             foreach (var entry in _all)
             {
-                if (!entry.IsHidden) visible.Add(entry);
+                // 两个属性各判一次：带 H+S 的条目（desktop.ini）要两个开关都开才出现，
+                // 不能写成"任一位被允许就显示"。
+                if (!showHidden && entry.IsHidden) continue;
+                if (!showSystem && entry.IsSystem) continue;
+                visible.Add(entry);
             }
 
             Entries = visible;

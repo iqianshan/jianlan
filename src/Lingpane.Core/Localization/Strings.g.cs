@@ -1120,4 +1120,167 @@ public static class Strings
     public static string Status_Tag_Full => LocalizationService.Instance.Get("Status.Tag.Full");
     // 含占位符：string.Format(Strings.Status_Tag_Full, ...)
 
+    /// <summary>Show system files</summary>
+    public static string Settings_Behavior_ShowSystem => LocalizationService.Instance.Get("Settings.Behavior.ShowSystem");
+
+    /// <summary>Items like pagefile.sys and System Volume Information. An item marked both hidden and system needs both switches on.</summary>
+    public static string Settings_Behavior_ShowSystem_Hint => LocalizationService.Instance.Get("Settings.Behavior.ShowSystem.Hint");
+
+    /// <summary>Open items with</summary>
+    public static string Settings_Behavior_OpenMode => LocalizationService.Instance.Get("Settings.Behavior.OpenMode");
+
+    /// <summary>Double-click</summary>
+    public static string Settings_Behavior_OpenMode_Double => LocalizationService.Instance.Get("Settings.Behavior.OpenMode.Double");
+
+    /// <summary>Single click</summary>
+    public static string Settings_Behavior_OpenMode_Single => LocalizationService.Instance.Get("Settings.Behavior.OpenMode.Single");
+
+    /// <summary>In single-click mode a row only highlights after the pointer rests on it for 600 ms, so sweeping across the list opens n</summary>
+    public static string Settings_Behavior_OpenMode_Hint => LocalizationService.Instance.Get("Settings.Behavior.OpenMode.Hint");
+
+    /// <summary>Confirm batch operations</summary>
+    public static string Settings_Behavior_ConfirmBatch => LocalizationService.Instance.Get("Settings.Behavior.ConfirmBatch");
+
+    /// <summary>Asks before acting on two or more items at once.</summary>
+    public static string Settings_Behavior_ConfirmBatch_Hint => LocalizationService.Instance.Get("Settings.Behavior.ConfirmBatch.Hint");
+
+    /// <summary>Closing the last tab goes back to Home</summary>
+    public static string Settings_Behavior_CloseLastToHome => LocalizationService.Instance.Get("Settings.Behavior.CloseLastToHome");
+
+    /// <summary>Turn this off to close the window instead.</summary>
+    public static string Settings_Behavior_CloseLastToHome_Hint => LocalizationService.Instance.Get("Settings.Behavior.CloseLastToHome.Hint");
+
+    /// <summary>Startup</summary>
+    public static string Settings_Section_Startup => LocalizationService.Instance.Get("Settings.Section.Startup");
+
+    /// <summary>On launch</summary>
+    public static string Settings_Behavior_Startup => LocalizationService.Instance.Get("Settings.Behavior.Startup");
+
+    /// <summary>Open the default folder</summary>
+    public static string Settings_Behavior_Startup_None => LocalizationService.Instance.Get("Settings.Behavior.Startup.None");
+
+    /// <summary>Restore the last session</summary>
+    public static string Settings_Behavior_Startup_Session => LocalizationService.Instance.Get("Settings.Behavior.Startup.Session");
+
+    /// <summary>Restoring the last session brings back the tabs that were open when you quit.</summary>
+    public static string Settings_Behavior_Startup_Hint => LocalizationService.Instance.Get("Settings.Behavior.Startup.Hint");
+
+    /// <summary>Always open workspace</summary>
+    public static string Settings_Behavior_Startup_Workspace => LocalizationService.Instance.Get("Settings.Behavior.Startup.Workspace");
+
+    /// <summary>None</summary>
+    public static string Settings_Behavior_Startup_Workspace_None => LocalizationService.Instance.Get("Settings.Behavior.Startup.Workspace.None");
+
+    /// <summary>Picking a workspace turns session restore off — the two cannot run at once.</summary>
+    public static string Settings_Behavior_Startup_Workspace_Hint => LocalizationService.Instance.Get("Settings.Behavior.Startup.Workspace.Hint");
+
+    /// <summary>History entries</summary>
+    public static string Settings_Privacy_HistoryLimit => LocalizationService.Instance.Get("Settings.Privacy.HistoryLimit");
+
+    /// <summary>Older entries are dropped once the limit is reached. Lowering it also trims what is already recorded.</summary>
+    public static string Settings_Privacy_HistoryLimit_Hint => LocalizationService.Instance.Get("Settings.Privacy.HistoryLimit.Hint");
+
+    /// <summary>Clear history</summary>
+    public static string Settings_Privacy_ClearHistory => LocalizationService.Instance.Get("Settings.Privacy.ClearHistory");
+
+    /// <summary>Cleared {0} entries</summary>
+    public static string Settings_Privacy_HistoryCleared => LocalizationService.Instance.Get("Settings.Privacy.HistoryCleared");
+    // 含占位符：string.Format(Strings.Settings_Privacy_HistoryCleared, ...)
+
+    /// <summary>Colour tags</summary>
+    public static string Settings_Privacy_TagStore => LocalizationService.Instance.Get("Settings.Privacy.TagStore");
+
+    /// <summary>{0} tagged items</summary>
+    public static string Settings_Privacy_TagStore_Count => LocalizationService.Instance.Get("Settings.Privacy.TagStore.Count");
+    // 含占位符：string.Format(Strings.Settings_Privacy_TagStore_Count, ...)
+
+    /// <summary>Counting…</summary>
+    public static string Settings_Privacy_TagStore_Loading => LocalizationService.Instance.Get("Settings.Privacy.TagStore.Loading");
+
+    /// <summary>No tags yet</summary>
+    public static string Settings_Privacy_TagStore_Empty => LocalizationService.Instance.Get("Settings.Privacy.TagStore.Empty");
+
+    /// <summary>Scanning…</summary>
+    public static string Settings_Privacy_TagStore_Pruning => LocalizationService.Instance.Get("Settings.Privacy.TagStore.Pruning");
+
+    /// <summary>Removed {0} stale tags</summary>
+    public static string Settings_Privacy_TagStore_Pruned => LocalizationService.Instance.Get("Settings.Privacy.TagStore.Pruned");
+    // 含占位符：string.Format(Strings.Settings_Privacy_TagStore_Pruned, ...)
+
+    /// <summary>Nothing stale found</summary>
+    public static string Settings_Privacy_TagStore_PruneNone => LocalizationService.Instance.Get("Settings.Privacy.TagStore.PruneNone");
+
+    /// <summary>Remove stale tags</summary>
+    public static string Settings_Privacy_TagPrune => LocalizationService.Instance.Get("Settings.Privacy.TagPrune");
+
+    /// <summary>Checks every tag against the file it points to</summary>
+    public static string Settings_Privacy_TagPrune_Tip => LocalizationService.Instance.Get("Settings.Privacy.TagPrune.Tip");
+
+    /// <summary>Reset behaviour</summary>
+    public static string Settings_ResetBehavior => LocalizationService.Instance.Get("Settings.ResetBehavior");
+
+    /// <summary>Back to the default view, sort order and switches</summary>
+    public static string Settings_ResetBehavior_Tip => LocalizationService.Instance.Get("Settings.ResetBehavior.Tip");
+
+    /// <summary>Reset privacy</summary>
+    public static string Settings_ResetPrivacy => LocalizationService.Instance.Get("Settings.ResetPrivacy");
+
+    /// <summary>Back to default history and cache settings. Recorded history is kept.</summary>
+    public static string Settings_ResetPrivacy_Tip => LocalizationService.Instance.Get("Settings.ResetPrivacy.Tip");
+
+    /// <summary>Reset all settings</summary>
+    public static string Settings_ResetAll => LocalizationService.Instance.Get("Settings.ResetAll");
+
+    /// <summary>Appearance, behaviour and privacy. Bookmarks, history, tags and workspaces are kept.</summary>
+    public static string Settings_ResetAll_Tip => LocalizationService.Instance.Get("Settings.ResetAll.Tip");
+
+    /// <summary>Behaviour settings are back to default</summary>
+    public static string Settings_ResetBehavior_Done => LocalizationService.Instance.Get("Settings.ResetBehavior.Done");
+
+    /// <summary>Privacy settings are back to default</summary>
+    public static string Settings_ResetPrivacy_Done => LocalizationService.Instance.Get("Settings.ResetPrivacy.Done");
+
+    /// <summary>All settings are back to default</summary>
+    public static string Settings_ResetAll_Done => LocalizationService.Instance.Get("Settings.ResetAll.Done");
+
+    /// <summary>Reset all settings</summary>
+    public static string Dialog_ResetAll_Title => LocalizationService.Instance.Get("Dialog.ResetAll.Title");
+
+    /// <summary>Appearance, behaviour and privacy settings go back to default. Bookmarks, history, colour tags and workspaces are not to</summary>
+    public static string Dialog_ResetAll_Body => LocalizationService.Instance.Get("Dialog.ResetAll.Body");
+
+    /// <summary>Remove stale tags</summary>
+    public static string Dialog_TagPrune_Title => LocalizationService.Instance.Get("Dialog.TagPrune.Title");
+
+    /// <summary>Checks all {0} tags and removes those whose file is gone or now points somewhere else. Tags on offline drives (unplugged</summary>
+    public static string Dialog_TagPrune_Body => LocalizationService.Instance.Get("Dialog.TagPrune.Body");
+    // 含占位符：string.Format(Strings.Dialog_TagPrune_Body, ...)
+
+    /// <summary>Accent colour</summary>
+    public static string Settings_Appearance_Accent => LocalizationService.Instance.Get("Settings.Appearance.Accent");
+
+    /// <summary>Follow system</summary>
+    public static string Settings_Appearance_Accent_System => LocalizationService.Instance.Get("Settings.Appearance.Accent.System");
+
+    /// <summary>Blue</summary>
+    public static string Accent_Blue => LocalizationService.Instance.Get("Accent.Blue");
+
+    /// <summary>Teal</summary>
+    public static string Accent_Teal => LocalizationService.Instance.Get("Accent.Teal");
+
+    /// <summary>Green</summary>
+    public static string Accent_Green => LocalizationService.Instance.Get("Accent.Green");
+
+    /// <summary>Orange</summary>
+    public static string Accent_Orange => LocalizationService.Instance.Get("Accent.Orange");
+
+    /// <summary>Purple</summary>
+    public static string Accent_Purple => LocalizationService.Instance.Get("Accent.Purple");
+
+    /// <summary>Red</summary>
+    public static string Accent_Red => LocalizationService.Instance.Get("Accent.Red");
+
+    /// <summary>No telemetry, no uploads. The only outbound action is opening the releases page in your browser when you choose Check fo</summary>
+    public static string Settings_About_Privacy => LocalizationService.Instance.Get("Settings.About.Privacy");
+
 }

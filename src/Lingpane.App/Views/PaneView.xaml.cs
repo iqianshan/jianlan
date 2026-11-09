@@ -39,6 +39,7 @@ public partial class PaneView : UserControl
     {
         InitializeComponent();
         RegisterCommands();
+        HookRowHover();
         Unloaded += OnPaneUnloaded;
         SizeChanged += OnPaneSizeChanged;
     }
@@ -850,12 +851,20 @@ public partial class PaneView : UserControl
         _dragArmed = false;
 
         if (!wasClick) return;
-        if ((Keyboard.Modifiers & ModifierKeys.Control) == 0) return;
 
-        if (HitFolder(e.OriginalSource) is not { } folder) return;
+        // Ctrl+点击文件夹 → 新标签打开（判据见上面那段）
+        if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
+        {
+            if (HitFolder(e.OriginalSource) is not { } folder) return;
 
-        e.Handled = true;
-        RequestNewTab(folder);
+            e.Handled = true;
+            RequestNewTab(folder);
+            return;
+        }
+
+        // 单击打开（FR-5.2.5）。挂在"松开"而不是"按下"：拖拽起手时 _dragArmed
+        // 已被清掉，不会出现"拖到一半顺手把源文件打开了"。
+        if (TryOpenOnSingleClick(e)) e.Handled = true;
     }
 
     private static FileEntry? HitFolder(object? source)

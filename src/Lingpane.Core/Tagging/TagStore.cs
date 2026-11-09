@@ -2,6 +2,7 @@
 using System.Text;
 using System.Text.Json;
 using Lingpane.Core.Diagnostics;
+using Lingpane.Core.FileSystem;
 
 namespace Lingpane.Core.Tagging;
 
@@ -301,6 +302,32 @@ public sealed class TagStore
             if (!_loaded) Parse();
             return [.. _byKey.Values];
         }
+    }
+
+    /// <summary>
+    /// 清理失效项（FR-4.2.6 / FR-5.3.6）：路径已打不开，或者那个路径现在指向了另一个文件
+    /// （同卷移动后原位置被新文件占用）。返回清掉的条数。
+    ///
+    /// 每条一次文件系统查询，所以**调用方负责放到后台线程**，并且要事先告知用户：
+    /// 离线磁盘（拔掉的 U 盘、断开的网络盘）上的标记同样会被算成失效——
+    /// 这是这个操作真正的破坏面，不能藏在"清理垃圾"的说法后面。
+    /// </summary>
+    public int PruneStale()
+    {
+        List<TagRecord> records = [.. Snapshot()];
+        if (records.Count == 0) return 0;
+
+        var stale = new List<TagTarget>();
+        foreach (TagRecord record in records)
+        {
+            bool alive = FileIdEnumerator.TryIdentify(record.Path, out ulong volume, out ulong fileId)
+                         && volume == record.Volume
+                         && fileId == record.FileId;
+
+            if (!alive) stale.Add(new TagTarget(record.Volume, record.FileId, record.Path));
+        }
+
+        return stale.Count == 0 ? 0 : RemoveMany(stale);
     }
 
     /// <summary>某一色下的全部记录（FR-4.1.5 导航栏"标签"节点用）。</summary>

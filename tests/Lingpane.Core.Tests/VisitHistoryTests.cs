@@ -134,4 +134,32 @@ public sealed class VisitHistoryTests
         Assert.Equal(2, settings.History.Entries.Count);
         Assert.Equal(@"C:\c", settings.History.Entries[0].Path);
     }
+
+    [Fact]
+    public void 上限调小后立即裁剪()
+    {
+        // FR-5.3.4：设置页把上限从 100 改成 50 之后，文件里不该还留着 100 条
+        // 等下次启动才归一化——那样用户会以为设置没生效。
+        var settings = new AppSettings { Privacy = { HistoryLimit = 100 } };
+        settings.History.Entries =
+            [.. Enumerable.Range(0, 10).Select(i => new HistoryEntry
+            {
+                Path = $@"C:\p{i}",
+                VisitedAt = new DateTimeOffset(2026, 1, 1, 0, 0, i, TimeSpan.Zero),
+            })];
+
+        var history = new VisitHistory(settings.History, () => settings.Privacy.HistoryLimit);
+
+        settings.Privacy.HistoryLimit = 3;
+        int removed = history.Trim();
+
+        Assert.Equal(7, removed);
+        Assert.Equal(3, settings.History.Entries.Count);
+
+        // 保留的是最新的三条（构造函数已按时间倒序归一化）
+        Assert.Equal(@"C:\p9", settings.History.Entries[0].Path);
+
+        // 已经是 3 条，再裁一次不该有任何变化
+        Assert.Equal(0, history.Trim());
+    }
 }

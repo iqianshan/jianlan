@@ -541,6 +541,9 @@ def main() -> int:
             "enter": (0x0D,),
             "ctrl+a": (0x11, 0x41),
             "ctrl+d": (0x11, 0x44),
+            # 设置入口（FR-5.1.10）。VK_OEM_COMMA = 0xBC，逗号必须走 OEM 码，
+            # 没有对应的 ASCII/字母虚拟键。
+            "ctrl+,": (0x11, 0xBC),
             "esc": (0x1B,),
             "left": (0x25,),
             "right": (0x27,),

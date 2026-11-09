@@ -42,7 +42,13 @@ public partial class SettingsWindow : Window
             Environment.Version,
             AppPaths.Root);
 
-        Loaded += async (_, _) => await LoadFontsAsync();
+        // 字体枚举与标签库条数都不进构造：两者都要读盘/遍历系统字体，
+        // 放在首帧之后跑，窗口才是"先出来再填"。
+        Loaded += async (_, _) =>
+        {
+            await LoadFontsAsync();
+            await RefreshTagCountAsync();
+        };
     }
 
     private AppSettings Settings => App.Settings;
@@ -62,6 +68,7 @@ public partial class SettingsWindow : Window
 
         ThemeCombo.SelectedIndex = (int)Settings.Appearance.Theme;
         DensityCombo.SelectedIndex = (int)Settings.Appearance.Density;
+        LoadAccentChoices();
 
         ViewCombo.SelectedIndex = Settings.Behavior.DefaultView == DefaultViewKind.List ? 1 : 0;
 
@@ -71,10 +78,16 @@ public partial class SettingsWindow : Window
         DescendingCheck.IsChecked = Settings.Behavior.SortDescending;
         FoldersFirstCheck.IsChecked = Settings.Behavior.FoldersFirst;
         ShowHiddenCheck.IsChecked = Settings.Behavior.ShowHidden;
+        ShowSystemCheck.IsChecked = Settings.Behavior.ShowSystem;
         ShowExtensionsCheck.IsChecked = Settings.Behavior.ShowExtensions;
         ConfirmDeleteCheck.IsChecked = Settings.Behavior.ConfirmDelete;
+        ConfirmBatchCheck.IsChecked = Settings.Behavior.ConfirmBatch;
+        CloseLastToHomeCheck.IsChecked = Settings.Behavior.CloseLastTabToHome;
+        OpenModeCombo.SelectedIndex = Settings.Behavior.DoubleClickOpens ? 0 : 1;
         OpenFolderInNewTabCheck.IsChecked = Settings.Behavior.OpenFolderInNewTab;
         BackgroundTabCheck.IsChecked = Settings.Behavior.OpenNewTabInBackground;
+
+        LoadStartupChoices();
 
         TabStripCombo.SelectedIndex =
             Settings.Appearance.TabStripPosition == AppearanceSettings.TabBottom ? 1 : 0;
@@ -88,9 +101,15 @@ public partial class SettingsWindow : Window
         ShowStatusCheck.IsChecked = Settings.Appearance.ShowStatusBar;
         RememberPathCheck.IsChecked = Settings.Privacy.HistoryEnabled;
 
+        int limitIndex = Array.FindIndex(HistoryLimits, n => n >= Settings.Privacy.HistoryLimit);
+        HistoryLimitCombo.SelectedIndex = limitIndex >= 0 ? limitIndex : HistoryLimits.Length - 1;
+
         FollowSystemFontCheck.IsChecked = Settings.Appearance.FontSizePt is null;
         UpdateFontSizeText();
     }
+
+    /// <summary>历史条数上限的可选值（FR-5.3.4）。</summary>
+    private static readonly int[] HistoryLimits = [50, 100, 200, 500];
 
     /// <summary>
     /// 语言切换立即生效，不需要重启窗口：界面上的 {loc:Tr} 绑定与视图模型都会收到通知。
@@ -148,6 +167,55 @@ public partial class SettingsWindow : Window
 
         Settings.Appearance.Theme = (ThemeKind)Math.Max(0, ThemeCombo.SelectedIndex);
         ThemeService.Apply(Settings.Appearance.Theme);
+        App.SaveSettings();
+    }
+
+    // ── 强调色（FR-5.1.3）───────────────────────────────────────────────────
+
+    /// <summary>强调色下拉的一项。<c>Hex</c> 为 null 表示"跟随系统"。</summary>
+    private sealed record AccentChoice(string? Hex, string Name, Brush? Swatch, bool HasSwatch);
+
+    private void LoadAccentChoices()
+    {
+        var choices = new List<AccentChoice>
+        {
+            new(null, Strings.Settings_Appearance_Accent_System, null, HasSwatch: false),
+        };
+
+        foreach ((string preset, string hex) in AccentService.Presets)
+        {
+            var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
+            brush.Freeze();
+
+            choices.Add(new AccentChoice(hex, AccentName(preset), brush, HasSwatch: true));
+        }
+
+        AccentCombo.ItemsSource = choices;
+
+        int index = Settings.Appearance.Accent is { } saved
+            ? choices.FindIndex(c => string.Equals(c.Hex, saved, StringComparison.OrdinalIgnoreCase))
+            : 0;
+
+        AccentCombo.SelectedIndex = index >= 0 ? index : 0;
+    }
+
+    private static string AccentName(string preset) => preset switch
+    {
+        "Teal" => Strings.Accent_Teal,
+        "Green" => Strings.Accent_Green,
+        "Orange" => Strings.Accent_Orange,
+        "Purple" => Strings.Accent_Purple,
+        "Red" => Strings.Accent_Red,
+        _ => Strings.Accent_Blue,
+    };
+
+    private void OnAccentChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading) return;
+        if (AccentCombo.SelectedItem is not AccentChoice choice) return;
+
+        Settings.Appearance.Accent = choice.Hex;
+        AccentService.Apply(choice.Hex);
         App.SaveSettings();
     }
 
@@ -221,22 +289,55 @@ public partial class SettingsWindow : Window
                 FontScaleService.Current.Points);
     }
 
-    private void OnResetAppearance(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// 分类恢复默认（FR-5.3.8）。重置后走一遍 <see cref="LoadSettingsIntoUi"/>，
+    /// 而不是逐控件赋初值：新增设置项时不必回来补第二处，少一个漏网的。
+    /// </summary>
+    private void OnResetAppearance(object sender, RoutedEventArgs e) =>
+        ResetAndSync(Settings.ResetAppearance, Strings.Settings_ResetAppearance_Done, resetFont: true);
+
+    private void OnResetBehavior(object sender, RoutedEventArgs e) =>
+        ResetAndSync(Settings.ResetBehavior, Strings.Settings_ResetBehavior_Done, resetFont: false);
+
+    private void OnResetPrivacy(object sender, RoutedEventArgs e) =>
+        ResetAndSync(Settings.ResetPrivacy, Strings.Settings_ResetPrivacy_Done, resetFont: false);
+
+    private void OnResetAll(object sender, RoutedEventArgs e)
     {
-        Settings.Appearance.FontFamily = null;
-        Settings.Appearance.FontSizePt = null;
-        Settings.Appearance.Density = DensityKind.Comfortable;
+        // 全部恢复会一起改主题、字号、视图、排序、各种开关——列出来问一句，
+        // 而不是"点了就变"。收藏、历史、标签、工作区不受影响（那是用户数据）。
+        if (!ConfirmWindow.Ask(this, Strings.Dialog_ResetAll_Title, Strings.Dialog_ResetAll_Body))
+        {
+            return;
+        }
+
+        ResetAndSync(Settings.ResetAll, Strings.Settings_ResetAll_Done, resetFont: true);
+    }
+
+    /// <param name="resetFont">
+    /// 字体下拉的选项是异步填的，<see cref="LoadSettingsIntoUi"/> 不碰它。
+    /// 重置外观时必须单独把它推回"默认字体"，否则下拉里还写着上一个字体，
+    /// 而实际渲染已经回到默认栈——两者对不上。
+    /// </param>
+    private void ResetAndSync(Action reset, string message, bool resetFont)
+    {
+        reset();
 
         _loading = true;
-        FontCombo.SelectedIndex = 0;
-        DensityCombo.SelectedIndex = 0;
-        FollowSystemFontCheck.IsChecked = true;
+        LoadSettingsIntoUi();
+        if (resetFont && FontCombo.Items.Count > 0) FontCombo.SelectedIndex = 0;
         _loading = false;
 
-        FontScaleService.ResetToDefault();
-        UpdateFontSizeText();
-        FontHint.Text = Strings.Settings_ResetAppearance_Done;
+        // 主题与字号不经过控件赋值，要显式套一次
+        ThemeService.Apply(Settings.Appearance.Theme);
+        FontScaleService.Apply(
+            Settings.Appearance.FontSizePt,
+            Settings.Appearance.Density == DensityKind.Compact);
+
+        Owner_?.ApplySettingsToUi();
         App.SaveSettings();
+
+        FontHint.Text = message;
     }
 
     private void OnShowNavChanged(object sender, RoutedEventArgs e)
@@ -307,6 +408,15 @@ public partial class SettingsWindow : Window
         App.SaveSettings();
     }
 
+    /// <summary>系统文件开关（FR-5.2.4）：与隐藏文件一样只在内存过滤，即时生效。</summary>
+    private void OnShowSystemChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        Settings.Behavior.ShowSystem = ShowSystemCheck.IsChecked == true;
+        Owner_?.ApplySettingsToUi();
+        App.SaveSettings();
+    }
+
     private void OnShowExtensionsChanged(object sender, RoutedEventArgs e)
     {
         if (_loading) return;
@@ -321,6 +431,110 @@ public partial class SettingsWindow : Window
         Settings.Behavior.ConfirmDelete = ConfirmDeleteCheck.IsChecked == true;
         App.SaveSettings();
     }
+
+    /// <summary>批量操作确认（FR-5.2.8）。与单删分开，允许"单删不弹、批量弹"。</summary>
+    private void OnConfirmBatchChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        Settings.Behavior.ConfirmBatch = ConfirmBatchCheck.IsChecked == true;
+        App.SaveSettings();
+    }
+
+    /// <summary>关闭最后一个标签时的行为（FR-2.8）。下一次关标签就生效，不用重启。</summary>
+    private void OnCloseLastToHomeChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        Settings.Behavior.CloseLastTabToHome = CloseLastToHomeCheck.IsChecked == true;
+        App.SaveSettings();
+    }
+
+    /// <summary>
+    /// 打开方式（FR-5.2.5）。切换后列表的悬停高亮也随之改变行为：
+    /// 单击模式下推迟 600ms 出现，见 PaneView.Hover.cs。
+    /// </summary>
+    private void OnOpenModeChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading) return;
+        Settings.Behavior.DoubleClickOpens = OpenModeCombo.SelectedIndex == 0;
+        App.SaveSettings();
+    }
+
+    // ── 启动（FR-5.2.9）─────────────────────────────────────────────────────
+    //
+    // 两项互斥：设了工作区就置 false 会话恢复，反之亦然。归一化里也有同一条规则
+    // （AppSettings.Normalize），这里做的是"让界面当场跟上"，否则用户看到两个都开着，
+    // 重启后只生效一个。
+
+    private void LoadStartupChoices()
+    {
+        var choices = new List<WorkspaceChoice>
+        {
+            new(null, Strings.Settings_Behavior_Startup_Workspace_None),
+        };
+
+        foreach (var workspace in App.Workspaces.Items)
+        {
+            choices.Add(new WorkspaceChoice(workspace.Name, workspace.Name));
+        }
+
+        StartupWorkspaceCombo.ItemsSource = choices;
+
+        int index = Settings.Behavior.StartupWorkspace is { } name
+            ? choices.FindIndex(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase))
+            : 0;
+
+        // 工作区可能已被删掉：落到"不设置"，同时把设置里那条失效引用清掉
+        if (index < 0)
+        {
+            index = 0;
+            Settings.Behavior.StartupWorkspace = null;
+        }
+
+        StartupWorkspaceCombo.SelectedIndex = index;
+        StartupCombo.SelectedIndex = Settings.Behavior.RestoreLastSession ? 1 : 0;
+    }
+
+    private void OnStartupModeChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading) return;
+
+        bool restore = StartupCombo.SelectedIndex == 1;
+        Settings.Behavior.RestoreLastSession = restore;
+
+        if (restore)
+        {
+            // 选"恢复上次会话"就是放弃固定工作区，否则两条恢复路径会一起跑
+            Settings.Behavior.StartupWorkspace = null;
+
+            _loading = true;
+            StartupWorkspaceCombo.SelectedIndex = 0;
+            _loading = false;
+        }
+
+        App.SaveSettings();
+    }
+
+    private void OnStartupWorkspaceChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading) return;
+        if (StartupWorkspaceCombo.SelectedItem is not WorkspaceChoice choice) return;
+
+        Settings.Behavior.StartupWorkspace = choice.Name;
+
+        if (choice.Name is not null)
+        {
+            Settings.Behavior.RestoreLastSession = false;
+
+            _loading = true;
+            StartupCombo.SelectedIndex = 0;
+            _loading = false;
+        }
+
+        App.SaveSettings();
+    }
+
+    /// <summary>工作区下拉的一项。<c>Name</c> 为 null 表示"不设置"。</summary>
+    private sealed record WorkspaceChoice(string? Name, string DisplayName);
 
     // ── 新标签页默认目录（FR-2.1）─────────────────────────────────────────
     //
@@ -432,11 +646,77 @@ public partial class SettingsWindow : Window
         App.SaveSettings();
     }
 
-    private void OnClearRecentPath(object sender, RoutedEventArgs e)
+    private void OnHistoryLimitChanged(object sender, SelectionChangedEventArgs e)
     {
-        Settings.Session.LastPath = null;
+        if (_loading) return;
+
+        int index = Math.Clamp(HistoryLimitCombo.SelectedIndex, 0, HistoryLimits.Length - 1);
+        Settings.Privacy.HistoryLimit = HistoryLimits[index];
         App.SaveSettings();
-        FontHint.Text = Strings.Settings_Privacy_Cleared;
+
+        // 上限调小要立即生效，否则"改成 50 条"之后文件里还留着 200 条，
+        // 下次启动才被裁剪——用户会以为设置没生效。
+        Owner_?.TrimHistory();
+    }
+
+    /// <summary>
+    /// 一键清空历史（FR-5.3.2）。只清"最近访问"，不动会话、收藏与工作区：
+    /// 三者的清空入口各自独立，一个按钮把它们一起删掉是最容易被当成数据丢失的一类行为。
+    /// </summary>
+    private void OnClearHistory(object sender, RoutedEventArgs e)
+    {
+        int removed = Owner_?.ClearHistory() ?? 0;
+        PrivacyStatus.Text = string.Format(
+            CultureInfo.CurrentCulture, Strings.Settings_Privacy_HistoryCleared, removed);
+    }
+
+    /// <summary>
+    /// 清理标签库里的失效项（FR-4.2.6 / FR-5.3.6）。
+    /// 每条一次文件系统查询，放在后台跑；破坏面（离线磁盘上的标记也会被清）
+    /// 必须在动手之前说清楚，不能藏在"清理垃圾"的说法后面。
+    /// </summary>
+    private async void OnPruneTags(object sender, RoutedEventArgs e)
+    {
+        int total = await Task.Run(() =>
+        {
+            App.Tags.EnsureLoaded();
+            return App.Tags.Count;
+        }).ConfigureAwait(true);
+
+        if (total == 0)
+        {
+            PrivacyStatus.Text = Strings.Settings_Privacy_TagStore_Empty;
+            return;
+        }
+
+        if (!ConfirmWindow.Ask(this, Strings.Dialog_TagPrune_Title,
+                string.Format(CultureInfo.CurrentCulture, Strings.Dialog_TagPrune_Body, total)))
+        {
+            return;
+        }
+
+        PrivacyStatus.Text = Strings.Settings_Privacy_TagStore_Pruning;
+
+        int removed = await Task.Run(() => App.Tags.PruneStale()).ConfigureAwait(true);
+
+        PrivacyStatus.Text = removed > 0
+            ? string.Format(CultureInfo.CurrentCulture, Strings.Settings_Privacy_TagStore_Pruned, removed)
+            : Strings.Settings_Privacy_TagStore_PruneNone;
+
+        await RefreshTagCountAsync();
+    }
+
+    /// <summary>标签库条数。库可能还没加载，所以先 EnsureLoaded 再读。</summary>
+    private async Task RefreshTagCountAsync()
+    {
+        int count = await Task.Run(() =>
+        {
+            App.Tags.EnsureLoaded();
+            return App.Tags.Count;
+        }).ConfigureAwait(true);
+
+        TagCountText.Text = string.Format(
+            CultureInfo.CurrentCulture, Strings.Settings_Privacy_TagStore_Count, count);
     }
 
     // ── 其他 ────────────────────────────────────────────────────────────────

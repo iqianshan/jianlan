@@ -25,7 +25,17 @@ public sealed class FileIdEnumeratorTests : IDisposable
 
     public void Dispose()
     {
-        try { Directory.Delete(_dir, recursive: true); } catch (IOException) { }
+        try
+        {
+            // 系统/隐藏属性会让 recursive delete 在某些环境下失败，先抹平
+            foreach (string file in Directory.EnumerateFiles(_dir))
+            {
+                File.SetAttributes(file, FileAttributes.Normal);
+            }
+
+            Directory.Delete(_dir, recursive: true);
+        }
+        catch (IOException) { }
     }
 
     [Fact]
@@ -114,5 +124,38 @@ public sealed class FileIdEnumeratorTests : IDisposable
 
         Assert.True(FileIdEnumerator.TryRead(empty, out var entries, out _, out _));
         Assert.Empty(entries);
+    }
+
+    [Fact]
+    public void 隐藏与系统属性分开报出()
+    {
+        // FR-5.2.4 的两个开关各管一位。两条枚举路径（FileId / FileSystemEnumerable）
+        // 必须给出同一套判定，否则"标签库为空"和"标签库非空"时同一个文件会时隐时现。
+        string hidden = Path.Combine(_dir, "h.txt");
+        string system = Path.Combine(_dir, "s.txt");
+        string both = Path.Combine(_dir, "hs.txt");
+
+        foreach (string path in new[] { hidden, system, both }) File.WriteAllText(path, "x");
+
+        File.SetAttributes(hidden, FileAttributes.Hidden);
+        File.SetAttributes(system, FileAttributes.System);
+        File.SetAttributes(both, FileAttributes.Hidden | FileAttributes.System);
+
+        Assert.True(FileIdEnumerator.TryRead(_dir, out var byId, out _, out _));
+        Assert.True(DirectoryEnumerator.TryRead(_dir, EntrySort.Default, out var plain, out _));
+
+        AssertFlags("h.txt", byId, plain, expectHidden: true, expectSystem: false);
+        AssertFlags("s.txt", byId, plain, expectHidden: false, expectSystem: true);
+        AssertFlags("hs.txt", byId, plain, expectHidden: true, expectSystem: true);
+
+        static void AssertFlags(string name, List<FileIdEntry> byId, List<FileEntry> plain,
+            bool expectHidden, bool expectSystem)
+        {
+            FileIdEntry fast = Assert.Single(byId, e => e.Name == name);
+            FileEntry slow = Assert.Single(plain, e => e.Name == name);
+
+            Assert.Equal((expectHidden, expectSystem), (fast.IsHidden, fast.IsSystem));
+            Assert.Equal((expectHidden, expectSystem), (slow.IsHidden, slow.IsSystem));
+        }
     }
 }

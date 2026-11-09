@@ -17,7 +17,8 @@ public readonly record struct FileIdEntry(
     bool IsDirectory,
     long Size,
     DateTime LastWriteTime,
-    bool IsHidden);
+    bool IsHidden,
+    bool IsSystem);
 
 /// <summary>
 /// 用 <c>GetFileInformationByHandleEx(FileIdBothDirectoryInfo)</c> 枚举目录（FR-4.2.2）。
@@ -210,7 +211,8 @@ public static class FileIdEnumerator
                     isDirectory,
                     isDirectory ? 0L : info.EndOfFile,
                     DateTime.FromFileTimeUtc(info.LastWriteTime).ToLocalTime(),
-                    (info.FileAttributes & (uint)FileAttributes.Hidden) != 0));
+                    (info.FileAttributes & (uint)FileAttributes.Hidden) != 0,
+                    (info.FileAttributes & (uint)FileAttributes.System) != 0));
             }
 
             if (info.NextEntryOffset == 0) break;

@@ -45,7 +45,7 @@ public sealed class FileEntry : INotifyPropertyChanged
     private FolderSizeState _folderSizeState;
 
     public FileEntry(string name, string parentPath, bool isDirectory, long size, DateTime lastWriteTime,
-        bool isHidden = false, ulong fileId = 0)
+        bool isHidden = false, bool isSystem = false, ulong fileId = 0)
     {
         Name = name;
         _parentPath = parentPath;
@@ -53,6 +53,7 @@ public sealed class FileEntry : INotifyPropertyChanged
         Size = size;
         LastWriteTime = lastWriteTime;
         IsHidden = isHidden;
+        IsSystem = isSystem;
         FileId = fileId;
         IconKey = ResolveIconKey(name, isDirectory);
     }
@@ -112,6 +113,13 @@ public sealed class FileEntry : INotifyPropertyChanged
 
     /// <summary>隐藏属性。用于"显示隐藏文件"开关的过滤，过滤在内存中做，不重新枚举磁盘。</summary>
     public bool IsHidden { get; }
+
+    /// <summary>
+    /// 系统属性（FR-5.2.4）。与隐藏属性分开两个开关：Windows 里两者常同时出现
+    /// （<c>desktop.ini</c>、<c>pagefile.sys</c> 都是 H+S），但用户的意图不同——
+    /// 想看见以点开头的配置目录，不代表想看页面文件。两个属性都满足某开关才显示。
+    /// </summary>
+    public bool IsSystem { get; }
 
     public long Size { get; }
 

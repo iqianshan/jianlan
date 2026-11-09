@@ -489,6 +489,32 @@ public partial class MainWindow : Window
         if (Tab.IsHome) _home.Refresh();
     }
 
+    /// <summary>
+    /// 一键清空历史（FR-5.3.2）。设置页调用。
+    /// 只清"最近访问"，不动会话、收藏与工作区——三者的清空入口各自独立，
+    /// 一个按钮把它们一起删掉是最容易被当成数据丢失的一类行为。
+    /// </summary>
+    internal int ClearHistory()
+    {
+        int count = _history.Count;
+
+        _history.Clear();
+        App.SaveSettings();
+
+        // 主页正开着就立刻变空，不用等下次进主页
+        _home.Refresh();
+        return count;
+    }
+
+    /// <summary>按当前上限裁剪历史（FR-5.3.4 把上限调小之后立即生效）。</summary>
+    internal void TrimHistory()
+    {
+        if (_history.Trim() == 0) return;
+
+        App.SaveSettings();
+        _home.Refresh();
+    }
+
     private static async Task NavigatePaneAsync(PaneViewModel pane, string path)
     {
         try

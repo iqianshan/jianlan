@@ -122,6 +122,8 @@ public sealed class AppSettings
             Appearance.FontFamily = null;
         }
 
+        Appearance.Accent = AppearanceSettings.NormalizeAccent(Appearance.Accent);
+
         Privacy.HistoryLimit = Math.Clamp(Privacy.HistoryLimit, 0, 500);
         Privacy.CacheLimitMb = Math.Clamp(Privacy.CacheLimitMb, 64, 4096);
 
@@ -190,9 +192,37 @@ public sealed class AppSettings
         Layout.SplitRatio = Math.Clamp(Layout.SplitRatio, MinSplitRatio, MaxSplitRatio);
     }
 
+    // ── 恢复默认值（FR-5.3.8）─────────────────────────────────────────────
+    //
+    // 分类恢复直接换掉整段对象，而不是逐字段赋默认值：逐字段写会漏掉将来新增的项，
+    // 而"恢复默认"这个入口最不该漏。
+    //
+    // 只重置**偏好**，不动用户数据：History.Entries 与 Bookmarks 是用户攒下来的东西，
+    // 用"恢复默认"把它们删掉是不可接受的。所以 History 段整体保留，
+    // Privacy 也只是逐字段重置——VisitHistory / BookmarkStore 还持有那两段的引用，
+    // 换对象会让它们继续读写旧实例。
+
+    public void ResetAppearance() => Appearance = new AppearanceSettings();
+
+    public void ResetBehavior() => Behavior = new BehaviorSettings();
+
+    public void ResetPrivacy()
+    {
+        var fresh = new PrivacySettings();
+        Privacy.HistoryEnabled = fresh.HistoryEnabled;
+        Privacy.HistoryLimit = fresh.HistoryLimit;
+        Privacy.CacheLimitMb = fresh.CacheLimitMb;
+    }
+
+    public void ResetAll()
+    {
+        ResetAppearance();
+        ResetBehavior();
+        ResetPrivacy();
+    }
+
     /// <summary>分屏比例的上下限：低于 15% 的那一栏连列头都放不下，等于"分了个看不见的屏"。</summary>
-    public const double MinSplitRatio = 0.15;
-    public const double MaxSplitRatio = 0.85;
+    public const double MinSplitRatio = 0.15;    public const double MaxSplitRatio = 0.85;
     public const double DefaultSplitRatio = 0.5;
 
     public const double MinColumnWidth = 56;
@@ -265,6 +295,15 @@ public sealed class AppearanceSettings
     /// <summary>null = 默认字体栈；否则为系统字体族名。</summary>
     public string? FontFamily { get; set; }
 
+    /// <summary>
+    /// 强调色（FR-5.1.3）：null = 跟随系统，否则 <c>#RRGGBB</c>。
+    ///
+    /// 只存"用户选了哪个"，四个派生色（常态/悬停/按下/浅底）由
+    /// <c>AccentService</c> 按当前主题算——把派生色也写进设置文件，
+    /// 换主题后那几项就是脏的，还得判断哪几项该重算。
+    /// </summary>
+    public string? Accent { get; set; }
+
     public DensityKind Density { get; set; } = DensityKind.Comfortable;
 
     public bool ShowNavPane { get; set; } = true;
@@ -281,6 +320,25 @@ public sealed class AppearanceSettings
     public const string TabBottom = "bottom";
 
     public static bool IsKnownTabPosition(string? value) => value is TabTop or TabBottom;
+
+    /// <summary>
+    /// 强调色只接受 <c>#RRGGBB</c>。手改成 <c>red</c> 或 <c>#F00</c> 一律当"跟随系统"——
+    /// 与其让界面去猜颜色名，不如回落到系统色，至少不会出现一块读不出来的黑洞。
+    /// </summary>
+    public static string? NormalizeAccent(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+
+        string trimmed = value.Trim();
+        if (trimmed.Length != 7 || trimmed[0] != '#') return null;
+
+        for (int i = 1; i < trimmed.Length; i++)
+        {
+            if (!Uri.IsHexDigit(trimmed[i])) return null;
+        }
+
+        return trimmed.ToUpperInvariant();
+    }
 
     /// <summary>未知字段原样保留，避免降级版本吃掉新版本写入的设置（settings-schema §4）。</summary>
     [JsonExtensionData]
@@ -299,9 +357,26 @@ public sealed class BehaviorSettings
 
     public bool ShowHidden { get; set; }
 
+    /// <summary>
+    /// 显示系统文件（FR-5.2.4）。默认关：<c>pagefile.sys</c>、<c>System Volume Information</c>
+    /// 这类东西对日常浏览只是干扰。与 <see cref="ShowHidden"/> 各管一位，
+    /// 两个属性都带上的条目（<c>desktop.ini</c>）要两个开关都开才出现。
+    /// </summary>
+    public bool ShowSystem { get; set; }
+
     public bool ShowExtensions { get; set; } = true;
 
     public bool ConfirmDelete { get; set; } = true;
+
+    /// <summary>
+    /// 一次操作涉及多项时的确认（FR-5.2.8 的"批量操作"）。
+    /// 与 <see cref="ConfirmDelete"/> 分开是为了让"单删不啰嗦、批量仍拦一道"成为可选：
+    /// 只留一个总开关时，嫌单删弹窗烦的人会连批量保护一起关掉。
+    ///
+    /// "覆盖"那一项暂未落地：当前复制/移动遇到同名一律自动改名（<c>FileOperations.UniqueName</c>），
+    /// 没有覆盖路径可供确认。等覆盖式粘贴的需求进来时再补一个开关。
+    /// </summary>
+    public bool ConfirmBatch { get; set; } = true;
 
     public bool DoubleClickOpens { get; set; } = true;
 

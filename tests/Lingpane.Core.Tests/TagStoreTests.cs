@@ -1,3 +1,4 @@
+using Lingpane.Core.FileSystem;
 using Lingpane.Core.Tagging;
 
 namespace Lingpane.Core.Tests;
@@ -249,5 +250,54 @@ public sealed class TagStoreTests : IDisposable
         store.EnsureLoaded();
 
         Assert.Equal(1, raised);
+    }
+
+    [Fact]
+    public void 清理失效项只删对不上的那几条()
+    {
+        // FR-4.2.6 / FR-5.3.6：判据是"用记录里的路径重新 Identify，结果与记录一致"。
+        // 不能只判文件存不存在——同卷移动后原地被别人占用，路径还在但已经是另一个文件。
+        string keep = Path.Combine(_dir, "keep.txt");
+        string gone = Path.Combine(_dir, "gone.txt");
+        File.WriteAllText(keep, "k");
+        File.WriteAllText(gone, "g");
+
+        Assert.True(FileIdEnumerator.TryIdentify(keep, out ulong keepVolume, out ulong keepId));
+        Assert.True(FileIdEnumerator.TryIdentify(gone, out ulong goneVolume, out ulong goneId));
+
+        TagStore store = Open();
+        store.Set(new TagTarget(keepVolume, keepId, keep), TagColors.Red);
+        store.Set(new TagTarget(goneVolume, goneId, gone), TagColors.Blue);
+
+        // 一条路径还在但 FileId 对不上（相当于原地换了个文件），一条路径彻底没了
+        store.Set(new TagTarget(keepVolume, keepId + 99, keep), TagColors.Green);
+
+        File.Delete(gone);
+
+        int removed = store.PruneStale();
+
+        Assert.Equal(2, removed);
+        Assert.Equal(1, store.Count);
+        Assert.True(store.TryGet(keepVolume, keepId, out TagColors colors));
+        Assert.Equal(TagColors.Red, colors);
+    }
+
+    [Fact]
+    public void 没有失效项时清理不动文件()
+    {
+        string keep = Path.Combine(_dir, "only.txt");
+        File.WriteAllText(keep, "k");
+
+        Assert.True(FileIdEnumerator.TryIdentify(keep, out ulong volume, out ulong id));
+
+        TagStore store = Open();
+        store.Set(new TagTarget(volume, id, keep), TagColors.Red);
+
+        long before = new FileInfo(File_).Length;
+
+        Assert.Equal(0, store.PruneStale());
+
+        // 没有失效项就不该追加 del 行（否则每点一次文件都长一截）
+        Assert.Equal(before, new FileInfo(File_).Length);
     }
 }

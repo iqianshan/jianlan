@@ -157,6 +157,12 @@ pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Lingpane.exe -Path D:\perf
 （约 70 MB，解压后即用，不写 `%LOCALAPPDATA%`）与配套的 `.sha256`。
 包内的 `portable.flag` 让程序进入便携模式，设置与日志落在解压目录的 `data\` 里。
 
+## 隐私
+
+不收集遥测，不上传任何数据。程序本身不发起网络请求——唯一的对外动作是
+你手动点「检查更新」时，用系统浏览器打开发布页。设置、历史、收藏、标签与工作区
+全部落在本地数据目录（或便携模式下的 `data\`），不经过网络。详见 [SECURITY.md](SECURITY.md)。
+
 ## 设计原则
 
 1. **首帧优先**：窗口先出现，内容后填充
