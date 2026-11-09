@@ -1,6 +1,8 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:conv="clr-namespace:Lingpane.App.Converters">
+                    xmlns:conv="clr-namespace:Lingpane.App.Converters"
+                    xmlns:controls="clr-namespace:Lingpane.App.Controls"
+                    xmlns:views="clr-namespace:Lingpane.App.Views">
 
     <!--
         行模板。列宽必须与主窗口列头完全一致，否则排序箭头会指在错误的列上。
@@ -43,11 +45,14 @@
                 <Ellipse Style="{StaticResource Tag.Dot}"/>
             </Border>
 
-            <Image Grid.Column="1"
-                   Width="{DynamicResource Size.Icon.List}"
-                   Height="{DynamicResource Size.Icon.List}"
-                   Source="{Binding IconToken,
-                            Converter={x:Static conv:IconKeyToImageConverter.Instance}}"/>
+            <!-- 缩略图槽位（FR-6.6）。没缩略图时它自己显示 16px 类型图标，
+                 所以这里不再退回到 Image + 转换器那套。 -->
+            <controls:ThumbnailBox Grid.Column="1"
+                                   Width="{DynamicResource Size.Icon.Thumb}"
+                                   Height="{DynamicResource Size.Icon.Thumb}"
+                                   Entry="{Binding}"
+                                   IsSuppressed="{Binding IsThumbnailSuppressed,
+                                                  RelativeSource={RelativeSource AncestorType={x:Type views:PaneView}}}"/>
 
             <TextBlock Grid.Column="2"
                        Margin="8,0,8,0"
@@ -98,11 +103,14 @@
                 <Ellipse Style="{StaticResource Tag.Dot}"/>
             </Border>
 
-            <Image Grid.Column="1"
-                   Width="{DynamicResource Size.Icon.List}"
-                   Height="{DynamicResource Size.Icon.List}"
-                   Source="{Binding IconToken,
-                            Converter={x:Static conv:IconKeyToImageConverter.Instance}}"/>
+            <!-- 缩略图槽位（FR-6.6）。没缩略图时它自己显示 16px 类型图标，
+                 所以这里不再退回到 Image + 转换器那套。 -->
+            <controls:ThumbnailBox Grid.Column="1"
+                                   Width="{DynamicResource Size.Icon.Thumb}"
+                                   Height="{DynamicResource Size.Icon.Thumb}"
+                                   Entry="{Binding}"
+                                   IsSuppressed="{Binding IsThumbnailSuppressed,
+                                                  RelativeSource={RelativeSource AncestorType={x:Type views:PaneView}}}"/>
 
             <TextBlock Grid.Column="2"
                        Margin="8,0,8,0"

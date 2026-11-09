@@ -43,6 +43,7 @@ public partial class PaneView : UserControl
         RegisterCommands();
         HookRowHover();
         InitializeColumns();
+        InitializeThumbnails();
         Unloaded += OnPaneUnloaded;
         SizeChanged += OnPaneSizeChanged;
     }

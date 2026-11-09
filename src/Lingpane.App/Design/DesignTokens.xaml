@@ -99,6 +99,9 @@
     <sys:Double x:Key="Size.Icon.Large">24</sys:Double>
     <!-- 文件行图标：固定 16，不随字号变化（FONT-06）；大图标视图另取 Size.Icon.Large -->
     <sys:Double x:Key="Size.Icon.List">16</sys:Double>
+    <!-- 行内缩略图槽位（FR-6.6）：24 放在 32 的行高里，不上调行高也就塞得下。
+         再大就得改行高，那会让"万项目录一秒扫完"这件事变难。 -->
+    <sys:Double x:Key="Size.Icon.Thumb">24</sys:Double>
 
     <sys:Double x:Key="Size.Tag.Dot">6</sys:Double>
     <sys:Double x:Key="Size.Tag.Gutter">12</sys:Double>

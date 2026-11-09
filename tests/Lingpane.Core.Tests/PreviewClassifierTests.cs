@@ -81,6 +81,17 @@ public sealed class PreviewClassifierTests
     }
 
     [Theory]
+    [InlineData(@"C://a//photo.png", true)]
+    [InlineData(@"C://a//clip.MP4", true)]
+    [InlineData(@"C://a//movie.mkv", true)]
+    [InlineData(@"C://a//manual.pdf", false)]
+    [InlineData(@"C://a//notes.txt", false)]
+    [InlineData(@"C://a//old.rmvb", false)]
+    [InlineData(@"C://a//README", false)]
+    public void 只有位图与视频在行内出缩略图(string path, bool expected)
+        => Assert.Equal(expected, PreviewClassifier.SupportsThumbnail(path));
+
+    [Theory]
     [InlineData(@"\\nas\share\a.txt", true)]
     [InlineData(@"C:\a.txt", false)]
     [InlineData(@"\\", true)]

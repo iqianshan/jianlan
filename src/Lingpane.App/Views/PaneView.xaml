@@ -359,7 +359,8 @@
                     </Grid.ColumnDefinitions>
 
                     <Border Grid.Column="0" Width="{DynamicResource Size.Tag.Gutter}"/>
-                    <Border Grid.Column="1" Width="{DynamicResource Size.Icon.List}"/>
+                    <!-- 与行里的缩略图槽位同宽（FR-6.6），否则列头与内容会错开 8px -->
+                    <Border Grid.Column="1" Width="{DynamicResource Size.Icon.Thumb}"/>
 
                     <Button Grid.Column="2"
                             x:Name="NameHeaderButton"
@@ -437,6 +438,7 @@
                          DragLeave="OnFileDragLeave"
                          Drop="OnFileDrop"
                          MouseDoubleClick="OnFileDoubleClick"
+                         ScrollViewer.ScrollChanged="OnFileListScroll"
                          PreviewKeyDown="OnFileListKeyDown"
                          GotKeyboardFocus="OnFileListGotFocus"
                          Tag="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}">

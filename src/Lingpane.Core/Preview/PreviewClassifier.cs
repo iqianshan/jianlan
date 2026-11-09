@@ -76,6 +76,36 @@ public static class PreviewClassifier
     /// <summary>PDF 是唯一设了体积闸门的 Shell 类型——单页解析量随文件线性增长，最坏情况会吃满预算。</summary>
     private const string PdfExtension = ".pdf";
 
+    /// <summary>
+    /// 值得为它生成行内缩略图的视频扩展名（FR-6.6）。
+    ///
+    /// 判断依据只有"Shell 有取帧能力"：这些容器都能被 <c>IShellItemImageFactory</c>
+    /// 解出首帧。故意不收 <c>.rmvb</c>、<c>.rm</c> 这类已经没人装解码器的格式——
+    /// 它们会稳定地失败一次、白白占掉一次跨进程调用。
+    /// </summary>
+    private static readonly HashSet<string> VideoExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".mp4", ".m4v", ".mov", ".avi", ".wmv", ".mkv", ".webm", ".flv",
+        ".mpg", ".mpeg", ".ts", ".m2ts", ".3gp", ".ogv",
+    };
+
+    /// <summary>
+    /// 这个文件值不值得在列表行里显示缩略图（FR-6.6）。
+    ///
+    /// 只在位图与视频上返回 true：文档类（PDF/Office）取缩略图的代价高得多
+    /// （要拉起解析器、单页渲染），放在"万项目录里每行一次"的场景里不值。
+    /// 那些类型由预览窗格负责——这也正是 C14 把缩略图能力划给预览窗格的原因。
+    /// </summary>
+    public static bool SupportsThumbnail(string? path)
+    {
+        if (string.IsNullOrEmpty(path)) return false;
+
+        string extension = Path.GetExtension(path);
+        if (extension.Length == 0) return false;
+
+        return ImageExtensions.Contains(extension) || VideoExtensions.Contains(extension);
+    }
+
     /// <summary>判定一个条目走哪条预览路径。目录一律 <see cref="PreviewKind.None"/>。</summary>
     public static PreviewKind Classify(string? path, long size, bool isDirectory)
     {
