@@ -138,7 +138,7 @@ public partial class PaneView
     ///
     /// 折叠只影响本次显示，不动配置：拉宽窗口列就回来，用户设置里那份宽度也没被改写。
     /// </summary>
-    private void ApplyResponsiveShrink(double[] widths, double[] defaults, bool[] shown, double paneWidth)
+    private static void ApplyResponsiveShrink(double[] widths, double[] defaults, bool[] shown, double paneWidth)
     {
         if (paneWidth <= 0 || double.IsNaN(paneWidth)) return;
 
