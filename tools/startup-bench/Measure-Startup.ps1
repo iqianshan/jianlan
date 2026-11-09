@@ -152,6 +152,16 @@ $logPath = Join-Path $env:LOCALAPPDATA 'Lingpane\logs\startup.log'
 # 用 .NET API 而非 Remove-Item：某些环境对 cmdlet 的删除有安全钩子拦截
 if (Test-Path $logPath) { [System.IO.File]::Delete($logPath) }
 
+# 会话标记的位置跟应用自己的解析规则走：便携包在 exe\data\，否则在 %LOCALAPPDATA%\Lingpane\。
+# 不按 $logPath 反推，是因为日志位置在便携包里本来就不对（脚本只读 LOCALAPPDATA）。
+$sessionMark = Join-Path (Split-Path (Split-Path $logPath)) 'session.json'
+$exeDir = Split-Path -Parent $Exe
+if ((Test-Path (Join-Path $exeDir 'portable.flag')) -or
+    (Test-Path (Join-Path $exeDir 'portable.marker')) -or
+    (Test-Path (Join-Path $exeDir 'data'))) {
+    $sessionMark = Join-Path (Join-Path $exeDir 'data') 'session.json'
+}
+
 function Get-Percentile {
     param([double[]]$Values, [double]$P)
     $sorted = $Values | Sort-Object
@@ -202,6 +212,11 @@ for ($i = 1; $i -le $Runs; $i++) {
     }
 
     if (-not $proc.HasExited) { $proc.Kill(); $proc.WaitForExit() }
+
+    # 强杀等于"上次没正常退出"（FR-10.6 靠 session.json 标记判断），
+    # 不清理的话跑完测量后用户下次正常启动会看到一条假的异常退出提示。
+    # 每个进程只真正启动一次，这个文件一定是本次测量留下的，删掉是安全的。
+    if (Test-Path $sessionMark) { [System.IO.File]::Delete($sessionMark) }
 
     if ($null -ne $innerMs) { $inner.Add($innerMs) }
 
