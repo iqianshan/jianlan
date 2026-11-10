@@ -49,6 +49,88 @@ internal static class Program
             return BinProbe(argv.SkipWhile(a => a != "--bin-probe").Skip(1).FirstOrDefault());
         }
 
+        // 窗口图标探针：读一个**已经跑起来的进程**交给系统的图标，落成 PNG。
+        // --icon-probe 看的是本工具自己建的窗口，受宿主影响；这个看的是真实 exe 在真实桌面上
+        // 被任务栏取走的那一张，两者不是一回事——"代码里设了"和"任务栏显示了"中间还隔着系统
+        if (argv.Contains("--probe-window-icon"))
+        {
+            string[] rest = argv.SkipWhile(a => a != "--probe-window-icon").Skip(1).ToArray();
+
+            if (rest.Length < 2 || !int.TryParse(rest[0], out int targetPid))
+            {
+                Console.WriteLine("用法：--probe-window-icon <pid> <out.png>");
+                return 1;
+            }
+
+            return ProbeWindowIcon(targetPid, Path.GetFullPath(rest[1]));
+        }
+
+        // 桌面截屏：进程内状态能打印，"任务栏到底画了什么"只能看屏幕
+        if (argv.Contains("--screen-shot"))
+        {
+            string[] rest = argv.SkipWhile(a => a != "--screen-shot").Skip(1).ToArray();
+
+            if (rest.Length < 1)
+            {
+                Console.WriteLine("用法：--screen-shot <out.png> [x y w h]");
+                return 1;
+            }
+
+            int[] rect = [.. rest.Skip(1).Take(4).Select(v => int.TryParse(v, out int n) ? n : 0)];
+
+            return ScreenShot(
+                Path.GetFullPath(rest[0]),
+                rect.Length > 0 ? rect[0] : 0,
+                rect.Length > 1 ? rect[1] : 0,
+                rect.Length > 2 ? rect[2] : 0,
+                rect.Length > 3 ? rect[3] : 0);
+        }
+
+        // 建快捷方式：任务栏对没有 shell 快捷方式的桌面程序会退回默认图标，
+        // 用它验证「开始菜单里有 lnk 之后图标是否恢复正常」
+        if (argv.Contains("--make-shortcut"))
+        {
+            string[] rest = argv.SkipWhile(a => a != "--make-shortcut").Skip(1).ToArray();
+
+            if (rest.Length < 2)
+            {
+                Console.WriteLine("用法：--make-shortcut <targetExe> <out.lnk>");
+                return 1;
+            }
+
+            return MakeShortcut(Path.GetFullPath(rest[0]), Path.GetFullPath(rest[1]));
+        }
+
+        // 进程顶层窗口清单：确认任务栏按钮对应的是哪个窗口，
+        // 以及那个窗口有没有 WS_EX_APPWINDOW（没有就不会出现在任务栏）
+        if (argv.Contains("--probe-process-windows"))
+        {
+            string[] rest = argv.SkipWhile(a => a != "--probe-process-windows").Skip(1).ToArray();
+
+            if (rest.Length < 1 || !int.TryParse(rest[0], out int targetPid))
+            {
+                Console.WriteLine("用法：--probe-process-windows <pid>");
+                return 1;
+            }
+
+            return ProbeProcessWindows(targetPid);
+        }
+
+        // exe 图标探针：问的是**系统眼里这个 exe 是什么图标**，与窗口自己设的 Icon 无关。
+        // 任务栏按钮、资源管理器、快捷方式用的都是这一份，返回缓存值也照样反映出来
+        if (argv.Contains("--probe-exe-icon"))
+        {
+            string[] rest = argv.SkipWhile(a => a != "--probe-exe-icon").Skip(1).ToArray();
+
+            if (rest.Length < 2)
+            {
+                Console.WriteLine("用法：--probe-exe-icon <exe> <out.png>");
+                return 1;
+            }
+
+            return ProbeExeIcon(Path.GetFullPath(rest[0]), Path.GetFullPath(rest[1]));
+        }
+
         string outPath = argv.Length > 0
             ? Path.GetFullPath(argv[0])
             : Path.Combine(Environment.CurrentDirectory, "shot.png");
@@ -2653,6 +2735,245 @@ internal static class Program
     /// 回收站探针。列出条目及每条可用的动词名，用于确认还原动词的真实写法。
     /// 传入 <paramref name="target"/> 时会尝试用每个动词还原，并报告文件有没有真的回到原位。
     /// </summary>
+    /// <summary>
+    /// 列出进程的顶层窗口，逐个报类名、标题、可见性、扩展样式与图标句柄。
+    /// 用途是判断「任务栏上那个按钮对应哪个窗口」：只有带 WS_EX_APPWINDOW、
+    /// 或虽带 WS_EX_TOOLWINDOW 但被显式排除的窗口才会进任务栏。
+    /// </summary>
+    private static int ProbeProcessWindows(int pid)
+    {
+        var rows = new List<string>();
+
+        Native.EnumWindows((hwnd, _) =>
+        {
+            Native.GetWindowThreadProcessId(hwnd, out uint owner);
+            if (owner != (uint)pid) return true;
+
+            var cls = new StringBuilder(256);
+            Native.GetClassName(hwnd, cls, cls.Capacity);
+
+            var title = new StringBuilder(256);
+            Native.GetWindowText(hwnd, title, title.Capacity);
+
+            long ex = Native.GetWindowLongPtr(hwnd, Native.GwlExStyle).ToInt64();
+            IntPtr big = Native.SendMessage(hwnd, Native.WmGetIcon, new IntPtr(1), IntPtr.Zero);
+            IntPtr small = Native.SendMessage(hwnd, Native.WmGetIcon, IntPtr.Zero, IntPtr.Zero);
+
+            rows.Add(string.Join("  ", [
+                $"hwnd=0x{hwnd.ToInt64():X}",
+                $"cls={cls}",
+                $"visible={Native.IsWindowVisible(hwnd)}",
+                $"appWindow={(ex & Native.WsExAppWindow) != 0}",
+                $"toolWindow={(ex & Native.WsExToolWindow) != 0}",
+                $"big=0x{big.ToInt64():X}",
+                $"small=0x{small.ToInt64():X}",
+                $"title=\"{title}\"",
+            ]));
+
+            return true;
+        }, IntPtr.Zero);
+
+        Console.WriteLine($"process={pid} 顶层窗口 {rows.Count} 个");
+
+        foreach (string row in rows) Console.WriteLine(row);
+
+        return rows.Count == 0 ? 2 : 0;
+    }
+
+    /// <summary>
+    /// 问系统要 exe 的图标（SHGetFileInfo，大图标）。任务栏按钮用的就是这一份，
+    /// 不是窗口自己 WM_SETICON 的那一份——两者不一致时，用户看到的一定是这一份。
+    /// </summary>
+    private static int ProbeExeIcon(string exePath, string outPath)
+    {
+        if (!File.Exists(exePath))
+        {
+            Console.WriteLine($"exe 不存在：{exePath}");
+            return 1;
+        }
+
+        var info = new Native.ShellFileInfo();
+
+        IntPtr result = Native.SHGetFileInfo(
+            exePath, 0, ref info, (uint)System.Runtime.InteropServices.Marshal.SizeOf<Native.ShellFileInfo>(),
+            Native.ShgfiIcon | Native.ShgfiLargeIcon);
+
+        Console.WriteLine($"exe={exePath}");
+        Console.WriteLine($"exe.size={new FileInfo(exePath).Length}");
+        Console.WriteLine($"exe.mtime={File.GetLastWriteTime(exePath):yyyy-MM-dd HH:mm:ss}");
+        Console.WriteLine($"shgfi.result={result} iconIndex={info.iIcon}");
+
+        if (result == IntPtr.Zero || info.hIcon == IntPtr.Zero)
+        {
+            Console.WriteLine("系统没有返回图标");
+            return 2;
+        }
+
+        System.Windows.Media.Imaging.BitmapSource source =
+            System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
+                info.hIcon, System.Windows.Int32Rect.Empty,
+                System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+
+        Console.WriteLine($"icon.size={source.PixelWidth}x{source.PixelHeight}");
+
+        var pixels = new byte[source.PixelWidth * source.PixelHeight * 4];
+        source.CopyPixels(pixels, source.PixelWidth * 4, 0);
+
+        int width = source.PixelWidth;
+        int height = source.PixelHeight;
+
+        int blue = 0;
+        for (int i = 0; i < pixels.Length; i += 4)
+        {
+            byte b = pixels[i], g = pixels[i + 1], r = pixels[i + 2];
+            if (b > 120 && b > r + 40) blue++;
+        }
+
+        Console.WriteLine($"icon.blueRatio={(double)blue / (width * height):P1}");
+
+        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(source));
+
+        using (FileStream stream = File.Create(outPath)) encoder.Save(stream);
+
+        Native.DestroyIcon(info.hIcon);
+
+        Console.WriteLine($"已保存 {outPath}");
+        return 0;
+    }
+
+    /// <summary>
+    /// 抓桌面。不带矩形就抓整屏。
+    /// 进程内的字段能打印，但「任务栏上到底画了什么」只有真的看屏幕才知道——
+    /// 图标设置成功与图标显示正确是两件事，中间隔着系统缩放与缓存。
+    /// </summary>
+    private static int ScreenShot(string outPath, int x, int y, int width, int height)
+    {
+        if (width <= 0 || height <= 0)
+        {
+            x = 0;
+            y = 0;
+            width = Native.GetSystemMetrics(0);
+            height = Native.GetSystemMetrics(1);
+        }
+
+        IntPtr screenDc = Native.GetDC(IntPtr.Zero);
+        IntPtr memoryDc = Native.CreateCompatibleDC(screenDc);
+        IntPtr bitmap = Native.CreateCompatibleBitmap(screenDc, width, height);
+        IntPtr previous = Native.SelectObject(memoryDc, bitmap);
+
+        bool ok = Native.BitBlt(memoryDc, 0, 0, width, height, screenDc, x, y, Native.SrcCopy);
+
+        Native.SelectObject(memoryDc, previous);
+
+        if (!ok)
+        {
+            Native.DeleteObject(bitmap);
+            Native.DeleteDC(memoryDc);
+            Native.ReleaseDC(IntPtr.Zero, screenDc);
+            Console.WriteLine("截屏失败：BitBlt 返回 false");
+            return 2;
+        }
+
+        System.Windows.Media.Imaging.BitmapSource source =
+            System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(
+                bitmap, IntPtr.Zero, System.Windows.Int32Rect.Empty,
+                System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+
+        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(source));
+
+        using (FileStream stream = File.Create(outPath)) encoder.Save(stream);
+
+        Native.DeleteObject(bitmap);
+        Native.DeleteDC(memoryDc);
+        Native.ReleaseDC(IntPtr.Zero, screenDc);
+
+        Console.WriteLine($"screen={width}x{height} origin=({x},{y})");
+        Console.WriteLine($"已保存 {outPath}");
+        return 0;
+    }
+
+    /// <summary>
+    /// 从运行中的进程主窗口取图标，回答的是「任务栏实际会画哪一张」。
+    /// 三个来源分开报：
+    ///   · <c>WM_GETICON</c> 的 ICON_BIG / ICON_SMALL —— WPF 的 <c>Window.Icon</c> 就落在这里，
+    ///     任务栏按钮取 BIG，标题栏取 SMALL；
+    ///   · <c>GetClassLongPtr(GCLP_HICON)</c> —— 窗口**类**上登记的图标，窗口自己没设时才轮到它。
+    /// 全为 0 说明窗口没有图标，系统会画默认那张空白窗口图。
+    /// </summary>
+    private static int ProbeWindowIcon(int pid, string outPath)
+    {
+        using System.Diagnostics.Process process = System.Diagnostics.Process.GetProcessById(pid);
+        process.Refresh();
+
+        IntPtr hwnd = process.MainWindowHandle;
+        Console.WriteLine($"window.pid={pid}");
+        Console.WriteLine($"window.title={process.MainWindowTitle}");
+
+        if (hwnd == IntPtr.Zero)
+        {
+            Console.WriteLine("window.hwnd=0 —— 主窗口还没建好，或进程已退出");
+            return 2;
+        }
+
+        Console.WriteLine($"window.hwnd=0x{hwnd.ToInt64():X}");
+
+        IntPtr big = Native.SendMessage(hwnd, Native.WmGetIcon, new IntPtr(1), IntPtr.Zero);
+        IntPtr small = Native.SendMessage(hwnd, Native.WmGetIcon, IntPtr.Zero, IntPtr.Zero);
+        IntPtr small2 = Native.SendMessage(hwnd, Native.WmGetIcon, new IntPtr(2), IntPtr.Zero);
+        IntPtr cls = Native.GetClassLongPtr(hwnd, Native.GclpHicon);
+
+        Console.WriteLine($"icon.big=0x{big.ToInt64():X}    (任务栏按钮用这个)");
+        Console.WriteLine($"icon.small=0x{small.ToInt64():X}  (标题栏用这个)");
+        Console.WriteLine($"icon.small2=0x{small2.ToInt64():X}");
+        Console.WriteLine($"icon.class=0x{cls.ToInt64():X}  (窗口类登记的)");
+
+        IntPtr chosen = big != IntPtr.Zero ? big
+            : small != IntPtr.Zero ? small
+            : small2 != IntPtr.Zero ? small2
+            : cls;
+
+        if (chosen == IntPtr.Zero)
+        {
+            Console.WriteLine("icon.result=窗口没有设图标，系统会画默认那张空白窗口图");
+            return 0;
+        }
+
+        System.Windows.Media.Imaging.BitmapSource source =
+            System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
+                chosen, System.Windows.Int32Rect.Empty,
+                System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+
+        Console.WriteLine($"icon.size={source.PixelWidth}x{source.PixelHeight}");
+
+        // 采几个点看底色：蓝底反白版四周应接近 #2F6BE0，透明底版四周 alpha 为 0
+        var pixels = new byte[source.PixelWidth * source.PixelHeight * 4];
+        source.CopyPixels(pixels, source.PixelWidth * 4, 0);
+
+        (int X, int Y)[] probes =
+        [
+            (2, 2),
+            (source.PixelWidth / 2, source.PixelHeight / 2),
+            (source.PixelWidth - 3, source.PixelHeight - 3),
+        ];
+
+        foreach ((int x, int y) in probes)
+        {
+            int i = ((y * source.PixelWidth) + x) * 4;
+            Console.WriteLine(
+                $"icon.pixel({x},{y})=#{pixels[i + 2]:X2}{pixels[i + 1]:X2}{pixels[i]:X2} a={pixels[i + 3]}");
+        }
+
+        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(source));
+
+        using (FileStream stream = File.Create(outPath)) encoder.Save(stream);
+
+        Console.WriteLine($"已保存 {outPath}");
+        return 0;
+    }
+
     private static int BinProbe(string? target)
     {
         Type? shellType = Type.GetTypeFromProgID("Shell.Application");
@@ -2793,6 +3114,80 @@ internal static class Program
         return null;
     }
 
+    /// <summary>
+    /// 用 IShellLink 建一个 .lnk。PowerShell 那条 WScript.Shell 的路被安全策略挡着，
+    /// 这里直接走 COM 接口，参数可控。
+    /// </summary>
+    private static int MakeShortcut(string target, string linkPath)
+    {
+        if (!File.Exists(target))
+        {
+            Console.WriteLine($"目标不存在：{target}");
+            return 1;
+        }
+
+        string? directory = Path.GetDirectoryName(linkPath);
+        if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+
+        var link = (IShellLinkW)new ShellLink();
+        link.SetPath(target);
+        link.SetWorkingDirectory(Path.GetDirectoryName(target) ?? string.Empty);
+        link.SetDescription("棂窗");
+        link.SetIconLocation(target, 0);
+
+        ((IPersistFile)link).Save(linkPath, true);
+
+        Console.WriteLine($"已创建 {linkPath}");
+        Console.WriteLine($"target={target}");
+        Console.WriteLine($"exists={File.Exists(linkPath)}");
+        Console.WriteLine($"iconLocation={target},0");
+        return 0;
+    }
+
+    [ComImport]
+    [Guid("00021401-0000-0000-C000-000000000046")]
+    private class ShellLink
+    {
+    }
+
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("000214F9-0000-0000-C000-000000000046")]
+    private interface IShellLinkW
+    {
+        void GetPath([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder file, int capacity, IntPtr findData, uint flags);
+        void GetIDList(out IntPtr itemIdList);
+        void SetIDList(IntPtr itemIdList);
+        void GetDescription([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder name, int capacity);
+        void SetDescription([MarshalAs(UnmanagedType.LPWStr)] string name);
+        void GetWorkingDirectory([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder dir, int capacity);
+        void SetWorkingDirectory([MarshalAs(UnmanagedType.LPWStr)] string dir);
+        void GetArguments([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder args, int capacity);
+        void SetArguments([MarshalAs(UnmanagedType.LPWStr)] string args);
+        void GetHotkey(out short hotkey);
+        void SetHotkey(short hotkey);
+        void GetShowCmd(out int showCmd);
+        void SetShowCmd(int showCmd);
+        void GetIconLocation([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder iconPath, int capacity, out int iconIndex);
+        void SetIconLocation([MarshalAs(UnmanagedType.LPWStr)] string iconPath, int iconIndex);
+        void SetRelativePath([MarshalAs(UnmanagedType.LPWStr)] string pathRel, uint reserved);
+        void Resolve(IntPtr hwnd, uint flags);
+        void SetPath([MarshalAs(UnmanagedType.LPWStr)] string file);
+    }
+
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("0000010b-0000-0000-C000-000000000046")]
+    private interface IPersistFile
+    {
+        void GetClassID(out Guid classId);
+        void IsDirty();
+        void Load([MarshalAs(UnmanagedType.LPWStr)] string fileName, uint mode);
+        void Save([MarshalAs(UnmanagedType.LPWStr)] string fileName, [MarshalAs(UnmanagedType.Bool)] bool remember);
+        void SaveCompleted([MarshalAs(UnmanagedType.LPWStr)] string fileName);
+        void GetCurFile([MarshalAs(UnmanagedType.LPWStr)] out string fileName);
+    }
+
     private static class Native
     {
         public delegate bool EnumChildProc(IntPtr hwnd, IntPtr param);
@@ -2835,6 +3230,9 @@ internal static class Program
         public static extern IntPtr GetDC(IntPtr hwnd);
 
         [DllImport("user32.dll")]
+        public static extern int GetSystemMetrics(int index);
+
+        [DllImport("user32.dll")]
         public static extern int ReleaseDC(IntPtr hwnd, IntPtr dc);
 
         [DllImport("gdi32.dll")]
@@ -2851,6 +3249,79 @@ internal static class Program
 
         [DllImport("gdi32.dll")]
         public static extern bool DeleteDC(IntPtr dc);
+
+        /// <summary>WM_GETICON。任务栏按钮取的是 ICON_BIG(1)，标题栏取 ICON_SMALL(0)。</summary>
+        public const int WmGetIcon = 0x007F;
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SendMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);
+
+        // GetClassLongPtr 只有 64 位 user32 导出；32 位进程必须走 GetClassLong
+        [DllImport("user32.dll", EntryPoint = "GetClassLongPtrW")]
+        private static extern IntPtr GetClassLongPtrNative(IntPtr hwnd, int index);
+
+        [DllImport("user32.dll", EntryPoint = "GetClassLongW")]
+        private static extern uint GetClassLongNative(IntPtr hwnd, int index);
+
+        public static IntPtr GetClassLongPtr(IntPtr hwnd, int index)
+            => IntPtr.Size == 8 ? GetClassLongPtrNative(hwnd, index) : new IntPtr(GetClassLongNative(hwnd, index));
+
+        /// <summary>GCLP_HICON：窗口**类**上登记的图标。窗口自己没设图标时，任务栏就用这个。</summary>
+        public const int GclpHicon = -14;
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        public struct ShellFileInfo
+        {
+            public IntPtr hIcon;
+            public int iIcon;
+            public uint dwAttributes;
+
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+            public string szDisplayName;
+
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)]
+            public string szTypeName;
+        }
+
+        public const uint ShgfiIcon = 0x0000_0100;
+        public const uint ShgfiLargeIcon = 0x0000_0000;
+        public const uint ShgfiSmallIcon = 0x0000_0001;
+        public const uint ShgfiSysIconIndex = 0x0000_4000;
+
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        public static extern IntPtr SHGetFileInfo(
+            string path, uint fileAttributes, ref ShellFileInfo info, uint infoSize, uint flags);
+
+        [DllImport("user32.dll")]
+        public static extern bool DestroyIcon(IntPtr icon);
+
+        public delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr param);
+
+        [DllImport("user32.dll")]
+        public static extern bool EnumWindows(EnumWindowsProc callback, IntPtr param);
+
+        [DllImport("user32.dll")]
+        public static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "GetWindowTextW")]
+        public static extern int GetWindowText(IntPtr hwnd, StringBuilder text, int capacity);
+
+        /// <summary>GWL_EXSTYLE。判断 WS_EX_APPWINDOW / WS_EX_TOOLWINDOW 用。</summary>
+        public const int GwlExStyle = -20;
+
+        public const long WsExToolWindow = 0x0000_0080;
+        public const long WsExAppWindow = 0x0004_0000;
+
+        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+        private static extern IntPtr GetWindowLongPtrNative64(IntPtr hwnd, int index);
+
+        [DllImport("user32.dll", EntryPoint = "GetWindowLongW")]
+        private static extern int GetWindowLongNative32(IntPtr hwnd, int index);
+
+        public static IntPtr GetWindowLongPtr(IntPtr hwnd, int index)
+            => IntPtr.Size == 8
+                ? GetWindowLongPtrNative64(hwnd, index)
+                : new IntPtr(GetWindowLongNative32(hwnd, index));
     }
 }
 

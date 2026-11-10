@@ -112,6 +112,55 @@ public partial class MainWindow : Window
     /// 结果"开新窗口"变成"让已有窗口跳过去"。所以副窗口必须是同进程的第二个窗口。
     /// 两个参数都为空时就是主窗口，走平时的会话恢复。
     /// </summary>
+    /// <summary>
+    /// 任务栏与标题栏的图标，直接从 exe 的图标资源取，不走 WPF 的 ImageSource→HICON 那条路。
+    ///
+    /// 为什么要绕：设了 <c>Window.Icon</c> 之后，窗口自己 WM_GETICON 查得到句柄、取出来的位图
+    /// 也确实是品牌蓝（实测 72% 像素是 #2F6BE0 系），但任务栏按钮画的仍是系统默认图。
+    /// 换成纯红色块再试，任务栏依旧不变；同一台机器上记事本这类原生程序显示正常。
+    /// 也就是说任务栏没有接受 WPF 生成的那个 HICON。
+    ///
+    /// 改成用 LoadImage 从 exe 自己的 RT_GROUP_ICON（csproj 的 ApplicationIcon 生成在 32512）
+    /// 取句柄，这是标准的图标句柄，标题栏和任务栏都认。取不到就保持 WPF 的行为不动。
+    /// </summary>
+    private void ApplyIconFromExeResources()
+    {
+        IntPtr hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero) return;
+
+        IntPtr instance = GetModuleHandle(null);
+
+        // 按当前 DPI 要尺寸：150% 缩放下任务栏按钮是 48，给 32 会被放大发虚
+        double scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
+        int bigSize = (int)Math.Round(32 * scale);
+        int smallSize = (int)Math.Round(16 * scale);
+
+        IntPtr big = LoadImage(instance, IconResourceId, ImageIcon, bigSize, bigSize, 0);
+        IntPtr small = LoadImage(instance, IconResourceId, ImageIcon, smallSize, smallSize, 0);
+
+        if (big != IntPtr.Zero) _ = SendMessage(hwnd, WmSetIcon, IconBig, big);
+        if (small != IntPtr.Zero) _ = SendMessage(hwnd, WmSetIcon, IconSmall, small);
+    }
+
+    /// <summary>csproj 里 <c>ApplicationIcon</c> 生成的组图标编号，即标准 IDI_APPLICATION。</summary>
+    private const string IconResourceId = "#32512";
+
+    private const uint ImageIcon = 1;
+    private const int WmSetIcon = 0x0080;
+
+    private static readonly IntPtr IconBig = new(1);
+    private static readonly IntPtr IconSmall = IntPtr.Zero;
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr LoadImage(
+        IntPtr instance, string name, uint type, int width, int height, uint flags);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+    private static extern IntPtr GetModuleHandle(string? moduleName);
+
     public MainWindow(string? initialPath, string? initialSecondPath)
     {
         _isSecondaryWindow = !string.IsNullOrEmpty(initialPath);
@@ -1374,6 +1423,8 @@ public partial class MainWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
+
+        ApplyIconFromExeResources();
         AttachKeyHook();
     }
 
