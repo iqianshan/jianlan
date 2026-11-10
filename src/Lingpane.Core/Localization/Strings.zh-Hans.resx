@@ -1098,7 +1098,7 @@
     <value>工作区</value>
   </data>
   <data name="Nav.Workspaces.Empty" xml:space="preserve">
-    <value>还没有工作区，保存当前标签页试试</value>
+    <value>还没有工作区。点这个标题，选「保存当前标签…」</value>
   </data>
   <data name="Nav.Workspace.Tooltip" xml:space="preserve">
     <value>共 {0} 个标签</value>
@@ -1716,5 +1716,82 @@
   </data>
   <data name="Status.NewWindowNoPath" xml:space="preserve">
     <value>只有目录能在新窗口打开。</value>
+  </data>
+  <data name="Preview.Action.Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="Preview.Action.Open.Tip" xml:space="preserve">
+    <value>打开这一项</value>
+  </data>
+  <data name="Preview.Action.CopyPath" xml:space="preserve">
+    <value>复制路径</value>
+  </data>
+  <data name="Preview.Action.CopyPath.Tip" xml:space="preserve">
+    <value>复制完整路径到剪贴板</value>
+  </data>
+  <data name="Preview.Action.Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Preview.Action.Delete.Tip" xml:space="preserve">
+    <value>删除到回收站，可用 Ctrl+Z 撤销</value>
+  </data>
+  <data name="Settings.Behavior.WarnOnExecutable" xml:space="preserve">
+    <value>双击可执行文件时先确认</value>
+  </data>
+  <data name="Settings.Behavior.WarnOnExecutable.Hint" xml:space="preserve">
+    <value>开启后，双击 .exe / .bat / .cmd / .ps1 / .msi 这类文件会先显示文件名与完整路径，确认后才运行。默认关闭：它挡的是误双击，不是病毒，而每一次正常运行都会多一道弹窗。</value>
+  </data>
+  <data name="Dialog.ExecutableTitle" xml:space="preserve">
+    <value>打开可执行文件？</value>
+  </data>
+  <data name="Dialog.ExecutableBody" xml:space="preserve">
+    <value>即将运行下面这个文件：
+
+{0}
+{1}
+
+只在你确认这是自己想运行的程序时才继续。</value>
+  </data>
+  <data name="Command.Undo" xml:space="preserve">
+    <value>撤销</value>
+  </data>
+  <data name="Status.UndoDone" xml:space="preserve">
+    <value>已撤销最近一次操作（{0} 项）</value>
+  </data>
+  <data name="Status.UndoPartial" xml:space="preserve">
+    <value>已撤销 {0} 项，{1} 项未动：{2}</value>
+  </data>
+  <data name="Status.UndoFailed" xml:space="preserve">
+    <value>未能撤销：{0}</value>
+  </data>
+  <data name="Status.UndoNothing" xml:space="preserve">
+    <value>没有可撤销的操作</value>
+  </data>
+  <data name="Status.PermanentDeletedNoUndo" xml:space="preserve">
+    <value>已永久删除 {0} 项，此操作不可撤销</value>
+  </data>
+  <data name="Undo.Nothing" xml:space="preserve">
+    <value>没有可撤销的记录</value>
+  </data>
+  <data name="Undo.NameTaken" xml:space="preserve">
+    <value>原来的名字已被占用</value>
+  </data>
+  <data name="Undo.PlaceGone" xml:space="preserve">
+    <value>原来的位置已经不在了</value>
+  </data>
+  <data name="Undo.Modified" xml:space="preserve">
+    <value>这一项在操作之后被修改过</value>
+  </data>
+  <data name="Undo.NoRecycle" xml:space="preserve">
+    <value>这个位置没有回收站，删掉就找不回来</value>
+  </data>
+  <data name="Undo.DeleteFailed" xml:space="preserve">
+    <value>删除失败</value>
+  </data>
+  <data name="Undo.RestoreFailed" xml:space="preserve">
+    <value>有一项没能从回收站还原，仍在回收站里</value>
+  </data>
+  <data name="Undo.FailedWithReason" xml:space="preserve">
+    <value>撤销出错：{0}</value>
   </data>
 </root>

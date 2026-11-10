@@ -89,6 +89,7 @@ public partial class SettingsWindow : Window
         ConfirmDeleteCheck.IsChecked = Settings.Behavior.ConfirmDelete;
         ConfirmBatchCheck.IsChecked = Settings.Behavior.ConfirmBatch;
         ConfirmOverwriteCheck.IsChecked = Settings.Behavior.ConfirmOverwrite;
+        WarnOnExecutableCheck.IsChecked = Settings.Behavior.WarnOnExecutable;
         LoadColumnChecks();
         CloseLastToHomeCheck.IsChecked = Settings.Behavior.CloseLastTabToHome;
         OpenModeCombo.SelectedIndex = Settings.Behavior.DoubleClickOpens ? 0 : 1;
@@ -413,6 +414,28 @@ public partial class SettingsWindow : Window
         App.SaveSettings();
     }
 
+    /// <summary>
+    /// 主窗口那边关掉（或打开）预览窗格后，把这里那颗勾选框拉回同一状态（FR-9.1.5）。
+    ///
+    /// 设置页是非模态的，两边可以同时开着。这里只改界面、不回写设置：
+    /// 值本来就是那边刚写进去的，再走一遍 <see cref="OnShowPreviewChanged"/> 是绕圈。
+    /// </summary>
+    public void SyncShowPreview()
+    {
+        bool open = Settings.Appearance.ShowPreview;
+        if (ShowPreviewCheck.IsChecked == open) return;
+
+        _loading = true;
+        try
+        {
+            ShowPreviewCheck.IsChecked = open;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
     /// <summary>预览的触发方式（FR-5.2.10）。关掉后窗格仍在，但选中不自动出内容。</summary>
     private void OnPreviewAutoChanged(object sender, RoutedEventArgs e)
     {
@@ -517,6 +540,14 @@ public partial class SettingsWindow : Window
     {
         if (_loading) return;
         Settings.Behavior.ConfirmOverwrite = ConfirmOverwriteCheck.IsChecked == true;
+        App.SaveSettings();
+    }
+
+    /// <summary>双击可执行文件时先确认（FR-5.2.11）。只管"下一次双击"，没有即时生效的界面可刷。</summary>
+    private void OnWarnOnExecutableChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        Settings.Behavior.WarnOnExecutable = WarnOnExecutableCheck.IsChecked == true;
         App.SaveSettings();
     }
 

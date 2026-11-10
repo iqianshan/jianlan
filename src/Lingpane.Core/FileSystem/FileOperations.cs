@@ -279,15 +279,27 @@ public static class FileOperations
         return tcs.Task;
     }
 
-    /// <summary>复制到目标目录。<paramref name="sources"/> 为文件或目录的完整路径。</summary>
+    /// <summary>
+    /// 复制到目标目录。<paramref name="sources"/> 为文件或目录的完整路径。
+    ///
+    /// <paramref name="destinations"/> 非空时，把每一项**实际落到的路径**收进去（FR-6.8 的撤销要用）。
+    /// 不用返回值带：<see cref="FileOpResult"/> 是"成功几项"的汇总，把逐项路径塞进去
+    /// 会让所有既有调用点都被迫处理一个它们不关心的字段。
+    /// </summary>
     public static Task<FileOpResult> CopyAsync(
-        IReadOnlyList<string> sources, string targetDirectory, ConflictPolicy conflict = ConflictPolicy.KeepBoth)
-        => Task.Run(() => CopyCore(sources, targetDirectory, conflict));
+        IReadOnlyList<string> sources,
+        string targetDirectory,
+        ConflictPolicy conflict = ConflictPolicy.KeepBoth,
+        ICollection<string>? destinations = null)
+        => Task.Run(() => CopyCore(sources, targetDirectory, conflict, destinations));
 
     /// <summary>移动到目标目录。同盘用 Move（快且原子），跨盘失败后退化为复制 + 删除。</summary>
     public static Task<FileOpResult> MoveAsync(
-        IReadOnlyList<string> sources, string targetDirectory, ConflictPolicy conflict = ConflictPolicy.KeepBoth)
-        => Task.Run(() => MoveCore(sources, targetDirectory, conflict));
+        IReadOnlyList<string> sources,
+        string targetDirectory,
+        ConflictPolicy conflict = ConflictPolicy.KeepBoth,
+        ICollection<string>? destinations = null)
+        => Task.Run(() => MoveCore(sources, targetDirectory, conflict, destinations));
 
     /// <summary>
     /// 这批源在目标目录里会撞上同名项的**名字**（FR-5.2.8）。界面层据此决定要不要问用户。
@@ -318,7 +330,10 @@ public static class FileOperations
     // ── 内部实现 ────────────────────────────────────────────────────────────
 
     private static FileOpResult CopyCore(
-        IReadOnlyList<string> sources, string targetDirectory, ConflictPolicy conflict)
+        IReadOnlyList<string> sources,
+        string targetDirectory,
+        ConflictPolicy conflict,
+        ICollection<string>? destinations)
     {
         int ok = 0, failed = 0;
         string? firstError = null;
@@ -338,12 +353,14 @@ public static class FileOperations
                 {
                     string dest = Path.Join(targetDirectory, ResolveName(targetDirectory, source, true, conflict));
                     CopyDirectory(source, dest, overwrite: conflict == ConflictPolicy.Overwrite);
+                    destinations?.Add(dest);
                     ok++;
                 }
                 else if (File.Exists(source))
                 {
                     string dest = Path.Join(targetDirectory, ResolveName(targetDirectory, source, false, conflict));
                     File.Copy(source, dest, overwrite: conflict == ConflictPolicy.Overwrite);
+                    destinations?.Add(dest);
                     ok++;
                 }
                 else
@@ -363,7 +380,10 @@ public static class FileOperations
     }
 
     private static FileOpResult MoveCore(
-        IReadOnlyList<string> sources, string targetDirectory, ConflictPolicy conflict)
+        IReadOnlyList<string> sources,
+        string targetDirectory,
+        ConflictPolicy conflict,
+        ICollection<string>? destinations)
     {
         int ok = 0, failed = 0;
         string? firstError = null;
@@ -403,6 +423,7 @@ public static class FileOperations
                     // 先删目标再搬会让"目标里源没有的文件"凭空消失——那不是用户理解的覆盖。
                     CopyDirectory(source, dest, overwrite: true);
                     Directory.Delete(source, recursive: true);
+                    destinations?.Add(dest);
                     ok++;
                     continue;
                 }
@@ -440,6 +461,7 @@ public static class FileOperations
                     }
                 }
 
+                destinations?.Add(dest);
                 ok++;
             }
             catch (Exception ex) when (IsExpected(ex))

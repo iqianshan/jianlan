@@ -15,6 +15,7 @@ using Lingpane.App.Services;
 using Lingpane.App.ViewModels;
 using Lingpane.Core.Commands;
 using Lingpane.Core.Diagnostics;
+using Lingpane.Core.FileSystem;
 using Lingpane.Core.Navigation;
 using Lingpane.Core.Settings;
 
@@ -66,6 +67,12 @@ public partial class MainWindow : Window
     /// 新标签也该是分屏；否则"切个标签分屏就没了"会被当成 bug。
     /// </summary>
     private bool _splitEnabled;
+
+    /// <summary>
+    /// 撤销栈（FR-6.8）。窗口级、单层，两个窗格共用一份。
+    /// 回收站还原走 Shell，具体实现放在 <c>Shell.RecycleBin</c>。
+    /// </summary>
+    private readonly UndoStack _undo = new(new Shell.RecycleBin());
 
     /// <summary>
     /// 首帧之后才允许读盘（P1 首帧优先）。标签切换时的懒加载要靠它区分
@@ -201,6 +208,11 @@ public partial class MainWindow : Window
 
         // 第二窗格带自己的槽位（FR-3.7）：列配置与视图/排序按"右侧"各存一份
         Pane2.Slot = PaneSlot.Secondary;
+
+        // 撤销栈是窗口级的，两侧共用（FR-6.8）：撤销的是"最近一次操作"，
+        // 不是"这个窗格的操作"。两个窗格各持一份会让 Ctrl+Z 的结果随焦点漂移。
+        Pane.Undo = _undo;
+        Pane2.Undo = _undo;
 
         // 槽位是构造之后才设的（XAML 要求无参构造），而 PaneView 构造时已经按"第一窗格"
         // 套过一次列宽。这里立刻重套一遍，否则第二窗格要等到第一次尺寸变化才对上配置。

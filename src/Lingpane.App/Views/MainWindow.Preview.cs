@@ -3,6 +3,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using Lingpane.App.ViewModels;
 using Lingpane.Core.Commands;
+using Lingpane.Core.FileSystem;
 using Lingpane.Core.Localization;
 using Lingpane.Core.Settings;
 
@@ -37,7 +38,36 @@ public partial class MainWindow
         // 那份订阅要在四处解绑，漏一处就是"切标签后预览不更新"。
         Pane.SelectionChanged += OnPaneSelectionChanged;
         Pane2.SelectionChanged += OnPaneSelectionChanged;
+
+        // 预览窗格自己的三颗操作按钮与关闭按钮（FR-9.1.5）。
+        // 都转交给"活动窗格"执行：命令、确认、撤销记录都只有一套，
+        // 预览这边再加一套就会变成两处行为逐渐不一致。
+        Preview.ActionRequested += OnPreviewAction;
+        Preview.CloseRequested += ClosePreview;
     }
+
+    private void OnPreviewAction(FileEntry entry, PreviewAction action)
+    {
+        PaneView view = ActiveView;
+
+        switch (action)
+        {
+            case PreviewAction.Open:
+                view.OpenEntry(entry);
+                break;
+
+            case PreviewAction.CopyPath:
+                view.CopyPathOf(entry);
+                break;
+
+            case PreviewAction.Delete:
+                _ = view.DeleteEntryAsync(entry);
+                break;
+        }
+    }
+
+    /// <summary>右上角的 ×（FR-9.1.5）：与 Alt+P 关掉是同一件事。</summary>
+    private void ClosePreview() => SetPreviewOpen(false);
 
     private void OnPaneSelectionChanged(PaneView view)
     {
@@ -90,14 +120,22 @@ public partial class MainWindow
     }
 
     /// <summary>Alt+P / Ctrl+Shift+P：开关预览（FR-9.1.1）。</summary>
-    private void TogglePreview()
+    private void TogglePreview() => SetPreviewOpen(!_previewOpen);
+
+    /// <summary>
+    /// 把预览窗格设成开或关，并让"设置页那颗勾选框"跟上（FR-9.1.5 的同步要求）。
+    ///
+    /// 设置页是非模态的，可能与主窗口同时开着：只写 <c>App.Settings</c> 不推界面，
+    /// 用户会看到"窗格已经关了、设置里还打着勾"。所以这里额外通知一次。
+    /// </summary>
+    private void SetPreviewOpen(bool open)
     {
-        _previewOpen = !_previewOpen;
-        App.Settings.Appearance.ShowPreview = _previewOpen;
+        _previewOpen = open;
+        App.Settings.Appearance.ShowPreview = open;
 
         ApplyPreviewLayout();
 
-        if (_previewOpen)
+        if (open)
         {
             RefreshPreview();
         }
@@ -109,6 +147,8 @@ public partial class MainWindow
         }
 
         App.SaveSettings();
+
+        Application.Current?.Windows.OfType<SettingsWindow>().FirstOrDefault()?.SyncShowPreview();
     }
 
     /// <summary>拖完分隔条才落盘：拖动过程中每一帧都写一次设置文件是可笑的。</summary>

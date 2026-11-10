@@ -418,6 +418,19 @@
                            Style="{StaticResource Text.FieldHint}"
                            Text="{loc:Tr Key=Settings.Behavior.ConfirmOverwrite.Hint}"/>
 
+                <!-- 可执行文件确认（FR-5.2.11）。三项"确认"之后单独一条分隔：
+                     前三项问的是"要不要动这个文件"，这一项问的是"要不要运行它"，
+                     性质不同，混在一起会被当成第四个文件操作开关。 -->
+                <CheckBox x:Name="WarnOnExecutableCheck"
+                          Margin="0,0,0,4"
+                          Style="{StaticResource CheckBox.Default}"
+                          Content="{loc:Tr Key=Settings.Behavior.WarnOnExecutable}"
+                          Checked="OnWarnOnExecutableChanged"
+                          Unchecked="OnWarnOnExecutableChanged"/>
+                <TextBlock Margin="0,0,0,16"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Behavior.WarnOnExecutable.Hint}"/>
+
                 <!-- ══ 列（FR-6.4）══
                      改的是默认档：用户正在图片目录里调完再去设置页看，看到的是默认档，
                      这一点必须写在提示里，否则"我明明取消勾选了，图片目录还是三列"就成了 bug 报告。 -->

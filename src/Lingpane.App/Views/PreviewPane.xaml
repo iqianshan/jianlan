@@ -28,6 +28,16 @@
             <Setter Property="HorizontalAlignment" Value="Left"/>
             <Setter Property="Margin" Value="0,12,0,0"/>
         </Style>
+
+        <!-- 操作行的三颗按钮（FR-9.1.5）。
+             不基于 Button.NavCommand：那个有最小宽度与描边，三颗并排会像三个工具按钮，
+             而这行是"对当前这份文件的动作"，视觉上应当比标题轻一档。 -->
+        <Style x:Key="Button.PreviewAction" TargetType="Button" BasedOn="{StaticResource Button.Link}">
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Padding" Value="6,0"/>
+            <Setter Property="FontSize" Value="{DynamicResource Font.Size.Caption}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
+        </Style>
     </UserControl.Resources>
 
     <Border Background="{DynamicResource Brush.Surface.Sidebar}"
@@ -40,22 +50,54 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- 标题块：文件名 + 类型/大小/日期 + 完整路径。
+            <!-- 标题块：文件名 + 类型/大小/日期 + 完整路径，右下三颗操作（FR-9.1.5）。
                  路径折两行封顶：再长就该看提示了，不能把这栏撑成一段说明文。 -->
-            <StackPanel Grid.Row="0" Margin="16,14,16,10">
-                <TextBlock Style="{StaticResource Text.Base}"
-                           FontWeight="{DynamicResource Font.Weight.Emphasis}"
-                           Text="{Binding TitleText}"
-                           TextTrimming="CharacterEllipsis"
-                           TextWrapping="NoWrap"/>
+            <Grid Grid.Row="0" Margin="16,14,16,10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-                <TextBlock Margin="0,4,0,0"
+                <!-- 标题行 + 关闭（FR-9.1.5 的第二半）。
+                     关闭按钮放在标题行右侧，而不是内容区里：它是"这一栏"的开关，
+                     与 Alt+P 同义，位置不该随预览内容形态（图/文/说明）上下浮动。 -->
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource Text.Base}"
+                               FontWeight="{DynamicResource Font.Weight.Emphasis}"
+                               Text="{Binding TitleText}"
+                               TextTrimming="CharacterEllipsis"
+                               TextWrapping="NoWrap"/>
+
+                    <Button Grid.Column="1"
+                            x:Name="CloseButton"
+                            Style="{StaticResource Button.Header}"
+                            Width="22" Height="22" Padding="0"
+                            HorizontalContentAlignment="Center"
+                            ToolTip="{loc:Tr Key=Preview.Close.Tip}"
+                            AutomationProperties.Name="{loc:Tr Key=Preview.Close.Tip}"
+                            Click="OnCloseClick">
+                        <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="10" Text="&#xE711;"/>
+                    </Button>
+                </Grid>
+
+                <TextBlock Grid.Row="1"
+                           Margin="0,4,0,0"
                            Style="{StaticResource Text.Caption}"
                            Text="{Binding MetaText}"
                            TextTrimming="CharacterEllipsis"
                            Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibility}}"/>
 
-                <TextBlock Margin="0,2,0,0"
+                <TextBlock Grid.Row="2"
+                           Margin="0,2,0,0"
                            Style="{StaticResource Text.Caption}"
                            Text="{Binding PathText}"
                            TextWrapping="Wrap"
@@ -63,7 +105,34 @@
                            TextTrimming="CharacterEllipsis"
                            ToolTip="{Binding PathText}"
                            Visibility="{Binding HasSelection, Converter={StaticResource BoolToVisibility}}"/>
-            </StackPanel>
+
+                <!-- 操作行（FR-9.1.5）：只在单选时出现。多选时预览显示的是汇总，
+                     没有唯一目标可打开/删除——给三颗按钮反而让人以为能批量操作。
+                     左移 6px 抵掉按钮自身的内边距，让"打开"与上面的文件名左对齐。 -->
+                <StackPanel Grid.Row="3"
+                            Margin="-6,6,0,0"
+                            Orientation="Horizontal"
+                            Visibility="{Binding CanAct, Converter={StaticResource BoolToVisibility}}">
+                    <Button x:Name="OpenButton"
+                            Style="{StaticResource Button.PreviewAction}"
+                            Content="{loc:Tr Key=Preview.Action.Open}"
+                            ToolTip="{loc:Tr Key=Preview.Action.Open.Tip}"
+                            AutomationProperties.Name="{loc:Tr Key=Preview.Action.Open.Tip}"
+                            Click="OnOpenClick"/>
+                    <Button x:Name="CopyPathButton"
+                            Style="{StaticResource Button.PreviewAction}"
+                            Content="{loc:Tr Key=Preview.Action.CopyPath}"
+                            ToolTip="{loc:Tr Key=Preview.Action.CopyPath.Tip}"
+                            AutomationProperties.Name="{loc:Tr Key=Preview.Action.CopyPath.Tip}"
+                            Click="OnCopyPathClick"/>
+                    <Button x:Name="DeleteButton"
+                            Style="{StaticResource Button.PreviewAction}"
+                            Content="{loc:Tr Key=Preview.Action.Delete}"
+                            ToolTip="{loc:Tr Key=Preview.Action.Delete.Tip}"
+                            AutomationProperties.Name="{loc:Tr Key=Preview.Action.Delete.Tip}"
+                            Click="OnDeleteClick"/>
+                </StackPanel>
+            </Grid>
 
             <!-- 内容区 -->
             <Grid Grid.Row="1" Margin="16,0,16,0">

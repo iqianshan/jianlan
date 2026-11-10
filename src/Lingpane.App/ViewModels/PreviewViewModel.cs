@@ -115,6 +115,18 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
     /// </summary>
     public bool HasSelection => !_isEmpty;
 
+    /// <summary>
+    /// 预览窗格里那三颗操作按钮（FR-9.1.5）的作用对象。
+    ///
+    /// 这里不另存一份"当前项"，而是从 <c>_selection</c> 现算：预览内容有 300ms 防抖，
+    /// 存一份就会与选中短暂不一致——用户点了"打开"，打开的却还是上一个文件。
+    /// 单选才算数；多选与空选都没有唯一目标。
+    /// </summary>
+    public FileEntry? Current => _selection.Count == 1 ? _selection[0] : null;
+
+    /// <summary>三颗操作按钮是否可用。与 <see cref="Current"/> 同一判据，单独暴露是给绑定用。</summary>
+    public bool CanAct => _selection.Count == 1;
+
     public bool HasImage
     {
         get => _hasImage;
@@ -222,6 +234,8 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
     public void Update(IReadOnlyList<FileEntry> selection)
     {
         _selection = selection;
+        Raise(nameof(Current));
+        Raise(nameof(CanAct));
 
         if (selection.Count != 1)
         {
@@ -253,6 +267,8 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
 
         _selection = [];
         _current = null;
+        Raise(nameof(Current));
+        Raise(nameof(CanAct));
         ClearHandler();
         Image = null;
         TextContent = string.Empty;

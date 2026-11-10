@@ -31,6 +31,9 @@ public static class CommandIds
     public const string Paste = "file.paste";
     public const string CopyPath = "file.copyPath";
     public const string Properties = "file.properties";
+
+    /// <summary>撤销最近一次文件操作（FR-6.8）。单层，见 <c>FileSystem.UndoStack</c>。</summary>
+    public const string Undo = "file.undo";
     public const string ShowContextMenu = "file.contextMenu";
     public const string SelectAll = "file.selectAll";
 

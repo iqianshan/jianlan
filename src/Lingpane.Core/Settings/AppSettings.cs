@@ -615,6 +615,15 @@ public sealed class BehaviorSettings
     /// </summary>
     public bool ConfirmOverwrite { get; set; } = true;
 
+    /// <summary>
+    /// 双击可执行文件时先确认（FR-5.2.11）。默认**关**。
+    ///
+    /// 默认关是刻意的：这一项解决的是"误双击"而非"防病毒"，
+    /// 而它给每一次正常运行都加一道弹窗。老用户升级后如果发现打开程序要按两次，
+    /// 第一反应是"这软件坏了"。需要它的人自己在设置里打开，成本只有一次。
+    /// </summary>
+    public bool WarnOnExecutable { get; set; }
+
     public bool DoubleClickOpens { get; set; } = true;
 
     /// <summary>

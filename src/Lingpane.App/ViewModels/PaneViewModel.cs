@@ -1080,12 +1080,49 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     /// <summary>给一次性提示（路径不存在、视图不可用等）用，下一次导航时清空。</summary>
     public void SetHint(string message) => HintText = message;
 
+    private string? _statusHold;
+    private DateTime _statusHoldUntil;
+    private string _statusHoldPath = string.Empty;
+
+    /// <summary>
+    /// 写一条操作结论，并在当前目录上保持一小会儿不被自动刷新覆盖。
+    ///
+    /// 撤销、删除这类动作自己会刷新一次列表，紧接着目录监视还会再刷一次（防抖 400 ms），
+    /// 而刷新会重算摘要。结论刚写下去就被"12 项 · 枚举 3 ms"盖掉，
+    /// 用户根本看不出到底撤成了没——这跟没有反馈是一回事。
+    ///
+    /// 只在这个目录上生效：换了目录，摘要该是什么就是什么，不能让结论跟着漂。
+    /// </summary>
+    public void SetStatusHold(string text, TimeSpan hold)
+    {
+        StatusText = text;
+        _statusHold = text;
+        _statusHoldUntil = DateTime.UtcNow + hold;
+        _statusHoldPath = CurrentPath;
+    }
+
+    /// <summary>取消保持。结论被新结论取代时用。</summary>
+    public void ReleaseStatusHold() => _statusHold = null;
+
     /// <summary>
     /// 状态栏的条目统计。三种口径：普通、隐藏了若干项、搜索结果。
     /// 搜索态下"耗时"让位给"命中多少"——用户此刻关心的是有没有搜到，不是枚举用了多久。
     /// </summary>
     public void UpdateStatus()
     {
+        // 操作结论在保持期内优先。过期或换了目录就自然让位给摘要
+        if (_statusHold is not null)
+        {
+            if (DateTime.UtcNow < _statusHoldUntil &&
+                string.Equals(_statusHoldPath, CurrentPath, StringComparison.OrdinalIgnoreCase))
+            {
+                StatusText = _statusHold;
+                return;
+            }
+
+            _statusHold = null;
+        }
+
         if (_searchQuery.Length > 0)
         {
             StatusText = _searchTruncated

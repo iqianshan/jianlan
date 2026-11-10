@@ -203,6 +203,16 @@ public partial class PaneView
             Execute = CopyPathSelection,
             CanExecute = HasSelection,
         });
+
+        // 撤销（FR-6.8）。可执行性挂在栈上，不是挂在选中状态上——
+        // 删完一批之后选中已经空了，那正是最想按 Ctrl+Z 的时候。
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.Undo,
+            TitleFactory = () => Strings.Command_Undo,
+            Execute = () => _ = UndoLastAsync(),
+            CanExecute = () => Undo?.CanUndo == true,
+        });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.Properties,

@@ -1111,7 +1111,7 @@
     <value>Workspaces</value>
   </data>
   <data name="Nav.Workspaces.Empty" xml:space="preserve">
-    <value>No workspaces yet — save the current tabs</value>
+    <value>No workspaces yet. Click this title, then choose "Save current tabs…"</value>
   </data>
   <data name="Nav.Workspace.Tooltip" xml:space="preserve">
     <value>{0} tab(s)</value>
@@ -1730,5 +1730,77 @@
   </data>
   <data name="Status.NewWindowNoPath" xml:space="preserve">
     <value>Only folders can open in a new window.</value>
+  </data>
+  <data name="Preview.Action.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Preview.Action.Open.Tip" xml:space="preserve">
+    <value>Open this item</value>
+  </data>
+  <data name="Preview.Action.CopyPath" xml:space="preserve">
+    <value>Copy path</value>
+  </data>
+  <data name="Preview.Action.CopyPath.Tip" xml:space="preserve">
+    <value>Copy the full path to the clipboard</value>
+  </data>
+  <data name="Preview.Action.Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Preview.Action.Delete.Tip" xml:space="preserve">
+    <value>Move to the Recycle Bin; Ctrl+Z undoes it</value>
+  </data>
+  <data name="Settings.Behavior.WarnOnExecutable" xml:space="preserve">
+    <value>Ask before opening executable files</value>
+  </data>
+  <data name="Settings.Behavior.WarnOnExecutable.Hint" xml:space="preserve">
+    <value>When on, double-clicking an .exe / .bat / .cmd / .ps1 / .msi file shows its name and full path before it runs. Off by default: this guards against accidental double-clicks, not malware, and it costs a dialog on every normal launch.</value>
+  </data>
+  <data name="Dialog.ExecutableTitle" xml:space="preserve">
+    <value>Open this executable?</value>
+  </data>
+  <data name="Dialog.ExecutableBody" xml:space="preserve">
+    <value>This file is about to run:/n/n{0}/n{1}/n/nContinue only if you meant to run it.</value>
+  </data>
+  <data name="Command.Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="Status.UndoDone" xml:space="preserve">
+    <value>Undid the last operation ({0} items)</value>
+  </data>
+  <data name="Status.UndoPartial" xml:space="preserve">
+    <value>Undid {0} items; {1} left alone: {2}</value>
+  </data>
+  <data name="Status.UndoFailed" xml:space="preserve">
+    <value>Could not undo: {0}</value>
+  </data>
+  <data name="Status.UndoNothing" xml:space="preserve">
+    <value>Nothing to undo</value>
+  </data>
+  <data name="Status.PermanentDeletedNoUndo" xml:space="preserve">
+    <value>Permanently deleted {0} items. This cannot be undone.</value>
+  </data>
+  <data name="Undo.Nothing" xml:space="preserve">
+    <value>Nothing recorded to undo</value>
+  </data>
+  <data name="Undo.NameTaken" xml:space="preserve">
+    <value>the original name is taken now</value>
+  </data>
+  <data name="Undo.PlaceGone" xml:space="preserve">
+    <value>the original folder is gone</value>
+  </data>
+  <data name="Undo.Modified" xml:space="preserve">
+    <value>it was modified after the operation</value>
+  </data>
+  <data name="Undo.NoRecycle" xml:space="preserve">
+    <value>there is no Recycle Bin here, so deleting would be permanent</value>
+  </data>
+  <data name="Undo.DeleteFailed" xml:space="preserve">
+    <value>deleting failed</value>
+  </data>
+  <data name="Undo.RestoreFailed" xml:space="preserve">
+    <value>one item could not be restored and is still in the Recycle Bin</value>
+  </data>
+  <data name="Undo.FailedWithReason" xml:space="preserve">
+    <value>Undo failed: {0}</value>
   </data>
 </root>

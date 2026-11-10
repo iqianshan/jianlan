@@ -45,6 +45,10 @@ public partial class PaneView
             return;
         }
 
+        // FR-5.2.11：可执行文件先问一句。预览窗格的「打开」也走这里，
+        // 所以两条入口的拦截口径天然一致。
+        if (!ConfirmExecutable(entry)) return;
+
         try
         {
             Process.Start(new ProcessStartInfo(entry.FullPath) { UseShellExecute = true });
@@ -53,6 +57,24 @@ public partial class PaneView
         {
             Vm.SetStatus(string.Format(Strings.Status_OpenItemFailed, entry.Name));
         }
+    }
+
+    /// <summary>
+    /// 双击可执行文件时的确认（FR-5.2.11）。返回 <c>true</c> 表示继续打开。
+    ///
+    /// 问句里同时给文件名和**完整路径**：只给文件名的话，"报告.exe"和"报告.exe"
+    /// 长得一模一样，而真正要看的就是它在哪个目录——伪装成文档的程序都靠这一点露馅。
+    /// </summary>
+    private bool ConfirmExecutable(FileEntry entry)
+    {
+        if (!App.Settings.Behavior.WarnOnExecutable) return true;
+        if (!Executables.IsRisky(entry.FullPath)) return true;
+
+        return ConfirmWindow.Ask(
+            Window.GetWindow(this),
+            Strings.Dialog_ExecutableTitle,
+            string.Format(
+                CultureInfo.CurrentCulture, Strings.Dialog_ExecutableBody, entry.Name, entry.FullPath));
     }
 
     internal async Task NewFolderAsync()
@@ -69,7 +91,12 @@ public partial class PaneView
         await RefreshAndSelectAsync([created]);
 
         // 建完立刻进重命名：默认名几乎总要改，省一次 F2
-        await RenameEntryAsync(Vm.FindByPath(created));
+        //
+        // 这一步**不记撤销**：撤销要撤的是"新建"整个动作，不是"改名"。
+        // 两件事记成两条的话，用户按一次 Ctrl+Z 只会把名字改回去，
+        // 还得再按一次才删掉——而他心里这就是一件事。
+        string? final = await RenameEntryAsync(Vm.FindByPath(created), record: false);
+        RecordCreate(final ?? created);
     }
 
     internal async Task NewFileAsync()
@@ -85,8 +112,10 @@ public partial class PaneView
 
         await RefreshAndSelectAsync([created]);
 
-        // 默认名带了扩展名，重命名时选中词干部分，改完按回车即可
-        await RenameEntryAsync(Vm.FindByPath(created));
+        // 默认名带了扩展名，重命名时选中词干部分，改完按回车即可。
+        // 与上面同理：新建成一条撤销记录。
+        string? final = await RenameEntryAsync(Vm.FindByPath(created), record: false);
+        RecordCreate(final ?? created);
     }
 
     internal async Task RenameSelectionAsync()
@@ -95,9 +124,14 @@ public partial class PaneView
         await RenameEntryAsync(Vm.SelectedEntries[0]);
     }
 
-    internal async Task RenameEntryAsync(FileEntry? entry)
+    /// <summary>
+    /// 重命名一项。返回改名后的路径（取消或失败返回 null）。
+    /// <paramref name="record"/> 为 false 时**不记撤销**——新建流程用它，
+    /// 因为整件事要记成一条"新建"，而不是"新建 + 改名"两条。
+    /// </summary>
+    internal async Task<string?> RenameEntryAsync(FileEntry? entry, bool record = true)
     {
-        if (entry is null) return;
+        if (entry is null) return null;
 
         string? name = TextPromptWindow.Ask(
             Window.GetWindow(this),
@@ -107,21 +141,38 @@ public partial class PaneView
             value => FileOperations.TryValidateName(value, out string? error) ? null : error,
             selectStem: !entry.IsDirectory);
 
-        if (name is null) return;
+        if (name is null) return null;
 
         if (!FileOperations.TryRename(entry.FullPath, name, out string renamedPath, out string? renameError))
         {
             Vm.SetStatus(string.Format(Strings.Status_RenameFailed, renameError));
-            return;
+            return null;
         }
+
+        // 改名前后路径都在，撤销就是反向搬一次，不需要指纹
+        if (record) Undo?.Push(UndoKind.Rename, [new UndoStep(entry.FullPath, renamedPath)]);
 
         await RefreshAndSelectAsync([renamedPath]);
         Vm.SetStatus(string.Format(Strings.Status_Renamed, Path.GetFileName(renamedPath)));
+        return renamedPath;
     }
 
     internal async Task DeleteSelectionAsync(bool permanent)
     {
         var items = Vm.SelectedEntries;
+        if (items.Count == 0) return;
+
+        await DeleteEntriesAsync(items.ToArray(), permanent);
+    }
+
+    /// <summary>
+    /// 删除指定的几项。与"删除选中项"分开，是给预览窗格那三颗按钮用的（FR-9.1.5）：
+    /// 预览的作用对象是它自己显示的那一份，不一定是列表的选中集。
+    /// </summary>
+    internal async Task DeleteEntryAsync(FileEntry entry) => await DeleteEntriesAsync([entry], permanent: false);
+
+    private async Task DeleteEntriesAsync(IReadOnlyList<FileEntry> items, bool permanent)
+    {
         if (items.Count == 0) return;
 
         string what = items.Count == 1
@@ -159,9 +210,37 @@ public partial class PaneView
 
         await RefreshAndSelectAsync([]);
 
-        // 刷新会用新目录的统计重算状态栏，把失败原因覆盖掉——用户只看到"1 项"，
-        // 根本不知道删除失败。失败结果必须重新写回去。
-        if (!result.Ok) Vm.SetStatus(text);
+        // 撤销记录按"确实消失了的那些"记，不按提交的那些：删除可能部分失败，
+        // 记错了会让撤销去回收站找一个根本没删的文件，白报一次失败。
+        if (permanent)
+        {
+            // 永久删除无法撤销。这里清栈，是为了不让用户留着一次"看起来还能撤"的机会——
+            // 上一次操作的记录还挂在栈上，按 Ctrl+Z 会把更早的那件事撤掉，那才是真正的意外。
+            Undo?.Clear();
+
+            if (result.Ok)
+            {
+                Vm.SetStatusHold(
+                    string.Format(Strings.Status_PermanentDeletedNoUndo, result.Succeeded), OperationStatusHold);
+            }
+        }
+        else
+        {
+            var gone = items
+                .Where(i => !File.Exists(i.FullPath) && !Directory.Exists(i.FullPath))
+                .Select(i => i.FullPath)
+                .ToArray();
+
+            if (gone.Length > 0)
+            {
+                Undo?.Push(UndoKind.Delete, gone.Select(p => new UndoStep(p, string.Empty)).ToArray());
+            }
+        }
+
+        // 刷新会用新目录的统计重算状态栏，把本次结论覆盖掉——用户只看到"12 项"，
+        // 既不知道成功了几项，也不知道失败为什么失败。结论整条重写回去并保持一会儿。
+        // 永久删除成功那条已经写过了，而且信息更全（带"不可撤销"），不能在这里盖成普通的"N 项"
+        if (!permanent || !result.Ok) Vm.SetStatusHold(text, OperationStatusHold);
     }
 
     internal void CopySelection(bool cut)
@@ -184,12 +263,16 @@ public partial class PaneView
         string[] paths = FileClipboard.Paths.ToArray();
         bool cut = FileClipboard.IsCut;
 
-        ConflictPolicy conflict = ResolveConflictPolicy(paths, directory);
+        IReadOnlyList<string> conflicts = FileOperations.FindConflicts(paths, directory);
+        ConflictPolicy conflict = ResolveConflictPolicy(conflicts);
+
+        // 收"实际落到哪儿"：撞名会自动改名，自己拼路径猜不准（FR-6.8 的撤销要靠它）
+        var destinations = new List<string>();
 
         var (result, text) = await RunOperationAsync(
             () => cut
-                ? FileOperations.MoveAsync(paths, directory, conflict)
-                : FileOperations.CopyAsync(paths, directory, conflict),
+                ? FileOperations.MoveAsync(paths, directory, conflict, destinations)
+                : FileOperations.CopyAsync(paths, directory, conflict, destinations),
             cut ? Strings.Status_Moving : Strings.Status_Copying,
             r => !r.Ok
                 ? string.Format(cut ? Strings.Status_MoveFailed : Strings.Status_CopyFailed, r.Error)
@@ -199,13 +282,28 @@ public partial class PaneView
 
         if (cut && result.Ok) FileClipboard.Clear();
 
+        // 撤销记录只在"整批成功、且没有把别人覆盖掉"时留。
+        //
+        // 覆盖式粘贴把目标原有内容抹掉了，而回收站里没有它——撤销只能删掉新文件，
+        // 旧文件再也回不来。那不是撤销，是第二次删除，所以这种情况一律清栈。
+        // 部分失败同理：说不清落了哪几项，就不该让 Ctrl+Z 去撤别的事。
+        if (result.Ok && result.Failed == 0 && destinations.Count == paths.Length
+            && !(conflict == ConflictPolicy.Overwrite && conflicts.Count > 0))
+        {
+            RecordTransfer(cut, paths, destinations);
+        }
+        else
+        {
+            Undo?.Clear();
+        }
+
         // 自动改名的情况下匹配不到，选中为空，不影响结果
         await RefreshAndSelectAsync(paths
             .Select(p => Path.Join(directory, Path.GetFileName(p)))
             .ToArray());
 
-        // 同删除：全量失败或部分失败的原因不能被刷新覆盖
-        if (!result.Ok || result.Failed > 0) Vm.SetStatus(text);
+        // 同删除：结论不能被刷新覆盖，成功也要让用户看见落了几项
+        Vm.SetStatusHold(text, OperationStatusHold);
     }
 
     /// <summary>
@@ -218,9 +316,8 @@ public partial class PaneView
     /// <c>ConfirmOverwrite</c> 关掉时直接覆盖，不弹窗：这一项与"删除确认"同一个口径，
     /// 关掉的含义是"别再问我"，不是"永远别覆盖"。
     /// </summary>
-    private ConflictPolicy ResolveConflictPolicy(string[] paths, string directory)
+    private ConflictPolicy ResolveConflictPolicy(IReadOnlyList<string> conflicts)
     {
-        IReadOnlyList<string> conflicts = FileOperations.FindConflicts(paths, directory);
         if (conflicts.Count == 0) return ConflictPolicy.KeepBoth;
 
         if (!App.Settings.Behavior.ConfirmOverwrite) return ConflictPolicy.Overwrite;
@@ -239,6 +336,14 @@ public partial class PaneView
         var items = Vm.SelectedEntries;
         if (items.Count == 0) return;
 
+        CopyPaths(items);
+    }
+
+    /// <summary>把某一项的路径放进剪贴板（FR-9.1.5 的预览按钮走这里）。</summary>
+    internal void CopyPathOf(FileEntry entry) => CopyPaths([entry]);
+
+    private void CopyPaths(IReadOnlyList<FileEntry> items)
+    {
         try
         {
             Clipboard.SetText(string.Join(Environment.NewLine, items.Select(i => i.FullPath)));
@@ -275,6 +380,12 @@ public partial class PaneView
                 entry.Name, parent, entry.TypeText, size,
                 entry.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.CurrentCulture)));
     }
+
+    /// <summary>
+    /// 操作结论在状态栏停留的时长。要长过目录监视的防抖（400 ms），
+    /// 否则自己刷新完、监视器再刷一次，结论必被重算的摘要覆盖。
+    /// </summary>
+    private static readonly TimeSpan OperationStatusHold = TimeSpan.FromSeconds(2);
 
     /// <summary>
     /// 执行一次会改动磁盘的操作：期间暂停目录监听（否则自己的写操作会反复触发刷新），

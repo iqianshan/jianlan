@@ -4,8 +4,17 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Lingpane.App.Shell;
 using Lingpane.App.ViewModels;
+using Lingpane.Core.FileSystem;
 
 namespace Lingpane.App.Views;
+
+/// <summary>预览窗格里那三颗按钮的意图（FR-9.1.5）。</summary>
+public enum PreviewAction
+{
+    Open,
+    CopyPath,
+    Delete,
+}
 
 /// <summary>
 /// 预览窗格视图（FR-9.1.1）。只做三件事：挂视图模型、把窗格宽度换算成解码宽度、转发「立即预览」。
@@ -17,6 +26,15 @@ public partial class PreviewPane : UserControl
 {
     private PreviewViewModel? _viewModel;
     private PreviewHandlerHost? _handlerHost;
+
+    /// <summary>
+    /// 操作按钮被点了（FR-9.1.5）。带的是**预览自己的目标**而不是列表选中集：
+    /// 两者在防抖窗口内可能不是同一个，以预览显示的为准才不会"点了打开却开了上一个"。
+    /// </summary>
+    public event Action<FileEntry, PreviewAction>? ActionRequested;
+
+    /// <summary>右上角关闭（FR-9.1.5）。由窗口决定怎么关：它还要写设置、重排两列宽度。</summary>
+    public event Action? CloseRequested;
 
     public PreviewPane()
     {
@@ -94,4 +112,19 @@ public partial class PreviewPane : UserControl
     }
 
     private void OnRetryClick(object sender, RoutedEventArgs e) => _viewModel?.Retry();
+
+    private void OnOpenClick(object sender, RoutedEventArgs e) => Request(PreviewAction.Open);
+
+    private void OnCopyPathClick(object sender, RoutedEventArgs e) => Request(PreviewAction.CopyPath);
+
+    private void OnDeleteClick(object sender, RoutedEventArgs e) => Request(PreviewAction.Delete);
+
+    private void Request(PreviewAction action)
+    {
+        if (_viewModel?.Current is not { } entry) return;
+
+        ActionRequested?.Invoke(entry, action);
+    }
+
+    private void OnCloseClick(object sender, RoutedEventArgs e) => CloseRequested?.Invoke();
 }

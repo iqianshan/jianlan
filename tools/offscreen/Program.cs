@@ -14,6 +14,7 @@ using System.Windows.Threading;
 using Lingpane.App;
 using Lingpane.App.ViewModels;
 using Lingpane.App.Views;
+using Lingpane.Core.FileSystem;
 using Lingpane.Core.Tagging;
 
 namespace OffscreenShot;
@@ -40,6 +41,13 @@ internal static class Program
     {
         // 输出被 Python 脚本按 UTF-8 读，不设这个会得到一屏乱码
         Console.OutputEncoding = System.Text.Encoding.UTF8;
+
+        // 回收站探针：不启动界面，只把回收站里的条目与可用动词打出来。
+        // 还原动词是本地化的，靠猜没用——先看清楚这台机器上到底叫什么
+        if (argv.Contains("--bin-probe"))
+        {
+            return BinProbe(argv.SkipWhile(a => a != "--bin-probe").Skip(1).FirstOrDefault());
+        }
 
         string outPath = argv.Length > 0
             ? Path.GetFullPath(argv[0])
@@ -104,6 +112,17 @@ internal static class Program
         string? pane2View = null;
         string? pane2Sort = null;
         bool printPaneState = false;
+
+        // 预览操作 / 可执行确认 / 撤销（本批）
+        bool printPreviewActions = false;
+        string? previewClick = null;
+        string? warnExecPath = null;
+        bool warnExecAnswer = false;
+        bool warnExecDefault = false;
+        string? undoPasteSource = null;
+        bool undoDelete = false;
+        string? undoModifiedSource = null;
+        string? navMenuTitle = null;
         string? pasteSource = null;
         string? pasteTarget = null;
         bool pasteConfirm = true;
@@ -389,6 +408,39 @@ internal static class Program
                     // 改完就退出只能证明改动了，证明不了记住
                     printPaneState = true;
                     break;
+                case "--preview-actions":
+                    // 打印预览窗格那三颗操作按钮与关闭按钮的存在/可见/可用状态（FR-9.1.5）。
+                    // 图只证明"画出来了几颗"，证明不了"没有选中时它们该不该出现"
+                    printPreviewActions = true;
+                    break;
+                case "--preview-click" when i + 1 < argv.Length:
+                    // 点预览窗格里的某一颗按钮。走真正的 Click 事件，不反射调私有方法——
+                    // 反射能证明"逻辑对"，证明不了"按钮接上了"
+                    previewClick = argv[++i];
+                    break;
+                case "--warn-exec" when i + 2 < argv.Length:
+                    // 双击可执行文件的确认（FR-5.2.11）。参数：要打开的文件、答"是"还是"否"。
+                    // 弹窗由 DispatcherTimer 自动作答——离屏进程没有人可点，但模态循环照样跑
+                    warnExecPath = Path.GetFullPath(argv[++i]);
+                    // 第三档 "default" 不碰设置，验出厂状态下不拦
+                    warnExecDefault = argv[++i] == "default";
+                    warnExecAnswer = argv[i] == "yes";
+                    break;
+                case "--undo-paste" when i + 1 < argv.Length:
+                    // 粘贴后撤销（FR-6.8）：把源目录里的文件粘进当前目录，再按 Ctrl+Z
+                    undoPasteSource = Path.GetFullPath(argv[++i]);
+                    break;
+                case "--undo-delete":                    // 删除后撤销。这一档会真的走回收站：还原不了就说明整条链路不成立
+                    undoDelete = true;
+                    break;
+                case "--undo-modified" when i + 1 < argv.Length:
+                    // 粘贴、改副本、再撤销。撤销必须**拒绝**，否则就是二次破坏
+                    undoModifiedSource = Path.GetFullPath(argv[++i]);
+                    break;
+                case "--nav-menu" when i + 1 < argv.Length:
+                    // 左键点导航栏某个分区标题，应弹出该分区的管理菜单
+                    navMenuTitle = argv[++i];
+                    break;
             }
         }
 
@@ -616,6 +668,40 @@ internal static class Program
                 }
 
                 if (printPaneState) PrintPaneStates(window);
+
+                if (printPreviewActions) PrintPreviewActions(window);
+
+                if (previewClick is not null)
+                {
+                    await ClickPreviewButton(window, previewClick);
+                    await Task.Delay(1500);
+                    PrintPreviewState(window);
+                }
+
+                if (warnExecPath is not null)
+                {
+                    await ExerciseWarnExec(window, warnExecPath, warnExecAnswer, warnExecDefault);
+                }
+
+                if (undoPasteSource is not null)
+                {
+                    await ExerciseUndoPaste(window, undoPasteSource);
+                }
+
+                if (undoDelete)
+                {
+                    await ExerciseUndoDelete(window);
+                }
+
+                if (undoModifiedSource is not null)
+                {
+                    await ExerciseUndoModified(window, undoModifiedSource);
+                }
+
+                if (navMenuTitle is not null)
+                {
+                    await ExerciseNavMenu(window, navMenuTitle);
+                }
 
                 if (pane1View is not null || pane1Sort is not null || pane2View is not null || pane2Sort is not null)
                 {
@@ -2194,6 +2280,458 @@ internal static class Program
 
         return field?.GetValue(window) as Lingpane.App.ViewModels.TabHostViewModel
             ?? throw new MissingMemberException("MainWindow._tabs");
+    }
+
+
+    // ── 预览操作 / 可执行确认 / 撤销（FR-9.1.5 / FR-5.2.11 / FR-6.8）──────────
+
+    private static PreviewPane GetPreview(MainWindow window)
+        => window.FindName("Preview") as PreviewPane ?? throw new MissingMemberException("MainWindow.Preview");
+
+    private static void PrintPreviewActions(MainWindow window)
+    {
+        PreviewPane preview = GetPreview(window);
+        PreviewViewModel? model = preview.DataContext as PreviewViewModel;
+
+        Console.WriteLine(
+            $"preview.visible={preview.Visibility} canAct={model?.CanAct} " +
+            $"current={model?.Current?.Name ?? "(null)"}");
+
+        foreach (string name in new[] { "OpenButton", "CopyPathButton", "DeleteButton", "CloseButton" })
+        {
+            if (preview.FindName(name) is not Button button)
+            {
+                Console.WriteLine($"preview.button.{name}=missing");
+                continue;
+            }
+
+            Console.WriteLine(
+                $"preview.button.{name}=found visible={button.IsVisible} enabled={button.IsEnabled}");
+        }
+    }
+
+    private static async Task ClickPreviewButton(MainWindow window, string which)
+    {
+        PreviewPane preview = GetPreview(window);
+
+        string name = which.ToLowerInvariant() switch
+        {
+            "open" => "OpenButton",
+            "copypath" => "CopyPathButton",
+            "delete" => "DeleteButton",
+            "close" => "CloseButton",
+            _ => which,
+        };
+
+        if (preview.FindName(name) is not Button button)
+        {
+            Console.WriteLine($"preview.click 找不到 {name}");
+            return;
+        }
+
+        // 删除会走完整链路，包括"确认删除"。离屏没有人可点，挂个定时器自动答"是"——
+        // 顺带证明这颗按钮接的是正常的删除路径，不是另开一条
+        var confirmed = new List<string>();
+        DispatcherTimer? timer = null;
+
+        if (string.Equals(name, "DeleteButton", StringComparison.Ordinal))
+        {
+            timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(100) };
+            timer.Tick += (_, _) =>
+            {
+                foreach (Window each in Application.Current.Windows)
+                {
+                    if (each is not ConfirmWindow confirm || !confirm.IsVisible) continue;
+
+                    confirmed.Add(confirm.Title);
+                    confirm.DialogResult = true;
+                    return;
+                }
+            };
+            timer.Start();
+        }
+
+        button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Console.WriteLine($"preview.click={name}");
+
+        // 删除是异步的，确认窗要过一会儿才冒出来。等它、答它，再收尾
+        if (timer is not null) await Task.Delay(1200);
+
+        if (confirmed.Count > 0) Console.WriteLine($"preview.click.confirmed={confirmed[0]}");
+        timer?.Stop();
+    }
+
+    private static void PrintPreviewState(MainWindow window)
+    {
+        PreviewPane preview = GetPreview(window);
+        PreviewViewModel? model = preview.DataContext as PreviewViewModel;
+
+        Console.WriteLine($"preview.visible={preview.Visibility}");
+        Console.WriteLine($"setting.showPreview={App.Settings.Appearance.ShowPreview}");
+        Console.WriteLine($"preview.current={model?.Current?.Name ?? "(null)"}");
+        Console.WriteLine($"pane.count={GetPane(window).ViewModel?.Entries.Count}");
+
+        Console.WriteLine($"pane.status={GetPane(window).ViewModel?.StatusText}");
+        Console.WriteLine($"clipboard.text=[{ReadClipboard()}]");
+
+        if (Application.Current.Windows.OfType<SettingsWindow>().FirstOrDefault() is { } settings
+            && settings.FindName("ShowPreviewCheck") is CheckBox check)
+        {
+            // 设置页与主窗口同时开着时，这颗勾选框必须跟着预览的开关走
+            Console.WriteLine($"settings.showPreviewCheck={check.IsChecked}");
+        }
+    }
+
+    /// <summary>读剪贴板。被别的程序占着时不要炸掉整个取证。</summary>
+    private static string ReadClipboard()
+    {
+        try
+        {
+            return Clipboard.ContainsText() ? Clipboard.GetText() : string.Empty;
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or ArgumentException)
+        {
+            return "(剪贴板被占用)";
+        }
+    }
+
+    private static int IndexOfEntry(IReadOnlyList<FileEntry> entries, FileEntry entry)
+    {
+        for (int i = 0; i < entries.Count; i++)
+        {
+            if (ReferenceEquals(entries[i], entry)) return i;
+        }
+
+        return -1;
+    }
+
+    private static bool InvokeCommand(PaneView pane, string id)
+    {
+        MethodInfo? method = typeof(PaneView).GetMethod(
+            "TryInvoke", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        if (method is null) throw new MissingMethodException("PaneView.TryInvoke");
+
+        return method.Invoke(pane, [id]) is true;
+    }
+
+    private static void SetFileClipboard(string[] paths)
+    {
+        Type type = typeof(MainWindow).Assembly.GetType("Lingpane.App.Services.FileClipboard")
+            ?? throw new MissingMemberException("FileClipboard");
+
+        MethodInfo? set = type.GetMethod("Set", BindingFlags.Public | BindingFlags.Static);
+        if (set is null) throw new MissingMethodException("FileClipboard.Set");
+
+        set.Invoke(null, [paths, false]);
+    }
+
+    /// <summary>
+    /// 双击可执行文件的确认（FR-5.2.11）。
+    ///
+    /// 模态弹窗没有人可点，但 ShowDialog 会跑嵌套消息循环——所以这里是"先挂一个
+    /// DispatcherTimer 自动作答，再调 OpenEntry"。这样验的是真实链路：
+    /// 弹窗真的出现、按钮真的接上、答"是"才真的启动。
+    /// </summary>
+    private static async Task ExerciseWarnExec(MainWindow window, string path, bool answerYes, bool useDefault)
+    {
+        // 默认档不碰设置：要证明的正是"出厂状态下不拦、不弹窗"
+        if (!useDefault) App.Settings.Behavior.WarnOnExecutable = true;
+
+        var titles = new List<string>();
+
+        var timer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMilliseconds(100),
+        };
+
+        timer.Tick += (_, _) =>
+        {
+            foreach (Window each in Application.Current.Windows)
+            {
+                if (each is not ConfirmWindow confirm || !confirm.IsVisible) continue;
+
+                titles.Add(confirm.Title);
+                confirm.DialogResult = answerYes;
+                return;
+            }
+        };
+
+        timer.Start();
+
+        PaneView pane = GetPane(window);
+        PaneViewModel model = pane.ViewModel ?? throw new MissingMemberException("PaneView.ViewModel");
+
+        FileEntry? entry = model.Entries.FirstOrDefault(
+            e => string.Equals(e.FullPath, path, StringComparison.OrdinalIgnoreCase));
+
+        if (entry is null)
+        {
+            Console.WriteLine($"warn.exec 没找到 {path}");
+            timer.Stop();
+            return;
+        }
+
+        SelectFile(window, [IndexOfEntry(model.Entries, entry)]);
+        await Task.Delay(400);
+
+        MethodInfo? open = typeof(PaneView).GetMethod("OpenEntry", BindingFlags.NonPublic | BindingFlags.Instance);
+        if (open is null) throw new MissingMethodException("PaneView.OpenEntry");
+
+        open.Invoke(pane, [entry]);
+
+        await Task.Delay(800);
+        timer.Stop();
+
+        Console.WriteLine($"warn.setting={App.Settings.Behavior.WarnOnExecutable}");
+        Console.WriteLine($"warn.dialog={(titles.Count > 0 ? titles[0] : "(none)")}");
+        Console.WriteLine($"warn.answer={(useDefault ? "(default)" : answerYes ? "yes" : "no")}");
+        Console.WriteLine($"warn.dialogLeft={Application.Current.Windows.OfType<ConfirmWindow>().Count()}");
+    }
+
+    private static async Task ExerciseUndoPaste(MainWindow window, string source)
+    {
+        string[] files = Directory.GetFiles(source);
+        if (files.Length == 0)
+        {
+            Console.WriteLine("undo.paste 源目录是空的");
+            return;
+        }
+
+        PaneView pane = GetPane(window);
+        PaneViewModel model = pane.ViewModel ?? throw new MissingMemberException("PaneView.ViewModel");
+
+        // 要数的是**落点**的副本，不是源文件。数源目录等于自己数自己，
+        // 撤销成功也好失败也好都是同一个数，这条断言就白写了
+        string[] copies = files.Select(f => Path.Join(model.CurrentPath, Path.GetFileName(f))).ToArray();
+
+        SetFileClipboard(files);
+
+        bool pasted = InvokeCommand(pane, "file.paste");
+        await Task.Delay(1800);
+
+        Console.WriteLine($"undo.paste.invoked={pasted} copiesBefore={copies.Count(File.Exists)} canUndo={pane.Undo?.CanUndo}");
+        Console.WriteLine($"undo.paste.status={model.StatusText}");
+
+        bool undone = InvokeCommand(pane, "file.undo");
+        await Task.Delay(1800);
+
+        Console.WriteLine($"undo.undo.invoked={undone} copiesAfter={copies.Count(File.Exists)} " +
+                          $"sourcesIntact={files.Count(File.Exists)} canUndo={pane.Undo?.CanUndo}");
+        Console.WriteLine($"undo.paste.statusAfter={model.StatusText}");
+    }
+
+    private static async Task ExerciseUndoDelete(MainWindow window)
+    {
+        // 确认窗会挡住自动流程，关掉。这本来就是"删除确认"的另一条路，不影响撤销的验证
+        App.Settings.Behavior.ConfirmDelete = false;
+        App.Settings.Behavior.ConfirmBatch = false;
+
+        PaneView pane = GetPane(window);
+        PaneViewModel model = pane.ViewModel ?? throw new MissingMemberException("PaneView.ViewModel");
+
+        FileEntry? target = model.Entries.FirstOrDefault(e => !e.IsDirectory);
+        if (target is null)
+        {
+            Console.WriteLine("undo.delete 目录里没有文件");
+            return;
+        }
+
+        string path = target.FullPath;
+
+        SelectFile(window, [IndexOfEntry(model.Entries, target)]);
+        await Task.Delay(400);
+
+        bool deleted = InvokeCommand(pane, "file.delete");
+        await Task.Delay(1500);
+        Console.WriteLine($"undo.delete.invoked={deleted} existsAfterDelete={File.Exists(path)} canUndo={pane.Undo?.CanUndo}");
+
+        bool undone = InvokeCommand(pane, "file.undo");
+
+        // 回收站还原要走 Shell，等它把文件挪回来
+        await Task.Delay(3000);
+
+        Console.WriteLine($"undo.delete.undoInvoked={undone} existsAfterUndo={File.Exists(path)}");
+        Console.WriteLine($"undo.delete.status={model.StatusText}");
+    }
+
+    private static async Task ExerciseUndoModified(MainWindow window, string source)
+    {
+        string[] files = Directory.GetFiles(source);
+        if (files.Length == 0)
+        {
+            Console.WriteLine("undo.modified 源目录是空的");
+            return;
+        }
+
+        PaneView pane = GetPane(window);
+        PaneViewModel model = pane.ViewModel ?? throw new MissingMemberException("PaneView.ViewModel");
+
+        string directory = model.CurrentPath;
+        string[] copies = files.Select(f => Path.Join(directory, Path.GetFileName(f))).ToArray();
+
+        SetFileClipboard(files);
+        InvokeCommand(pane, "file.paste");
+        await Task.Delay(1800);
+
+        Console.WriteLine($"undo.modified.pasted={copies.Count(File.Exists)}");
+
+        // 改一处副本：内容与时间都变，两道指纹都对不上
+        foreach (string copy in copies.Where(File.Exists))
+        {
+            File.AppendAllText(copy, "用户后来又改了这一段");
+            File.SetLastWriteTimeUtc(copy, DateTime.UtcNow.AddMinutes(3));
+        }
+
+        InvokeCommand(pane, "file.undo");
+        await Task.Delay(1800);
+
+        Console.WriteLine($"undo.modified.stillThere={copies.Count(File.Exists)}");
+        Console.WriteLine($"undo.modified.status={model.StatusText}");
+    }
+
+    /// <summary>
+    /// 回收站探针。列出条目及每条可用的动词名，用于确认还原动词的真实写法。
+    /// 传入 <paramref name="target"/> 时会尝试用每个动词还原，并报告文件有没有真的回到原位。
+    /// </summary>
+    private static int BinProbe(string? target)
+    {
+        Type? shellType = Type.GetTypeFromProgID("Shell.Application");
+        if (shellType is null)
+        {
+            Console.WriteLine("bin.probe=找不到 Shell.Application");
+            return 3;
+        }
+
+        dynamic shell = Activator.CreateInstance(shellType)!;
+        dynamic? bin = shell.NameSpace(10);
+        if (bin is null)
+        {
+            Console.WriteLine("bin.probe=Namespace(10) 为 null");
+            return 3;
+        }
+
+        string? wanted = target is null ? null : Path.GetFullPath(target);
+
+        foreach (object item in bin.Items())
+        {
+            dynamic entry = item;
+            string name = entry.Name as string ?? string.Empty;
+            string location = bin.GetDetailsOf(item, 1) as string ?? string.Empty;
+            string full = location.Length == 0 ? name : Path.Join(location, name);
+
+            var verbs = new List<string>();
+            foreach (object verb in entry.Verbs())
+            {
+                var each = (dynamic)verb;
+                verbs.Add(each.Name as string ?? "?");
+            }
+
+            Console.WriteLine($"bin.item={full}");
+            Console.WriteLine($"bin.verbs=[{string.Join(" | ", verbs)}]");
+
+            if (wanted is null || !string.Equals(full, wanted, StringComparison.OrdinalIgnoreCase)) continue;
+
+            foreach (object verb in entry.Verbs())
+            {
+                var each = (dynamic)verb;
+                string verbName = each.Name as string ?? "?";
+                each.DoIt();
+                Thread.Sleep(600);
+                bool back = File.Exists(full) || Directory.Exists(full);
+                Console.WriteLine($"bin.try={verbName} back={back}");
+                if (back) break;
+            }
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// 左键点导航栏某个分区标题。带管理动作的分区（收藏、工作区）应当当场弹出菜单。
+    /// 「工作区」那一段在侧栏最底部，窗口不够高时只露半行——只靠右键等于没有入口，
+    /// 所以这条链路必须真的走一遍左键。
+    /// </summary>
+    private static async Task ExerciseNavMenu(MainWindow window, string title)
+    {
+        if (window.FindName("QuickAccessList") is not ListBox list)
+        {
+            Console.WriteLine("navmenu.list=找不到 QuickAccessList");
+            return;
+        }
+
+        list.UpdateLayout();
+
+        TextBlock? label = FindSectionLabel(list, title);
+
+        if (label is null)
+        {
+            Console.WriteLine($"navmenu.label=找不到「{title}」");
+            Console.Out.Flush();
+            return;
+        }
+
+        // 先写出去再点：弹出菜单在某些会话下会卡住消息循环，事后打印就来不及了
+        Console.WriteLine($"navmenu.label={title}");
+        Console.Out.Flush();
+
+        label.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(
+            System.Windows.Input.Mouse.PrimaryDevice, Environment.TickCount, System.Windows.Input.MouseButton.Left)
+        {
+            RoutedEvent = UIElement.PreviewMouseLeftButtonDownEvent,
+        });
+
+        await Task.Delay(300);
+
+        ContextMenu? menu = label.ContextMenu;
+        bool open = menu?.IsOpen == true;
+
+        Console.WriteLine($"navmenu.opened={open}");
+        Console.WriteLine($"navmenu.items=[{AllMenuItems(menu)}]");
+        Console.Out.Flush();
+
+        // 不收起来会挡住后面要拍的整窗，也可能让进程退不干净
+        if (open && menu is not null) menu.IsOpen = false;
+    }
+
+    /// <summary>
+    /// 菜单里每一项的名字与可见性。只列可见项看不出"本该藏起来的藏没藏"，
+    /// 而这个分区的菜单是靠 IsBookmarks / IsWorkspaces 互斥的，藏错了就等于点错动作。
+    /// </summary>
+    private static string AllMenuItems(ContextMenu? menu)
+    {
+        if (menu is null) return string.Empty;
+
+        return string.Join(" · ", menu.Items
+            .OfType<MenuItem>()
+            .Select(item =>
+            {
+                string header = (item.Header as string ?? "?").Replace("_", string.Empty, StringComparison.Ordinal);
+                return item.Visibility == Visibility.Visible ? header : $"{header}(藏)";
+            }));
+    }
+
+    private static TextBlock? FindSectionLabel(DependencyObject root, string title)
+    {
+        var pending = new Queue<DependencyObject>();
+        pending.Enqueue(root);
+
+        while (pending.Count > 0)
+        {
+            DependencyObject node = pending.Dequeue();
+
+            if (node is TextBlock text
+                && text.DataContext is NavSectionRow row
+                && string.Equals(row.Title, title, StringComparison.Ordinal))
+            {
+                return text;
+            }
+
+            int count = VisualTreeHelper.GetChildrenCount(node);
+            for (int i = 0; i < count; i++) pending.Enqueue(VisualTreeHelper.GetChild(node, i));
+        }
+
+        return null;
     }
 
     private static class Native

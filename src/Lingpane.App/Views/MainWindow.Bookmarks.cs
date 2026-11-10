@@ -108,7 +108,27 @@ public partial class MainWindow
     // ── 导航栏收藏区的事件 ──────────────────────────────────────────────────
 
     /// <summary>分区标题与空态提示：吃掉点击，不让它们被 ListBox 选中（选中也没有对应动作）。</summary>
-    private void OnNavInertRowClick(object sender, MouseButtonEventArgs e) => e.Handled = true;
+    /// <summary>
+    /// 分区标题的鼠标。默认什么都不做（它不可选中），但带管理动作的分区
+    /// （收藏、工作区）左键也把菜单打开。
+    ///
+    /// 原本这两个入口只挂在右键上。工作区那一段在侧栏最底部，窗口不够高时
+    /// 连标题都只露半行，右键是唯一入口——等于没有入口。
+    /// 「位置」「标签」没有管理动作，<see cref="NavSectionRow.HasMenu"/> 为假，点它们仍然安静。
+    /// </summary>
+    private void OnNavInertRowClick(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+
+        if (sender is not TextBlock { DataContext: NavSectionRow { HasMenu: true } } label) return;
+        if (label.ContextMenu is not { } menu) return;
+
+        // 必须指定锚点：菜单项的显隐绑定（IsBookmarks / IsWorkspaces）靠 DataContext，
+        // 而 ContextMenu 的 DataContext 是从 PlacementTarget 继承来的。
+        // 少了这一句，两个分区的菜单会同时显示全部动作
+        menu.PlacementTarget = label;
+        menu.IsOpen = true;
+    }
 
     /// <summary>
     /// 「位置」「标签」两个分区的标题没有管理动作，右键菜单里一项都不会显示。

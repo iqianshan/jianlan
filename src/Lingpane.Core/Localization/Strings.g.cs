@@ -1125,7 +1125,7 @@ public static class Strings
     /// <summary>Workspaces</summary>
     public static string Nav_Workspaces => LocalizationService.Instance.Get("Nav.Workspaces");
 
-    /// <summary>No workspaces yet — save the current tabs</summary>
+    /// <summary>No workspaces yet. Click this title, then choose "Save current tabs…"</summary>
     public static string Nav_Workspaces_Empty => LocalizationService.Instance.Get("Nav.Workspaces.Empty");
 
     /// <summary>{0} tab(s)</summary>
@@ -1777,5 +1777,83 @@ public static class Strings
 
     /// <summary>Only folders can open in a new window.</summary>
     public static string Status_NewWindowNoPath => LocalizationService.Instance.Get("Status.NewWindowNoPath");
+
+    /// <summary>Open</summary>
+    public static string Preview_Action_Open => LocalizationService.Instance.Get("Preview.Action.Open");
+
+    /// <summary>Open this item</summary>
+    public static string Preview_Action_Open_Tip => LocalizationService.Instance.Get("Preview.Action.Open.Tip");
+
+    /// <summary>Copy path</summary>
+    public static string Preview_Action_CopyPath => LocalizationService.Instance.Get("Preview.Action.CopyPath");
+
+    /// <summary>Copy the full path to the clipboard</summary>
+    public static string Preview_Action_CopyPath_Tip => LocalizationService.Instance.Get("Preview.Action.CopyPath.Tip");
+
+    /// <summary>Delete</summary>
+    public static string Preview_Action_Delete => LocalizationService.Instance.Get("Preview.Action.Delete");
+
+    /// <summary>Move to the Recycle Bin; Ctrl+Z undoes it</summary>
+    public static string Preview_Action_Delete_Tip => LocalizationService.Instance.Get("Preview.Action.Delete.Tip");
+
+    /// <summary>Ask before opening executable files</summary>
+    public static string Settings_Behavior_WarnOnExecutable => LocalizationService.Instance.Get("Settings.Behavior.WarnOnExecutable");
+
+    /// <summary>When on, double-clicking an .exe / .bat / .cmd / .ps1 / .msi file shows its name and full path before it runs. Off by de</summary>
+    public static string Settings_Behavior_WarnOnExecutable_Hint => LocalizationService.Instance.Get("Settings.Behavior.WarnOnExecutable.Hint");
+
+    /// <summary>Open this executable?</summary>
+    public static string Dialog_ExecutableTitle => LocalizationService.Instance.Get("Dialog.ExecutableTitle");
+
+    /// <summary>This file is about to run:/n/n{0}/n{1}/n/nContinue only if you meant to run it.</summary>
+    public static string Dialog_ExecutableBody => LocalizationService.Instance.Get("Dialog.ExecutableBody");
+    // 含占位符：string.Format(Strings.Dialog_ExecutableBody, ...)
+
+    /// <summary>Undo</summary>
+    public static string Command_Undo => LocalizationService.Instance.Get("Command.Undo");
+
+    /// <summary>Undid the last operation ({0} items)</summary>
+    public static string Status_UndoDone => LocalizationService.Instance.Get("Status.UndoDone");
+    // 含占位符：string.Format(Strings.Status_UndoDone, ...)
+
+    /// <summary>Undid {0} items; {1} left alone: {2}</summary>
+    public static string Status_UndoPartial => LocalizationService.Instance.Get("Status.UndoPartial");
+    // 含占位符：string.Format(Strings.Status_UndoPartial, ...)
+
+    /// <summary>Could not undo: {0}</summary>
+    public static string Status_UndoFailed => LocalizationService.Instance.Get("Status.UndoFailed");
+    // 含占位符：string.Format(Strings.Status_UndoFailed, ...)
+
+    /// <summary>Nothing to undo</summary>
+    public static string Status_UndoNothing => LocalizationService.Instance.Get("Status.UndoNothing");
+
+    /// <summary>Permanently deleted {0} items. This cannot be undone.</summary>
+    public static string Status_PermanentDeletedNoUndo => LocalizationService.Instance.Get("Status.PermanentDeletedNoUndo");
+    // 含占位符：string.Format(Strings.Status_PermanentDeletedNoUndo, ...)
+
+    /// <summary>Nothing recorded to undo</summary>
+    public static string Undo_Nothing => LocalizationService.Instance.Get("Undo.Nothing");
+
+    /// <summary>the original name is taken now</summary>
+    public static string Undo_NameTaken => LocalizationService.Instance.Get("Undo.NameTaken");
+
+    /// <summary>the original folder is gone</summary>
+    public static string Undo_PlaceGone => LocalizationService.Instance.Get("Undo.PlaceGone");
+
+    /// <summary>it was modified after the operation</summary>
+    public static string Undo_Modified => LocalizationService.Instance.Get("Undo.Modified");
+
+    /// <summary>there is no Recycle Bin here, so deleting would be permanent</summary>
+    public static string Undo_NoRecycle => LocalizationService.Instance.Get("Undo.NoRecycle");
+
+    /// <summary>deleting failed</summary>
+    public static string Undo_DeleteFailed => LocalizationService.Instance.Get("Undo.DeleteFailed");
+
+    /// <summary>one item could not be restored and is still in the Recycle Bin</summary>
+    public static string Undo_RestoreFailed => LocalizationService.Instance.Get("Undo.RestoreFailed");
+
+    /// <summary>Undo failed: {0}</summary>
+    public static string Undo_FailedWithReason => LocalizationService.Instance.Get("Undo.FailedWithReason");
+    // 含占位符：string.Format(Strings.Undo_FailedWithReason, ...)
 
 }

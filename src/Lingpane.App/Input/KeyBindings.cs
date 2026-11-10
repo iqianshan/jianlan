@@ -102,6 +102,10 @@ internal static class KeyBindings
         new(Key.C, Vk.C, ModifierKeys.Control | ModifierKeys.Shift, CommandIds.CopyPath, "C"),
         new(Key.A, Vk.A, ModifierKeys.Control, CommandIds.SelectAll, "A"),
 
+        // 撤销（FR-6.8）。焦点在输入框里时 Ctrl+Z 归输入框自己——Vk.Z 在 TextEditingKeys 里，
+        // 所以这里注册的是"列表有焦点时"的那一份。
+        new(Key.Z, Vk.Z, ModifierKeys.Control, CommandIds.Undo, "Z"),
+
         // 上下文菜单（§4）：键盘上的菜单键
         new(Key.Apps, Vk.Apps, ModifierKeys.None, CommandIds.ShowContextMenu, "Apps"),
 
