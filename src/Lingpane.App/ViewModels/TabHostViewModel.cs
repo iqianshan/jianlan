@@ -111,11 +111,41 @@ public sealed class TabHostViewModel : INotifyPropertyChanged
     {
         if (IsFull) return null;
 
-        string target = string.IsNullOrWhiteSpace(path) ? _defaultPath() : path;
+        // 新标签开在哪（FR-5.2.6）：三选一看设置。显式给了路径就按给的来——
+        // 那条路径来自"拖进来的文件夹""在新标签打开这条路径"，与默认目录无关。
+        TabKind kind = TabKind.Files;
+        string target;
+
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            target = path;
+        }
+        else
+        {
+            switch (_settings.General.NewTabMode)
+            {
+                case NewTabModeKind.Home:
+                    // 主页不"位于"任何目录：给它一个空路径，但形态是主页
+                    kind = TabKind.Home;
+                    target = string.Empty;
+                    break;
+
+                case NewTabModeKind.Last:
+                    // "上次的目录"与"关掉最后一个标签回哪"是同一件事，复用同一条解析
+                    target = _homePath();
+                    break;
+
+                default:
+                    target = _defaultPath();
+                    break;
+            }
+        }
 
         // 不在这里导航：调用方（`+` 按钮、Ctrl+T、会话恢复）时机各不相同，
         // 统一由宿主在激活后决定"现在读盘还是等激活再读"。
-        var tab = new TabViewModel(_settings, target, _onVisited, tags: _tags);
+        var tab = kind == TabKind.Home
+            ? new TabViewModel(_settings, null, _onVisited, TabKind.Home, _tags)
+            : new TabViewModel(_settings, target, _onVisited, tags: _tags);
         tab.KindChanged += OnTabKindChanged;
 
         // 两件事都要在 Activate 之前写：激活会立刻触发宿主 BindTab，

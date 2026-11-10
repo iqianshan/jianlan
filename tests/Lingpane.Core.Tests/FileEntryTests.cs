@@ -1,4 +1,5 @@
 using Lingpane.Core.FileSystem;
+using Lingpane.Core.Tagging;
 
 namespace Lingpane.Core.Tests;
 
@@ -79,5 +80,40 @@ public class FileEntryTests
         // 同值重复设置不应再触发重绘
         entry.SetIconToken("#42");
         Assert.Equal(1, notified);
+    }
+
+    // ── 多色标签（FR-4.1.2）──────────────────────────────────────────────
+
+    [Fact]
+    public void 多色时色点按位序给出_最多三个()
+    {
+        var entry = new FileEntry("a.txt", @"C://tmp", false, 0, DateTime.Now);
+
+        entry.SetTags(TagColors.Blue | TagColors.Red);
+
+        // 位序即展示顺序：红在蓝之前，与右键菜单里的排列一致
+        Assert.Equal([TagColors.Red, TagColors.Blue], entry.ColorDots);
+
+        entry.SetTags(TagColors.Red | TagColors.Orange | TagColors.Yellow | TagColors.Green | TagColors.Blue);
+
+        // 行内只塞得下三个：按位序保留前三个，且顺序稳定
+        Assert.Equal(TagPalette.MaxDots, entry.ColorDots.Count);
+        Assert.Equal([TagColors.Red, TagColors.Orange, TagColors.Yellow], entry.ColorDots);
+    }
+
+    [Fact]
+    public void 去掉标签后色点为空的并触发通知()
+    {
+        var entry = new FileEntry("a.txt", @"C://tmp", false, 0, DateTime.Now);
+        entry.SetTags(TagColors.Red);
+
+        var changed = new List<string?>();
+        entry.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        entry.SetTags(TagColors.None);
+
+        Assert.Empty(entry.ColorDots);
+        Assert.False(entry.HasTags);
+        Assert.Contains(nameof(FileEntry.ColorDots), changed);
     }
 }

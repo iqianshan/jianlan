@@ -70,6 +70,9 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     private readonly NavigationHistory _history = new();
     private readonly AppSettings _settings;
 
+    /// <summary>这一份视图模型属于哪一侧窗格（FR-3.7）。决定视图/排序的记忆写到哪里。</summary>
+    private readonly PaneSlot _slot;
+
     /// <summary>
     /// 成功进入一个目录后的回调（FR-1.1.2 最近访问）。用委托注入而不是直接读
     /// <c>App.Settings</c>：视图模型在当前代码里不依赖 App 静态类，测试也能单独构造。
@@ -142,16 +145,29 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     /// <summary>当前目录所在卷的序列号。标签键是 <c>(卷, FileId)</c>，一半在这里。</summary>
     private ulong _volumeSerial;
 
-    public PaneViewModel(AppSettings settings, Action<string>? onVisited = null, TagStore? tags = null)
+    public PaneViewModel(AppSettings settings, Action<string>? onVisited = null, TagStore? tags = null,
+        PaneSlot slot = PaneSlot.Primary)
     {
         _settings = settings;
         _onVisited = onVisited;
         _tags = tags;
+        _slot = slot;
+
+        // 视图与排序的初值按"这一侧上次用过什么"取，没记过才用设置里的默认值（FR-3.7）。
+        // 取舍：一旦这一侧自己选过，就由它自己说了算——否则用户在分屏里挑了列表视图，
+        // 下次启动又被"默认视图"改回详细信息，等于白挑。
+        PaneViewStateSettings state = settings.Layout.GetPaneState(slot);
+
+        DefaultViewKind view = state.View ?? settings.Behavior.DefaultView;
+        SortFieldKind sort = state.SortBy ?? settings.Behavior.SortBy;
+        bool descending = state.SortDescending ?? settings.Behavior.SortDescending;
+
         // schema 里允许 grid，但 M1 未实现该视图（见 SetViewMode），启动时回落到列表
-        _viewMode = settings.Behavior.DefaultView == DefaultViewKind.Grid
-            ? DefaultViewKind.List
-            : settings.Behavior.DefaultView;
-        _sort = new EntrySort(settings.Behavior.SortBy, settings.Behavior.SortDescending, settings.Behavior.FoldersFirst);
+        _viewMode = view == DefaultViewKind.Grid ? DefaultViewKind.List : view;
+
+        _sort = new EntrySort(sort, descending, settings.Behavior.FoldersFirst,
+            settings.Behavior.NaturalSort, settings.Behavior.CaseSensitiveSort);
+
         _quickAccess = BuildQuickAccess();
         _statusText = Strings.Status_Ready;
 
@@ -595,13 +611,39 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// 当前选中项的颜色并集（FR-4.1.2）。右键菜单用它把"已经打上的颜色"勾上：
+    /// 选中多个文件、它们的颜色各不相同时，勾选表示"这一色至少有一项有"，
+    /// 点一下就是"给所有选中项统一加上/去掉这一色"。
+    /// </summary>
+    public TagColors SelectionTagMask
+    {
+        get
+        {
+            TagColors mask = TagColors.None;
+            foreach (FileEntry entry in SelectedEntries) mask |= entry.Tags;
+            return mask;
+        }
+    }
+
+    /// <summary>
+    /// 切换某一色（FR-4.1.2）：选中项**全都有**这一色 → 去掉；否则 → 加上。
+    ///
+    /// 为什么不是"设成这一色"：多色标签的语义是"一项可以同时是红和蓝"，
+    /// 设成单色等于每点一次就把上一色抹掉，用户永远攒不出两个颜色。
+    /// 要"只留一色"的场合有「移除标签」先清空，再点目标色，两步完成，不必为它留第三种语义。
+    /// </summary>
+    public Task ToggleTagAsync(TagColors color) => ApplyTagAsync(color, toggle: true);
+
+    /// <summary>
     /// 给选中项设置（或移除）颜色标签（FR-4.1.1 / FR-4.1.3）。<paramref name="colors"/> 为
     /// <see cref="TagColors.None"/> 即移除。
     ///
     /// 取 FileId 的那一段放后台线程：库里为空时条目身上没有 id，得对每个选中项开一次句柄。
     /// 选中几百个文件时这一步是几十毫秒，放 UI 线程会让右键菜单关得一顿。
     /// </summary>
-    public async Task ApplyTagAsync(TagColors colors)
+    public Task ApplyTagAsync(TagColors colors) => ApplyTagAsync(colors, toggle: false);
+
+    private async Task ApplyTagAsync(TagColors colors, bool toggle)
     {
         if (_tags is null) return;
 
@@ -621,16 +663,50 @@ public sealed class PaneViewModel : INotifyPropertyChanged
             return;
         }
 
-        TagSetResult result = colors == TagColors.None
-            ? (_tags.RemoveMany([.. resolved.Select(r => r.Target)]) > 0 ? TagSetResult.Applied : TagSetResult.Invalid)
-            : _tags.SetMany([.. resolved.Select(r => r.Target)], colors);
+        TagSetResult result;
 
-        // 属性通知必须在 UI 线程发，所以 id 与颜色在这一侧写回
+        if (toggle)
+        {
+            // 每一项算自己的结果颜色：选中项原本的颜色可能不一样，统一"设成 X"会把
+            // 别人身上的其它颜色抹掉。按结果颜色分组写，组数通常就是 1–2 组。
+            var groups = resolved
+                .GroupBy(r => (r.Entry.Tags & colors) != 0
+                    ? r.Entry.Tags & ~colors
+                    : r.Entry.Tags | colors)
+                .ToList();
+
+            result = TagSetResult.Applied;
+            foreach (var group in groups)
+            {
+                TagColors next = group.Key;
+                TagSetResult one = next == TagColors.None
+                    ? (_tags.RemoveMany([.. group.Select(r => r.Target)]) > 0 ? TagSetResult.Applied : TagSetResult.Invalid)
+                    : _tags.SetMany([.. group.Select(r => r.Target)], next);
+
+                if (one != TagSetResult.Applied) result = one;
+                foreach ((FileEntry entry, _) in group) entry.SetTags(next);
+            }
+
+            // RemoveMany 一组都没删到会把结果写成 Invalid，但"本来就没有、切一下还是没变"不该报错
+            if (result == TagSetResult.Invalid) result = TagSetResult.Applied;
+        }
+        else
+        {
+            result = colors == TagColors.None
+                ? (_tags.RemoveMany([.. resolved.Select(r => r.Target)]) > 0 ? TagSetResult.Applied : TagSetResult.Invalid)
+                : _tags.SetMany([.. resolved.Select(r => r.Target)], colors);
+
+            // 属性通知必须在 UI 线程发，所以 id 与颜色在这一侧写回
+            foreach ((FileEntry entry, TagTarget target) in resolved)
+            {
+                entry.SetTags(colors);
+            }
+        }
+
         foreach ((FileEntry entry, TagTarget target) in resolved)
         {
             entry.SetFileId(target.FileId);
             if (_volumeSerial == 0 && target.Volume != 0) _volumeSerial = target.Volume;
-            entry.SetTags(colors);
         }
 
         ReportTagResult(result, resolved.Count, colors);
@@ -790,10 +866,42 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     {
         Sort = _sort.Toggle(field);
         ResortInMemory();
+        PersistViewState();
     }
 
     /// <summary>
-    /// 切换视图模式。仅本次会话有效，不覆盖设置里的"默认视图"。
+    /// 设置页改了排序口径（FR-5.2.3 的文件夹优先 / 自然排序 / 区分大小写）：就地重排，不等下次启动。
+    /// 只动"怎么比"，排序列与升降序保持用户当前的选择——在设置页点一个勾选框，
+    /// 顺手把用户刚点过的列头反向，是没人想要的结果。
+    /// </summary>
+    public void ApplySortOptions(bool foldersFirst, bool natural, bool caseSensitive)
+    {
+        EntrySort next = _sort
+            .WithNameOptions(natural, caseSensitive)
+            with { FoldersFirst = foldersFirst };
+
+        if (next == _sort) return;
+
+        Sort = next;
+        ResortInMemory();
+    }
+
+    /// <summary>
+    /// 把这一侧当前的视图与排序记回设置（FR-3.7）。只改内存里的设置对象，
+    /// 落盘由界面层统一做（<c>PaneView</c> 里那几处 <c>App.SaveSettings()</c>）：
+    /// 视图模型不碰文件，也不该知道"现在是不是该写盘"。
+    /// </summary>
+    private void PersistViewState()
+    {
+        PaneViewStateSettings state = _settings.Layout.GetPaneState(_slot);
+        state.View = _viewMode;
+        state.SortBy = _sort.Field;
+        state.SortDescending = _sort.Descending;
+    }
+
+    /// <summary>
+    /// 切换视图模式。记忆在本侧窗格的状态里（FR-3.7），不覆盖设置页的"默认视图"——
+    /// 默认值管的是"两侧都还没选过的时候"，用户在这里点过之后就由这一侧说了算。
     /// M1 只提供"详细信息"与"列表"两种：两者都能走 VirtualizingStackPanel，
     /// 大图标/磁贴需要虚拟化 WrapPanel，否则万项目录会创建一万个容器，排到批 3 补。
     /// </summary>
@@ -810,6 +918,7 @@ public sealed class PaneViewModel : INotifyPropertyChanged
 
         HintText = string.Empty;
         ViewMode = mode;
+        PersistViewState();
         return true;
     }
 

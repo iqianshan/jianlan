@@ -338,6 +338,96 @@ public sealed class TagStore
     }
 
     /// <summary>
+    /// 合并一批外部记录（FR-4.2.7 导入）。返回新增 / 更新 / 跳过的条数。
+    ///
+    /// 合并而不是替换，理由：导出文件往往来自另一台机器或另一段时间，替换等于把
+    /// 本机后来打的标签全清掉——那不是"导入"，是"恢复出厂"。逐条按主键判：
+    /// <list type="bullet">
+    ///   <item>本机没有 → 新增（受 <see cref="MaxRecords"/> 限制，满了算跳过）</item>
+    ///   <item>本机有、导入的那份更新 → 覆盖颜色</item>
+    ///   <item>本机有、本机那份一样新或更新 → 跳过（本机是后来改的，不能被旧文件盖掉）</item>
+    /// </list>
+    /// 路径会跟着更新：导入之后路径指向的是"导出时它在哪"，比本机那份旧值更有用。
+    /// </summary>
+    public TagImportResult Import(IReadOnlyList<TagRecord> records)
+    {
+        ArgumentNullException.ThrowIfNull(records);
+
+        int added = 0, updated = 0, skipped = 0;
+        var lines = new List<TagOpLine>(records.Count);
+
+        lock (_gate)
+        {
+            if (!_loaded) Parse();
+
+            foreach (TagRecord incoming in records)
+            {
+                if (incoming.FileId == 0)
+                {
+                    skipped++;
+                    continue;
+                }
+
+                (ulong, ulong) key = incoming.Key;
+
+                if (_byKey.TryGetValue(key, out TagRecord? existing) && existing is not null)
+                {
+                    // 同一条记录、同样的颜色：不必重写，也不必算"更新"
+                    if (existing.Colors == incoming.Colors
+                        && string.Equals(existing.Path, incoming.Path, StringComparison.OrdinalIgnoreCase))
+                    {
+                        skipped++;
+                        continue;
+                    }
+
+                    if (incoming.UpdatedAt <= existing.UpdatedAt)
+                    {
+                        skipped++;
+                        continue;
+                    }
+
+                    existing.Colors = incoming.Colors;
+                    existing.Path = incoming.Path;
+                    existing.UpdatedAt = incoming.UpdatedAt;
+                    updated++;
+                }
+                else
+                {
+                    if (_byKey.Count >= _maxRecords)
+                    {
+                        skipped++;
+                        continue;
+                    }
+
+                    _byKey[key] = new TagRecord(
+                        incoming.Volume, incoming.FileId, incoming.Path, incoming.Colors, incoming.UpdatedAt);
+                    added++;
+                }
+
+                if (!string.IsNullOrWhiteSpace(incoming.Path)) _byPath[incoming.Path] = key;
+
+                lines.Add(new TagOpLine
+                {
+                    Op = "set",
+                    V = incoming.Volume,
+                    F = incoming.FileId,
+                    P = incoming.Path,
+                    C = (byte)incoming.Colors,
+                    T = incoming.UpdatedAt.ToUnixTimeSeconds(),
+                });
+            }
+        }
+
+        if (lines.Count > 0)
+        {
+            Append(lines);
+            Changed?.Invoke();
+        }
+
+        return new TagImportResult(added, updated, skipped);
+    }
+
+    /// <summary>
     /// 八色各有多少条，一条记录可同时计入多色（一条记录可以是红+蓝）。
     ///
     /// 侧栏要给八个颜色节点标数量。用八次 <see cref="OfColor"/> 也能算出来，

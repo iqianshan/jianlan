@@ -91,6 +91,22 @@ internal static class Program
         bool printTabs = false;
         int activeTabIndex = -1;
         string? extraTabPath = null;
+        string? newTabMode = null;
+        string[] tagToggles = [];
+        bool newWindow = false;
+        int newWindowTab = -1;
+        bool printSettingsState = false;
+        string? tagExportPath = null;
+        string? tagImportPath = null;
+        double[]? sortOptions = null;
+        string? pane1View = null;
+        string? pane1Sort = null;
+        string? pane2View = null;
+        string? pane2Sort = null;
+        bool printPaneState = false;
+        string? pasteSource = null;
+        string? pasteTarget = null;
+        bool pasteConfirm = true;
 
         for (int i = 2; i < argv.Length; i++)
         {
@@ -308,6 +324,70 @@ internal static class Program
                     // 再开一个标签并导航到指定目录。方向键切换至少要有两个标签，
                     // 而标签数是会话恢复出来的，不显式造就没有稳定的测试前提
                     extraTabPath = Path.GetFullPath(argv[++i]);
+                    break;
+                case "--new-tab-mode" when i + 1 < argv.Length:
+                    // 新标签开在哪（FR-5.2.6）。home / path / last 三档，走的是
+                    // "改设置 → 存盘 → 点新建标签"这条用户链，不直接 new TabViewModel
+                    newTabMode = argv[++i];
+                    break;
+                case "--tag-toggle" when i + 1 < argv.Length:
+                    // 对当前选中项切换颜色（FR-4.1.2）。逗号分隔可多次切换，
+                    // 用来证明"第二次点另一色是叠加不是替换"——单色测试看不出这个区别
+                    tagToggles = argv[++i]
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    break;
+                case "--sort-options" when i + 1 < argv.Length:
+                    // 自然排序 / 区分大小写两个开关（FR-5.2.3），逗号分隔两位：natural,case。
+                    // 走设置页勾选框的同一条链（改设置 → ApplySortOptionsToPanes → 重排）
+                    sortOptions = argv[++i]
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Select(x => double.Parse(x, System.Globalization.CultureInfo.InvariantCulture))
+                        .ToArray();
+                    break;
+                case "--new-window" when i + 1 < argv.Length:
+                    // 标签在新窗口打开（FR-2.12）。触发的是标签条菜单那一项背后的事件，
+                    // 不是直接 new MainWindow——要证的是"菜单 → 事件 → 副窗口"整条通了
+                    _ = int.TryParse(argv[++i], out newWindowTab);
+                    newWindow = true;
+                    break;
+                case "--tag-export" when i + 1 < argv.Length:
+                    // 标签库导出（FR-4.2.7 / FR-5.3.6）。写到指定路径，再打一行摘要
+                    tagExportPath = Path.GetFullPath(argv[++i]);
+                    break;
+                case "--tag-import" when i + 1 < argv.Length:
+                    // 标签库导入。导入的是上一行导出的同一个文件，用来做往返验证
+                    tagImportPath = Path.GetFullPath(argv[++i]);
+                    break;
+                case "--settings-state":
+                    // 打印设置页本批新增控件的实际取值。图上看得出"有个下拉框"，
+                    // 看不出"它现在选的是哪一档"——而后者才是要证的东西
+                    printSettingsState = true;
+                    break;
+                case "--pane2-view" when i + 1 < argv.Length:
+                    // 第二窗格的视图（FR-3.7）。两侧各记各的才是重点，
+                    // 所以这个参数永远与 --pane1-* 对照着用
+                    pane2View = argv[++i];
+                    break;
+                case "--pane2-sort" when i + 1 < argv.Length:
+                    pane2Sort = argv[++i];
+                    break;
+                case "--pane1-view" when i + 1 < argv.Length:
+                    pane1View = argv[++i];
+                    break;
+                case "--pane1-sort" when i + 1 < argv.Length:
+                    pane1Sort = argv[++i];
+                    break;
+                case "--paste-conflict" when i + 3 < argv.Length:
+                    // 粘贴重名（FR-5.2.8）。三个参数：源目录、目标目录、是否开着"覆盖前确认"。
+                    // 关掉确认那一档必须能证明"不问、直接覆盖"——只截图看不出这个区别
+                    pasteSource = Path.GetFullPath(argv[++i]);
+                    pasteTarget = Path.GetFullPath(argv[++i]);
+                    pasteConfirm = argv[++i] == "1";
+                    break;
+                case "--pane-state":
+                    // 只打印、不改动。用来验"重开之后两侧还是各是各的"——
+                    // 改完就退出只能证明改动了，证明不了记住
+                    printPaneState = true;
                     break;
             }
         }
@@ -530,6 +610,37 @@ internal static class Program
 
                 Window target = window;
 
+                if (pasteSource is not null && pasteTarget is not null)
+                {
+                    await ExercisePasteConflict(window, pasteSource, pasteTarget, pasteConfirm);
+                }
+
+                if (printPaneState) PrintPaneStates(window);
+
+                if (pane1View is not null || pane1Sort is not null || pane2View is not null || pane2Sort is not null)
+                {
+                    await ExercisePaneViews(window, pane1View, pane1Sort, pane2View, pane2Sort);
+                }
+
+                if (tagExportPath is not null) PrintTagExport(tagExportPath);
+
+                if (tagImportPath is not null) PrintTagImport(tagImportPath);
+
+                if (newTabMode is not null) await ExerciseNewTabMode(window, newTabMode);
+
+                if (tagToggles.Length > 0) await ExerciseTagToggle(window, tagToggles);
+
+                if (sortOptions is { Length: 2 })
+                {
+                    await ExerciseSortOptions(window, sortOptions[0] != 0, sortOptions[1] != 0);
+                }
+
+                if (newWindow)
+                {
+                    // 拍的是副窗口：主窗口的样子到处都是，这张图要证的是"另开了一个"
+                    if (ExerciseNewWindow(window, newWindowTab) is { } opened) target = opened;
+                }
+
                 if (showSettings)
                 {
                     target = OpenSettings(window);
@@ -547,6 +658,8 @@ internal static class Program
                         await Task.Delay(1500);
                         PrintCacheLine(target);
                     }
+
+                    if (printSettingsState) PrintSettingsState(target);
                 }
 
                 if (showAbout || licenseView is not null)
@@ -1717,6 +1830,370 @@ internal static class Program
         }, IntPtr.Zero);
 
         return found;
+    }
+
+    /// <summary>
+    /// 两侧窗格各设一套视图与排序（FR-3.7）。要证的不是"能设"，
+    /// 而是"设了一侧另一侧不动、且下一次打开还各是各的"——所以两行一起打。
+    /// 走的是工具栏按钮背后那两个方法，排序与切视图各自会落盘。
+    /// </summary>
+    private static async Task ExercisePaneViews(MainWindow window, string? view1, string? sort1,
+        string? view2, string? sort2)
+    {
+        PaneView pane1 = GetPane(window);
+
+        if (typeof(MainWindow).GetField("Pane2", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.GetValue(window) is not PaneView pane2)
+        {
+            throw new MissingMemberException("MainWindow.Pane2");
+        }
+
+        ApplyPaneState(pane1, view1, sort1);
+        ApplyPaneState(pane2, view2, sort2);
+
+        await Task.Delay(600);
+
+        PaneViewModel first = pane1.ViewModel ?? throw new MissingMemberException("Pane.ViewModel");
+        PaneViewModel second = pane2.ViewModel ?? throw new MissingMemberException("Pane2.ViewModel");
+
+        Console.WriteLine($"pane1.slot={pane1.Slot} view={first.ViewMode} field={first.Sort.Field} desc={first.Sort.Descending}");
+        Console.WriteLine($"pane2.slot={pane2.Slot} view={second.ViewMode} field={second.Sort.Field} desc={second.Sort.Descending}");
+    }
+
+    /// <summary>
+    /// 粘贴到同名项上的两种结局（FR-5.2.8）。这里只跑"关掉确认"那一档：
+    /// 开着的那一档会弹出模态确认窗，离屏进程没有人可点，会一直挂在那儿。
+    /// 关掉确认必须**直接覆盖**而不是退回自动改名——否则"想覆盖"的用户就没有入口了。
+    /// </summary>
+    private static async Task ExercisePasteConflict(MainWindow window, string source, string target, bool confirm)
+    {
+        App.Settings.Behavior.ConfirmOverwrite = confirm;
+
+        string[] files = Directory.GetFiles(source);
+
+        if (files.Length == 0) throw new InvalidOperationException($"源目录没有文件：{source}");
+
+        Console.WriteLine($"paste.confirmOverwrite={confirm} files={files.Length}");
+        Console.WriteLine($"paste.from={source}");
+        Console.WriteLine($"paste.to={target}");
+
+        if (confirm)
+        {
+            // 这条路要弹确认窗；离屏没有人能点，只报出问句本身
+            Console.WriteLine($"paste.question={Lingpane.Core.Localization.Strings.Dialog_OverwriteOne}");
+            return;
+        }
+
+        PaneView pane = GetPane(window);
+        PaneViewModel model = pane.ViewModel ?? throw new MissingMemberException("PaneView.ViewModel");
+
+        await model.NavigateAsync(target);
+        await Task.Delay(400);
+
+        // 剪贴板是应用自己的那份（不是系统的），内部类型，只能反射
+        Type clip = typeof(MainWindow).Assembly.GetType("Lingpane.App.Services.FileClipboard")
+            ?? throw new MissingMemberException("FileClipboard");
+
+        MethodInfo? set = clip.GetMethod("Set", BindingFlags.Public | BindingFlags.Static);
+        if (set is null) throw new MissingMethodException("FileClipboard.Set");
+
+        set.Invoke(null, [files, false]);
+
+        MethodInfo? paste = typeof(PaneView).GetMethod(
+            "PasteAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        if (paste is null) throw new MissingMethodException("PaneView.PasteAsync");
+
+        if (paste.Invoke(pane, null) is Task task) await task;
+
+        await Task.Delay(600);
+
+        Console.WriteLine($"paste.status={model.StatusText}");
+
+        foreach (string file in Directory.GetFiles(target).OrderBy(Path.GetFileName))
+        {
+            Console.WriteLine($"paste.list={Path.GetFileName(file)} content={File.ReadAllText(file).Trim()}");
+        }
+    }
+
+    /// <summary>只读地打印两侧窗格当前状态，用来验"重开之后还是各是各的"。</summary>
+    private static void PrintPaneStates(MainWindow window)
+    {
+        PaneView pane1 = GetPane(window);
+
+        if (typeof(MainWindow).GetField("Pane2", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.GetValue(window) is not PaneView pane2)
+        {
+            throw new MissingMemberException("MainWindow.Pane2");
+        }
+
+        PaneViewModel? first = pane1.ViewModel;
+        PaneViewModel? second = pane2.ViewModel;
+
+        Console.WriteLine($"pane1.slot={pane1.Slot} view={first?.ViewMode} " +
+                          $"field={first?.Sort.Field} desc={first?.Sort.Descending}");
+        Console.WriteLine($"pane2.slot={pane2.Slot} view={second?.ViewMode} " +
+                          $"field={second?.Sort.Field} desc={second?.Sort.Descending}");
+    }
+
+    private static void ApplyPaneState(PaneView view, string? viewName, string? sortField)
+    {
+        PaneViewModel model = view.ViewModel ?? throw new MissingMemberException("PaneView.ViewModel");
+
+        if (sortField is not null)
+        {
+            if (!Enum.TryParse<Lingpane.Core.Settings.SortFieldKind>(sortField, ignoreCase: true, out var field))
+            {
+                throw new ArgumentException($"未知排序字段：{sortField}");
+            }
+
+            model.SortBy(field);
+        }
+
+        if (viewName is null) return;
+
+        if (!Enum.TryParse<Lingpane.Core.Settings.DefaultViewKind>(viewName, ignoreCase: true, out var kind))
+        {
+            throw new ArgumentException($"未知视图：{viewName}");
+        }
+
+        // 与点"列表/详细"按钮同一个入口：它还会顺手存盘。
+        // 这个方法是 internal 的（设置页与本程序集之外不该乱调），所以只能反射
+        MethodInfo? apply = typeof(PaneView).GetMethod(
+            "ApplyViewMode", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        if (apply is null) throw new MissingMethodException("PaneView.ApplyViewMode");
+
+        apply.Invoke(view, [kind]);
+    }
+
+    /// <summary>
+    /// 新标签开在哪（FR-5.2.6）。走"改设置 → 存盘 → 点新建标签"这条用户链，
+    /// 而不是直接 <c>new TabViewModel</c>：要证的正是"处理器读到了这个设置"。
+    /// 三档的差别只有一处——<c>Add()</c> 在没有显式路径时怎么解析目标目录。
+    /// </summary>
+    private static async Task ExerciseNewTabMode(MainWindow window, string mode)
+    {
+        if (!Enum.TryParse<Lingpane.Core.Settings.NewTabModeKind>(mode, ignoreCase: true, out var kind))
+        {
+            throw new ArgumentException($"未知的新标签模式：{mode}（可选 home / path / last）");
+        }
+
+        App.Settings.General.NewTabMode = kind;
+        App.SaveSettings();
+
+        MethodInfo? newTab = typeof(MainWindow).GetMethod(
+            "NewTab", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        if (newTab is null) throw new MissingMethodException("MainWindow.NewTab");
+
+        newTab.Invoke(window, null);
+        await Task.Delay(700);
+
+        Lingpane.App.ViewModels.TabHostViewModel host = GetTabs(window);
+        Lingpane.App.ViewModels.TabViewModel tab = host.Active ?? throw new MissingMemberException("TabHostViewModel.Active");
+
+        Console.WriteLine($"newtab.mode={kind}");
+        Console.WriteLine($"newtab.tabs={host.Tabs.Count} index={host.ActiveIndex}");
+        Console.WriteLine($"newtab.kind={tab.Kind} isHome={tab.IsHome}");
+        Console.WriteLine($"newtab.path={(string.IsNullOrEmpty(tab.Primary.CurrentPath) ? "(空)" : tab.Primary.CurrentPath)}");
+        Console.WriteLine(
+            $"newtab.secondary={(string.IsNullOrEmpty(tab.Secondary?.CurrentPath) ? "(无)" : tab.Secondary!.CurrentPath)}");
+    }
+
+    /// <summary>
+    /// 对选中项切换颜色标签（FR-4.1.2）。多色用"切换"而不是"设成"：
+    /// 连续点两个色，第二次若替换了第一次，行上就只有一个点——这正是要看出来的。
+    /// </summary>
+    private static async Task ExerciseTagToggle(MainWindow window, string[] colors)
+    {
+        PaneViewModel pane = GetPane(window).ViewModel ?? throw new MissingMemberException("PaneView.ViewModel");
+
+        foreach (string name in colors)
+        {
+            if (!Enum.TryParse<Lingpane.Core.Tagging.TagColors>(name, ignoreCase: true, out var color))
+            {
+                throw new ArgumentException($"未知颜色：{name}");
+            }
+
+            await pane.ToggleTagAsync(color);
+            await Task.Delay(150);
+            Console.WriteLine($"tag.toggle={color} mask={pane.SelectionTagMask}");
+        }
+
+        Console.WriteLine($"tag.selected={pane.SelectedEntries.Count} dotsMax={Lingpane.Core.Tagging.TagPalette.MaxDots}");
+
+        foreach (Lingpane.Core.FileSystem.FileEntry entry in pane.SelectedEntries)
+        {
+            Console.WriteLine(
+                $"tag.entry={entry.Name} tags={entry.Tags} " +
+                $"dotCount={entry.ColorDots.Count} dots={string.Join('+', entry.ColorDots)}");
+        }
+    }
+
+    /// <summary>
+    /// 自然排序 / 区分大小写（FR-5.2.3）。写设置后调窗口那个"重排所有窗格"的方法，
+    /// 与设置页勾选后发生的事完全一样。名字串直接打出来，比截图比对快得多。
+    /// </summary>
+    private static async Task ExerciseSortOptions(MainWindow window, bool natural, bool caseSensitive)
+    {
+        App.Settings.Behavior.NaturalSort = natural;
+        App.Settings.Behavior.CaseSensitiveSort = caseSensitive;
+
+        // 这是 public 的（设置页直接调），不必反射
+        window.ApplySortOptionsToPanes();
+        await Task.Delay(700);
+
+        PaneViewModel pane = GetPane(window).ViewModel ?? throw new MissingMemberException("PaneView.ViewModel");
+
+        Console.WriteLine(
+            $"sort.natural={pane.Sort.Natural} case={pane.Sort.CaseSensitive} " +
+            $"field={pane.Sort.Field} desc={pane.Sort.Descending} foldersFirst={pane.Sort.FoldersFirst}");
+
+        Console.WriteLine("sort.order=" + string.Join(" | ", pane.Entries.Take(12).Select(e => e.Name)));
+    }
+
+    /// <summary>
+    /// 标签在新窗口打开（FR-2.12）。调的是菜单项背后那个方法：
+    /// 副窗口是**同一进程里的第二个窗口**，不是新进程——新进程会被单实例守卫接走，
+    /// 结果"开新窗口"变成"让已有窗口跳过去"。所以判据是
+    /// <c>Application.Windows</c> 里多了一个 MainWindow，而且它落在指定目录上。
+    /// </summary>
+    private static MainWindow? ExerciseNewWindow(MainWindow window, int tabIndex)
+    {
+        Lingpane.App.ViewModels.TabHostViewModel host = GetTabs(window);
+
+        int before = Application.Current.Windows.OfType<MainWindow>().Count();
+        int index = tabIndex >= 0 ? Math.Clamp(tabIndex, 0, host.Tabs.Count - 1) : host.ActiveIndex;
+
+        Console.WriteLine($"newwin.before={before} from={index} path={host.Tabs[index].Primary.CurrentPath}");
+
+        // 走标签条菜单那一项自己的处理器（sender 的 DataContext 就是被点的标签）：
+        // 这样"菜单项 → 事件 → 副窗口"整条链都真的跑过一遍。
+        // 直接调 OpenTabInNewWindow 只能证明后半截。
+        object? bar = typeof(MainWindow).GetField("TabBar", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(window);
+
+        MethodInfo? handler = bar?.GetType().GetMethod(
+            "OnTabOpenWindow", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        if (bar is not null && handler is not null)
+        {
+            var sender = new System.Windows.Controls.ContentControl { DataContext = host.Tabs[index] };
+
+            // 处理器里会写 e.Handled = true，而 RoutedEventArgs 没有关联事件时不许写这个属性。
+            // 菜单项点下来带的就是 MenuItem.ClickEvent，照它造一个才等价
+            handler.Invoke(bar, [sender, new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent)]);
+        }
+        else
+        {
+            MethodInfo? open = typeof(MainWindow).GetMethod(
+                "OpenTabInNewWindow", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            if (open is null) throw new MissingMethodException("MainWindow.OpenTabInNewWindow");
+
+            open.Invoke(window, [host.Tabs[index]]);
+        }
+
+        // 副窗口的 Show 是同步的，但布局与首帧要走一次调度；等它空闲下来再数窗口
+        Application.Current.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+
+        MainWindow[] windows = [.. Application.Current.Windows.OfType<MainWindow>()];
+
+        Console.WriteLine($"newwin.after={windows.Length}");
+
+        for (int i = 0; i < windows.Length; i++)
+        {
+            Lingpane.App.ViewModels.TabHostViewModel each = GetTabs(windows[i]);
+            Console.WriteLine(
+                $"newwin.window.{i}=tabs:{each.Tabs.Count} index:{each.ActiveIndex} " +
+                $"path:{each.Active?.Primary.CurrentPath}");
+        }
+
+        // 副窗口就是那个不是原来那个的窗口
+        return windows.FirstOrDefault(w => !ReferenceEquals(w, window));
+    }
+
+    /// <summary>
+    /// 标签库导出（FR-4.2.7 / FR-5.3.6）。导出的是**状态快照**而不是操作日志：
+    /// 磁盘上的 tags.jsonl 是 set/del 行，拿它当交换格式对方还得重放一遍。
+    /// </summary>
+    private static void PrintTagExport(string path)
+    {
+        App.Tags.EnsureLoaded();
+
+        int written = Lingpane.Core.Tagging.TagArchive.Write(App.Tags.Snapshot(), path);
+        Console.WriteLine($"tag.export={path} written={written} store={App.Tags.Count}");
+    }
+
+    /// <summary>
+    /// 标签库导入。往返验证：导出的同一个文件再导回来，
+    /// 记录数应当全部落在"跳过"（新旧一样）而不是"新增"，否则主键没对上。
+    /// </summary>
+    private static void PrintTagImport(string path)
+    {
+        Lingpane.Core.Tagging.TagArchiveDocument document = Lingpane.Core.Tagging.TagArchive.Read(path);
+        List<Lingpane.Core.Tagging.TagRecord> records = Lingpane.Core.Tagging.TagArchive.ToRecords(document);
+
+        Lingpane.Core.Tagging.TagImportResult result = App.Tags.Import(records);
+
+        Console.WriteLine(
+            $"tag.import={path} kind={document.Kind} version={document.Version} records={records.Count}");
+        Console.WriteLine(
+            $"tag.import.added={result.Added} updated={result.Updated} skipped={result.Skipped} " +
+            $"total={result.Total} store={App.Tags.Count}");
+    }
+
+    /// <summary>
+    /// 设置页本批新增控件的实际取值。截图能证明"控件在那儿"，
+    /// 但"下拉框选的是哪一档、八个颜色名现在叫什么"只有打印出来才看得准。
+    /// </summary>
+    private static void PrintSettingsState(Window settings)
+    {
+        if (settings.FindName("NewTabModeCombo") is System.Windows.Controls.ComboBox mode)
+        {
+            Console.WriteLine($"settings.newTabMode=index:{mode.SelectedIndex} text:{mode.Text}");
+        }
+
+        if (settings.FindName("NaturalSortCheck") is System.Windows.Controls.CheckBox natural)
+        {
+            Console.WriteLine($"settings.naturalSort={natural.IsChecked}");
+        }
+
+        if (settings.FindName("CaseSensitiveCheck") is System.Windows.Controls.CheckBox sensitive)
+        {
+            Console.WriteLine($"settings.caseSensitive={sensitive.IsChecked}");
+        }
+
+        if (settings.FindName("ConfirmOverwriteCheck") is System.Windows.Controls.CheckBox overwrite)
+        {
+            Console.WriteLine($"settings.confirmOverwrite={overwrite.IsChecked}");
+        }
+
+        if (settings.FindName("TagColorNamePanel") is not System.Windows.Controls.Panel panel) return;
+
+        Console.WriteLine($"settings.tagColorNameRows={panel.Children.Count}");
+
+        foreach (object child in panel.Children)
+        {
+            if (child is not System.Windows.Controls.Panel row) continue;
+
+            foreach (object item in row.Children)
+            {
+                if (item is System.Windows.Controls.TextBox { Tag: Lingpane.Core.Tagging.TagColors color } box)
+                {
+                    Console.WriteLine($"settings.tagColorName.{color}={box.Text}");
+                }
+            }
+        }
+    }
+
+    private static Lingpane.App.ViewModels.TabHostViewModel GetTabs(MainWindow window)
+    {
+        FieldInfo? field = typeof(MainWindow).GetField("_tabs", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        return field?.GetValue(window) as Lingpane.App.ViewModels.TabHostViewModel
+            ?? throw new MissingMemberException("MainWindow._tabs");
     }
 
     private static class Native

@@ -1191,7 +1191,7 @@
     <value>标签</value>
   </data>
   <data name="Menu.Tag.Tip" xml:space="preserve">
-    <value>为选中项设置颜色标签</value>
+    <value>为选中项切换颜色标签（一项可以同时有多个）</value>
   </data>
   <data name="Menu.Tag.Remove" xml:space="preserve">
     <value>移除标签</value>
@@ -1632,5 +1632,89 @@
   </data>
   <data name="About.Update.Failed" xml:space="preserve">
     <value>无法打开浏览器。</value>
+  </data>
+  <data name="Settings.Behavior.NaturalSort" xml:space="preserve">
+    <value>自然排序</value>
+  </data>
+  <data name="Settings.Behavior.NaturalSort.Hint" xml:space="preserve">
+    <value>让 file2 排在 file10 之前。关掉后按字符逐个比较。</value>
+  </data>
+  <data name="Settings.Behavior.CaseSensitiveSort" xml:space="preserve">
+    <value>名称区分大小写</value>
+  </data>
+  <data name="Settings.Behavior.CaseSensitiveSort.Hint" xml:space="preserve">
+    <value>打开后 Readme 与 readme 分开排序；关掉与资源管理器一致。</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmOverwrite" xml:space="preserve">
+    <value>覆盖前确认</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmOverwrite.Hint" xml:space="preserve">
+    <value>打开时，目标处有同名项会先问一句；关掉后直接覆盖，不再询问。</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode" xml:space="preserve">
+    <value>新标签打开</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode.Home" xml:space="preserve">
+    <value>主页</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode.Path" xml:space="preserve">
+    <value>指定目录</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode.Last" xml:space="preserve">
+    <value>上次待的目录</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode.Hint" xml:space="preserve">
+    <value>「主页」打开起始页；「指定目录」用下面的路径，留空则用系统「下载」；「上次待的目录」接上次关闭时停的地方。</value>
+  </data>
+  <data name="Settings.Tags.ColorNames" xml:space="preserve">
+    <value>标签颜色名称</value>
+  </data>
+  <data name="Settings.Tags.ColorNames.Hint" xml:space="preserve">
+    <value>留空即用默认名称。名称会出现在标签菜单与侧栏里。</value>
+  </data>
+  <data name="Settings.Privacy.TagExport" xml:space="preserve">
+    <value>导出…</value>
+  </data>
+  <data name="Settings.Privacy.TagExport.Tip" xml:space="preserve">
+    <value>把标签库保存为 JSON 文件。</value>
+  </data>
+  <data name="Settings.Privacy.TagExport.Title" xml:space="preserve">
+    <value>导出标签库</value>
+  </data>
+  <data name="Settings.Privacy.TagExported" xml:space="preserve">
+    <value>已导出 {0} 条标签。</value>
+  </data>
+  <data name="Settings.Privacy.TagExportFailed" xml:space="preserve">
+    <value>导出失败：{0}</value>
+  </data>
+  <data name="Settings.Privacy.TagImport" xml:space="preserve">
+    <value>导入…</value>
+  </data>
+  <data name="Settings.Privacy.TagImport.Tip" xml:space="preserve">
+    <value>从 JSON 文件把标签合并进当前标签库。</value>
+  </data>
+  <data name="Settings.Privacy.TagImport.Title" xml:space="preserve">
+    <value>导入标签库</value>
+  </data>
+  <data name="Settings.Privacy.TagImported" xml:space="preserve">
+    <value>已导入 {0} 条标签：新增 {1}、更新 {2}、跳过 {3}。</value>
+  </data>
+  <data name="Settings.Privacy.TagImportFailed" xml:space="preserve">
+    <value>导入失败：{0}</value>
+  </data>
+  <data name="Dialog.OverwriteTitle" xml:space="preserve">
+    <value>覆盖</value>
+  </data>
+  <data name="Dialog.OverwriteOne" xml:space="preserve">
+    <value>目标文件夹里已有「{0}」，是否覆盖？选「否」会保留两份。</value>
+  </data>
+  <data name="Dialog.OverwriteMany" xml:space="preserve">
+    <value>目标文件夹里已有 {0} 个同名项，是否覆盖？选「否」会保留两份。</value>
+  </data>
+  <data name="Tab.Menu.OpenWindow" xml:space="preserve">
+    <value>在新窗口打开</value>
+  </data>
+  <data name="Status.NewWindowNoPath" xml:space="preserve">
+    <value>只有目录能在新窗口打开。</value>
   </data>
 </root>

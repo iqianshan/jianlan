@@ -319,6 +319,18 @@ public partial class TabStrip : UserControl
     /// </summary>
     public event Action<string[], TabViewModel?>? OpenDropped;
 
+    /// <summary>
+    /// 标签菜单里点了「在新窗口打开」（FR-2.12）。视图只报"哪个标签"，
+    /// 开窗口归宿主——标签栏不该知道窗口是怎么造出来的。
+    /// </summary>
+    public event Action<TabViewModel>? OpenInNewWindowRequested;
+
+    private void OnTabOpenWindow(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is FrameworkElement { DataContext: TabViewModel tab }) OpenInNewWindowRequested?.Invoke(tab);
+    }
+
     private void OnStripDragOver(object sender, DragEventArgs e)
     {
         if (!e.Data.GetDataPresent(DataFormats.FileDrop))

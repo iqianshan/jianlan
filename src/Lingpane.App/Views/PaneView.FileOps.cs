@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
@@ -183,8 +184,12 @@ public partial class PaneView
         string[] paths = FileClipboard.Paths.ToArray();
         bool cut = FileClipboard.IsCut;
 
+        ConflictPolicy conflict = ResolveConflictPolicy(paths, directory);
+
         var (result, text) = await RunOperationAsync(
-            () => cut ? FileOperations.MoveAsync(paths, directory) : FileOperations.CopyAsync(paths, directory),
+            () => cut
+                ? FileOperations.MoveAsync(paths, directory, conflict)
+                : FileOperations.CopyAsync(paths, directory, conflict),
             cut ? Strings.Status_Moving : Strings.Status_Copying,
             r => !r.Ok
                 ? string.Format(cut ? Strings.Status_MoveFailed : Strings.Status_CopyFailed, r.Error)
@@ -201,6 +206,32 @@ public partial class PaneView
 
         // 同删除：全量失败或部分失败的原因不能被刷新覆盖
         if (!result.Ok || result.Failed > 0) Vm.SetStatus(text);
+    }
+
+    /// <summary>
+    /// 粘贴前决定冲突策略（FR-5.2.8 的"覆盖"分项）。
+    ///
+    /// 三种结局都必须是用户明确选择的：覆盖、两个都留、什么都不做。
+    /// 所以问句里写清"选否会保留两份"——只写"是否覆盖"，用户点否之后
+    /// 看到目标里多出一个"xxx (2)"，会以为点错了。
+    ///
+    /// <c>ConfirmOverwrite</c> 关掉时直接覆盖，不弹窗：这一项与"删除确认"同一个口径，
+    /// 关掉的含义是"别再问我"，不是"永远别覆盖"。
+    /// </summary>
+    private ConflictPolicy ResolveConflictPolicy(string[] paths, string directory)
+    {
+        IReadOnlyList<string> conflicts = FileOperations.FindConflicts(paths, directory);
+        if (conflicts.Count == 0) return ConflictPolicy.KeepBoth;
+
+        if (!App.Settings.Behavior.ConfirmOverwrite) return ConflictPolicy.Overwrite;
+
+        string question = conflicts.Count == 1
+            ? string.Format(CultureInfo.CurrentCulture, Strings.Dialog_OverwriteOne, conflicts[0])
+            : string.Format(CultureInfo.CurrentCulture, Strings.Dialog_OverwriteMany, conflicts.Count);
+
+        return ConfirmWindow.Ask(Window.GetWindow(this), Strings.Dialog_OverwriteTitle, question)
+            ? ConflictPolicy.Overwrite
+            : ConflictPolicy.KeepBoth;
     }
 
     internal void CopyPathSelection()

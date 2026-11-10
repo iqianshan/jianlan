@@ -73,15 +73,44 @@ public partial class MainWindow : Window
     /// </summary>
     private bool _started;
 
-    /// <summary>正在按当前目录同步导航栏高亮：此时的选择变化不是用户操作。</summary>
+    /// <summary>
+    /// 正在按当前目录同步导航栏高亮：此时的选择变化不是用户操作。
+    /// </summary>
     private bool _syncingNavSelection;
+
+    /// <summary>
+    /// 是不是"在新窗口打开"开出来的副窗口（FR-2.12）。
+    ///
+    /// 副窗口不写会话、不记窗口位置、不注册系统热键、不弹"上次异常退出"提示：
+    /// 那四件事都属于"主窗口代表这次运行"。不区分的话，用户开一个副窗口看一眼再关掉，
+    /// 下次启动恢复出来的就只有那个副窗口里的一条目录——原来那十二个标签全没了。
+    /// </summary>
+    private readonly bool _isSecondaryWindow;
+
+    private string? _initialPath;
+    private string? _initialSecondPath;
 
     // 窗口级命令只有这些。窗格级命令（刷新、文件操作、视图切换）
     // 在 PaneView 自己的表里，见 PaneView.Commands.cs。
     public CommandAdapter ThemeCommand { get; }
 
-    public MainWindow()
+    public MainWindow() : this(null, null)
     {
+    }
+
+    /// <summary>
+    /// 开一个只装指定目录的窗口（FR-2.12「在新窗口打开」）。
+    ///
+    /// 为什么不用新进程：单实例守卫会把第二个进程的启动参数转交给已有窗口，
+    /// 结果"开新窗口"变成"让已有窗口跳过去"。所以副窗口必须是同进程的第二个窗口。
+    /// 两个参数都为空时就是主窗口，走平时的会话恢复。
+    /// </summary>
+    public MainWindow(string? initialPath, string? initialSecondPath)
+    {
+        _isSecondaryWindow = !string.IsNullOrEmpty(initialPath);
+        _initialPath = initialPath;
+        _initialSecondPath = initialSecondPath;
+
         InitializeComponent();
 
         // 导航栏宽度取设置里的值（FR-1.2.4）。必须在首帧前套上：放在 Loaded 里会让
@@ -120,11 +149,13 @@ public partial class MainWindow : Window
         _tabs.CloseWindowRequested += Close;
         TabBar.Host = _tabs;
         TabBar.OpenDropped += OnTabsDropped;   // 拖到标签页打开（FR-6.11）
+        TabBar.OpenInNewWindowRequested += OpenTabInNewWindow;   // 在新窗口打开（FR-2.12）
 
         TagResults.Attach(_tagResults);
         TagResults.ItemActivated += OnTagResultActivated;
 
-        RestoreTabs();
+        if (_isSecondaryWindow) OpenInitialTab();
+        else RestoreTabs();
 
         // 导航栏的行要等系统节点（QuickAccess）建好之后才能拼：收藏区排在它们下面。
         _nav.Rebuild();
@@ -167,6 +198,13 @@ public partial class MainWindow : Window
         // 只有主窗格显示按钮——分屏是窗口形态，两颗按钮会看起来像"两个窗格各分各的"。
         Pane.SplitToggleRequested += ToggleSplit;
         Pane2.ShowSplitButton = false;
+
+        // 第二窗格带自己的槽位（FR-3.7）：列配置与视图/排序按"右侧"各存一份
+        Pane2.Slot = PaneSlot.Secondary;
+
+        // 槽位是构造之后才设的（XAML 要求无参构造），而 PaneView 构造时已经按"第一窗格"
+        // 套过一次列宽。这里立刻重套一遍，否则第二窗格要等到第一次尺寸变化才对上配置。
+        Pane2.ApplyAppearance(App.Settings);
 
         // 哪个窗格的列表拿到焦点，哪个就是活动窗格（FR-3.5）。
         Pane.Activated += OnPaneActivated;
@@ -214,7 +252,8 @@ public partial class MainWindow : Window
         CompositionTarget.Rendering += OnFirstRender;
 
         // 上次没退干净就在首帧里带上一条提示（FR-10.6）。构造期做，首帧即终态。
-        ShowSessionBannerIfNeeded();
+        // 副窗口不弹：那是"这次运行"的状态，开第二个窗口时已经有人提醒过了。
+        if (!_isSecondaryWindow) ShowSessionBannerIfNeeded();
 
         // 记录最后目录与标签列表供下次启动使用。这个处理器先于 App 的保存处理器执行，
         // 因此退出时写到盘上的是本窗口刚更新的值。
@@ -226,6 +265,10 @@ public partial class MainWindow : Window
             // 预览持有的位图与缩略图缓存要主动丢掉（FR-9.2.6）：
             // 进程退出时操作系统会回收，但"退出前的最后一刻内存很高"会让性能走查误判
             _preview.Release();
+
+            // 副窗口不写会话（FR-2.12）：会话是"下次启动开什么"，
+            // 由主窗口代表这次运行决定。副窗口也写的话，关掉它就把主窗口那十二个标签顶掉了。
+            if (_isSecondaryWindow) return;
 
             if (!string.IsNullOrEmpty(Vm.CurrentPath))
             {
@@ -346,6 +389,49 @@ public partial class MainWindow : Window
         }
 
         _tabs.ActivateAt(Math.Clamp(session.ActiveTabIndex, 0, restored.Count - 1));
+    }
+
+    /// <summary>
+    /// 副窗口的初始标签（FR-2.12）：只装"在新窗口打开"时那条目录（分屏时两条）。
+    /// 不读会话、不开主页——用户要的是"把这个目录单独拿出来看"。
+    /// </summary>
+    private void OpenInitialTab()
+    {
+        string path = _initialPath ?? ResolveStartPath();
+
+        // 带了两条路径就打开分屏：只留一条的话"在新窗口打开"会看起来丢了半个标签。
+        // 必须在标签激活之前定下来——激活那一刻就要按这个形态建第二窗格。
+        if (!string.IsNullOrEmpty(_initialSecondPath)) _splitEnabled = true;
+
+        // 只建壳、不读盘：与 RestoreTabs 同一条路（首帧不枚举目录）。
+        // 这里不能用 Add(activate: true)：那会在窗口构造到一半时触发绑定。
+        TabViewModel tab = _tabs.AddPending(path);
+
+        if (!string.IsNullOrEmpty(_initialSecondPath) && Directory.Exists(_initialSecondPath))
+        {
+            tab.PrepareSecondaryPending(_initialSecondPath);
+        }
+
+        _tabs.ActivateAt(0);
+    }
+
+    /// <summary>
+    /// 在新窗口打开这个标签（FR-2.12）。分屏时两条路径一起带过去——
+    /// 只带一条会让"在新窗口打开"看起来像丢了半个标签。
+    /// </summary>
+    private void OpenTabInNewWindow(TabViewModel tab)
+    {
+        (string primary, string secondary) = tab.SnapshotPaths();
+
+        if (string.IsNullOrEmpty(primary))
+        {
+            // 主页标签没有路径：没有"这个目录"可拿出去，直接说明比开了个空窗口好
+            Vm.SetStatus(Strings.Status_NewWindowNoPath);
+            return;
+        }
+
+        var window = new MainWindow(primary, string.IsNullOrEmpty(secondary) ? null : secondary);
+        window.Show();
     }
 
     private void RegisterTabCommands()
@@ -1208,6 +1294,25 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// 把排序口径（文件夹优先 / 自然排序 / 区分大小写）套到所有已打开的窗格（FR-5.2.3）。
+    /// 双窗格 × 最多 12 个标签，逐个套一遍；没变的窗格在 <c>ApplySortOptions</c> 里直接返回。
+    /// </summary>
+    public void ApplySortOptionsToPanes()
+    {
+        AppSettings s = App.Settings;
+
+        foreach (TabViewModel tab in _tabs.Tabs)
+        {
+            tab.Primary.ApplySortOptions(s.Behavior.FoldersFirst, s.Behavior.NaturalSort, s.Behavior.CaseSensitiveSort);
+
+            if (tab.Secondary is { } second)
+            {
+                second.ApplySortOptions(s.Behavior.FoldersFirst, s.Behavior.NaturalSort, s.Behavior.CaseSensitiveSort);
+            }
+        }
+    }
+
     private void OpenSettings()
     {
         // 单例：重复点"设置"不应叠出多个窗口
@@ -1325,6 +1430,10 @@ public partial class MainWindow : Window
         // 探针进程不注册：它是系统级热键，诊断期间抢走用户的 Ctrl+, 属于副作用。
         // 顺带让 AC-05 的探针与用户实例并存时不再刷 E7001（err=1409 已被占用）。
         if (ProbePath is not null) return;
+
+        // 副窗口不注册（FR-2.12）：同一个组合键在进程内只有一个窗口能拿到，
+        // 让主窗口持有即可。副窗口里按 Ctrl+, 仍会走窗口内的按键派发，功能不缺。
+        if (_isSecondaryWindow) return;
 
         _hotkeyWindow = new WindowInteropHelper(this).Handle;
         if (_hotkeyWindow == IntPtr.Zero) return;

@@ -48,6 +48,14 @@ public partial class PaneView : UserControl
         SizeChanged += OnPaneSizeChanged;
     }
 
+    /// <summary>
+    /// 这一侧是第几窗格（FR-3.7）。由宿主在构造时指定：列配置与视图/排序都按槽位各存一份。
+    ///
+    /// 做成可变属性而不是构造参数：XAML 里无参构造是硬要求，
+    /// 而这个值属于"宿主知道、控件不必知道"的那类信息。
+    /// </summary>
+    public PaneSlot Slot { get; set; } = PaneSlot.Primary;
+
     /// <summary>本窗格的视图模型。附加前为 null，所有绑定静默为空，不会抛异常。</summary>
     public PaneViewModel? ViewModel => _viewModel;
 
@@ -759,12 +767,28 @@ public partial class PaneView : UserControl
 
     // ── 列表交互 ────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// 切视图模式并落盘（FR-3.7）：记忆是按窗格分的，所以要写设置。
+    /// 与排序同一口径——只有在真有变化时才写一次文件。
+    /// </summary>
+    internal void ApplyViewMode(DefaultViewKind mode)
+    {
+        if (_viewModel is not { } vm) return;
+        if (!vm.SetViewMode(mode)) return;
+
+        App.SaveSettings();
+    }
+
     private void OnSortClick(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string field }) return;
         if (!Enum.TryParse<SortFieldKind>(field, ignoreCase: true, out var kind)) return;
 
         _viewModel?.SortBy(kind);
+
+        // 排序选择按"这一侧"记住（FR-3.7）：视图模型只改内存里的设置对象，
+        // 落盘统一在这里做——与列宽拖完才写盘同一个口径，点一次列头不该写一次文件。
+        App.SaveSettings();
     }
 
     private void OnFileSelectionChanged(object sender, SelectionChangedEventArgs e)

@@ -1229,7 +1229,7 @@ public static class Strings
     /// <summary>Tag</summary>
     public static string Menu_Tag => LocalizationService.Instance.Get("Menu.Tag");
 
-    /// <summary>Set a colour tag on the selected items</summary>
+    /// <summary>Toggle colour tags on the selected items (an item can have several)</summary>
     public static string Menu_Tag_Tip => LocalizationService.Instance.Get("Menu.Tag.Tip");
 
     /// <summary>Remove Tag</summary>
@@ -1687,5 +1687,95 @@ public static class Strings
 
     /// <summary>Can't open the browser.</summary>
     public static string About_Update_Failed => LocalizationService.Instance.Get("About.Update.Failed");
+
+    /// <summary>Natural sort</summary>
+    public static string Settings_Behavior_NaturalSort => LocalizationService.Instance.Get("Settings.Behavior.NaturalSort");
+
+    /// <summary>Sorts file2 before file10. Turn off for strict character-by-character order.</summary>
+    public static string Settings_Behavior_NaturalSort_Hint => LocalizationService.Instance.Get("Settings.Behavior.NaturalSort.Hint");
+
+    /// <summary>Case-sensitive names</summary>
+    public static string Settings_Behavior_CaseSensitiveSort => LocalizationService.Instance.Get("Settings.Behavior.CaseSensitiveSort");
+
+    /// <summary>On: Readme and readme are sorted apart. Off matches Explorer.</summary>
+    public static string Settings_Behavior_CaseSensitiveSort_Hint => LocalizationService.Instance.Get("Settings.Behavior.CaseSensitiveSort.Hint");
+
+    /// <summary>Confirm before overwriting</summary>
+    public static string Settings_Behavior_ConfirmOverwrite => LocalizationService.Instance.Get("Settings.Behavior.ConfirmOverwrite");
+
+    /// <summary>On: asks before replacing a same-named item. Off: replaces it without asking.</summary>
+    public static string Settings_Behavior_ConfirmOverwrite_Hint => LocalizationService.Instance.Get("Settings.Behavior.ConfirmOverwrite.Hint");
+
+    /// <summary>New tab opens</summary>
+    public static string Settings_Tabs_NewTabMode => LocalizationService.Instance.Get("Settings.Tabs.NewTabMode");
+
+    /// <summary>Home</summary>
+    public static string Settings_Tabs_NewTabMode_Home => LocalizationService.Instance.Get("Settings.Tabs.NewTabMode.Home");
+
+    /// <summary>A specified folder</summary>
+    public static string Settings_Tabs_NewTabMode_Path => LocalizationService.Instance.Get("Settings.Tabs.NewTabMode.Path");
+
+    /// <summary>The last folder I was in</summary>
+    public static string Settings_Tabs_NewTabMode_Last => LocalizationService.Instance.Get("Settings.Tabs.NewTabMode.Last");
+
+    /// <summary>Home opens the start page. "A specified folder" uses the path below; leave it empty to use Downloads. "The last folder I</summary>
+    public static string Settings_Tabs_NewTabMode_Hint => LocalizationService.Instance.Get("Settings.Tabs.NewTabMode.Hint");
+
+    /// <summary>Tag colour names</summary>
+    public static string Settings_Tags_ColorNames => LocalizationService.Instance.Get("Settings.Tags.ColorNames");
+
+    /// <summary>Leave a box empty to keep the default name. Names show up in the tag menu and the sidebar.</summary>
+    public static string Settings_Tags_ColorNames_Hint => LocalizationService.Instance.Get("Settings.Tags.ColorNames.Hint");
+
+    /// <summary>Export…</summary>
+    public static string Settings_Privacy_TagExport => LocalizationService.Instance.Get("Settings.Privacy.TagExport");
+
+    /// <summary>Save the tag library as a JSON file.</summary>
+    public static string Settings_Privacy_TagExport_Tip => LocalizationService.Instance.Get("Settings.Privacy.TagExport.Tip");
+
+    /// <summary>Export tag library</summary>
+    public static string Settings_Privacy_TagExport_Title => LocalizationService.Instance.Get("Settings.Privacy.TagExport.Title");
+
+    /// <summary>Exported {0} tags.</summary>
+    public static string Settings_Privacy_TagExported => LocalizationService.Instance.Get("Settings.Privacy.TagExported");
+    // 含占位符：string.Format(Strings.Settings_Privacy_TagExported, ...)
+
+    /// <summary>Export failed: {0}</summary>
+    public static string Settings_Privacy_TagExportFailed => LocalizationService.Instance.Get("Settings.Privacy.TagExportFailed");
+    // 含占位符：string.Format(Strings.Settings_Privacy_TagExportFailed, ...)
+
+    /// <summary>Import…</summary>
+    public static string Settings_Privacy_TagImport => LocalizationService.Instance.Get("Settings.Privacy.TagImport");
+
+    /// <summary>Merge tags from a JSON file into this library.</summary>
+    public static string Settings_Privacy_TagImport_Tip => LocalizationService.Instance.Get("Settings.Privacy.TagImport.Tip");
+
+    /// <summary>Import tag library</summary>
+    public static string Settings_Privacy_TagImport_Title => LocalizationService.Instance.Get("Settings.Privacy.TagImport.Title");
+
+    /// <summary>Imported {0} tags: {1} added, {2} updated, {3} skipped.</summary>
+    public static string Settings_Privacy_TagImported => LocalizationService.Instance.Get("Settings.Privacy.TagImported");
+    // 含占位符：string.Format(Strings.Settings_Privacy_TagImported, ...)
+
+    /// <summary>Import failed: {0}</summary>
+    public static string Settings_Privacy_TagImportFailed => LocalizationService.Instance.Get("Settings.Privacy.TagImportFailed");
+    // 含占位符：string.Format(Strings.Settings_Privacy_TagImportFailed, ...)
+
+    /// <summary>Overwrite</summary>
+    public static string Dialog_OverwriteTitle => LocalizationService.Instance.Get("Dialog.OverwriteTitle");
+
+    /// <summary>"{0}" already exists in the target folder. Overwrite it? Choose "No" to keep both copies.</summary>
+    public static string Dialog_OverwriteOne => LocalizationService.Instance.Get("Dialog.OverwriteOne");
+    // 含占位符：string.Format(Strings.Dialog_OverwriteOne, ...)
+
+    /// <summary>{0} items already exist in the target folder. Overwrite them? Choose "No" to keep both copies.</summary>
+    public static string Dialog_OverwriteMany => LocalizationService.Instance.Get("Dialog.OverwriteMany");
+    // 含占位符：string.Format(Strings.Dialog_OverwriteMany, ...)
+
+    /// <summary>Open in new window</summary>
+    public static string Tab_Menu_OpenWindow => LocalizationService.Instance.Get("Tab.Menu.OpenWindow");
+
+    /// <summary>Only folders can open in a new window.</summary>
+    public static string Status_NewWindowNoPath => LocalizationService.Instance.Get("Status.NewWindowNoPath");
 
 }

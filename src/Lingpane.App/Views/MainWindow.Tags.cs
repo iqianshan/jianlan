@@ -33,6 +33,14 @@ public partial class MainWindow
         _ = LoadTagsAsync();
     }
 
+    /// <summary>
+    /// 颜色名改了（FR-4.1.7）：侧栏那八个节点的文案要按新名字重建。
+    ///
+    /// 复用 <see cref="RefreshTagViews"/> 而不是只刷侧栏：正在看的标签结果页标题里
+    /// 也写着颜色名，只刷一半会出现"侧栏写重要、页面标题写红色"。
+    /// </summary>
+    public void RefreshTagNames() => RefreshTagViews();
+
     private void OnTagsChanged()
     {
         if (!Dispatcher.CheckAccess())

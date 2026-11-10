@@ -535,4 +535,119 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Equal(-1920, back.WindowLeft);
         Assert.Equal(-120, back.WindowTop);
     }
+
+    // ── 新增设置字段的归一化（FR-5.2.3 / 5.2.6 / 4.1.7 / 3.7）──────────────
+
+    [Fact]
+    public void 认不出的新标签模式回落到指定路径()
+    {
+        var settings = new AppSettings();
+        settings.General.NewTabMode = (NewTabModeKind)99;
+
+        settings.Normalize();
+
+        Assert.Equal(NewTabModeKind.Path, settings.General.NewTabMode);
+    }
+
+    [Fact]
+    public void 颜色自定义名去掉非法键与空值并截断超长()
+    {
+        var settings = new AppSettings();
+        settings.Appearance.TagColorNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Red"] = "  重要  ",
+            ["blue"] = "",                       // 空值等于没设
+            ["NotAColor"] = "x",                 // 认不出来的键丢掉
+            ["Green"] = new string('长', 80),    // 超长的截到上限
+        };
+
+        settings.Normalize();
+
+        Assert.Equal("重要", settings.Appearance.TagColorNames["Red"]);
+        Assert.False(settings.Appearance.TagColorNames.ContainsKey("blue"));
+        Assert.False(settings.Appearance.TagColorNames.ContainsKey("NotAColor"));
+        Assert.Equal(AppearanceSettings.MaxTagColorNameLength,
+            settings.Appearance.TagColorNames["Green"].Length);
+
+        // 键统一成枚举的正式写法：手写 blue 也可用，但存回来的是 Blue
+        settings.Appearance.TagColorNames["blue"] = "次要";
+        settings.Normalize();
+        Assert.Equal("次要", settings.Appearance.TagColorNames["Blue"]);
+    }
+
+    [Fact]
+    public void 第二窗格列配置缺档位时沿用第一窗格的()
+    {
+        var settings = new AppSettings();
+        settings.Layout.GetOrAdd(ColumnProfileKind.Pictures).DateWidth = 200;
+
+        ColumnProfileSettings inherited = settings.Layout.Get(ColumnProfileKind.Pictures, PaneSlot.Secondary);
+        Assert.Equal(200, inherited.DateWidth);
+
+        // 第二窗格一旦自己写，就与第一窗格分开
+        ColumnProfileSettings own = settings.Layout.GetOrAdd(ColumnProfileKind.Pictures, PaneSlot.Secondary);
+        own.DateWidth = 90;
+
+        Assert.Equal(90, settings.Layout.Get(ColumnProfileKind.Pictures, PaneSlot.Secondary).DateWidth);
+        Assert.Equal(200, settings.Layout.Get(ColumnProfileKind.Pictures, PaneSlot.Primary).DateWidth);
+    }
+
+    [Fact]
+    public void 恢复默认行为会清掉两侧的视图与排序记忆()
+    {
+        var settings = new AppSettings();
+        settings.Layout.PrimaryPane.View = DefaultViewKind.List;
+        settings.Layout.SecondaryPane.SortBy = SortFieldKind.Size;
+
+        settings.ResetBehavior();
+
+        Assert.Null(settings.Layout.PrimaryPane.View);
+        Assert.Null(settings.Layout.SecondaryPane.SortBy);
+    }
+
+    [Fact]
+    public void 窗格状态里的非法枚举被清空()
+    {
+        var settings = new AppSettings();
+        settings.Layout.PrimaryPane.View = (DefaultViewKind)42;
+        settings.Layout.SecondaryPane.SortBy = (SortFieldKind)42;
+
+        settings.Normalize();
+
+        Assert.Null(settings.Layout.PrimaryPane.View);
+        Assert.Null(settings.Layout.SecondaryPane.SortBy);
+    }
+
+    [Fact]
+    public void 新字段能落盘再读回来()
+    {
+        string path = Path.Join(Path.GetTempPath(), "lingpane-settings-" + Guid.NewGuid().ToString("N") + ".json");
+
+        try
+        {
+            var settings = new AppSettings();
+            settings.General.NewTabMode = NewTabModeKind.Last;
+            settings.Behavior.NaturalSort = false;
+            settings.Behavior.CaseSensitiveSort = true;
+            settings.Behavior.ConfirmOverwrite = false;
+            settings.Appearance.TagColorNames["Red"] = "重要";
+            settings.Layout.SecondaryPane.View = DefaultViewKind.List;
+            settings.Layout.GetOrAdd(ColumnProfileKind.Default, PaneSlot.Secondary).TypeWidth = 150;
+
+            SettingsStore.Save(settings, path);
+            AppSettings loaded = SettingsStore.Load(path).Settings;
+
+            Assert.Equal(NewTabModeKind.Last, loaded.General.NewTabMode);
+            Assert.False(loaded.Behavior.NaturalSort);
+            Assert.True(loaded.Behavior.CaseSensitiveSort);
+            Assert.False(loaded.Behavior.ConfirmOverwrite);
+            Assert.Equal("重要", loaded.Appearance.TagColorNames["Red"]);
+            Assert.Equal(DefaultViewKind.List, loaded.Layout.SecondaryPane.View);
+            Assert.Equal(150, loaded.Layout.Get(ColumnProfileKind.Default, PaneSlot.Secondary).TypeWidth);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
 }

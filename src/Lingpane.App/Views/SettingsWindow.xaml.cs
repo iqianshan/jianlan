@@ -7,11 +7,13 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Lingpane.App.Design;
 using Lingpane.App.Typography;
+using Lingpane.App.ViewModels;
 using Lingpane.Core.Diagnostics;
 using Lingpane.Core.FileSystem;
 using Lingpane.Core.Localization;
 using Lingpane.Core.Preview;
 using Lingpane.Core.Settings;
+using Lingpane.Core.Tagging;
 
 namespace Lingpane.App.Views;
 
@@ -79,11 +81,14 @@ public partial class SettingsWindow : Window
 
         DescendingCheck.IsChecked = Settings.Behavior.SortDescending;
         FoldersFirstCheck.IsChecked = Settings.Behavior.FoldersFirst;
+        NaturalSortCheck.IsChecked = Settings.Behavior.NaturalSort;
+        CaseSensitiveCheck.IsChecked = Settings.Behavior.CaseSensitiveSort;
         ShowHiddenCheck.IsChecked = Settings.Behavior.ShowHidden;
         ShowSystemCheck.IsChecked = Settings.Behavior.ShowSystem;
         ShowExtensionsCheck.IsChecked = Settings.Behavior.ShowExtensions;
         ConfirmDeleteCheck.IsChecked = Settings.Behavior.ConfirmDelete;
         ConfirmBatchCheck.IsChecked = Settings.Behavior.ConfirmBatch;
+        ConfirmOverwriteCheck.IsChecked = Settings.Behavior.ConfirmOverwrite;
         LoadColumnChecks();
         CloseLastToHomeCheck.IsChecked = Settings.Behavior.CloseLastTabToHome;
         OpenModeCombo.SelectedIndex = Settings.Behavior.DoubleClickOpens ? 0 : 1;
@@ -98,7 +103,16 @@ public partial class SettingsWindow : Window
         // 空 = 用系统「下载」：把这个"当前实际生效的目录"直接显示出来，
         // 否则输入框空着，用户没法判断现在到底会开到哪
         NewTabPathBox.Text = Settings.General.NewTabPath ?? MainWindow.ResolveNewTabPath();
+        NewTabModeCombo.SelectedIndex = Settings.General.NewTabMode switch
+        {
+            NewTabModeKind.Home => 0,
+            NewTabModeKind.Last => 2,
+            _ => 1,
+        };
+        UpdateNewTabPathAvailability();
         UpdateNewTabPathHint();
+
+        BuildTagColorNameRows();
 
         ShowNavCheck.IsChecked = Settings.Appearance.ShowNavPane;
         ShowStatusCheck.IsChecked = Settings.Appearance.ShowStatusBar;
@@ -449,6 +463,12 @@ public partial class SettingsWindow : Window
 
         Settings.Behavior.SortDescending = DescendingCheck.IsChecked == true;
         Settings.Behavior.FoldersFirst = FoldersFirstCheck.IsChecked == true;
+        Settings.Behavior.NaturalSort = NaturalSortCheck.IsChecked == true;
+        Settings.Behavior.CaseSensitiveSort = CaseSensitiveCheck.IsChecked == true;
+
+        // 口径改了要立刻重排眼前这些列表（FR-5.2.3）：只在下次启动生效的话，
+        // 用户勾完回到列表看不到任何变化，会以为没生效
+        Owner_?.ApplySortOptionsToPanes();
         App.SaveSettings();
     }
 
@@ -490,6 +510,209 @@ public partial class SettingsWindow : Window
         if (_loading) return;
         Settings.Behavior.ConfirmBatch = ConfirmBatchCheck.IsChecked == true;
         App.SaveSettings();
+    }
+
+    /// <summary>覆盖确认（FR-5.2.8）。关掉即"直接覆盖"，所以这一项旁边必须有后果说明。</summary>
+    private void OnConfirmOverwriteChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        Settings.Behavior.ConfirmOverwrite = ConfirmOverwriteCheck.IsChecked == true;
+        App.SaveSettings();
+    }
+
+    // ── 新标签默认目录（FR-5.2.6）────────────────────────────────────────
+
+    private void OnNewTabModeChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading) return;
+
+        Settings.General.NewTabMode = NewTabModeCombo.SelectedIndex switch
+        {
+            0 => NewTabModeKind.Home,
+            2 => NewTabModeKind.Last,
+            _ => NewTabModeKind.Path,
+        };
+
+        UpdateNewTabPathAvailability();
+        App.SaveSettings();
+    }
+
+    /// <summary>
+    /// 「主页」与「上次待的目录」都不看路径，所以路径行在这一档里禁用而不是隐藏：
+    /// 隐藏会让人以为"以前填的路径被清掉了"，禁用则一眼看出"这一档用不到它"。
+    /// </summary>
+    private void UpdateNewTabPathAvailability()
+    {
+        bool usesPath = Settings.General.NewTabMode == NewTabModeKind.Path;
+        NewTabPathRow.IsEnabled = usesPath;
+        NewTabPathRow.Opacity = usesPath ? 1 : 0.5;
+    }
+
+    // ── 标签颜色名称（FR-4.1.7）──────────────────────────────────────────
+
+    /// <summary>
+    /// 八行"色块 + 输入框"。行由代码生成：八行只差一个枚举值，在 XAML 里抄八遍
+    /// 既长又容易漏改（改个间距要改八处）。
+    ///
+    /// 输入框里放的是**当前显示的名字**（用户改过的或标：默认的）。提交时与默认名比较：
+    /// 一样就存空（回落默认名），不一样才存自定义名——这样没动过的颜色仍然跟着界面语言走。
+    /// </summary>
+    private void BuildTagColorNameRows()
+    {
+        TagColorNamePanel.Children.Clear();
+
+        foreach (TagPresets.ColorPreset preset in TagPresets.Colors)
+        {
+            var swatch = new System.Windows.Controls.Border
+            {
+                Width = 12,
+                Height = 12,
+                CornerRadius = new CornerRadius(6),
+                Margin = new Thickness(0, 0, 8, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Background = new SolidColorBrush(
+                    (Color)ColorConverter.ConvertFromString(preset.Hex)),
+                BorderBrush = (Brush)FindResource("Brush.Border.Strong"),
+                BorderThickness = new Thickness(0.5),
+            };
+
+            var box = new TextBox
+            {
+                Width = 128,
+                Text = preset.Name,
+                Tag = preset.Value,
+                Style = (Style)FindResource("TextBox.Address"),
+                ToolTip = preset.Name,
+            };
+
+            box.LostFocus += OnTagColorNameCommitted;
+            box.KeyDown += OnTagColorNameKeyDown;
+
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(0, 0, 16, 8),
+            };
+
+            row.Children.Add(swatch);
+            row.Children.Add(box);
+            TagColorNamePanel.Children.Add(row);
+        }
+    }
+
+    private void OnTagColorNameKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || sender is not TextBox box) return;
+
+        CommitTagColorName(box);
+        e.Handled = true;
+    }
+
+    private void OnTagColorNameCommitted(object sender, RoutedEventArgs e)
+    {
+        if (sender is TextBox box) CommitTagColorName(box);
+    }
+
+    private void CommitTagColorName(TextBox box)
+    {
+        if (box.Tag is not TagColors color) return;
+
+        string typed = box.Text.Trim();
+        string fallback = TagPresets.DefaultNameOf(color);
+
+        bool store = typed.Length > 0 && !string.Equals(typed, fallback, StringComparison.Ordinal);
+
+        if (store)
+        {
+            Settings.Appearance.TagColorNames[color.ToString()] = typed;
+        }
+        else
+        {
+            Settings.Appearance.TagColorNames.Remove(color.ToString());
+        }
+
+        App.SaveSettings();
+
+        // 侧栏的标签节点与状态栏都算过名字了，改完要重算；右键菜单每次打开时重新取，不必刷新
+        Owner_?.RefreshTagNames();
+    }
+
+    // ── 标签库导入导出（FR-4.2.7 / FR-5.3.6）────────────────────────────
+
+    private async void OnExportTags(object sender, RoutedEventArgs e)
+    {
+        App.Tags.EnsureLoaded();
+
+        int count = App.Tags.Count;
+        if (count == 0)
+        {
+            PrivacyStatus.Text = Strings.Settings_Privacy_TagStore_Empty;
+            return;
+        }
+
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = Strings.Settings_Privacy_TagExport_Title,
+            Filter = "JSON (*.json)|*.json",
+            DefaultExt = ".json",
+            FileName = "lingpane-tags.json",
+        };
+
+        if (dialog.ShowDialog(this) != true) return;
+
+        string path = dialog.FileName;
+        IReadOnlyList<TagRecord> snapshot = App.Tags.Snapshot();
+
+        try
+        {
+            int written = await Task.Run(() => TagArchive.Write(snapshot, path)).ConfigureAwait(true);
+            PrivacyStatus.Text = string.Format(
+                CultureInfo.CurrentCulture, Strings.Settings_Privacy_TagExported, written);
+        }
+        catch (TagArchiveException ex)
+        {
+            // 文件系统原文只进日志，界面给译文 + 原因（与文件操作同一口径）
+            Diagnostics.AppLog.Warn("tags.export", "E3010", ex.Message);
+            PrivacyStatus.Text = string.Format(
+                CultureInfo.CurrentCulture, Strings.Settings_Privacy_TagExportFailed, ex.Message);
+        }
+    }
+
+    private async void OnImportTags(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = Strings.Settings_Privacy_TagImport_Title,
+            Filter = "JSON (*.json)|*.json|All files (*.*)|*.*",
+            CheckFileExists = true,
+        };
+
+        if (dialog.ShowDialog(this) != true) return;
+
+        string path = dialog.FileName;
+
+        TagImportResult result;
+        try
+        {
+            List<TagRecord> records = await Task.Run(() => TagArchive.ToRecords(TagArchive.Read(path)))
+                .ConfigureAwait(true);
+
+            result = await Task.Run(() => App.Tags.Import(records)).ConfigureAwait(true);
+        }
+        catch (TagArchiveException ex)
+        {
+            Diagnostics.AppLog.Warn("tags.import", "E3011", ex.Message);
+            PrivacyStatus.Text = string.Format(
+                CultureInfo.CurrentCulture, Strings.Settings_Privacy_TagImportFailed, ex.Message);
+            return;
+        }
+
+        PrivacyStatus.Text = string.Format(
+            CultureInfo.CurrentCulture,
+            Strings.Settings_Privacy_TagImported,
+            result.Total, result.Added, result.Updated, result.Skipped);
+
+        await RefreshTagCountAsync();
     }
 
     // ── 列显示（FR-6.4）────────────────────────────────────────────────────

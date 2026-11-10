@@ -155,4 +155,57 @@ public sealed class SortingAndPathTests
         Assert.Equal(@"\\nas\share", segments[0].FullPath);
         Assert.Equal(@"\\nas\share\docs", segments[1].FullPath);
     }
+
+    // ── 名称比较口径（FR-5.2.3）────────────────────────────────────────────
+
+    [Fact]
+    public void 关掉自然排序时数字按字符比较()
+    {
+        EntrySort sort = new(SortFieldKind.Name, Descending: false, FoldersFirst: true, Natural: false);
+
+        var list = Sort([File("file10.txt"), File("file2.txt")], sort);
+
+        // 字典序：'1' < '2'，所以 file10 在前——这正是关掉自然排序后要的结果
+        Assert.Equal(["file10.txt", "file2.txt"], list.Select(e => e.Name));
+    }
+
+    [Fact]
+    public void 打开自然排序时数字按数值比较()
+    {
+        EntrySort sort = new(SortFieldKind.Name, Descending: false, FoldersFirst: true, Natural: true);
+
+        var list = Sort([File("file10.txt"), File("file2.txt")], sort);
+
+        Assert.Equal(["file2.txt", "file10.txt"], list.Select(e => e.Name));
+    }
+
+    [Fact]
+    public void 区分大小写会改变大小写混合名字的顺序()
+    {
+        EntrySort insensitive = new(SortFieldKind.Name, Descending: false, FoldersFirst: false, CaseSensitive: false);
+        EntrySort sensitive = new(SortFieldKind.Name, Descending: false, FoldersFirst: false, CaseSensitive: true);
+
+        FileEntry[] items = [File("Zebra.txt"), File("apple.txt")];
+
+        // 不区分大小写：Z 与 a 先折成同一种大小再比，苹果在前
+        Assert.Equal(["apple.txt", "Zebra.txt"], Sort(items, insensitive).Select(e => e.Name));
+
+        // 区分大小写：按码位，'Z'(90) < 'a'(97)，斑马在前
+        Assert.Equal(["Zebra.txt", "apple.txt"], Sort(items, sensitive).Select(e => e.Name));
+
+        // 同名的两份副本在两种口径下都不为"相等"，结果仍由码位定序决定
+        Assert.NotEqual(0, NameComparer.Compare("Readme.txt", "readme.txt", natural: true, caseSensitive: true));
+        Assert.Equal(0, NameComparer.Compare("A.txt", "A.txt", natural: true, caseSensitive: true));
+    }
+
+    [Fact]
+    public void 自然排序与大小写选项都不影响文件夹优先()
+    {
+        EntrySort sort = new(SortFieldKind.Name, Descending: true, FoldersFirst: true,
+            Natural: false, CaseSensitive: true);
+
+        var list = Sort([File("a.txt"), Dir("ZFolder"), File("b.txt")], sort);
+
+        Assert.Equal("ZFolder", list[0].Name);
+    }
 }

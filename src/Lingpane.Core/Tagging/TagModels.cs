@@ -108,6 +108,15 @@ public static class TagPalette
         return TagColors.None;
     }
 
+    /// <summary>
+    /// 列表行里最多画几个色点（FR-4.1.2）。行高 28px、色点 6px + 2px 间距，
+    /// 标签槽位 24px 宽，塞得下三个；八色全打上时按位序保留前三个。
+    ///
+    /// 不设成"全部"是因为行内空间是固定的，横向溢出会把文件名挤掉——
+    /// 而"我到底给它打过哪几个颜色"在选中后打开右键菜单能看全（那里是可勾选的清单）。
+    /// </summary>
+    public const int MaxDots = 3;
+
     /// <summary>八色的展示值（<c>#RRGGBB</c>）。取自 Fluent 强调色阶，深浅主题下都够亮。</summary>
     public static string Hex(TagColors color) => color switch
     {

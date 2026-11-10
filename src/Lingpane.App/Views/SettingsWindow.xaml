@@ -209,9 +209,23 @@
                     </ComboBox>
                 </StackPanel>
 
-                <!-- 新标签页默认目录（FR-2.1）。放在「标签页」分组的第一项：
-                     它决定"新开一个标签页落在哪"，是这一组里最靠前的行为。 -->
-                <Grid Margin="0,14,0,4">
+                <!-- 新标签页默认目录（FR-5.2.6）。先选模式，再（仅在「指定路径」时）填路径。
+                     顺序反过来会让人以为"路径空着就没得选"，而实际还有主页与上次目录两种。 -->
+                <StackPanel Orientation="Horizontal" Margin="0,14,0,4">
+                    <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Tabs.NewTabMode}"/>
+                    <ComboBox x:Name="NewTabModeCombo"
+                              Style="{StaticResource ComboBox.Default}"
+                              SelectionChanged="OnNewTabModeChanged">
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Tabs.NewTabMode.Home}"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Tabs.NewTabMode.Path}"/>
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Tabs.NewTabMode.Last}"/>
+                    </ComboBox>
+                </StackPanel>
+                <TextBlock Margin="0,0,0,8"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Tabs.NewTabMode.Hint}"/>
+
+                <Grid x:Name="NewTabPathRow" Margin="0,4,0,4">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
@@ -314,6 +328,28 @@
                               Unchecked="OnSortOptionChanged"/>
                 </StackPanel>
 
+                <!-- 名称比较口径（FR-5.2.3）。与上面那组分开：那组管"按什么排、往哪个方向"，
+                     这组管"名字怎么比"。混在一行的后果是四个勾选框挤成一排，谁属于谁看不出来。 -->
+                <CheckBox x:Name="NaturalSortCheck"
+                          Margin="0,0,0,4"
+                          Style="{StaticResource CheckBox.Default}"
+                          Content="{loc:Tr Key=Settings.Behavior.NaturalSort}"
+                          Checked="OnSortOptionChanged"
+                          Unchecked="OnSortOptionChanged"/>
+                <TextBlock Margin="0,0,0,10"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Behavior.NaturalSort.Hint}"/>
+
+                <CheckBox x:Name="CaseSensitiveCheck"
+                          Margin="0,0,0,4"
+                          Style="{StaticResource CheckBox.Default}"
+                          Content="{loc:Tr Key=Settings.Behavior.CaseSensitiveSort}"
+                          Checked="OnSortOptionChanged"
+                          Unchecked="OnSortOptionChanged"/>
+                <TextBlock Margin="0,0,0,12"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Behavior.CaseSensitiveSort.Hint}"/>
+
                 <StackPanel Orientation="Horizontal" Margin="0,12,0,4">
                     <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Behavior.OpenMode}"/>
                     <ComboBox x:Name="OpenModeCombo"
@@ -369,6 +405,18 @@
                 <TextBlock Margin="0,0,0,16"
                            Style="{StaticResource Text.FieldHint}"
                            Text="{loc:Tr Key=Settings.Behavior.ConfirmBatch.Hint}"/>
+
+                <!-- 覆盖确认（FR-5.2.8 的"覆盖"分项）。与删除、批量并列放：
+                     三项确认是同一类开关，散在不同分组里用户会以为只有两项可调。 -->
+                <CheckBox x:Name="ConfirmOverwriteCheck"
+                          Margin="0,0,0,4"
+                          Style="{StaticResource CheckBox.Default}"
+                          Content="{loc:Tr Key=Settings.Behavior.ConfirmOverwrite}"
+                          Checked="OnConfirmOverwriteChanged"
+                          Unchecked="OnConfirmOverwriteChanged"/>
+                <TextBlock Margin="0,0,0,16"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Behavior.ConfirmOverwrite.Hint}"/>
 
                 <!-- ══ 列（FR-6.4）══
                      改的是默认档：用户正在图片目录里调完再去设置页看，看到的是默认档，
@@ -478,8 +526,19 @@
                             Click="OnClearHistory"/>
                 </WrapPanel>
 
+                <!-- 标签颜色名称（FR-4.1.7）。行由代码生成：八行只差一个枚举值，
+                     在 XAML 里抄八遍既长又容易漏改（改个间距要改八处）。 -->
+                <TextBlock x:Name="TagColorNamesHeader"
+                           Margin="0,0,0,4"
+                           Style="{StaticResource Text.Subtitle}"
+                           Text="{loc:Tr Key=Settings.Tags.ColorNames}"/>
+                <TextBlock Margin="0,0,0,8"
+                           Style="{StaticResource Text.FieldHint}"
+                           Text="{loc:Tr Key=Settings.Tags.ColorNames.Hint}"/>
+                <WrapPanel x:Name="TagColorNamePanel" Margin="0,0,0,16"/>
+
                 <!-- 标签库（FR-5.3.6）。这里只做"看有多少条"与"清掉对不上的"，
-                     导出/导入属于 FR-4.2.7（P2），不在这批里。
+                     导出/导入属于 FR-4.2.7，同一份能力放在同一处入口免得两边各写一套。
                      标题用 Text.Subtitle 而不是 Text.FieldLabel：后者带固定宽度、
                      且是给"标签+控件"水平行用的，单独占一行时会水平居中（走查看出来的）。 -->
                 <TextBlock Margin="0,0,0,4"
@@ -494,6 +553,14 @@
                             Content="{loc:Tr Key=Settings.Privacy.TagPrune}"
                             Click="OnPruneTags"
                             ToolTip="{loc:Tr Key=Settings.Privacy.TagPrune.Tip}"/>
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            Content="{loc:Tr Key=Settings.Privacy.TagExport}"
+                            Click="OnExportTags"
+                            ToolTip="{loc:Tr Key=Settings.Privacy.TagExport.Tip}"/>
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            Content="{loc:Tr Key=Settings.Privacy.TagImport}"
+                            Click="OnImportTags"
+                            ToolTip="{loc:Tr Key=Settings.Privacy.TagImport.Tip}"/>
                 </WrapPanel>
 
                 <!-- 缩略图缓存（FR-5.3.5）。放在标签库之后、隐私声明之前：

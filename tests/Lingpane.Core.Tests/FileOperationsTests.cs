@@ -277,4 +277,93 @@ public class FileOperationsTests : IDisposable
         Assert.True(result.Ok);
         Assert.False(Directory.Exists(folder));
     }
+
+    // ── 覆盖式粘贴（FR-5.2.8）────────────────────────────────────────────
+
+    [Fact]
+    public void FindConflicts_只报目标目录里已存在的名字()
+    {
+        string from = Path.Join(_root, "from");
+        string to = Path.Join(_root, "to");
+        Directory.CreateDirectory(from);
+        Directory.CreateDirectory(to);
+
+        File.WriteAllText(Path.Join(from, "both.txt"), "src");
+        File.WriteAllText(Path.Join(from, "only-source.txt"), "src");
+        File.WriteAllText(Path.Join(to, "both.txt"), "dst");
+
+        IReadOnlyList<string> conflicts = FileOperations.FindConflicts(
+            [Path.Join(from, "both.txt"), Path.Join(from, "only-source.txt")], to);
+
+        Assert.Equal(["both.txt"], conflicts);
+    }
+
+    [Fact]
+    public async Task 覆盖式复制会替换目标里的同名文件()
+    {
+        string from = Path.Join(_root, "cfrom");
+        string to = Path.Join(_root, "cto");
+        Directory.CreateDirectory(from);
+        Directory.CreateDirectory(to);
+
+        string source = Path.Join(from, "a.txt");
+        string target = Path.Join(to, "a.txt");
+        File.WriteAllText(source, "new");
+        File.WriteAllText(target, "old");
+
+        var result = await FileOperations.CopyAsync([source], to, ConflictPolicy.Overwrite);
+
+        Assert.True(result.Ok);
+        Assert.Equal("new", File.ReadAllText(target));
+
+        // 覆盖不等于移动：源还在
+        Assert.True(File.Exists(source));
+
+        // 也不该顺手多出一个 "a (2).txt"
+        Assert.False(File.Exists(Path.Join(to, "a (2).txt")));
+    }
+
+    [Fact]
+    public async Task 保留两者时不碰目标原文件且生成副本()
+    {
+        string from = Path.Join(_root, "kfrom");
+        string to = Path.Join(_root, "kto");
+        Directory.CreateDirectory(from);
+        Directory.CreateDirectory(to);
+
+        string source = Path.Join(from, "b.txt");
+        string target = Path.Join(to, "b.txt");
+        File.WriteAllText(source, "new");
+        File.WriteAllText(target, "old");
+
+        var result = await FileOperations.CopyAsync([source], to);
+
+        Assert.True(result.Ok);
+        Assert.Equal("old", File.ReadAllText(target));
+        Assert.Equal("new", File.ReadAllText(Path.Join(to, "b (2).txt")));
+    }
+
+    [Fact]
+    public async Task 覆盖式复制目录是合并不是清空目标()
+    {
+        string from = Path.Join(_root, "dfdrom", "shared");
+        string to = Path.Join(_root, "dto");
+        Directory.CreateDirectory(from);
+        Directory.CreateDirectory(Path.Join(to, "shared"));
+
+        File.WriteAllText(Path.Join(from, "in-source.txt"), "src");
+        File.WriteAllText(Path.Join(from, "same.txt"), "new");
+        File.WriteAllText(Path.Join(to, "shared", "same.txt"), "old");
+        File.WriteAllText(Path.Join(to, "shared", "only-target.txt"), "keep");
+
+        var result = await FileOperations.CopyAsync([Path.Join(_root, "dfdrom", "shared")], to,
+            ConflictPolicy.Overwrite);
+
+        Assert.True(result.Ok);
+        Assert.Equal("new", File.ReadAllText(Path.Join(to, "shared", "same.txt")));
+        Assert.Equal("src", File.ReadAllText(Path.Join(to, "shared", "in-source.txt")));
+
+        // 目标独有的文件必须留着——"覆盖同名"不是"清空这个目录"
+        Assert.Equal("keep", File.ReadAllText(Path.Join(to, "shared", "only-target.txt")));
+    }
 }

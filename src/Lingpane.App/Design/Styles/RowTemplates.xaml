@@ -12,17 +12,39 @@
         DataTemplate 必须是资源而不是内联模板，才可能被 Style 的 Setter 引用。
     -->
 
-    <!-- 标签圆点没有标签时整个不画：只靠 Fill 为 null 会留下描边那圈空心小环，
-         看起来像一个没勾的复选框（走查时一眼就看出来了）。 -->
+    <!-- 标签色点（FR-4.1.2）：一项可以有多个颜色，所以是一组而不是一个。
+         只靠 Fill 为 null 会留下描边那圈空心小环，看起来像一个没勾的复选框（走查时一眼就看出来了），
+         所以没有标签时整个 ItemsControl 折叠掉。 -->
     <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
 
+    <!-- 单个色点：DataContext 是 TagColors 本身（ItemsSource 的项）。
+         6px 而不是 8px：三个点要塞进 24px 的槽位，8px 只能放两个。 -->
     <Style x:Key="Tag.Dot" TargetType="Ellipse">
-        <Setter Property="Width" Value="8"/>
-        <Setter Property="Height" Value="8"/>
+        <Setter Property="Width" Value="6"/>
+        <Setter Property="Height" Value="6"/>
+        <Setter Property="Margin" Value="0,0,2,0"/>
         <Setter Property="Stroke" Value="{DynamicResource Brush.Border.Strong}"/>
         <Setter Property="StrokeThickness" Value="0.5"/>
-        <Setter Property="Fill" Value="{Binding Tags, Converter={x:Static conv:TagColorsToBrushConverter.Instance}}"/>
+        <Setter Property="Fill" Value="{Binding Converter={x:Static conv:TagColorsToBrushConverter.Instance}}"/>
+    </Style>
+
+    <Style x:Key="Tag.Dots" TargetType="ItemsControl">
         <Setter Property="Visibility" Value="{Binding HasTags, Converter={StaticResource BoolToVisibility}}"/>
+        <Setter Property="ItemsSource" Value="{Binding ColorDots}"/>
+        <Setter Property="ItemsPanel">
+            <Setter.Value>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="ItemTemplate">
+            <Setter.Value>
+                <DataTemplate>
+                    <Ellipse Style="{StaticResource Tag.Dot}"/>
+                </DataTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <DataTemplate x:Key="Row.Details">
@@ -37,12 +59,10 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <!-- 标签圆点槽位（FR-4.1.4）：**始终占位**，否则有标签的行文件名会整体右移（规则 3.2）。
-                 外层 Border 保 12px 宽度（与列头那个占位一致），圆点在中间。
-                 没有标签时 Fill 为 null，圆点自然不可见——不必再绑一个 Visibility。
-                 描边用来救"黑"色标签：深色主题下纯黑填充在窗口底色上等于没有。 -->
+            <!-- 标签色点槽位（FR-4.1.4 / 4.1.2）：**始终占位**，否则有标签的行文件名会整体右移（规则 3.2）。
+                 外层 Border 保 24px 宽度（与列头那个占位一致），色点在中间。 -->
             <Border Grid.Column="0" Width="{DynamicResource Size.Tag.Gutter}">
-                <Ellipse Style="{StaticResource Tag.Dot}"/>
+                <ItemsControl Style="{StaticResource Tag.Dots}" VerticalAlignment="Center"/>
             </Border>
 
             <!-- 缩略图槽位（FR-6.6）。没缩略图时它自己显示 16px 类型图标，
@@ -100,7 +120,7 @@
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" Width="{DynamicResource Size.Tag.Gutter}">
-                <Ellipse Style="{StaticResource Tag.Dot}"/>
+                <ItemsControl Style="{StaticResource Tag.Dots}" VerticalAlignment="Center"/>
             </Border>
 
             <!-- 缩略图槽位（FR-6.6）。没缩略图时它自己显示 16px 类型图标，

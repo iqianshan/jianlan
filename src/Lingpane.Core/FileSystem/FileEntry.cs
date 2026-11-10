@@ -92,8 +92,35 @@ public sealed class FileEntry : INotifyPropertyChanged
     /// 看起来像一个没勾的复选框。</summary>
     public bool HasTags => _tags != TagColors.None;
 
+    /// <summary>
+    /// 行内要画的那几个色点（FR-4.1.2）。按 <see cref="TagPalette.All"/> 的位序取前几个，
+    /// 最多 <see cref="TagPalette.MaxDots"/> 个——行高只有 28px，色点塞不满一行就只能省略，
+    /// 而省略哪个必须稳定（按位序），否则每次重画顺序都可能变。
+    ///
+    /// 缓存成列表：绑定会在每次行重绘时取它，而 SetTags 之后才需要重算。
+    /// </summary>
+    public IReadOnlyList<TagColors> ColorDots => _dots ??= BuildDots();
+
+    private List<TagColors>? _dots;
+
+    private List<TagColors> BuildDots()
+    {
+        var dots = new List<TagColors>(TagPalette.MaxDots);
+
+        foreach (TagColors color in TagPalette.All)
+        {
+            if ((_tags & color) == 0) continue;
+
+            dots.Add(color);
+            if (dots.Count >= TagPalette.MaxDots) break;
+        }
+
+        return dots;
+    }
+
     private static readonly PropertyChangedEventArgs TagsChanged = new(nameof(Tags));
     private static readonly PropertyChangedEventArgs HasTagsChanged = new(nameof(HasTags));
+    private static readonly PropertyChangedEventArgs ColorDotsChanged = new(nameof(ColorDots));
 
     /// <summary>设置颜色并通知。相同值不通知，避免整批刷新时的无谓布局。</summary>
     public void SetTags(TagColors colors)
@@ -101,8 +128,10 @@ public sealed class FileEntry : INotifyPropertyChanged
         if (_tags == colors) return;
 
         _tags = colors;
+        _dots = null;
         PropertyChanged?.Invoke(this, TagsChanged);
         PropertyChanged?.Invoke(this, HasTagsChanged);
+        PropertyChanged?.Invoke(this, ColorDotsChanged);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

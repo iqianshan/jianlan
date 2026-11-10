@@ -329,4 +329,66 @@ public sealed class TagStoreTests : IDisposable
 
         Assert.All(TagPalette.All, color => Assert.Equal(0, counts[color]));
     }
+
+    // ── 导入合并（FR-4.2.7）──────────────────────────────────────────────
+
+    private static TagRecord Record(ulong id, string path, TagColors colors, long seconds, ulong volume = 7)
+        => new(volume, id, path, colors, DateTimeOffset.FromUnixTimeSeconds(seconds));
+
+    [Fact]
+    public void 导入时本机没有的项新增_更新的项覆盖()
+    {
+        TagStore store = Open();
+        store.Set(Target(1, @"D:\a.txt"), TagColors.Red, DateTimeOffset.FromUnixTimeSeconds(100));
+
+        TagImportResult result = store.Import(
+        [
+            Record(1, @"D:\a.txt", TagColors.Red | TagColors.Blue, 200),   // 更新
+            Record(2, @"D:\b.txt", TagColors.Green, 150),                  // 新增
+        ]);
+
+        Assert.Equal(1, result.Added);
+        Assert.Equal(1, result.Updated);
+        Assert.Equal(0, result.Skipped);
+
+        Assert.Equal(TagColors.Red | TagColors.Blue, store.Get(7, 1));
+        Assert.Equal(TagColors.Green, store.Get(7, 2));
+    }
+
+    [Fact]
+    public void 导入不会用更旧的记录盖掉本机更新的标签()
+    {
+        TagStore store = Open();
+        store.Set(Target(3, @"D:\c.txt"), TagColors.Blue, DateTimeOffset.FromUnixTimeSeconds(500));
+
+        TagImportResult result = store.Import([Record(3, @"D:\c.txt", TagColors.Red, 100)]);
+
+        Assert.Equal(0, result.Updated);
+        Assert.Equal(1, result.Skipped);
+        Assert.Equal(TagColors.Blue, store.Get(7, 3));
+    }
+
+    [Fact]
+    public void 导入跳过拿不到FileId的项()
+    {
+        TagStore store = Open();
+
+        TagImportResult result = store.Import([Record(0, @"D:\bad.txt", TagColors.Red, 100)]);
+
+        Assert.Equal(0, result.Added);
+        Assert.Equal(1, result.Skipped);
+        Assert.Equal(0, store.Count);
+    }
+
+    [Fact]
+    public void 导入写进日志_重新打开仍在()
+    {
+        TagStore store = Open();
+        store.Import([Record(9, @"D:\persist.txt", TagColors.Blue, 100)]);
+
+        TagStore reopened = Open();
+        reopened.EnsureLoaded();
+
+        Assert.Equal(TagColors.Blue, reopened.Get(7, 9));
+    }
 }

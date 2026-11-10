@@ -40,6 +40,31 @@ public enum SortFieldKind
 }
 
 /// <summary>
+/// 新标签页开在哪（FR-5.2.6）。三选一：
+/// <see cref="Home"/> 开主页、<see cref="Path"/> 开指定目录、<see cref="Last"/> 接着上次待的目录。
+///
+/// 为什么把"上次路径"单独列出来：它的语义是"接着干活"，与"每次固定回某处"是两种习惯，
+/// 而空路径回落下载夹是第三种（默认值）。前两版只有一个路径输入框，用户要"主页"只能
+/// 把路径填成某个目录，语义上是错的。
+/// </summary>
+public enum NewTabModeKind
+{
+    Home = 0,
+    Path = 1,
+    Last = 2,
+}
+
+/// <summary>
+/// 窗格槽位（FR-3.7）。双窗格各自记忆视图、排序与列配置，靠它区分是哪一侧。
+/// 不用 bool：写 <c>slot: true</c> 的调用点读起来没有含义。
+/// </summary>
+public enum PaneSlot
+{
+    Primary = 0,
+    Secondary = 1,
+}
+
+/// <summary>
 /// settings.json 的强类型模型（schemaVersion = 1）。
 /// 字段定义见 docs/settings-schema.md，改动必须同步该文档与 SettingsMigrations。
 /// </summary>
@@ -98,6 +123,10 @@ public sealed class AppSettings
         // 空白等同于"没设置"（回落系统下载）：留一个 "" 在设置文件里，读的人还要再判一次空串
         General.NewTabPath = string.IsNullOrWhiteSpace(General.NewTabPath) ? null : General.NewTabPath.Trim();
 
+        // 认不出来的模式回落"指定路径"：老文件里根本没有这个字段，默认值就是它；
+        // 手改坏了也不该让新标签开到不知哪里去。
+        if (!Enum.IsDefined(General.NewTabMode)) General.NewTabMode = NewTabModeKind.Path;
+
         // 路径缓存：空值等于"这一项解析失败"，留着只会让读取方多判一次。
         // 键是已知文件夹的枚举名，手改配置文件时大小写常有出入——按不区分大小写重建一份，
         // 否则大小写不匹配的那条会永久留在文件里（每次启动都判未命中、再补一条新的）。
@@ -131,6 +160,9 @@ public sealed class AppSettings
         }
 
         Appearance.Accent = AppearanceSettings.NormalizeAccent(Appearance.Accent);
+
+        // 颜色自定义名称（FR-4.1.7）：认不出来的键、空值、超长都清掉（见 NormalizeTagColorNames）
+        Appearance.TagColorNames = AppearanceSettings.NormalizeTagColorNames(Appearance.TagColorNames);
 
         Privacy.HistoryLimit = Math.Clamp(Privacy.HistoryLimit, 0, 500);
         Privacy.CacheLimitMb = Math.Clamp(Privacy.CacheLimitMb, 64, 4096);
@@ -220,6 +252,24 @@ public sealed class AppSettings
 
         Layout.Standard.Normalize();
 
+        // 第二窗格的列配置（FR-3.7）：与第一窗格同一套归一（键小写、宽度夹取）
+        Layout.SecondaryColumns ??= [];
+        Layout.SecondaryColumns = Layout.SecondaryColumns
+            .Where(p => !string.IsNullOrWhiteSpace(p.Key) && p.Value is not null)
+            .GroupBy(p => p.Key.Trim().ToLowerInvariant(), StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Last().Value, StringComparer.Ordinal);
+
+        foreach (ColumnProfileSettings profile in Layout.SecondaryColumns.Values)
+        {
+            profile.Normalize();
+        }
+
+        // 窗格状态里的枚举值同样要判合法：手改成 "grid" 之外的值会让启动时视图回落到哪都没有定义
+        Layout.PrimaryPane ??= new PaneViewStateSettings();
+        Layout.SecondaryPane ??= new PaneViewStateSettings();
+        NormalizePaneState(Layout.PrimaryPane);
+        NormalizePaneState(Layout.SecondaryPane);
+
         if (double.IsNaN(Layout.SplitRatio) || double.IsInfinity(Layout.SplitRatio))
         {
             Layout.SplitRatio = DefaultSplitRatio;
@@ -243,7 +293,6 @@ public sealed class AppSettings
     }
 
     // ── 恢复默认值（FR-5.3.8）─────────────────────────────────────────────
-    //
     // 分类恢复直接换掉整段对象，而不是逐字段赋默认值：逐字段写会漏掉将来新增的项，
     // 而"恢复默认"这个入口最不该漏。
     //
@@ -254,7 +303,22 @@ public sealed class AppSettings
 
     public void ResetAppearance() => Appearance = new AppearanceSettings();
 
-    public void ResetBehavior() => Behavior = new BehaviorSettings();
+    public void ResetBehavior()
+    {
+        Behavior = new BehaviorSettings();
+
+        // FR-3.7：窗格各自记着的视图与排序也属于"行为偏好"，一并清掉。
+        // 只换 Behavior 的话，恢复默认之后两侧还停在旧视图上，用户会以为按钮没生效。
+        Layout.PrimaryPane = new PaneViewStateSettings();
+        Layout.SecondaryPane = new PaneViewStateSettings();
+    }
+
+    /// <summary>窗格状态里的枚举值判合法；null 保持 null（= 沿用全局默认）。</summary>
+    private static void NormalizePaneState(PaneViewStateSettings state)
+    {
+        if (state.View is { } view && !Enum.IsDefined(view)) state.View = null;
+        if (state.SortBy is { } sort && !Enum.IsDefined(sort)) state.SortBy = null;
+    }
 
     public void ResetPrivacy()
     {
@@ -340,6 +404,13 @@ public sealed class GeneralSettings
     public string Language { get; set; } = LanguageAuto;
 
     /// <summary>
+    /// 新标签开在哪（FR-5.2.6）。默认 <see cref="NewTabModeKind.Path"/>，
+    /// 也就是"沿用 <see cref="NewTabPath"/>，没填就用系统下载夹"——与 0.2.0 完全一致，
+    /// 老用户的习惯不因为多了两个选项而改变。
+    /// </summary>
+    public NewTabModeKind NewTabMode { get; set; } = NewTabModeKind.Path;
+
+    /// <summary>
     /// 新标签页的默认目录（FR-2.1）。空 = 用系统「下载」目录。
     ///
     /// 为什么空值代表"系统下载"而不是把下载夹的绝对路径写进来：设置文件会跟着漫游/备份走，
@@ -412,6 +483,48 @@ public sealed class AppearanceSettings
     public static bool IsKnownTabPosition(string? value) => value is TabTop or TabBottom;
 
     /// <summary>
+    /// 八色的自定义名称（FR-4.1.7）：键是 <c>TagColors</c> 的枚举名（<c>Red</c>…），值是用户写的名字。
+    /// 没写的那一色继续用界面语言里的默认名字——所以这里只存"被改过的"，
+    /// 不是一张完整映射表：存全表意味着切语言之后那八个名字还是旧语言的。
+    ///
+    /// 键用枚举名而不是位值：settings.json 是给人看的，<c>"Red"</c> 比 <c>1</c> 好认；
+    /// 顺便也不怕将来调整位序（位序是磁盘上的标签数据要用的，不该被界面文案绑住）。
+    /// </summary>
+    public Dictionary<string, string> TagColorNames { get; set; } = [];
+
+    /// <summary>自定义名长度上限。名字进的是右键菜单与侧栏，写一整句话会把菜单撑开。</summary>
+    public const int MaxTagColorNameLength = 24;
+
+    /// <summary>
+    /// 归一化颜色名：去掉认不出来的键、空值、首尾空白与超长文本。
+    /// 名字本身不做转义——它只出现在界面文本里，不走任何格式化路径。
+    /// </summary>
+    public static Dictionary<string, string> NormalizeTagColorNames(Dictionary<string, string>? source)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (source is null) return result;
+
+        foreach ((string key, string value) in source)
+        {
+            if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(value)) continue;
+
+            // 认不出来的键（手改配置写错颜色）直接丢掉：留着它永远不会被读到，
+            // 而用户会以为"我设了名字却没生效"
+            if (!Enum.TryParse<Tagging.TagColors>(key.Trim(), ignoreCase: true, out Tagging.TagColors color)
+                || color == Tagging.TagColors.None)
+            {
+                continue;
+            }
+
+            string name = value.Trim();
+            if (name.Length > MaxTagColorNameLength) name = name[..MaxTagColorNameLength];
+            result[color.ToString()] = name;
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// 强调色只接受 <c>#RRGGBB</c>。手改成 <c>red</c> 或 <c>#F00</c> 一律当"跟随系统"——
     /// 与其让界面去猜颜色名，不如回落到系统色，至少不会出现一块读不出来的黑洞。
     /// </summary>
@@ -445,6 +558,21 @@ public sealed class BehaviorSettings
 
     public bool FoldersFirst { get; set; } = true;
 
+    /// <summary>
+    /// 自然排序（FR-5.2.3）：<c>file2</c> 排在 <c>file10</c> 之前。默认开。
+    ///
+    /// 关掉之后退回逐字符比较（.NET 的 <c>StringComparer.OrdinalIgnoreCase</c> 口径），
+    /// 结果是 <c>file10</c> 在 <c>file2</c> 之前——那正是老式工具的行为，
+    /// 有些人排版本号/日期串时需要它。默认值不动，因为资源管理器就是自然排序。
+    /// </summary>
+    public bool NaturalSort { get; set; } = true;
+
+    /// <summary>
+    /// 名称区分大小写（FR-5.2.3）。默认不区分（与资源管理器一致）。
+    /// 打开后 <c>Readme</c> 与 <c>readme</c> 不再相邻，按码位排——给"文件名大小写有意义"的场合用。
+    /// </summary>
+    public bool CaseSensitiveSort { get; set; }
+
     public bool ShowHidden { get; set; }
 
     /// <summary>
@@ -471,11 +599,21 @@ public sealed class BehaviorSettings
     /// 一次操作涉及多项时的确认（FR-5.2.8 的"批量操作"）。
     /// 与 <see cref="ConfirmDelete"/> 分开是为了让"单删不啰嗦、批量仍拦一道"成为可选：
     /// 只留一个总开关时，嫌单删弹窗烦的人会连批量保护一起关掉。
-    ///
-    /// "覆盖"那一项暂未落地：当前复制/移动遇到同名一律自动改名（<c>FileOperations.UniqueName</c>），
-    /// 没有覆盖路径可供确认。等覆盖式粘贴的需求进来时再补一个开关。
     /// </summary>
     public bool ConfirmBatch { get; set; } = true;
+
+    /// <summary>
+    /// 粘贴/拖入时目标处有同名项的确认（FR-5.2.8 的"覆盖"分项）。默认开。
+    ///
+    /// 语义与另外两项一致：**开 = 先问一句**。问的是"要不要用源覆盖目标"——
+    /// 选"是"就覆盖，选"否"就两个都留下（自动改名，0.2.0 的行为）。
+    /// 关掉之后不再询问，直接覆盖——所以这一项关之前，设置页的提示必须写清后果。
+    ///
+    /// 为什么不在关掉时退回"自动改名"：那等于"关掉确认 = 永远不覆盖"，
+    /// 想覆盖的用户反而没有任何入口；而"确认"这两个字在本项目里一直是"弹一句问话"，
+    /// 删除的 <see cref="ConfirmDelete"/> 就是同一个口径。
+    /// </summary>
+    public bool ConfirmOverwrite { get; set; } = true;
 
     public bool DoubleClickOpens { get; set; } = true;
 
@@ -763,6 +901,29 @@ public sealed class LayoutSettings
     public Dictionary<string, ColumnProfileSettings> Columns { get; set; } = [];
 
     /// <summary>
+    /// 第二窗格自己的列配置（FR-3.7）。第一窗格仍用 <see cref="Columns"/>，两者互不影响。
+    ///
+    /// 为什么不给两个窗格各建一份 "columns"：旧文件里 <see cref="Columns"/> 的键是
+    /// <c>default</c>/<c>pictures</c> 这样的档位名，加一层槽位就会变成 <c>0:default</c>，
+    /// 已有的列宽全部读不到——为一个新功能顺手抹掉用户调过的列宽，不值。
+    ///
+    /// 空值语义：某个档位在这里没有条目时，**沿用第一窗格的同档配置**（见
+    /// <see cref="Get(ColumnProfileKind, PaneSlot)"/>）。所以"没调过"不需要写盘，
+    /// 文件里也就不会多出一整份与第一窗格一模一样的配置。
+    /// </summary>
+    public Dictionary<string, ColumnProfileSettings> SecondaryColumns { get; set; } = [];
+
+    /// <summary>第一窗格上次用过的视图与排序（FR-3.7）。</summary>
+    public PaneViewStateSettings PrimaryPane { get; set; } = new();
+
+    /// <summary>第二窗格上次用过的视图与排序（FR-3.7）。</summary>
+    public PaneViewStateSettings SecondaryPane { get; set; } = new();
+
+    /// <summary>取某一侧窗格的视图/排序状态。</summary>
+    public PaneViewStateSettings GetPaneState(PaneSlot slot)
+        => slot == PaneSlot.Secondary ? SecondaryPane : PrimaryPane;
+
+    /// <summary>
     /// 默认档。不存在时惰性创建——每次访问都判一次空并在读路径上写字典，
     /// 读的人会怀疑"这个字典什么时候被填的"；集中在这里就只有一处。
     ///
@@ -791,26 +952,49 @@ public sealed class LayoutSettings
             ? profile
             : Standard;
 
-    /// <summary>写配置：没有这一档就建一份，从默认档复制（继承默认的列宽与顺序）。</summary>
-    public ColumnProfileSettings GetOrAdd(ColumnProfileKind kind)
+    /// <summary>
+    /// 按槽位读配置（FR-3.7）。第二窗格没有自己的同档配置时**沿用第一窗格的**——
+    /// 用户没分屏时调过的列宽，第一次分屏出来就应当是那个样子，而不是"另一侧又回到出厂"。
+    /// </summary>
+    public ColumnProfileSettings Get(ColumnProfileKind kind, PaneSlot slot)
     {
+        if (slot == PaneSlot.Secondary
+            && SecondaryColumns.TryGetValue(ProfileKey(kind), out ColumnProfileSettings? own)
+            && own is not null)
+        {
+            return own;
+        }
+
+        return Get(kind);
+    }
+
+    /// <summary>写配置：没有这一档就建一份，从默认档复制（继承默认的列宽与顺序）。</summary>
+    public ColumnProfileSettings GetOrAdd(ColumnProfileKind kind) => GetOrAdd(kind, PaneSlot.Primary);
+
+    /// <summary>
+    /// 按槽位写配置（FR-3.7）。第二窗格第一次被写入时从"当前生效的那一份"克隆：
+    /// 不克隆的话新条目会是出厂值，用户分屏后第一件事就是发现右侧列宽被打回原形。
+    /// </summary>
+    public ColumnProfileSettings GetOrAdd(ColumnProfileKind kind, PaneSlot slot)
+    {
+        Dictionary<string, ColumnProfileSettings> map =
+            slot == PaneSlot.Secondary ? SecondaryColumns : Columns;
         string key = ProfileKey(kind);
-        if (Columns.TryGetValue(key, out ColumnProfileSettings? existing) && existing is not null)
+
+        if (map.TryGetValue(key, out ColumnProfileSettings? existing) && existing is not null)
         {
             return existing;
         }
 
-        var created = kind == ColumnProfileKind.Default
-            ? new ColumnProfileSettings()
-            : Clone(Standard);
-
-        Columns[key] = created;
+        ColumnProfileSettings created = Clone(Get(kind));
+        map[key] = created;
         return created;
     }
 
     public void ResetColumns()
     {
         Columns.Clear();
+        SecondaryColumns.Clear();
         Standard.Reset();
     }
 
@@ -887,6 +1071,26 @@ public sealed class LayoutSettings
     /// 侧栏只有 184px 高时先摆目录与收藏，用户要盘符时点一下即可。
     /// </summary>
     public bool ThisPcExpanded { get; set; }
+
+    [JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
+}
+
+/// <summary>
+/// 单侧窗格上次用过的视图与排序（FR-3.7）。
+///
+/// 三项都可空：<c>null</c> 表示"这一侧还没自己选过"，此时沿用
+/// <see cref="BehaviorSettings.DefaultView"/> / <see cref="BehaviorSettings.SortBy"/>。
+/// 用可空而不是照抄默认值，是为了保住设置页那两项"默认视图 / 默认排序"的意义——
+/// 一旦这里写死初始值，用户改默认值就再也不起作用了。
+/// </summary>
+public sealed class PaneViewStateSettings
+{
+    public DefaultViewKind? View { get; set; }
+
+    public SortFieldKind? SortBy { get; set; }
+
+    public bool? SortDescending { get; set; }
 
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }

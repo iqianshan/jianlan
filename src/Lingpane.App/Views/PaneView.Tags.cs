@@ -7,7 +7,7 @@ using Lingpane.Core.Tagging;
 namespace Lingpane.App.Views;
 
 /// <summary>
-/// 窗格的彩色标签入口（FR-4.1.1 / FR-4.1.3）。
+/// 窗格的彩色标签入口（FR-4.1.1 / FR-4.1.3 / FR-4.1.2）。
 ///
 /// 为什么整段逻辑放在窗格而不是窗口：标签作用于"这个窗格选中的项"，
 /// 双窗格下选中项各有一份。放窗口上，每个处理器都要先问"活动窗格是谁"。
@@ -15,7 +15,31 @@ namespace Lingpane.App.Views;
 public partial class PaneView
 {
     /// <summary>
+    /// 颜色子菜单每次展开时按当前选中项刷一次勾选（FR-4.1.2）。
+    ///
+    /// 为什么不在 <c>ContextMenuOpening</c> 里做：那一刻子菜单的容器还没生成，
+    /// <c>ContainerFromItem</c> 全是 null，勾选状态会一片空白。子菜单展开时容器才齐。
+    /// </summary>
+    private void OnTagMenuOpened(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem parent || _viewModel is not { } vm) return;
+
+        TagColors mask = vm.SelectionTagMask;
+
+        foreach (object item in parent.Items)
+        {
+            if (item is not TagPresets.ColorPreset preset) continue;
+            if (parent.ItemContainerGenerator.ContainerFromItem(item) is not MenuItem container) continue;
+
+            container.IsChecked = (mask & preset.Value) != 0;
+        }
+    }
+
+    /// <summary>
     /// 颜色子菜单里的某一条被点了。
+    ///
+    /// 语义是**切换**而不是"设成这一色"（FR-4.1.2）：一项可以同时是红和蓝，
+    /// "设成"会让每次点击都抹掉上一色，多色永远攒不出来。已勾上的再点一次即去掉这一色。
     ///
     /// 读 <c>MenuItem.Header</c> 而不是 <c>DataContext</c>：带 <c>ItemsSource</c> 的菜单项，
     /// 容器只被塞进 <c>Header</c>/<c>HeaderTemplate</c>，**不设** <c>DataContext</c>——
@@ -35,7 +59,7 @@ public partial class PaneView
 
         try
         {
-            await vm.ApplyTagAsync(colors);
+            await vm.ToggleTagAsync(colors);
         }
         catch (Exception ex)
         {

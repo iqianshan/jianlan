@@ -196,7 +196,8 @@ public sealed class TabViewModel : INotifyPropertyChanged
         string target = _secondaryPath
                         ?? (string.IsNullOrWhiteSpace(fallbackPath) ? Primary.CurrentPath : fallbackPath);
 
-        var pane = new PaneViewModel(_settings, _onVisited, _tags);
+        // 第二窗格带自己的槽位（FR-3.7）：视图与排序按"右侧"记忆，与左侧各存一份
+        var pane = new PaneViewModel(_settings, _onVisited, _tags, PaneSlot.Secondary);
         pane.PreparePendingPath(target);
         pane.PropertyChanged += OnPanePropertyChanged;
         Secondary = pane;

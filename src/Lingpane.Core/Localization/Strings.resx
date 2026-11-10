@@ -1204,7 +1204,7 @@
     <value>Tag</value>
   </data>
   <data name="Menu.Tag.Tip" xml:space="preserve">
-    <value>Set a colour tag on the selected items</value>
+    <value>Toggle colour tags on the selected items (an item can have several)</value>
   </data>
   <data name="Menu.Tag.Remove" xml:space="preserve">
     <value>Remove Tag</value>
@@ -1646,5 +1646,89 @@
   </data>
   <data name="About.Update.Failed" xml:space="preserve">
     <value>Can't open the browser.</value>
+  </data>
+  <data name="Settings.Behavior.NaturalSort" xml:space="preserve">
+    <value>Natural sort</value>
+  </data>
+  <data name="Settings.Behavior.NaturalSort.Hint" xml:space="preserve">
+    <value>Sorts file2 before file10. Turn off for strict character-by-character order.</value>
+  </data>
+  <data name="Settings.Behavior.CaseSensitiveSort" xml:space="preserve">
+    <value>Case-sensitive names</value>
+  </data>
+  <data name="Settings.Behavior.CaseSensitiveSort.Hint" xml:space="preserve">
+    <value>On: Readme and readme are sorted apart. Off matches Explorer.</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmOverwrite" xml:space="preserve">
+    <value>Confirm before overwriting</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmOverwrite.Hint" xml:space="preserve">
+    <value>On: asks before replacing a same-named item. Off: replaces it without asking.</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode" xml:space="preserve">
+    <value>New tab opens</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode.Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode.Path" xml:space="preserve">
+    <value>A specified folder</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode.Last" xml:space="preserve">
+    <value>The last folder I was in</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode.Hint" xml:space="preserve">
+    <value>Home opens the start page. "A specified folder" uses the path below; leave it empty to use Downloads. "The last folder I was in" picks up where you left off.</value>
+  </data>
+  <data name="Settings.Tags.ColorNames" xml:space="preserve">
+    <value>Tag colour names</value>
+  </data>
+  <data name="Settings.Tags.ColorNames.Hint" xml:space="preserve">
+    <value>Leave a box empty to keep the default name. Names show up in the tag menu and the sidebar.</value>
+  </data>
+  <data name="Settings.Privacy.TagExport" xml:space="preserve">
+    <value>Export…</value>
+  </data>
+  <data name="Settings.Privacy.TagExport.Tip" xml:space="preserve">
+    <value>Save the tag library as a JSON file.</value>
+  </data>
+  <data name="Settings.Privacy.TagExport.Title" xml:space="preserve">
+    <value>Export tag library</value>
+  </data>
+  <data name="Settings.Privacy.TagExported" xml:space="preserve">
+    <value>Exported {0} tags.</value>
+  </data>
+  <data name="Settings.Privacy.TagExportFailed" xml:space="preserve">
+    <value>Export failed: {0}</value>
+  </data>
+  <data name="Settings.Privacy.TagImport" xml:space="preserve">
+    <value>Import…</value>
+  </data>
+  <data name="Settings.Privacy.TagImport.Tip" xml:space="preserve">
+    <value>Merge tags from a JSON file into this library.</value>
+  </data>
+  <data name="Settings.Privacy.TagImport.Title" xml:space="preserve">
+    <value>Import tag library</value>
+  </data>
+  <data name="Settings.Privacy.TagImported" xml:space="preserve">
+    <value>Imported {0} tags: {1} added, {2} updated, {3} skipped.</value>
+  </data>
+  <data name="Settings.Privacy.TagImportFailed" xml:space="preserve">
+    <value>Import failed: {0}</value>
+  </data>
+  <data name="Dialog.OverwriteTitle" xml:space="preserve">
+    <value>Overwrite</value>
+  </data>
+  <data name="Dialog.OverwriteOne" xml:space="preserve">
+    <value>"{0}" already exists in the target folder. Overwrite it? Choose "No" to keep both copies.</value>
+  </data>
+  <data name="Dialog.OverwriteMany" xml:space="preserve">
+    <value>{0} items already exist in the target folder. Overwrite them? Choose "No" to keep both copies.</value>
+  </data>
+  <data name="Tab.Menu.OpenWindow" xml:space="preserve">
+    <value>Open in new window</value>
+  </data>
+  <data name="Status.NewWindowNoPath" xml:space="preserve">
+    <value>Only folders can open in a new window.</value>
   </data>
 </root>

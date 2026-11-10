@@ -81,11 +81,13 @@
             </Style.Triggers>
         </Style>
 
-        <!-- 标签颜色子菜单的条目（FR-4.1.1）。用 EventSetter 挂同一个处理器：
+        <!-- 标签颜色子菜单的条目（FR-4.1.1 / 4.1.2）。用 EventSetter 挂同一个处理器：
              子项由预设表生成，逐条写 Click 既重复又容易漏。
+             IsCheckable 打开多色的"已打上"提示：一项可以同时是红和蓝，菜单要能显示这个状态。
              MinWidth 压到 120：主菜单项 200 宽是为了放键位提示，色块行不需要那么宽。 -->
         <Style x:Key="Menu.TagItem" TargetType="MenuItem" BasedOn="{StaticResource MenuItem.Default}">
             <Setter Property="MinWidth" Value="120"/>
+            <Setter Property="IsCheckable" Value="True"/>
             <EventSetter Event="Click" Handler="OnTagColorPicked"/>
         </Style>
 
@@ -608,7 +610,8 @@
                                       Header="{loc:Tr Key=Menu.Tag}"
                                       ToolTip="{loc:Tr Key=Menu.Tag.Tip}"
                                       ItemsSource="{Binding Source={x:Static vm:TagPresets.Colors}}"
-                                      ItemContainerStyle="{StaticResource Menu.TagItem}">
+                                      ItemContainerStyle="{StaticResource Menu.TagItem}"
+                                      SubmenuOpened="OnTagMenuOpened">
                                 <MenuItem.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">

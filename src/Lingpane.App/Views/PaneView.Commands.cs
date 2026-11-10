@@ -93,14 +93,14 @@ public partial class PaneView
             Id = CommandIds.ViewDetails,
             TitleFactory = () => Strings.Command_ViewDetails,
             Gesture = "Ctrl+Shift+1",
-            Execute = () => _viewModel?.SetViewMode(DefaultViewKind.Details),
+            Execute = () => ApplyViewMode(DefaultViewKind.Details),
         });
         _commands.Register(new AppCommand
         {
             Id = CommandIds.ViewList,
             TitleFactory = () => Strings.Command_ViewList,
             Gesture = "Ctrl+Shift+2",
-            Execute = () => _viewModel?.SetViewMode(DefaultViewKind.List),
+            Execute = () => ApplyViewMode(DefaultViewKind.List),
         });
         _commands.Register(new AppCommand
         {

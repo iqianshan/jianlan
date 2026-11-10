@@ -81,7 +81,7 @@ public partial class PaneView
         ApplyColumns();
     }
 
-    private ColumnProfileSettings CurrentColumns => App.Settings.Layout.Get(_columnKind);
+    private ColumnProfileSettings CurrentColumns => App.Settings.Layout.Get(_columnKind, Slot);
 
     // ── 应用配置 ────────────────────────────────────────────────────────────
 
@@ -212,7 +212,7 @@ public partial class PaneView
         double scale = FontScaleService.Current.Scale;
         if (scale <= 0) scale = 1;
 
-        ColumnProfileSettings profile = App.Settings.Layout.GetOrAdd(_columnKind);
+        ColumnProfileSettings profile = App.Settings.Layout.GetOrAdd(_columnKind, Slot);
         double current = profile.WidthOf(column) * scale;
 
         // 把手挂在列的左边缘：向右拖（HorizontalChange > 0）= 把分隔线右推，
@@ -245,7 +245,7 @@ public partial class PaneView
 
         if (MainWindow.KeyDebug)
         {
-            ColumnProfileSettings p = App.Settings.Layout.Get(_columnKind);
+            ColumnProfileSettings p = App.Settings.Layout.Get(_columnKind, Slot);
             MainWindow.WriteKeyLog($"columns done {thumb.Tag} profile={_columnKind} delta={e.HorizontalChange:0.#} " +
                         $"out={p.DateWidth:0.#}/{p.TypeWidth:0.#}/{p.SizeWidth:0.#}");
         }
@@ -303,7 +303,7 @@ public partial class PaneView
         if (!ColumnLayout.TryParseKey(key, out PaneColumn column)) return;
         if (column == PaneColumn.Name) return;
 
-        ColumnProfileSettings profile = App.Settings.Layout.GetOrAdd(_columnKind);
+        ColumnProfileSettings profile = App.Settings.Layout.GetOrAdd(_columnKind, Slot);
 
         // 三列全关是允许的：剩下的就是文件名，那是"列表视图"，不是坏配置。
         profile.SetVisible(column, !profile.IsVisible(column));
@@ -318,7 +318,7 @@ public partial class PaneView
         if (_menuColumn is not { } column) return;
         if (sender is not MenuItem { Tag: string delta }) return;
 
-        ColumnProfileSettings profile = App.Settings.Layout.GetOrAdd(_columnKind);
+        ColumnProfileSettings profile = App.Settings.Layout.GetOrAdd(_columnKind, Slot);
         if (!profile.Move(column, delta == "1" ? 1 : -1)) return;
 
         ApplyColumns();
@@ -328,7 +328,7 @@ public partial class PaneView
 
     private void OnResetColumns(object sender, RoutedEventArgs e)
     {
-        App.Settings.Layout.GetOrAdd(_columnKind).Reset();
+        App.Settings.Layout.GetOrAdd(_columnKind, Slot).Reset();
 
         ApplyColumns();
         App.SaveSettings();

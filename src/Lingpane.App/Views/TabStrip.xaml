@@ -235,6 +235,12 @@
                                     <MenuItem Style="{StaticResource MenuItem.Default}"
                                               Header="{loc:Tr Key=Tab.Menu.CopyPath}"
                                               Click="OnTabCopyPath"/>
+                                    <!-- 在新窗口打开（FR-2.12）。放在复制路径之后：
+                                         前四项都是"处理这个标签"，这一项与"复制路径"同属
+                                         "把这个位置拿到别处去用"，两条挨着更顺。 -->
+                                    <MenuItem Style="{StaticResource MenuItem.Default}"
+                                              Header="{loc:Tr Key=Tab.Menu.OpenWindow}"
+                                              Click="OnTabOpenWindow"/>
                                 </ContextMenu>
                             </Border.ContextMenu>
                         </Border>
