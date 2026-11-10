@@ -23,7 +23,7 @@
   },
 
   "appearance": {
-    "theme": "system",          // system | light | dark
+    "theme": "system",          // system | light | dark | highContrast（第四项是手动开高对比度，FR-5.1.2）
     "fontSizePt": null,         // null = 跟随系统；8–24 整数
     "fontFamily": null,         // null = 默认字体栈；否则为系统字体族名
     "accent": null,             // null = 跟随系统；否则 #RRGGBB（FR-5.1.3）。派生色由 AccentService 现算
@@ -63,6 +63,8 @@
     "windowWidth": 1100,
     "windowHeight": 720,
     "windowMaximized": false,
+    "windowLeft": null,         // 左上角坐标（FR-10.2）。null = 没记过，启动时居中（0.2.0 之前的文件都是 null）
+    "windowTop": null,          // 副屏在主屏左侧时是负数，原样保存
     "lastPath": null,
     "tabs": [],                 // 顺序即标签顺序；最多 12 条（SessionSettings.MaxTabs）
     "activeTabIndex": 0,        // 恢复后激活第几个标签
@@ -87,7 +89,8 @@
     "splitRatio": 0.5,          // 第一窗格占比，0.15–0.85
     "splitVertical": false,     // false = 左右，true = 上下（FR-3.1）
     "previewWidth": 320,        // 预览窗格宽度，240–720（FR-9.1.1）。与 showPreview 分开：关掉再打开要回到原宽度
-    "navWidth": 184             // 导航栏宽度，160–320（FR-1.2.4）。拖完分隔条才落盘，双击分隔条回 184
+    "navWidth": 184,            // 导航栏宽度，160–320（FR-1.2.4）。拖完分隔条才落盘，双击分隔条回 184
+    "thisPcExpanded": false     // 侧栏「此电脑」是否展开（FR-1.2.7）。默认折叠：侧栏只有 184px 宽时先摆目录与收藏
   }
 }
 ```
@@ -98,7 +101,9 @@
 |---|---|---|
 | `language` | `auto` / `zh-Hans` / `en` 三值 | 无法识别的值按 `auto` 处理，不报错（手改坏了不至于起不来） |
 | `newTabPath` | 绝对路径或 `null` | 空白归一为 `null`；**不校验存在性**（盘可能暂时不在），解析时目录不可用则回落到系统「下载」 |
-| `theme` | 三值枚举，且系统高对比度开启时强制 `HighContrast` | 回落 `system` |
+| `theme` | 四值枚举，且系统高对比度开启时强制 `HighContrast` | 回落 `system`。`highContrast` 是用户手动开启的路径（FR-5.1.2）；系统那边开着时以系统为准——那个开关的语义是"我看不清"，比应用内偏好更强 |
+| `windowLeft/windowTop` | `null` 或任意整数坐标（负数是副屏在主屏左侧/上方） | 不夹取：夹到非负会把副屏用户的布局每次启动拽回主屏。启动时若与虚拟屏的相交面积不足（宽 <120 或高 <40）就回主屏正中，见 `WindowPlacement` |
+| `thisPcExpanded` | 布尔 | 默认 `false`（折叠）。改动当场落盘，与收藏分组折叠同一口径 |
 | `fontSizePt` | `null` 或 8–24 整数 | 超范围夹取到边界 |
 | `fontFamily` | 必须存在于系统字体列表 | 不存在则回落默认栈，不报错 |
 | `accent` | `null` 或 `#RRGGBB` | 三位写法、颜色名、非十六进制一律归为 `null`（跟随系统）：让界面去猜颜色名只会得到一块读不出来的黑洞。派生色（悬停/按下/浅底）不落盘，由 `AccentService` 按当前主题现算 |
