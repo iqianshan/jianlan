@@ -1,4 +1,4 @@
-<Window x:Class="Lingpane.App.Views.TextPromptWindow"
+﻿<Window x:Class="Lingpane.App.Views.TextPromptWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:Lingpane.App.Localization"
@@ -6,6 +6,7 @@
         SizeToContent="Height"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
+        Icon="pack://application:,,,/Lingpane;component/Assets/Brand/lingpane.ico"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource Brush.Surface.Window}"
         UseLayoutRounding="True"

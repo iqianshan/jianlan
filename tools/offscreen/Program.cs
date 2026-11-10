@@ -123,6 +123,8 @@ internal static class Program
         bool undoDelete = false;
         string? undoModifiedSource = null;
         string? navMenuTitle = null;
+        bool iconProbe = false;
+        int aboutWidth = 0;
         string? pasteSource = null;
         string? pasteTarget = null;
         bool pasteConfirm = true;
@@ -292,6 +294,16 @@ internal static class Program
                 case "--about":
                     // 关于页（FR-10.8）。拍的是关于窗口本身，不是主窗口
                     showAbout = true;
+                    break;
+                case "--icon-probe":
+                    // 打印各窗口实际拿到的 Icon：类型、像素尺寸、ico 帧数。
+                    // 用来确认 WPF 从 ico 里挑的是小尺寸帧，而不是把 256 缩下来
+                    iconProbe = true;
+                    break;
+                case "--about-width" when i + 1 < argv.Length && int.TryParse(argv[i + 1], out int aw):
+                    // 把关于页拉到指定宽度（最低 420）：验头部品牌位在窄窗下不挤、不裁
+                    aboutWidth = aw;
+                    i++;
                     break;
                 case "--about-license" when i + 1 < argv.Length:
                     // 许可证查看窗。参数取 license / notice / thirdparty
@@ -754,6 +766,25 @@ internal static class Program
                     await Task.Delay(600);
                 }
 
+                if (aboutWidth > 0 && target is AboutWindow)
+                {
+                    target.Width = aboutWidth;
+                    target.UpdateLayout();
+                    await Task.Delay(300);
+                    Console.WriteLine($"about.width={target.ActualWidth:0} height={target.ActualHeight:0}");
+                }
+
+                if (iconProbe)
+                {
+                    // 逐个窗口报 Icon：null 就是"根本没设"，帧数 >1 说明 WPF 直接吃下了整个 ico
+                    PrintIcoFrames();
+
+                    foreach (Window w in Application.Current.Windows)
+                    {
+                        PrintIconState(w);
+                    }
+                }
+
                 if (licenseView is not null)
                 {
                     // 走关于页按钮自己的处理函数：这样读嵌入资源、建查看窗两条链都被真正跑过
@@ -1114,6 +1145,7 @@ internal static class Program
         {
             "light" => Lingpane.Core.Settings.ThemeKind.Light,
             "dark" => Lingpane.Core.Settings.ThemeKind.Dark,
+            "highcontrast" => Lingpane.Core.Settings.ThemeKind.HighContrast,
             _ => Lingpane.Core.Settings.ThemeKind.System,
         };
 
@@ -1214,6 +1246,33 @@ internal static class Program
     }
 
     /// <summary>打开关于页。调用的是设置页按钮走的那一个入口。</summary>
+    /// <summary>
+    /// 打印窗口实际拿到的任务栏/标题栏图标。null 表示压根没设；
+    /// 尺寸落在 16 附近说明 WPF 从 ico 里挑了小帧，直接把 256 缩下来则会报 256。
+    /// </summary>
+    private static void PrintIconState(Window window)
+    {
+        string name = window.GetType().Name;
+
+        if (window.Icon is not { } icon)
+        {
+            Console.WriteLine($"icon.{name}=null");
+            return;
+        }
+
+        Console.WriteLine($"icon.{name}={icon.GetType().Name} {icon.Width:0}x{icon.Height:0}");
+    }
+
+    /// <summary>ico 里到底有几档。窗口只用其中一帧，数不到的档等于白做。</summary>
+    private static void PrintIcoFrames()
+    {
+        var uri = new Uri("pack://application:,,,/Lingpane;component/Assets/Brand/lingpane.ico");
+        var decoder = new IconBitmapDecoder(uri, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+
+        Console.WriteLine($"icon.ico.frames={decoder.Frames.Count} " +
+                          $"sizes=[{string.Join(",", decoder.Frames.Select(f => f.PixelWidth))}]");
+    }
+
     private static Window OpenAbout(Window owner)
     {
         AboutWindow.ShowFor(owner);

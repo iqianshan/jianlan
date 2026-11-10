@@ -18,6 +18,15 @@
     <ProjectReference Include="..\Lingpane.Core\Lingpane.Core.csproj" />
   </ItemGroup>
 
+  <!--
+    exe 图标（资源管理器、任务栏、开始菜单、Alt+Tab）。ico 内 16/24/32/48/64/128/256 七档
+    各自绘制，不是同一张大图缩放出来的——16px 那档去掉了横棂、描边加粗到 1.6px，
+    直接缩会把窗格糊成一片。
+  -->
+  <PropertyGroup>
+    <ApplicationIcon>Assets\Brand\lingpane.ico</ApplicationIcon>
+  </PropertyGroup>
+
   <ItemGroup>
     <Resource Include="Assets\**\*" />
   </ItemGroup>
