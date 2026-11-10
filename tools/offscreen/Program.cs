@@ -63,6 +63,12 @@ internal static class Program
         string? navMiddleLabel = null;
         string? navLeftLabel = null;
         bool printPaneStatus = false;
+        bool printRect = false;
+        int xButton = 0;
+        double[]? rubberBand = null;
+        Rect? bandRect = null;
+        List<string> tabDropPaths = [];
+        int tabDropTarget = -1;
         string? thenSearch = null;
         string? navPath = null;
         bool enableSplit = false;
@@ -144,6 +150,49 @@ internal static class Program
                 case "--nav-left" when i + 1 < argv.Length:
                     // 左键对照：同样的行，左键不该新开标签
                     navLeftLabel = argv[++i];
+                    break;
+                case "--band-rect" when i + 4 < argv.Length:
+                    // 直接喂一个矩形给框选的命中逻辑（绕过鼠标）。
+                    // 投递鼠标消息在离屏窗口里无效（WPF 要求窗口已激活），
+                    // 而"矩形 → 选中哪些项"才是这块功能真正要验证的部分
+                    bandRect = new Rect(
+                        double.Parse(argv[++i], System.Globalization.CultureInfo.InvariantCulture),
+                        double.Parse(argv[++i], System.Globalization.CultureInfo.InvariantCulture),
+                        double.Parse(argv[++i], System.Globalization.CultureInfo.InvariantCulture),
+                        double.Parse(argv[++i], System.Globalization.CultureInfo.InvariantCulture));
+                    break;
+                case "--rubber-band" when i + 4 < argv.Length:
+                    // 框选（FR-6.7）：四点相对 FileList 的逻辑坐标，投递真实的
+                    // 按下/移动/松开消息。合成 WPF 事件拿不到位置，只有窗口消息带坐标
+                    rubberBand =
+                    [
+                        double.Parse(argv[++i], System.Globalization.CultureInfo.InvariantCulture),
+                        double.Parse(argv[++i], System.Globalization.CultureInfo.InvariantCulture),
+                        double.Parse(argv[++i], System.Globalization.CultureInfo.InvariantCulture),
+                        double.Parse(argv[++i], System.Globalization.CultureInfo.InvariantCulture),
+                    ];
+                    break;
+                case "--xbutton" when i + 1 < argv.Length && int.TryParse(argv[i + 1], out int xb):
+                    // 鼠标侧键（FR-6.2）：向真实窗口投递 WM_XBUTTONDOWN，
+                    // 与键盘那条路同一个思路——合成的 WPF 事件拿不到真实鼠标位置，
+                    // 只能走窗口消息，让框架当成真的按了一下
+                    xButton = xb;
+                    i++;
+                    break;
+                case "--tab-drop" when i + 1 < argv.Length:
+                    // 拖到标签栏打开（FR-6.11）：可重复，第一次出现的路径进目标标签。
+                    // 走 GetFullPath 收口——命令行的斜杠经过各种转义后可能带重复分隔符，
+                    // 而真实的拖放数据永远是规范化的 FullPath
+                    tabDropPaths.Add(Path.GetFullPath(argv[++i]));
+                    break;
+                case "--tab-drop-target" when i + 1 < argv.Length && int.TryParse(argv[i + 1], out int tdTarget):
+                    // 落在第几个标签上（0 起始，-1 = 空白处开新标签）
+                    tabDropTarget = tdTarget;
+                    i++;
+                    break;
+                case "--rect":
+                    // 窗口矩形（FR-10.2 越界居中）：坐标在图上量不出来，只能打出来
+                    printRect = true;
                     break;
                 case "--status":
                     // 打完动作后把窗格的状态栏与路径打一行：超时、无法访问这类结论
@@ -396,6 +445,38 @@ internal static class Program
                 {
                     FocusSearch(window);
                     await Task.Delay(400);
+                }
+
+                if (bandRect is { } rect)
+                {
+                    ExerciseBandSelect(window, rect);
+                }
+
+                if (rubberBand is not null)
+                {
+                    await ExerciseRubberBand(window, rubberBand);
+                }
+
+                if (xButton > 0)
+                {
+                    await ExerciseMouseButton(window, xButton);
+                }
+
+                if (tabDropPaths.Count > 0)
+                {
+                    await ExerciseTabDrop(window, tabDropPaths, tabDropTarget);
+                    PrintTabPaths(window, "after-drop");
+                }
+
+                if (printRect)
+                {
+                    Console.WriteLine(
+                        $"window.left={window.Left:0.#} top={window.Top:0.#} " +
+                        $"width={window.Width:0.#} height={window.Height:0.#} state={window.WindowState}");
+                    Console.WriteLine(
+                        $"screen.virtual={SystemParameters.VirtualScreenLeft:0.#},{SystemParameters.VirtualScreenTop:0.#} " +
+                        $"{SystemParameters.VirtualScreenWidth:0.#}x{SystemParameters.VirtualScreenHeight:0.#}");
+                    Console.WriteLine($"screen.work={SystemParameters.WorkArea}");
                 }
 
                 if (printPaneStatus)
@@ -676,10 +757,15 @@ internal static class Program
     }
 
     /// <summary>行的显示名：系统节点取 Name，其余取 Title（都带数量后缀的那几个正好是标题）不好统一，
-    /// 这里只认系统节点与标签行，够走查用。</summary>
+    /// 这里只认系统节点、此电脑、驱动器与标签行，够走查用。</summary>
     private static string? LabelOf(object item) => item switch
     {
         NavItem nav => nav.Name,
+
+        // 此电脑（FR-1.2.2）：容器节点按标题点，展开后驱动器按盘符点
+        NavThisPcRow thisPc => thisPc.Title,
+        NavDriveRow drive => drive.Letter,
+
         NavTagRow tag => tag.Name,
         NavWorkspaceRow workspace => workspace.Name,
         _ => null,
@@ -1083,6 +1169,55 @@ internal static class Program
     }
 
     /// <summary>
+    /// 拖到标签栏打开（FR-6.11）。真实的 OLE 拖放没法在离屏窗口里合成——
+    /// 与框选、侧键同一个限制（窗口未激活时 WPF 不处理输入）。
+    /// 但"落在哪个标签上"之后的处理才是这段功能的主体：反射调用窗口的处理函数，
+    /// 就能验证"进目标标签 / 开新标签 / 满额提示"三条分支。
+    /// </summary>
+    private static async Task ExerciseTabDrop(Window window, List<string> paths, int targetIndex)
+    {
+        FieldInfo? tabsField = typeof(MainWindow).GetField("_tabs", BindingFlags.NonPublic | BindingFlags.Instance);
+        var host = tabsField?.GetValue(window) as Lingpane.App.ViewModels.TabHostViewModel;
+
+        object? target = null;
+        if (host is not null && targetIndex >= 0 && targetIndex < host.Tabs.Count)
+        {
+            target = host.Tabs[targetIndex];
+        }
+
+        MethodInfo? drop = typeof(MainWindow).GetMethod("OnTabsDropped", BindingFlags.NonPublic | BindingFlags.Instance);
+        if (drop is null)
+        {
+            Console.WriteLine("tabdrop=(找不到 OnTabsDropped)");
+            return;
+        }
+
+        Console.WriteLine($"tabdrop.target={(target is null ? "空白处" : targetIndex.ToString())} paths={paths.Count}");
+        drop.Invoke(window, [paths.ToArray(), target]);
+
+        await Task.Delay(1500);   // 导航是异步的，等它落定
+    }
+
+    /// <summary>逐个标签打印路径——拖放之后要看清"哪个标签去了哪"，只报总数看不出。</summary>
+    private static void PrintTabPaths(Window window, string when)
+    {
+        FieldInfo? field = typeof(MainWindow).GetField("_tabs", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        if (field?.GetValue(window) is not Lingpane.App.ViewModels.TabHostViewModel host)
+        {
+            Console.WriteLine($"tabs.{when}=(读不到 _tabs)");
+            return;
+        }
+
+        Console.WriteLine($"tabs.{when}=index:{host.ActiveIndex} count:{host.Tabs.Count}");
+
+        for (int i = 0; i < host.Tabs.Count; i++)
+        {
+            Console.WriteLine($"tabs.{when}.{i}={host.Tabs[i].Primary.CurrentPath}");
+        }
+    }
+
+    /// <summary>
     /// 打印活动标签序号与总数。按键走查时它比截图可靠：
     /// "按了右键"和"标签真的换了"是两件事，只有序号能分开。
     /// </summary>
@@ -1392,6 +1527,111 @@ internal static class Program
     /// 打印预览视图模型的关键状态。判断"处理器是否接管、是否已渲染完、是否退到缩略图"
     /// 靠这些字段，比在截图里找一行灰字可靠得多。
     /// </summary>
+    /// <summary>
+    /// 投递一次鼠标侧键，并打印按下前后的路径（FR-6.2）。
+    /// 侧键没有对应的键盘消息，也没有办法用 WPF 合成事件伪造位置，
+    /// 所以直接往窗口句柄投 WM_XBUTTONDOWN，让框架按真实输入处理。
+    /// </summary>
+    private static async Task ExerciseMouseButton(MainWindow window, int button)
+    {
+        PaneViewModel pane = GetPane(window).ViewModel ?? throw new MissingMemberException("PaneView.ViewModel");
+
+        IntPtr hwnd = new WindowInteropHelper(window).Handle;
+        Console.WriteLine($"xbutton.before path={pane.CurrentPath} canBack={pane.CanGoBack} canForward={pane.CanGoForward}");
+
+        // wParam 高字是 XBUTTON1(1) / XBUTTON2(2)，低字是设备键状态，这里给 0
+        IntPtr wParam = (IntPtr)(button << 16);
+
+        PostMessage(hwnd, 0x020B, wParam, IntPtr.Zero);   // WM_XBUTTONDOWN
+        await Task.Delay(300);
+        PostMessage(hwnd, 0x020C, wParam, IntPtr.Zero);   // WM_XBUTTONUP
+        await Task.Delay(900);
+
+        Console.WriteLine($"xbutton.after path={pane.CurrentPath} canBack={pane.CanGoBack} canForward={pane.CanGoForward}");
+    }
+
+    /// <summary>
+    /// 模拟一次框选（FR-6.7）。坐标是相对文件列表的逻辑像素，
+    /// 这里换算成窗口客户区的设备像素再投递——lParam 要的就是后者。
+    /// </summary>
+    private static async Task ExerciseRubberBand(MainWindow window, double[] box)
+    {
+        // FileList 住在 PaneView 里，不在窗口的命名范围里
+        if (GetPane(window).FindName("FileList") is not ListBox list) throw new MissingMemberException("FileList");
+
+        IntPtr hwnd = new WindowInteropHelper(window).Handle;
+        Point start = ToClient(list, hwnd, new Point(box[0], box[1]));
+        Point end = ToClient(list, hwnd, new Point(box[2], box[3]));
+
+        Console.WriteLine($"band.before selected={list.SelectedItems.Count}");
+        Console.WriteLine($"band.start={start.X:0},{start.Y:0} end={end.X:0},{end.Y:0}");
+
+        PostMouse(hwnd, 0x0201, start);   // WM_LBUTTONDOWN
+
+        const int steps = 6;
+        for (int i = 1; i <= steps; i++)
+        {
+            double t = (double)i / steps;
+            PostMouse(hwnd, 0x0200, new Point(start.X + (end.X - start.X) * t, start.Y + (end.Y - start.Y) * t));
+            await Task.Delay(60);
+        }
+
+        await Task.Delay(120);
+        Console.WriteLine($"band.dragging selected={list.SelectedItems.Count}");
+
+        PostMouse(hwnd, 0x0202, end);     // WM_LBUTTONUP
+        await Task.Delay(400);
+
+        Console.WriteLine($"band.after selected={list.SelectedItems.Count}");
+    }
+
+    /// <summary>
+    /// 直接调用框选的命中逻辑（FR-6.7）：给一个矩形，看选中了哪些项。
+    /// 走反射是因为它本来就是私有的——为了测试把它改成公开，等于让生产代码
+    /// 为一个诊断工具让路。
+    /// </summary>
+    private static void ExerciseBandSelect(MainWindow window, Rect band)
+    {
+        PaneView pane = GetPane(window);
+        if (pane.FindName("FileList") is not ListBox list) throw new MissingMemberException("FileList");
+
+        MethodInfo? apply = typeof(PaneView).GetMethod(
+            "ApplyBandSelection", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        if (apply is null) throw new MissingMethodException("PaneView.ApplyBandSelection");
+
+        Console.WriteLine($"bandrect.before selected={list.SelectedItems.Count} band={band}");
+
+        apply.Invoke(pane, [band]);
+
+        Console.WriteLine($"bandrect.after selected={list.SelectedItems.Count}");
+        foreach (object item in list.SelectedItems) Console.WriteLine($"  picked {item}");
+    }
+
+    private static Point ToClient(Visual reference, IntPtr hwnd, Point local)
+    {
+        Point screen = reference.PointToScreen(local);
+        var point = new POINT { X = (int)Math.Round(screen.X), Y = (int)Math.Round(screen.Y) };
+        ScreenToClient(hwnd, ref point);
+        return new Point(point.X, point.Y);
+    }
+
+    private static void PostMouse(IntPtr hwnd, int msg, Point client)
+    {
+        int packed = ((int)client.Y << 16) | ((int)client.X & 0xFFFF);
+        PostMessage(hwnd, msg, msg == 0x0201 ? (IntPtr)1 : IntPtr.Zero, (IntPtr)packed);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool ScreenToClient(IntPtr hWnd, ref POINT point);
+
     private static void PrintState(MainWindow window)
     {
         var field = typeof(MainWindow).GetField("_preview", BindingFlags.NonPublic | BindingFlags.Instance);

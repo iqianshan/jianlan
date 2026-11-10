@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -100,7 +102,14 @@ public partial class MainWindow : Window
         // 标签从应用级标签库取（同一次运行里所有窗口共用一份）。
         // 用委托而不是直接传 QuickAccess，因为此刻还没有活动标签，Vm 取不到东西。
         _nav = new NavPanelViewModel(_bookmarks,
-            () => _tabs.Active is { } t ? t.ActivePane.QuickAccess : [], App.Tags);
+            () => _tabs.Active is { } t ? t.ActivePane.QuickAccess : [], App.Tags,
+            thisPcExpanded: App.Settings.Layout.ThisPcExpanded,
+            onThisPcExpandedChanged: expanded =>
+            {
+                // FR-1.2.7：节点展开状态属于"用户调过一次就要记住"的那类设置
+                App.Settings.Layout.ThisPcExpanded = expanded;
+                App.SaveSettings();
+            });
         QuickAccessList.ItemsSource = _nav.Rows;
 
         // 新建标签走「设置 → 新标签页默认目录」，没设就是主页（FR-2.1）；关掉最后一个标签
@@ -110,6 +119,7 @@ public partial class MainWindow : Window
         _tabs.TabKindChanged += OnTabKindChanged;
         _tabs.CloseWindowRequested += Close;
         TabBar.Host = _tabs;
+        TabBar.OpenDropped += OnTabsDropped;   // 拖到标签页打开（FR-6.11）
 
         TagResults.Attach(_tagResults);
         TagResults.ItemActivated += OnTagResultActivated;
@@ -453,6 +463,59 @@ public partial class MainWindow : Window
         source.ViewModel?.SetStatus(string.Format(Strings.Status_TabLimit, SessionSettings.MaxTabs));
         AppLog.Warn("tab.limit", "E6002", $"已达 {SessionSettings.MaxTabs} 个标签，改为在当前窗格导航：{path}");  // i18n-ignore：只进 app.log
         source.NavigateTo(path);
+    }
+
+    /// <summary>
+    /// 有文件夹或文件被拖到标签栏上（FR-6.11「拖到标签页/导航栏打开」）。
+    ///
+    /// 落点决定去哪：落在某个标签上 = 用那个标签打开（用户指着它说话），
+    /// 落在空白处 = 开一个新标签。
+    ///
+    /// 多条路径只有第一条能进目标标签：同一个标签连着导航会只留下最后一个，
+    /// 用户看到的是"拖了五个只开了一个"。所以其余各开一个新标签。
+    /// 文件交给系统默认程序——拖到标签栏的语义是"打开它"，
+    /// 而不是"把它的目录开出来"（那要在地址栏上拖，不是这里）。
+    /// </summary>
+    private void OnTabsDropped(string[] paths, TabViewModel? target)
+    {
+        for (int i = 0; i < paths.Length; i++)
+        {
+            string path = paths[i];
+            bool isDirectory = Directory.Exists(path);
+
+            if (i == 0 && target is not null && isDirectory)
+            {
+                _tabs.Activate(target);
+
+                // 目标标签可能是主页或标签结果页：先切回目录形态，
+                // 否则导航完成了界面还停在没有列表的那一页
+                target.ShowFiles();
+                _ = target.ActivePane.NavigateAsync(path);
+                continue;
+            }
+
+            if (isDirectory)
+            {
+                if (_tabs.Add(path, activate: i == 0) is null)
+                {
+                    // 满额时不能静默：拖进来没反应与"拖放坏了"在用户眼里一样
+                    Pane.ViewModel?.SetStatus(string.Format(Strings.Status_TabLimit, SessionSettings.MaxTabs));
+                    AppLog.Warn("tab.limit", "E6002", $"已达 {SessionSettings.MaxTabs} 个标签，丢弃拖入的：{path}");  // i18n-ignore：只进 app.log
+                    return;
+                }
+
+                continue;
+            }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+            }
+            catch (Exception ex) when (ex is Win32Exception or IOException or UnauthorizedAccessException)
+            {
+                Pane.ViewModel?.SetStatus(string.Format(Strings.Status_OpenItemFailed, Path.GetFileName(path)));
+            }
+        }
     }
 
     // ── 主页（FR-1.1） ──────────────────────────────────────────────────────
@@ -1165,6 +1228,22 @@ public partial class MainWindow : Window
 
     private const int WmKeyDown = 0x0100;
     private const int WmSysKeyDown = 0x0104;
+
+    /// <summary>设备插拔（FR-1.2.2）。U 盘、移动硬盘、光驱的增删都从这里来。</summary>
+    private const int WmDeviceChange = 0x0219;
+
+    private const int DbtDeviceArrival = 0x8000;
+    private const int DbtDeviceRemoveComplete = 0x8004;
+
+    /// <summary>设备节点树变化：插一个 U 盘往往先来这一条、再来一条 Arrival。</summary>
+    private const int DbtDevNodesChanged = 0x0007;
+
+    /// <summary>显示器配置变化（FR-10.2）：分辨率、缩放、拔插外接屏都会发它。</summary>
+    private const int WmDisplayChange = 0x007E;
+
+    /// <summary>鼠标侧键按下（FR-6.2）。</summary>
+    private const int WmXButtonDown = 0x020B;
+
     private const ModifierKeys RelevantModifiers =
         ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift;
 
@@ -1281,6 +1360,34 @@ public partial class MainWindow : Window
 
     private IntPtr OnWindowMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
+        if (msg == WmDeviceChange)
+        {
+            // 三条消息常常连续到达（插一个 U 盘会先来 DevNodesChanged，再来 Arrival），
+            // 合并成一次刷新；否则每插一次盘要重建三四遍侧栏。
+            int evt = wParam.ToInt32();
+            if (evt is DbtDeviceArrival or DbtDeviceRemoveComplete or DbtDevNodesChanged)
+            {
+                ScheduleDriveRefresh();
+            }
+
+            // 不标 handled：系统的卷管理、其它监听者还要看这条消息
+            return IntPtr.Zero;
+        }
+
+        if (msg == WmXButtonDown)
+        {
+            HandleMouseButtonMessage(wParam.ToInt32(), ref handled);
+            return IntPtr.Zero;
+        }
+
+        if (msg == WmDisplayChange)
+        {
+            // 拔掉外接屏后窗口可能整个落在可视区之外（FR-10.2）。这里不改窗口大小，
+            // 只在"确实不可见"时挪回主屏中央——用户只是在调分辨率不该看到窗口乱跳。
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(EnsureVisibleOnScreen));
+            return IntPtr.Zero;
+        }
+
         if (msg == WmHotkey)
         {
             if (wParam.ToInt32() != HotkeySettings) return IntPtr.Zero;
@@ -1531,9 +1638,43 @@ public partial class MainWindow : Window
         }
 
         // 分区标题与空态提示没有对应动作，点到了就把高亮还原，别留一个假的"选中"
-        if (QuickAccessList.SelectedItem is NavSectionRow or NavEmptyRow)
+        if (QuickAccessList.SelectedItem is NavSectionRow or NavEmptyRow or NavThisPcNoteRow)
         {
             SyncNavSelection(Vm.CurrentPath);
+            return;
+        }
+
+        // 此电脑（FR-1.2.2）：它是一个容器，点击的语义是折叠/展开，不是"去某个目录"。
+        // 与收藏分组同一个处理方式——动作做完把高亮还给当前目录。
+        if (QuickAccessList.SelectedItem is NavThisPcRow)
+        {
+            _nav.ToggleThisPc();
+            SyncNavSelection(Vm.CurrentPath);
+            return;
+        }
+
+        // 驱动器（FR-1.2.2）：根目录就是普通可浏览目录，走与"已知文件夹"同一条导航路径。
+        // Ctrl+单击与点其它位置一致：在新标签打开。
+        if (QuickAccessList.SelectedItem is NavDriveRow driveRow)
+        {
+            if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                OpenInNewTab(ActiveView, driveRow.Root, background: false);
+                HighlightNavPath(Vm.CurrentPath);
+                return;
+            }
+
+            if (string.Equals(driveRow.Root, Vm.CurrentPath, StringComparison.OrdinalIgnoreCase)) return;
+
+            try
+            {
+                await Vm.NavigateAsync(driveRow.Root);
+            }
+            catch (Exception ex)
+            {
+                Vm.ReportError(ex);
+            }
+
             return;
         }
 

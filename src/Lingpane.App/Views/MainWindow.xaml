@@ -149,6 +149,78 @@
             </Grid>
         </DataTemplate>
 
+        <!-- 此电脑（FR-1.2.2）。系统节点里唯一可展开的一项：整行点击 = 折叠/展开，
+             展开时驱动器作为子行插在它下面（由 NavPanelViewModel 拼进同一条列表）。
+             与 NavItem 模板分开写，是因为它多一个折叠箭头、且没有"路径"这回事。 -->
+        <DataTemplate DataType="{x:Type vm:NavThisPcRow}">
+            <Grid Margin="{StaticResource Padding.NavItem}"
+                  Background="Transparent"
+                  VerticalAlignment="Center"
+                  ToolTip="{Binding TooltipText}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Margin="0,0,4,0"
+                           Style="{StaticResource Text.Glyph}"
+                           FontSize="{DynamicResource Font.Size.Caption}"
+                           Foreground="{DynamicResource Brush.Text.Secondary}"
+                           Text="{Binding ChevronGlyph}"
+                           VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1"
+                           Margin="0,0,8,0"
+                           Style="{StaticResource Text.Glyph}"
+                           Text="{Binding Glyph}"
+                           VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2"
+                           Style="{StaticResource Text.Nav}"
+                           Text="{Binding Title}"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center"/>
+            </Grid>
+        </DataTemplate>
+
+        <!-- 驱动器（FR-1.2.2）。左缩进 16px 表示"属于此电脑"；右侧余量放剩余空间。
+
+             用 DockPanel 而不是三列 Grid：Grid 在"卷标很长 + 侧栏只有 160px"时
+             会让右侧那一列被挤出可视区（实测 D 盘那一行的容量整个消失），
+             而容量正是这一项要回答的问题。DockPanel 先把两侧占住，
+             中间那列拿剩下的宽度自行截断——截掉卷标可以悬停看提示，丢掉容量不行。 -->
+        <DataTemplate DataType="{x:Type vm:NavDriveRow}">
+            <DockPanel Margin="24,0,8,0"
+                       Background="Transparent"
+                       VerticalAlignment="Center"
+                       ToolTip="{Binding TooltipText}">
+                <TextBlock DockPanel.Dock="Left"
+                           Margin="0,0,8,0"
+                           Style="{StaticResource Text.Glyph}"
+                           Text="{Binding Glyph}"
+                           VerticalAlignment="Center"/>
+                <TextBlock DockPanel.Dock="Right"
+                           Margin="8,0,0,0"
+                           Style="{StaticResource Text.Caption}"
+                           Text="{Binding CapacityText}"
+                           VerticalAlignment="Center"/>
+                <!-- 盘符在前：窄侧栏里截断发生在末尾，保住盘符才不会"不知道这是哪个盘" -->
+                <TextBlock Style="{StaticResource Text.Nav}"
+                           Text="{Binding Title}"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center"/>
+            </DockPanel>
+        </DataTemplate>
+
+        <!-- 此电脑段里的说明行（正在读取 / 未检测到驱动器）。
+             缩进比驱动器再进一级，读起来像"这段的注脚"而不是一个可点的位置。 -->
+        <DataTemplate DataType="{x:Type vm:NavThisPcNoteRow}">
+            <TextBlock Margin="40,0,8,6"
+                       Style="{StaticResource Text.Caption}"
+                       Text="{Binding Text}"
+                       TextWrapping="Wrap"
+                       PreviewMouseLeftButtonDown="OnNavInertRowClick"/>
+        </DataTemplate>
+
         <!-- 工作区（FR-8.6）。行标题带标签数，提示里给最后保存时间（FR-8.3）；
              单击 = 打开（会替换当前标签，宿主那边会先问一句），右键是管理入口。 -->
         <DataTemplate DataType="{x:Type vm:NavWorkspaceRow}">

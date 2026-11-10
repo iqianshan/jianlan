@@ -57,6 +57,7 @@ public static class ThemeService
     {
         ThemeKind.Light => EffectiveTheme.Light,
         ThemeKind.Dark => EffectiveTheme.Dark,
+        ThemeKind.HighContrast => EffectiveTheme.HighContrast,
         _ => IsSystemLightTheme() ? EffectiveTheme.Light : EffectiveTheme.Dark,
     };
 

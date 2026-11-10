@@ -305,6 +305,92 @@ public partial class TabStrip : UserControl
         DropIndicator.Visibility = Visibility.Collapsed;
     }
 
+    // ── 拖到标签页打开（FR-6.11）────────────────────────────────────────────
+    //
+    // 从本程序的列表或资源管理器把文件夹拖到标签栏：落在某个标签上就由那个标签
+    // 导航过去，落在空白处就开新标签。视图只负责"落在哪个标签上"，
+    // 开标签还是导航由宿主决定——与右键菜单、中键同一个分工。
+
+    /// <summary>
+    /// 有路径被拖到标签栏上（FR-6.11）。<c>target</c> 为 null 表示落在空白处。
+    ///
+    /// 只报"哪里"，不做目录判断：拖来的是文件还是文件夹，要看磁盘，
+    /// 那是宿主的活。
+    /// </summary>
+    public event Action<string[], TabViewModel?>? OpenDropped;
+
+    private void OnStripDragOver(object sender, DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            e.Effects = DragDropEffects.None;
+            HideDropTarget();
+            return;
+        }
+
+        // 拖到标签栏是"打开"，不会移动或复制任何文件
+        e.Effects = DragDropEffects.Copy;
+        e.Handled = true;
+
+        ShowDropTarget(TabAt(e.GetPosition(TabItems)));
+    }
+
+    private void OnStripDragLeave(object sender, DragEventArgs e) => HideDropTarget();
+
+    private void OnStripDrop(object sender, DragEventArgs e)
+    {
+        HideDropTarget();
+
+        if (e.Data.GetData(DataFormats.FileDrop) is not string[] paths || paths.Length == 0) return;
+
+        e.Handled = true;
+        OpenDropped?.Invoke(paths, TabAt(e.GetPosition(TabItems)));
+    }
+
+    /// <summary>指针下的标签。落点在标签之间的空隙或 <c>+</c> 按钮上时返回 null。</summary>
+    private TabViewModel? TabAt(Point position)
+    {
+        for (int i = 0; i < TabItems.Items.Count; i++)
+        {
+            if (TabItems.ItemContainerGenerator.ContainerFromIndex(i) is not FrameworkElement container) continue;
+
+            Point origin = container.TranslatePoint(new Point(0, 0), TabItems);
+            if (position.X >= origin.X && position.X <= origin.X + container.ActualWidth)
+            {
+                return container.DataContext as TabViewModel;
+            }
+        }
+
+        return null;
+    }
+
+    private void ShowDropTarget(TabViewModel? tab)
+    {
+        if (tab is null || _host is null)
+        {
+            // 落在空白处：开新标签，没有具体目标可框
+            HideDropTarget();
+            return;
+        }
+
+        int index = _host.Tabs.IndexOf(tab);
+        if (index < 0 || TabItems.ItemContainerGenerator.ContainerFromIndex(index) is not FrameworkElement container)
+        {
+            HideDropTarget();
+            return;
+        }
+
+        Point origin = container.TranslatePoint(new Point(0, 0), this);
+
+        Canvas.SetLeft(DropTarget, origin.X);
+        Canvas.SetTop(DropTarget, origin.Y);
+        DropTarget.Width = container.ActualWidth;
+        DropTarget.Height = container.ActualHeight;
+        DropTarget.Visibility = Visibility.Visible;
+    }
+
+    private void HideDropTarget() => DropTarget.Visibility = Visibility.Collapsed;
+
     /// <summary>滚轮在标签栏上 = 横向滚动（纵向滚动在标签栏没有意义）。</summary>
     private void OnStripMouseWheel(object sender, MouseWheelEventArgs e)
     {

@@ -132,18 +132,7 @@ public partial class AboutWindow : Window
 
     private void OnCopyDiagnostics(object sender, RoutedEventArgs e)
     {
-        string text = DiagnosticInfo.Build(new DiagnosticSnapshot
-        {
-            Version = AppInfo.Version,
-            Runtime = RuntimeInformation.FrameworkDescription,
-            OperatingSystem = $"{RuntimeInformation.OSDescription} ({Environment.OSVersion.Version})",
-            ProcessBits = Environment.Is64BitProcess ? "x64" : "x86",
-            Architecture = RuntimeInformation.ProcessArchitecture.ToString(),
-            Memory = $"{Environment.WorkingSet / (1024 * 1024)} MB",
-            ConfigDir = AppPaths.Root,
-            LogsDir = AppPaths.LogsDir,
-            DataDir = AppPaths.DataDir,
-        });
+        string text = BuildDiagnostics();
 
         try
         {
@@ -155,6 +144,65 @@ public partial class AboutWindow : Window
             // 剪贴板被别的进程占着是常态（各类输入法、远程桌面），重试一次是用户的动作
             Diagnostics.AppLog.Warn("about.diagnostics", "clipboard_busy", "Clipboard.SetText failed");
             ShowStatus(Strings.About_Diagnostics_Failed);
+        }
+    }
+
+    /// <summary>
+    /// 诊断快照（版本 / 系统 / 三个目录）。「复制」与「导出日志」共用同一份内容——
+    /// 两处各拼一遍，用户贴给我们的信息与包里那份就会不一致。
+    /// </summary>
+    private static string BuildDiagnostics() => DiagnosticInfo.Build(new DiagnosticSnapshot
+    {
+        Version = AppInfo.Version,
+        Runtime = RuntimeInformation.FrameworkDescription,
+        OperatingSystem = $"{RuntimeInformation.OSDescription} ({Environment.OSVersion.Version})",
+        ProcessBits = Environment.Is64BitProcess ? "x64" : "x86",
+        Architecture = RuntimeInformation.ProcessArchitecture.ToString(),
+        Memory = $"{Environment.WorkingSet / (1024 * 1024)} MB",
+        ConfigDir = AppPaths.Root,
+        LogsDir = AppPaths.LogsDir,
+        DataDir = AppPaths.DataDir,
+    });
+
+    /// <summary>
+    /// 一键导出日志（FR-10.5）。需求原文是"支持一键导出"，验收写明"导出为 zip"。
+    ///
+    /// 为什么仍然要让用户选保存位置：日志里带完整路径，可能含客户名、项目名。
+    /// 直接丢到某个固定目录再让他去找，等于替用户决定了"这份东西放在哪"。
+    /// </summary>
+    private void OnExportLogs(object sender, RoutedEventArgs e)
+    {
+        if (LogArchive.CollectFiles(AppPaths.LogsDir).Count == 0)
+        {
+            // 空包会让用户以为导出成功了但打开是空的，不如直接说还没有日志
+            ShowStatus(Strings.About_Logs_Empty);
+            return;
+        }
+
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = Strings.About_Logs_SaveTitle,
+            FileName = $"Lingpane-logs-{DateTime.Now:yyyyMMdd-HHmm}.zip",
+            DefaultExt = ".zip",
+            Filter = "ZIP (*.zip)|*.zip",
+            AddExtension = true,
+            OverwritePrompt = true,
+        };
+
+        if (dialog.ShowDialog(this) != true) return;
+
+        try
+        {
+            LogArchive.Export(dialog.FileName, AppPaths.LogsDir, BuildDiagnostics());
+            ShowStatus(string.Format(CultureInfo.CurrentCulture, Strings.About_Logs_Exported, dialog.FileName));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            string code = FsErrors.CodeOf(ex);
+            Diagnostics.AppLog.Warn("about.exportLogs", code, $"{ex.GetType().Name}: {ex.Message}");
+
+            ShowStatus(string.Format(
+                CultureInfo.CurrentCulture, Strings.About_Logs_Failed, FsErrors.DescribeForOperation(code)));
         }
     }
 

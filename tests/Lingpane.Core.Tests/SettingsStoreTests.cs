@@ -475,4 +475,64 @@ public sealed class SettingsStoreTests : IDisposable
         Assert.Single(settings.History.Entries);
         Assert.Single(settings.Bookmarks.Items);
     }
+
+    // ── 0.2.0 P0 补齐带出来的三个字段 ──
+    // 高对比度主题（FR-5.1.2）、此电脑展开状态（FR-1.2.7）、窗口坐标（FR-10.2）。
+    // 这三个都是"存了下次要用"的值，落盘格式错了界面上完全看不出来，
+    // 只会表现为"设置好像没生效"。
+
+    [Fact]
+    public void 高对比度主题能落盘并读回()
+    {
+        var settings = new AppSettings();
+        settings.Appearance.Theme = ThemeKind.HighContrast;
+
+        Assert.True(SettingsStore.Save(settings, File_));
+
+        // 写成枚举名字而不是数字 3：数字让手工排查设置文件的人看不出这是什么，
+        // 也让将来插入一个枚举值时旧文件被静默解释成另一个主题
+        Assert.Contains("\"highContrast\"", File.ReadAllText(File_));
+        Assert.Equal(ThemeKind.HighContrast, SettingsStore.Load(File_).Settings.Appearance.Theme);
+    }
+
+    [Fact]
+    public void 此电脑展开状态随设置落盘()
+    {
+        File.WriteAllText(File_, """
+        { "schemaVersion": 1, "layout": { "thisPcExpanded": true } }
+        """);
+
+        Assert.True(SettingsStore.Load(File_).Settings.Layout.ThisPcExpanded);
+    }
+
+    [Fact]
+    public void 旧设置文件没有窗口坐标时为空()
+    {
+        // 0.2.0 之前只记尺寸。null 的语义是"没记过"，界面据此回落居中；
+        // 若这里给出 0，窗口会跑到左上角，看起来像位置记忆坏了
+        File.WriteAllText(File_, """
+        { "schemaVersion": 1, "session": { "windowWidth": 1000, "windowHeight": 700 } }
+        """);
+
+        var session = SettingsStore.Load(File_).Settings.Session;
+
+        Assert.Null(session.WindowLeft);
+        Assert.Null(session.WindowTop);
+    }
+
+    [Fact]
+    public void 副屏上的负坐标不会被归零()
+    {
+        // 显示器摆在主屏左边时 x 为负。任何一次"顺手 Math.Max(0, …)"都会把窗口
+        // 拽回主屏，副屏用户的布局每次启动都得重摆
+        var settings = new AppSettings();
+        settings.Session.WindowLeft = -1920;
+        settings.Session.WindowTop = -120;
+
+        Assert.True(SettingsStore.Save(settings, File_));
+
+        var back = SettingsStore.Load(File_).Settings.Session;
+        Assert.Equal(-1920, back.WindowLeft);
+        Assert.Equal(-120, back.WindowTop);
+    }
 }

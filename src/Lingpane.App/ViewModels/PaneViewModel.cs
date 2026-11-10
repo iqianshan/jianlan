@@ -24,6 +24,14 @@ public enum NavItemKind
     Folder,
     RecycleBin,
     Network,
+
+    /// <summary>
+    /// 此电脑（FR-1.2.2）。它没有自己的路径，是一个**可展开的容器**：
+    /// 展开后列出全部驱动器，点击行本身只折叠/展开，不导航。
+    /// 与 <see cref="RecycleBin"/> / <see cref="Network"/> 的区别是它不下沉给资源管理器——
+    /// 驱动器就是普通根目录，本程序的列表、标签、预览都能直接用。
+    /// </summary>
+    ThisPc,
 }
 
 /// <summary>
@@ -42,6 +50,9 @@ public sealed record NavItem(
 
     /// <summary>系统命名空间（回收站 / 网络）：点击由资源管理器接管，本窗口不列目录。</summary>
     public bool IsShellNamespace => Kind is NavItemKind.RecycleBin or NavItemKind.Network;
+
+    /// <summary>可展开的容器节点（目前只有此电脑）：点击语义是折叠/展开，不是导航。</summary>
+    public bool IsExpandable => Kind == NavItemKind.ThisPc;
 }
 
 /// <summary>
@@ -1229,6 +1240,14 @@ public sealed class PaneViewModel : INotifyPropertyChanged
 
             list.Add(new NavItem(name, glyph, folder.Path));
         }
+
+        // 此电脑（FR-1.2.2）。放在已知文件夹之后、回收站之前，与资源管理器侧栏的顺序一致。
+        //
+        // 它是一个容器而不是一个位置：没有文件系统路径，点击不去导航，而是展开驱动器列表
+        // （见 NavPanelViewModel.ToggleThisPc）。展开状态落盘（FR-1.2.7），下次启动仍是这样。
+        list.Add(new NavItem(
+            Strings.Nav_ThisPc, IconGlyphs.ThisPc, string.Empty,
+            NavItemKind.ThisPc, Strings.Nav_ThisPc_Tip));
 
         // 回收站与网络（FR-1.2.3）。排在已知文件夹之后，与资源管理器侧栏的顺序一致。
         //

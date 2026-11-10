@@ -226,8 +226,25 @@ public partial class PaneView : UserControl
         }
 
         // 逐项 Add 的中间状态不结算，这里统一算一次，省掉 N 次命令可用性刷新
+        CommitSelection();
+
+        return found > 0;
+    }
+
+    /// <summary>
+    /// 把当前 <see cref="FileList.SelectedItems"/> 结算给视图模型。
+    ///
+    /// 为什么单独一个方法：按路径恢复选中（切标签）与框选（FR-6.7）都是"批量改选中，
+    /// 改完只结算一次"。两处各写一遍的话，以后给选中加副作用（比如状态栏汇总）
+    /// 必然只改一处、漏掉另一处。
+    /// </summary>
+    private void CommitSelection()
+    {
+        if (_viewModel is null) return;
+
         long total = 0;
         var selected = new List<FileEntry>(FileList.SelectedItems.Count);
+
         foreach (object item in FileList.SelectedItems)
         {
             if (item is not FileEntry entry) continue;
@@ -235,12 +252,10 @@ public partial class PaneView : UserControl
             total += entry.Size;
         }
 
-        viewModel.SetSelection(selected.Count, total);
-        viewModel.SetSelectedEntries(selected);
+        _viewModel.SetSelection(selected.Count, total);
+        _viewModel.SetSelectedEntries(selected);
         CommandManager.InvalidateRequerySuggested();
         SelectionChanged?.Invoke(this);
-
-        return found > 0;
     }
 
     /// <summary>窗格被点中（键盘焦点进入列表）时触发，宿主据此切换"活动窗格"。</summary>
@@ -912,6 +927,16 @@ public partial class PaneView : UserControl
     /// </summary>
     private void OnFileLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        // 框选收尾（FR-6.7）。选中结果在拖动过程中已经实时给过了，
+        // 这里只收起矩形；不能继续往下走"单击打开"——那次按下的起点是空白，
+        // 没有"打开哪一项"这回事。
+        if (_bandArmed)
+        {
+            EndRubberBand();
+            e.Handled = true;
+            return;
+        }
+
         bool wasClick = _dragArmed;
         _dragArmed = false;
 

@@ -8,6 +8,10 @@
              SnapsToDevicePixels="True"
              PreviewMouseMove="OnStripMouseMove"
              PreviewMouseLeftButtonUp="OnStripMouseLeftButtonUp"
+             AllowDrop="True"
+             DragOver="OnStripDragOver"
+             DragLeave="OnStripDragLeave"
+             Drop="OnStripDrop"
              TextOptions.TextFormattingMode="Display"
              TextOptions.TextRenderingMode="ClearType"
              TextOptions.TextHintingMode="Fixed">
@@ -268,12 +272,20 @@
         </Button>
 
         <!-- 拖拽排序的插入指示（FR-2.6）：2px 竖线，不参与命中测试 -->
+        <!-- 拖入打开的目标框（FR-6.11）：套在指针下的那个标签上。
+             与插入指示分开画——竖线是"插到这里"的排序语义，方框是"用这个标签打开"，
+             两者同时出现时必须一眼分得清 -->
         <Canvas Grid.ColumnSpan="2" IsHitTestVisible="False">
             <Rectangle x:Name="DropIndicator"
                        Width="2"
                        Height="{DynamicResource Size.Tab.Height}"
                        Fill="{DynamicResource Brush.Accent.Default}"
                        Visibility="Collapsed"/>
+            <Border x:Name="DropTarget"
+                    BorderBrush="{DynamicResource Brush.Accent.Default}"
+                    BorderThickness="2"
+                    CornerRadius="3"
+                    Visibility="Collapsed"/>
         </Canvas>
     </Grid>
 </UserControl>

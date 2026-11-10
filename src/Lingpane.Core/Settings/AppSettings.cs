@@ -2,12 +2,20 @@ using System.Text.Json.Serialization;
 
 namespace Lingpane.Core.Settings;
 
-/// <summary>主题选择。系统高对比度开启时由界面层强制 HighContrast，不在此处处理。</summary>
+/// <summary>
+/// 主题选择。系统高对比度开启时由界面层强制 HighContrast，不在此处处理。
+///
+/// <see cref="HighContrast"/> 是用户**手动**开启高对比度的路径（FR-5.1.2）：
+/// 不改系统设置也能用上高对比度配色，适合"只是想看得清"或临时投屏/演示的场合。
+/// 系统自己开着高对比度时仍然以系统为准——那个开关的语义是"我看不清"，
+/// 比应用内的偏好更强，不能被应用覆盖掉。
+/// </summary>
 public enum ThemeKind
 {
     System = 0,
     Light = 1,
     Dark = 2,
+    HighContrast = 3,
 }
 
 public enum DensityKind
@@ -525,11 +533,20 @@ public sealed class PrivacySettings
 }
 
 public sealed class SessionSettings
-{    public int WindowWidth { get; set; } = 1100;
+{
+    public int WindowWidth { get; set; } = 1100;
 
     public int WindowHeight { get; set; } = 720;
 
     public bool WindowMaximized { get; set; }
+
+    /// <summary>
+    /// 窗口左上角坐标（FR-10.2）。可空：0.2.0 之前只记尺寸，
+    /// 旧设置文件里没有这两项，null 表示"没记过"，启动时仍按居中处理。
+    /// </summary>
+    public int? WindowLeft { get; set; }
+
+    public int? WindowTop { get; set; }
 
     public string? LastPath { get; set; }
 
@@ -864,6 +881,12 @@ public sealed class LayoutSettings
     /// 拖过之后才是用户的选择，双击分隔条可回到默认。
     /// </summary>
     public double NavWidth { get; set; } = AppSettings.DefaultNavWidth;
+
+    /// <summary>
+    /// 导航栏「此电脑」节点是否展开（FR-1.2.7）。默认折叠：
+    /// 侧栏只有 184px 高时先摆目录与收藏，用户要盘符时点一下即可。
+    /// </summary>
+    public bool ThisPcExpanded { get; set; }
 
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }

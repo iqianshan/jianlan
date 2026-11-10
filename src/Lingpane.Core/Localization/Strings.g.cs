@@ -288,6 +288,40 @@ public static class Strings
     /// <summary>This PC</summary>
     public static string Nav_ThisPc => LocalizationService.Instance.Get("Nav.ThisPc");
 
+    /// <summary>All drives on this computer</summary>
+    public static string Nav_ThisPc_Tip => LocalizationService.Instance.Get("Nav.ThisPc.Tip");
+
+    /// <summary>Reading drives…</summary>
+    public static string Nav_ThisPc_Loading => LocalizationService.Instance.Get("Nav.ThisPc.Loading");
+
+    /// <summary>No drives found</summary>
+    public static string Nav_ThisPc_Empty => LocalizationService.Instance.Get("Nav.ThisPc.Empty");
+
+    /// <summary>Local Disk</summary>
+    public static string Nav_Drive_Fixed => LocalizationService.Instance.Get("Nav.Drive.Fixed");
+
+    /// <summary>Removable Disk</summary>
+    public static string Nav_Drive_Removable => LocalizationService.Instance.Get("Nav.Drive.Removable");
+
+    /// <summary>Network Drive</summary>
+    public static string Nav_Drive_Network => LocalizationService.Instance.Get("Nav.Drive.Network");
+
+    /// <summary>Optical Drive</summary>
+    public static string Nav_Drive_CdRom => LocalizationService.Instance.Get("Nav.Drive.CdRom");
+
+    /// <summary>RAM Disk</summary>
+    public static string Nav_Drive_Ram => LocalizationService.Instance.Get("Nav.Drive.Ram");
+
+    /// <summary>Drive</summary>
+    public static string Nav_Drive_Unknown => LocalizationService.Instance.Get("Nav.Drive.Unknown");
+
+    /// <summary>{0} free of {1}</summary>
+    public static string Nav_Drive_Capacity => LocalizationService.Instance.Get("Nav.Drive.Capacity");
+    // 含占位符：string.Format(Strings.Nav_Drive_Capacity, ...)
+
+    /// <summary>Capacity unavailable</summary>
+    public static string Nav_Drive_NoCapacity => LocalizationService.Instance.Get("Nav.Drive.NoCapacity");
+
     /// <summary>Location not found</summary>
     public static string Error_PathNotFound => LocalizationService.Instance.Get("Error.PathNotFound");
 
@@ -661,6 +695,12 @@ public static class Strings
 
     /// <summary>Dark</summary>
     public static string Settings_Theme_Dark => LocalizationService.Instance.Get("Settings.Theme.Dark");
+
+    /// <summary>High contrast</summary>
+    public static string Settings_Theme_HighContrast => LocalizationService.Instance.Get("Settings.Theme.HighContrast");
+
+    /// <summary>Always use the high-contrast palette. Windows' own high-contrast setting still takes precedence.</summary>
+    public static string Settings_Theme_HighContrast_Tip => LocalizationService.Instance.Get("Settings.Theme.HighContrast.Tip");
 
     /// <summary>Interface font</summary>
     public static string Settings_Appearance_Font => LocalizationService.Instance.Get("Settings.Appearance.Font");
@@ -1618,6 +1658,26 @@ public static class Strings
 
     /// <summary>The clipboard is in use, please try again.</summary>
     public static string About_Diagnostics_Failed => LocalizationService.Instance.Get("About.Diagnostics.Failed");
+
+    /// <summary>Export logs…</summary>
+    public static string About_Logs_Export => LocalizationService.Instance.Get("About.Logs.Export");
+
+    /// <summary>Pack the log files and a diagnostic snapshot into a single zip.</summary>
+    public static string About_Logs_Hint => LocalizationService.Instance.Get("About.Logs.Hint");
+
+    /// <summary>Save log archive</summary>
+    public static string About_Logs_SaveTitle => LocalizationService.Instance.Get("About.Logs.SaveTitle");
+
+    /// <summary>Logs exported: {0}</summary>
+    public static string About_Logs_Exported => LocalizationService.Instance.Get("About.Logs.Exported");
+    // 含占位符：string.Format(Strings.About_Logs_Exported, ...)
+
+    /// <summary>There are no logs to export yet.</summary>
+    public static string About_Logs_Empty => LocalizationService.Instance.Get("About.Logs.Empty");
+
+    /// <summary>Could not export the logs: {0}</summary>
+    public static string About_Logs_Failed => LocalizationService.Instance.Get("About.Logs.Failed");
+    // 含占位符：string.Format(Strings.About_Logs_Failed, ...)
 
     /// <summary>Check for updates</summary>
     public static string About_Update_Check => LocalizationService.Instance.Get("About.Update.Check");

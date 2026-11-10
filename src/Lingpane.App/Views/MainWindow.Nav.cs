@@ -94,6 +94,12 @@ public partial class MainWindow
                 OpenInNewTab(ActiveView, item.Path, background: false);
                 break;
 
+            // 驱动器（FR-1.2.2）与普通目录同等对待：中键在新标签打开
+            case NavDriveRow drive:
+                e.Handled = true;
+                OpenInNewTab(ActiveView, drive.Root, background: false);
+                break;
+
             case NavItem item when item.IsShellNamespace:
                 e.Handled = true;
                 OpenShellLocation(item.Kind, item.Name);

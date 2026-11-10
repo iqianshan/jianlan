@@ -26,6 +26,14 @@ public partial class PaneView
 
     private void OnFileDragStart(object sender, MouseButtonEventArgs e)
     {
+        // 空白处按下 = 框选起手（FR-6.7），不是拖拽。
+        // 若仍走下面的拖出逻辑，用户"重新圈一批"的意图会变成"把上一次选中的东西拖走"。
+        if (IsBlankArea(e.OriginalSource as DependencyObject))
+        {
+            BeginRubberBand(e);
+            return;
+        }
+
         _dragArmed = true;
         _dragOrigin = e.GetPosition(FileList);
 
@@ -44,6 +52,13 @@ public partial class PaneView
 
     private void OnFileDragMove(object sender, MouseEventArgs e)
     {
+        // 框选优先：这一路与"拖出文件"互斥，见 BeginRubberBand 的说明
+        if (_bandArmed)
+        {
+            UpdateRubberBand(e);
+            return;
+        }
+
         if (!_dragArmed || e.LeftButton != MouseButtonState.Pressed) return;
 
         Point now = e.GetPosition(FileList);

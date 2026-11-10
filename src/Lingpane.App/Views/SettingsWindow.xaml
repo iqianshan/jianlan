@@ -59,10 +59,14 @@
                     <TextBlock Style="{StaticResource Text.FieldLabel}" Text="{loc:Tr Key=Settings.Appearance.Theme}"/>
                     <ComboBox x:Name="ThemeCombo"
                               Style="{StaticResource ComboBox.Default}"
+                              ToolTip="{loc:Tr Key=Settings.Theme.HighContrast.Tip}"
                               SelectionChanged="OnThemeChanged">
                         <ComboBoxItem Content="{loc:Tr Key=Settings.Theme.FollowSystem}"/>
                         <ComboBoxItem Content="{loc:Tr Key=Settings.Theme.Light}"/>
                         <ComboBoxItem Content="{loc:Tr Key=Settings.Theme.Dark}"/>
+                        <!-- 高对比度手动开关（FR-5.1.2）。顺序必须与 ThemeKind 的枚举值一致：
+                             设置页读回选中项时用的是 (int)Theme，插在中间会让读回错位。 -->
+                        <ComboBoxItem Content="{loc:Tr Key=Settings.Theme.HighContrast}"/>
                     </ComboBox>
                 </StackPanel>
 

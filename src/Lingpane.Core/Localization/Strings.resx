@@ -309,6 +309,39 @@
   <data name="Nav.ThisPc" xml:space="preserve">
     <value>This PC</value>
   </data>
+  <data name="Nav.ThisPc.Tip" xml:space="preserve">
+    <value>All drives on this computer</value>
+  </data>
+  <data name="Nav.ThisPc.Loading" xml:space="preserve">
+    <value>Reading drives…</value>
+  </data>
+  <data name="Nav.ThisPc.Empty" xml:space="preserve">
+    <value>No drives found</value>
+  </data>
+  <data name="Nav.Drive.Fixed" xml:space="preserve">
+    <value>Local Disk</value>
+  </data>
+  <data name="Nav.Drive.Removable" xml:space="preserve">
+    <value>Removable Disk</value>
+  </data>
+  <data name="Nav.Drive.Network" xml:space="preserve">
+    <value>Network Drive</value>
+  </data>
+  <data name="Nav.Drive.CdRom" xml:space="preserve">
+    <value>Optical Drive</value>
+  </data>
+  <data name="Nav.Drive.Ram" xml:space="preserve">
+    <value>RAM Disk</value>
+  </data>
+  <data name="Nav.Drive.Unknown" xml:space="preserve">
+    <value>Drive</value>
+  </data>
+  <data name="Nav.Drive.Capacity" xml:space="preserve">
+    <value>{0} free of {1}</value>
+  </data>
+  <data name="Nav.Drive.NoCapacity" xml:space="preserve">
+    <value>Capacity unavailable</value>
+  </data>
 
   <!-- 错误：用户只看到人话，错误码只进日志 -->
   <data name="Error.PathNotFound" xml:space="preserve">
@@ -662,6 +695,12 @@
   </data>
   <data name="Settings.Theme.Dark" xml:space="preserve">
     <value>Dark</value>
+  </data>
+  <data name="Settings.Theme.HighContrast" xml:space="preserve">
+    <value>High contrast</value>
+  </data>
+  <data name="Settings.Theme.HighContrast.Tip" xml:space="preserve">
+    <value>Always use the high-contrast palette. Windows' own high-contrast setting still takes precedence.</value>
   </data>
   <data name="Settings.Appearance.Font" xml:space="preserve">
     <value>Interface font</value>
@@ -1580,6 +1619,24 @@
   </data>
   <data name="About.Diagnostics.Failed" xml:space="preserve">
     <value>The clipboard is in use, please try again.</value>
+  </data>
+  <data name="About.Logs.Export" xml:space="preserve">
+    <value>Export logs…</value>
+  </data>
+  <data name="About.Logs.Hint" xml:space="preserve">
+    <value>Pack the log files and a diagnostic snapshot into a single zip.</value>
+  </data>
+  <data name="About.Logs.SaveTitle" xml:space="preserve">
+    <value>Save log archive</value>
+  </data>
+  <data name="About.Logs.Exported" xml:space="preserve">
+    <value>Logs exported: {0}</value>
+  </data>
+  <data name="About.Logs.Empty" xml:space="preserve">
+    <value>There are no logs to export yet.</value>
+  </data>
+  <data name="About.Logs.Failed" xml:space="preserve">
+    <value>Could not export the logs: {0}</value>
   </data>
   <data name="About.Update.Check" xml:space="preserve">
     <value>Check for updates</value>

@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
 using Lingpane.App.Diagnostics;
+using Lingpane.App.Services;
 using Lingpane.App.Shell;
 using Lingpane.Core.Localization;
 using Lingpane.Core.Navigation;
@@ -180,9 +181,116 @@ public sealed class NavTagRow : NavRow
     public string Title => $"{Name} ({Count})";
 }
 
-/// <summary>一条收藏（FR-7.1 / FR-7.2）。失效项标灰并给出提示（FR-7.7）。</summary>
-public sealed class NavBookmarkRow : NavRow, INotifyPropertyChanged
+/// <summary>
+/// 「此电脑」节点（FR-1.2.2）。形状与收藏分组一样是可折叠行，但折叠状态属于设置，
+/// 由窗口接线注入——本类不直接读 <c>App.Settings</c>（理由见类注释）。
+///
+/// 它与 <see cref="NavItem"/> 里那条 <c>Kind = ThisPc</c> 的记录不是同一个东西：
+/// 那条是"窗格给的系统节点"（只有名字与图标），这一行才是导航栏上真正画出来的、
+/// 带展开状态的容器。为什么不在 <see cref="NavItem"/> 上直接加可变状态：
+/// 它是 record，按值比较，做成可变的会让"同一份列表比不相等"这种问题到处冒。
+/// </summary>
+public sealed class NavThisPcRow : NavRow, INotifyPropertyChanged
 {
+    private bool _isExpanded;
+
+    public NavThisPcRow(bool expanded) => _isExpanded = expanded;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>
+    /// 展开状态。做成可通知而不是"改一次就重建这一行"：
+    /// 重建要动 <see cref="NavPanelViewModel.Rows"/>，而列表的选中项正挂在那些行上，
+    /// 一次折叠会让高亮闪一下再回来。
+    /// </summary>
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (_isExpanded == value) return;
+            _isExpanded = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsExpanded)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ChevronGlyph)));
+        }
+    }
+
+    public string ChevronGlyph => _isExpanded ? IconGlyphs.ChevronDown : IconGlyphs.ChevronRight;
+
+    public string Glyph => IconGlyphs.ThisPc;
+
+    public string Title => Strings.Nav_ThisPc;
+
+    public string TooltipText => Strings.Nav_ThisPc_Tip;
+}
+
+/// <summary>
+/// 一台驱动器（FR-1.2.2）。盘符排在卷标前面：侧栏最窄 160px，
+/// <c>Windows (C:)</c> 被截断时留在界面上的是 "Windows"——用户认不出这是哪个盘，
+/// 而 "C: Windows" 截断后至少还剩下盘符。
+/// </summary>
+public sealed class NavDriveRow : NavRow
+{
+    public NavDriveRow(DriveEntry drive)
+    {
+        Root = drive.Root;
+        Letter = drive.Letter;
+
+        string name = string.IsNullOrWhiteSpace(drive.Label) ? DefaultName(drive.Type) : drive.Label;
+        Title = $"{Letter} {name}";
+
+        // 行内只放"剩余"这一项：名称与总容量在提示里。侧栏宽度装不下三样，
+        // 而需求要看见的正是剩余空间（FR-1.2.2 验收）。
+        CapacityText = drive.HasCapacity ? HomeDriveTile.FormatBytes(drive.FreeBytes) : string.Empty;
+
+        TooltipText = drive.HasCapacity
+            ? $"{Title}\n{string.Format(
+                Strings.Nav_Drive_Capacity,
+                HomeDriveTile.FormatBytes(drive.FreeBytes),
+                HomeDriveTile.FormatBytes(drive.TotalBytes))}"
+            : $"{Title}\n{Strings.Nav_Drive_NoCapacity}";
+    }
+
+    /// <summary>导航目标：<c>C:\</c>（带结尾分隔符，与 <see cref="DriveEntry.Root"/> 一致）。</summary>
+    public string Root { get; }
+
+    public string Letter { get; }
+
+    public string Title { get; }
+
+    /// <summary>剩余空间，如 <c>123 GB</c>；读不到容量时为空串（那一列自然收窄）。</summary>
+    public string CapacityText { get; }
+
+    public string TooltipText { get; }
+
+    public string Glyph => IconGlyphs.Drive;
+
+    /// <summary>没有卷标时按驱动器类型给一个通用名，与资源管理器的口径一致。</summary>
+    private static string DefaultName(DriveType type) => type switch
+    {
+        DriveType.Removable => Strings.Nav_Drive_Removable,
+        DriveType.Network => Strings.Nav_Drive_Network,
+        DriveType.CDRom => Strings.Nav_Drive_CdRom,
+        DriveType.Ram => Strings.Nav_Drive_Ram,
+        DriveType.Fixed => Strings.Nav_Drive_Fixed,
+        _ => Strings.Nav_Drive_Unknown,
+    };
+}
+
+/// <summary>
+/// 「此电脑」展开段里的说明行（读取中 / 未检测到驱动器）。
+/// 单独一个类型而不是复用 <see cref="NavEmptyRow"/>：那个是"收藏为空"这类分区级提示，
+/// 两者混用后刷新这一段时就分不清"哪一行属于我"了。
+/// </summary>
+public sealed class NavThisPcNoteRow : NavRow
+{
+    public required string Text { get; init; }
+
+    public bool IsHint => true;
+}
+
+/// <summary>一条收藏（FR-7.1 / FR-7.2）。失效项标灰并给出提示（FR-7.7）。</summary>
+public sealed class NavBookmarkRow : NavRow, INotifyPropertyChanged{
     private bool _isMissing;
 
     public NavBookmarkRow(BookmarkEntry entry)
@@ -277,12 +385,23 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
     /// <summary>标签库（FR-4.1.5）。null = 这个宿主不支持标签（单测、将来的无标签形态）。</summary>
     private readonly TagStore? _tags;
 
+    /// <summary>「此电脑」是否展开（FR-1.2.2 / FR-1.2.7）。状态存在设置里，本类只持有本次会话的副本。</summary>
+    private bool _thisPcExpanded;
+
+    /// <summary>展开状态变化时通知宿主落盘。</summary>
+    private readonly Action<bool>? _onThisPcExpandedChanged;
+
+    /// <summary>驱动器是否正在枚举。并发保护：展开一次只发起一轮，避免连点堆出多次读盘。</summary>
+    private bool _drivesLoading;
+
     public NavPanelViewModel(BookmarkStore store, Func<IReadOnlyList<NavItem>> systemRows,
-        TagStore? tags = null)
+        TagStore? tags = null, bool thisPcExpanded = false, Action<bool>? onThisPcExpandedChanged = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _systemRows = systemRows ?? throw new ArgumentNullException(nameof(systemRows));
         _tags = tags;
+        _thisPcExpanded = thisPcExpanded;
+        _onThisPcExpandedChanged = onThisPcExpandedChanged;
 
         // 这里**不**调 Rebuild：systemRows 要读窗口的活动标签，而本对象在
         // "标签集合刚建出来"之前就被构造了，此时取不到东西（一取就是空引用）。
@@ -337,7 +456,16 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
 
         foreach (NavItem item in system)
         {
-            if (!item.IsHome) Rows.Add(item);
+            if (item.IsHome) continue;
+
+            // 此电脑（FR-1.2.2）换成一个可展开的容器行，展开时把驱动器插在它下面
+            if (item.IsExpandable)
+            {
+                AddThisPcRows();
+                continue;
+            }
+
+            Rows.Add(item);
         }
 
         Rows.Add(new NavSectionRow { Title = Strings.Nav_Bookmarks, Kind = NavSectionKind.Bookmarks });
@@ -367,6 +495,121 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
         AddTagRows();
         AddWorkspaceRows();
         _ = CheckMissingAsync();
+    }
+
+    /// <summary>
+    /// 「此电脑」那一行，以及展开时的驱动器子行（FR-1.2.2）。
+    ///
+    /// 驱动器来自 <see cref="DriveService.Cached"/>——首次展开时它是空的，
+    /// 先放一行"正在读取"再把枚举结果补进来。为什么不在这里同步枚举：
+    /// 一个断线的映射盘会让这一行卡上十几秒，而整条导航栏都在 UI 线程上。
+    /// </summary>
+    private void AddThisPcRows()
+    {
+        Rows.Add(new NavThisPcRow(_thisPcExpanded));
+        if (!_thisPcExpanded) return;
+
+        IReadOnlyList<DriveEntry> drives = DriveService.Cached;
+        if (drives.Count == 0)
+        {
+            Rows.Add(new NavThisPcNoteRow
+            {
+                Text = _drivesLoading ? Strings.Nav_ThisPc_Loading : Strings.Nav_ThisPc_Empty,
+            });
+
+            _ = LoadDrivesAsync();
+            return;
+        }
+
+        foreach (DriveEntry drive in drives) Rows.Add(new NavDriveRow(drive));
+    }
+
+    /// <summary>
+    /// 只重建「此电脑」这一段（自身一行 + 其后的驱动器/说明行），不动其它行。
+    ///
+    /// 与 <see cref="RefreshTagRows"/> 同一个理由：驱动器插拔、容量读完都要换内容，
+    /// 而整条 <see cref="Rebuild"/> 会把当前选中的位置一起清掉——侧栏闪一下跳回顶部，
+    /// 看起来像出了故障。
+    /// </summary>
+    public void RefreshThisPcRows()
+    {
+        int start = -1;
+        for (int i = 0; i < Rows.Count; i++)
+        {
+            if (Rows[i] is NavThisPcRow) { start = i; break; }
+        }
+
+        if (start < 0) return;
+
+        int end = start + 1;
+        while (end < Rows.Count && Rows[end] is NavDriveRow or NavThisPcNoteRow) end++;
+
+        for (int i = end - 1; i > start; i--) Rows.RemoveAt(i);
+
+        if (!_thisPcExpanded) return;
+
+        IReadOnlyList<DriveEntry> drives = DriveService.Cached;
+        int insert = start;
+
+        if (drives.Count == 0)
+        {
+            Rows.Insert(++insert, new NavThisPcNoteRow
+            {
+                Text = _drivesLoading ? Strings.Nav_ThisPc_Loading : Strings.Nav_ThisPc_Empty,
+            });
+            return;
+        }
+
+        foreach (DriveEntry drive in drives) Rows.Insert(++insert, new NavDriveRow(drive));
+    }
+
+    /// <summary>
+    /// 折叠 / 展开「此电脑」（FR-1.2.2）。展开状态立刻写回设置（FR-1.2.7），
+    /// 与收藏分组折叠同一个口径：用户调过一次，下次启动还是这样。
+    /// </summary>
+    public void ToggleThisPc()
+    {
+        _thisPcExpanded = !_thisPcExpanded;
+        _onThisPcExpandedChanged?.Invoke(_thisPcExpanded);
+
+        // 箭头跟着变：改属性而不是重建这一行，避免动集合把选中项一起弄丢
+        foreach (NavThisPcRow row in Rows.OfType<NavThisPcRow>()) row.IsExpanded = _thisPcExpanded;
+
+        // 先把上次的枚举结果铺上，再补一次刷新：设备可能在这期间插拔过，
+        // 但用户不该为了看见盘符等一次读盘。
+        RefreshThisPcRows();
+        if (_thisPcExpanded) _ = LoadDrivesAsync();
+    }
+
+    /// <summary>重新枚举驱动器并刷新这一段。设备插拔（WM_DEVICECHANGE）与首次展开都走这里。</summary>
+    public async Task ReloadDrivesAsync()
+    {
+        if (!_thisPcExpanded)
+        {
+            // 折叠着也要刷新缓存：下次展开时先用这份结果，不必再等一轮
+            await DriveService.RefreshAsync().ConfigureAwait(true);
+            return;
+        }
+
+        await LoadDrivesAsync().ConfigureAwait(true);
+    }
+
+    private async Task LoadDrivesAsync()
+    {
+        if (_drivesLoading) return;
+
+        _drivesLoading = true;
+        RefreshThisPcRows();
+        try
+        {
+            await DriveService.RefreshAsync().ConfigureAwait(true);
+        }
+        finally
+        {
+            _drivesLoading = false;
+        }
+
+        RefreshThisPcRows();
     }
 
     /// <summary>
@@ -478,6 +721,14 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
         return Rows.FirstOrDefault(row => row switch
         {
             NavItem item => !item.IsHome && Same(item.Path, path),
+
+            // 驱动器：当前目录正好是某个根（C:\）时高亮它。
+            // 必须比已知文件夹低一级判断——C:\Users\me\Documents 既不等于 C:\ 也不该亮 C:。
+            NavDriveRow drive => string.Equals(
+                drive.Root.TrimEnd(Path.DirectorySeparatorChar),
+                path.TrimEnd(Path.DirectorySeparatorChar),
+                StringComparison.OrdinalIgnoreCase),
+
             NavBookmarkRow bookmark => Same(bookmark.Path, path),
             _ => false,
         });

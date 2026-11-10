@@ -299,6 +299,39 @@
   <data name="Nav.ThisPc" xml:space="preserve">
     <value>此电脑</value>
   </data>
+  <data name="Nav.ThisPc.Tip" xml:space="preserve">
+    <value>本机的全部驱动器</value>
+  </data>
+  <data name="Nav.ThisPc.Loading" xml:space="preserve">
+    <value>正在读取驱动器…</value>
+  </data>
+  <data name="Nav.ThisPc.Empty" xml:space="preserve">
+    <value>未检测到驱动器</value>
+  </data>
+  <data name="Nav.Drive.Fixed" xml:space="preserve">
+    <value>本地磁盘</value>
+  </data>
+  <data name="Nav.Drive.Removable" xml:space="preserve">
+    <value>可移动磁盘</value>
+  </data>
+  <data name="Nav.Drive.Network" xml:space="preserve">
+    <value>网络驱动器</value>
+  </data>
+  <data name="Nav.Drive.CdRom" xml:space="preserve">
+    <value>光盘驱动器</value>
+  </data>
+  <data name="Nav.Drive.Ram" xml:space="preserve">
+    <value>内存盘</value>
+  </data>
+  <data name="Nav.Drive.Unknown" xml:space="preserve">
+    <value>驱动器</value>
+  </data>
+  <data name="Nav.Drive.Capacity" xml:space="preserve">
+    <value>可用 {0}，共 {1}</value>
+  </data>
+  <data name="Nav.Drive.NoCapacity" xml:space="preserve">
+    <value>无法读取容量</value>
+  </data>
 
   <data name="Error.PathNotFound" xml:space="preserve">
     <value>找不到此位置</value>
@@ -649,6 +682,12 @@
   </data>
   <data name="Settings.Theme.Dark" xml:space="preserve">
     <value>深色</value>
+  </data>
+  <data name="Settings.Theme.HighContrast" xml:space="preserve">
+    <value>高对比度</value>
+  </data>
+  <data name="Settings.Theme.HighContrast.Tip" xml:space="preserve">
+    <value>始终使用高对比度配色。系统自身开启了高对比度时仍以系统为准。</value>
   </data>
   <data name="Settings.Appearance.Font" xml:space="preserve">
     <value>界面字体</value>
@@ -1566,6 +1605,24 @@
   </data>
   <data name="About.Diagnostics.Failed" xml:space="preserve">
     <value>剪贴板被占用，请重试。</value>
+  </data>
+  <data name="About.Logs.Export" xml:space="preserve">
+    <value>导出日志…</value>
+  </data>
+  <data name="About.Logs.Hint" xml:space="preserve">
+    <value>把日志文件与一份诊断快照打成一个压缩包。</value>
+  </data>
+  <data name="About.Logs.SaveTitle" xml:space="preserve">
+    <value>保存日志压缩包</value>
+  </data>
+  <data name="About.Logs.Exported" xml:space="preserve">
+    <value>日志已导出：{0}</value>
+  </data>
+  <data name="About.Logs.Empty" xml:space="preserve">
+    <value>还没有可导出的日志。</value>
+  </data>
+  <data name="About.Logs.Failed" xml:space="preserve">
+    <value>日志导出失败：{0}</value>
   </data>
   <data name="About.Update.Check" xml:space="preserve">
     <value>检查更新</value>

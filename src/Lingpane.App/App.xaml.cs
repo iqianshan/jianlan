@@ -77,8 +77,12 @@ public partial class App : Application
     public static Core.Diagnostics.SessionStamp? PreviousSession { get; private set; }
 
     /// <summary>
-    /// 在 跟随系统 → 浅色 → 深色 之间循环，并把选择写回设置。
+    /// 在 跟随系统 → 浅色 → 深色 → 高对比度 之间循环，并把选择写回设置。
     /// 只读模式（settings.json 版本过高）只切不写。
+    ///
+    /// 四态而不是三态：高对比度既然能手动开（FR-5.1.2），键盘用户也该能不用进设置页就切到它。
+    /// 系统自己开着高对比度时切到哪一档看起来都一样——这是系统优先的必然结果，
+    /// 设置文件里记的仍是用户点出来的那一档。
     /// </summary>
     public static ThemeKind CycleTheme()
     {
@@ -86,6 +90,7 @@ public partial class App : Application
         {
             ThemeKind.System => ThemeKind.Light,
             ThemeKind.Light => ThemeKind.Dark,
+            ThemeKind.Dark => ThemeKind.HighContrast,
             _ => ThemeKind.System,
         };
 
@@ -266,6 +271,26 @@ public partial class App : Application
                 ? WindowState.Maximized
                 : WindowState.Normal,
         };
+
+        // 位置还原（FR-10.2）。只在"记过位置"时接管，旧设置文件（0.2.0 之前）
+        // 没有 left/top，保持 XAML 里的 CenterScreen。
+        //
+        // 接管时必须先切成 Manual：CenterScreen 会在 Show() 时覆盖 Left/Top，
+        // 于是"上次放在副屏"这类结果会被静默抹掉。
+        if (Settings.Session.WindowLeft is int savedLeft && Settings.Session.WindowTop is int savedTop)
+        {
+            var saved = new Rect(savedLeft, savedTop, window.Width, window.Height);
+            Rect target = Services.WindowPlacement.IsSufficientlyVisible(saved)
+                ? saved
+                : Services.WindowPlacement.CenterOnPrimary(saved);
+
+            window.WindowStartupLocation = WindowStartupLocation.Manual;
+            window.Left = target.Left;
+            window.Top = target.Top;
+            window.Width = target.Width;
+            window.Height = target.Height;
+        }
+
         _mainWindow = window;
 
         // 尺寸要在窗口还活着时取。Closing 是最后一个能拿到有效 Width/Height 的时机，
@@ -377,6 +402,8 @@ public partial class App : Application
 
         int width = (int)Math.Round(bounds.Width);
         int height = (int)Math.Round(bounds.Height);
+        int left = (int)Math.Round(bounds.Left);
+        int top = (int)Math.Round(bounds.Top);
         bool maximized = w.WindowState == WindowState.Maximized;
 
         var s = Settings.Session;
@@ -387,6 +414,7 @@ public partial class App : Application
         bool sameTabs = s.Tabs.SequenceEqual(_loadedTabs, StringComparer.OrdinalIgnoreCase);
 
         if (s.WindowWidth == width && s.WindowHeight == height && s.WindowMaximized == maximized
+            && s.WindowLeft == left && s.WindowTop == top
             && samePath && sameTabs)
         {
             return;
@@ -394,6 +422,8 @@ public partial class App : Application
 
         s.WindowWidth = width;
         s.WindowHeight = height;
+        s.WindowLeft = left;
+        s.WindowTop = top;
         s.WindowMaximized = maximized;
 
         try

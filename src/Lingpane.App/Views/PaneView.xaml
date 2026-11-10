@@ -688,6 +688,21 @@
                     </ListBox.Style>
                 </ListBox>
 
+                <!-- 框选矩形（FR-6.7）。压在列表之上、不吃鼠标：它的位置由代码按
+                     鼠标坐标设置，用户看得见一条随手指拉出来的选框，但点不到它本身。
+                     填充用强调色 + 透明度而不是单独一个色值：深浅两个主题下都自动合适。 -->
+                <Canvas x:Name="RubberBandLayer"
+                        ClipToBounds="True"
+                        IsHitTestVisible="False">
+                    <Border x:Name="RubberBand"
+                            Visibility="Collapsed"
+                            BorderBrush="{DynamicResource Brush.Accent.Default}"
+                            BorderThickness="1">
+                        <Border Background="{DynamicResource Brush.Accent.Default}"
+                                Opacity="0.18"/>
+                    </Border>
+                </Canvas>
+
                 <!-- 空目录提示：只在加载完成且无条目时出现，且不吃鼠标事件。
                      打不开的目录同样是 0 项，此时必须换成"无法访问"，否则会和状态栏互相矛盾。 -->
                 <TextBlock HorizontalAlignment="Center"

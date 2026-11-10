@@ -194,6 +194,10 @@
                            Text="{loc:Tr Key=About.Section.Tools}"/>
                 <WrapPanel Margin="0,0,0,10">
                     <Button Style="{StaticResource Button.Toolbar}"
+                            Content="{loc:Tr Key=About.Logs.Export}"
+                            ToolTip="{loc:Tr Key=About.Logs.Hint}"
+                            Click="OnExportLogs"/>
+                    <Button Style="{StaticResource Button.Toolbar}"
                             Content="{loc:Tr Key=About.Diagnostics.Copy}"
                             ToolTip="{loc:Tr Key=About.Diagnostics.Hint}"
                             Click="OnCopyDiagnostics"/>

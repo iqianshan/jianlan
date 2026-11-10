@@ -52,4 +52,11 @@ public static class IconGlyphs
 
     /// <summary>网络（FR-1.2.3）。E968 是 MDL2 的 Network：一台机器接着一条线。</summary>
     public const string Network = "\uE968";
+
+    /// <summary>
+    /// 此电脑（FR-1.2.2）。E977 是 MDL2 的 PC1：一台主机加一台显示器，
+    /// 与资源管理器"此电脑"的语义一致。已渲染确认（EC4E 是纯显示器、E7F8 是笔记本、
+    /// EDA2 是单块硬盘，都不如它"这台机器上所有盘"的意思准）。
+    /// </summary>
+    public const string ThisPc = "\uE977";
 }
