@@ -19,7 +19,8 @@
 
   "general": {
     "language": "auto",         // auto（跟随系统安装语言）| zh-Hans | en
-    "newTabPath": null          // 新标签页默认目录。null = 系统「下载」（每次启动重新问系统，不写死路径）
+    "newTabMode": "path",       // home | path | last（FR-5.2.6）。默认 path，与 0.2.0 之前完全兼容
+    "newTabPath": null          // newTabMode = path 时用它。null = 系统「下载」（每次启动重新问系统，不写死路径）
   },
 
   "appearance": {
@@ -31,7 +32,10 @@
     "showNavPane": true,
     "showStatusBar": true,
     "showPreview": false,       // 预览窗格的默认状态（FR-5.2.10）。默认关闭：内存占用最大的可选功能
-    "tabStripPosition": "top"   // top | bottom（FR-2.4），无法识别时回落 top
+    "tabStripPosition": "top",  // top | bottom（FR-2.4），无法识别时回落 top
+    "tagColorNames": {          // 颜色自定义名称（FR-4.1.7）。**只存被改过的**
+      "Red": "紧急"             // 键是枚举名（不是位值）：这份文件是给人看、也可能手改的
+    }                           // 清空或写回默认名即删键；值最多 24 字符（MaxTagColorNameLength）
   },
 
   "behavior": {
@@ -44,6 +48,10 @@
     "showExtensions": true,
     "confirmDelete": true,
     "confirmBatch": true,       // 一次处理两项及以上时确认（FR-5.2.8 的「批量」）
+    "confirmOverwrite": true,   // 粘贴时目标处已有同名项是否先问一句（FR-5.2.8 的「覆盖」）。
+                                // 三项统一语义：开 = 先问，关 = 直接执行；关掉时覆盖就是覆盖，不退回自动改名
+    "naturalSort": true,        // 自然排序（FR-5.2.3）。false = 逐字符比，file10 会排在 file2 前
+    "caseSensitiveSort": false, // 区分大小写排序。开启后 Zebra.txt 排在 apple.txt 前（大写字母码位更小）
     "doubleClickOpens": true,
     "openFolderInNewTab": false,      // 双击/回车进目录时开新标签（FR-2.10）；分屏时不生效，进目录恒在当前窗格（FR-3.2）
     "openNewTabInBackground": false,  // 中键/Ctrl+左键开出的标签是否留在后台（FR-2.10 可选项）
@@ -84,6 +92,17 @@
         "sizeWidth": 90
       },
       "pictures": { ... }       // 未出现过的档位一律回落 default
+    },
+    "secondaryColumns": {},     // 第二窗格自己的列配置（FR-3.7）。空对象 = 从未单独调过，沿用 columns
+    "primaryPane": {            // 第一窗格的视图与排序记忆（FR-3.7）。三项都可空
+      "view": null,             // null = 这一侧还没自己选过，沿用 behavior.defaultView
+      "sortBy": null,           // null = 沿用 behavior.sortBy
+      "sortDescending": null
+    },
+    "secondaryPane": {          // 同上，第二窗格
+      "view": null,
+      "sortBy": null,
+      "sortDescending": null
     },
     "splitEnabled": false,      // 双窗格开关，窗口级（FR-3.3）
     "splitRatio": 0.5,          // 第一窗格占比，0.15–0.85
@@ -127,6 +146,13 @@
 | `splitRatio` | 0.15–0.85 | 夹取；`NaN`/`Infinity` 回落 0.5。夹到 0.15 以下等于把一个窗格压成 0 宽，没有意义 |
 | `previewWidth` | 240–720（DIP） | 夹取；`0`、负数、`NaN`、`Infinity` 回落 320。下限是"还能看清一张缩略图"，上限是别把列表挤没 |
 | `navWidth` | 160–320（DIP） | 夹取；`0`、负数、`NaN`、`Infinity` 回落 184。下限是"图标 + 四个汉字"还放得下，上限是侧栏不该比内容区宽。`showNavPane=false` 时不生效（列宽归零，但仍保留这个值，打开侧栏时恢复原宽度） |
+| `newTabMode` | `home` / `path` / `last` | 无法识别回落 `path`（与 0.2.0 之前完全一致）。只在"没给路径"时生效——拖动打开的文件夹、右键"在新标签打开某路径"都已明确指定位置，不受这个设置影响 |
+| `tagColorNames` | 键为八色枚举名之一（`Red`…`Black`），值为 1–24 字符 | 键大小写不敏感、未知键丢弃、值超长截断、空白值视为"没改过"并删键。**只存被改过的**：存全表的话，切成英文之后八个名字还是旧语言的。键用枚举名而不是位值，是因为这份文件要给人看、也可能手改 |
+| `confirmOverwrite` | 布尔 | 与 `confirmDelete` / `confirmBatch` 同一语义：**开 = 先问一句，关 = 直接执行**。关掉时覆盖就是覆盖，不会退回自动改名——否则"我就想覆盖"的用户没有任何入口 |
+| `naturalSort` | 布尔，默认 `true` | 默认开与 0.2.0 之前的行为一致（`file2` 在 `file10` 前）。关掉是逐字符比（`file10` 在 `file2` 前） |
+| `caseSensitiveSort` | 布尔，默认 `false` | 默认关 = 与资源管理器一致。开启后按码位比，`Zebra.txt` 会排到 `apple.txt` 前 |
+| `layout.secondaryColumns` | 与 `columns` 同结构 | 空对象 = 第二窗格从未单独调过，读的时候沿用 `columns`。**没调过就不写盘**，否则从没碰过分屏的用户文件里会凭空多出一份重复配置 |
+| `layout.primaryPane` / `secondaryPane` | `view` / `sortBy` / `sortDescending` 三项，均可为 `null` | `null` = 这一侧还没自己选过，沿用 `behavior.defaultView` / `behavior.sortBy`。写死初值会让设置页那两项默认值形同虚设 |
 | `previewAutoOpen` | 布尔 | `false` = 选中不自动预览，要按窗格里的「立即预览」。网络路径与可移动设备不受这一项影响，它们无论怎么设都不自动预览（FR-9.2.8） |
 
 > **路径合法性不在归一化里判**：盘符可能暂时不在（U 盘没插），判了就把标签吃掉。
