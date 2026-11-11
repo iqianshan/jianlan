@@ -78,6 +78,9 @@ public static class FontScaleService
 
         // 表单标签列与紧随其后的提示缩进：一起缩放，否则 24pt 会截断、9pt 会拉开空隙
         res["Size.FieldLabel.Width"] = m.FieldLabelWidth;
+        // 下拉框基准宽度：内容宽度跟着字号走，容器也必须跟着走
+        res["Size.Combo.Width"] = m.ComboWidth;
+        res["Size.Combo.Width.Narrow"] = m.ComboWidthNarrow;
         res["Size.FieldHint.Margin"] = new Thickness(m.FieldLabelWidth + 8, 4, 0, 0);
         res["Size.ComboContent.Margin"] = new Thickness(m.ComboPaddingLeft, 0, m.ComboArrowWidth, 0);
         res["Size.ComboArrow.Margin"] = new Thickness(0, 0, m.ComboArrowRight, 0);

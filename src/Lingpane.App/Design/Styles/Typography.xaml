@@ -49,6 +49,19 @@
     <!-- 导航项 -->
     <Style x:Key="Text.Nav" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Base}">
         <Setter Property="FontSize" Value="{DynamicResource Font.Size.Body}"/>
+        <Style.Triggers>
+            <!--
+                选中行只换底色不换文字色，在高对比度下会出事：底色是系统高亮色（深蓝），
+                文字仍是窗口文字色（近黑），整行读不出来（AC-06 走查发现）。
+                这里补一条文字色回退；浅色/深色主题下 OnSelected 与 Primary 同值，
+                不会带来任何视觉变化。
+            -->
+            <DataTrigger Binding="{Binding IsSelected,
+                                          RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}}"
+                         Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnSelected}"/>
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <Style x:Key="Text.Nav.Active" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Nav}">

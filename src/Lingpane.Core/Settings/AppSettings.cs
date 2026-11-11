@@ -347,6 +347,146 @@ public sealed class AppSettings
         Layout.NavWidth = DefaultNavWidth;
     }
 
+    // ── 按页恢复默认（设置页分页后的粒度）───────────────────────────────
+    //
+    // 设置页按"用户此刻要做什么"分成六页，BehaviorSettings 因此被拆到四页里：
+    // 列表页九项、操作页八项、常规页的启动两项、外观页的自动预览一项。
+    // 于是原来那个"换掉整个 Behavior 段"的入口不能再挂在某一页上——在列表页点它，
+    // 会把另外三页的字段一并重置，而那几项根本不在眼前。
+    //
+    // 分成四份之后，最容易出的事是"新增字段忘了归类"：新字段任何一页都不管，
+    // 于是"恢复本页默认"永远碰不到它。所以字段归属写成下面的四份清单，
+    // 由 SettingsPageFieldTests 用反射断言四份合起来覆盖 BehaviorSettings 的全部属性、
+    // 且两两不重叠。加字段时忘了归类，那条测试会直接变红。
+
+    /// <summary>「文件列表」页管辖的 Behavior 字段。</summary>
+    public static readonly IReadOnlyList<string> ListPageFields =
+    [
+        nameof(BehaviorSettings.DefaultView),
+        nameof(BehaviorSettings.SortBy),
+        nameof(BehaviorSettings.SortDescending),
+        nameof(BehaviorSettings.FoldersFirst),
+        nameof(BehaviorSettings.NaturalSort),
+        nameof(BehaviorSettings.CaseSensitiveSort),
+        nameof(BehaviorSettings.ShowHidden),
+        nameof(BehaviorSettings.ShowSystem),
+        nameof(BehaviorSettings.ShowExtensions),
+    ];
+
+    /// <summary>「操作与确认」页管辖的 Behavior 字段。</summary>
+    public static readonly IReadOnlyList<string> ActionPageFields =
+    [
+        nameof(BehaviorSettings.DoubleClickOpens),
+        nameof(BehaviorSettings.OpenFolderInNewTab),
+        nameof(BehaviorSettings.OpenNewTabInBackground),
+        nameof(BehaviorSettings.CloseLastTabToHome),
+        nameof(BehaviorSettings.ConfirmDelete),
+        nameof(BehaviorSettings.ConfirmBatch),
+        nameof(BehaviorSettings.ConfirmOverwrite),
+        nameof(BehaviorSettings.WarnOnExecutable),
+    ];
+
+    /// <summary>「常规」页管辖的 Behavior 字段（启动的两项）。</summary>
+    public static readonly IReadOnlyList<string> GeneralPageFields =
+    [
+        nameof(BehaviorSettings.RestoreLastSession),
+        nameof(BehaviorSettings.StartupWorkspace),
+    ];
+
+    /// <summary>「外观」页管辖的 Behavior 字段（自动预览的触发方式）。</summary>
+    public static readonly IReadOnlyList<string> AppearancePageFields =
+    [
+        nameof(BehaviorSettings.PreviewAutoOpen),
+    ];
+
+    /// <summary>
+    /// 「文件列表」页恢复默认：视图、排序、显示、列显示开关。
+    ///
+    /// 顺带清掉两个窗格的视图/排序记忆（与 <see cref="ResetBehavior"/> 同一理由）：
+    /// 只清全局默认时，两侧还停在旧视图上，用户会以为按钮没生效。
+    /// 列宽不动——那是「重置列宽」按钮的事，一次点击只做一件事。
+    ///
+    /// 标签栏位置（<see cref="AppearanceSettings.TabStripPosition"/>）也归这里，不归
+    /// <see cref="ResetAppearancePage"/>：它的控件摆在这一页上。按页恢复的语义是
+    /// "这一页能看见的东西回原样"，让「外观」页去改一个它自己页上看不到的控件，
+    /// 用户点完只会觉得"恢复了却没变化"。
+    /// </summary>
+    public void ResetListPage()
+    {
+        ResetBehaviorFields(ListPageFields);
+
+        Appearance.TabStripPosition = new AppearanceSettings().TabStripPosition;
+
+        Layout.PrimaryPane = new PaneViewStateSettings();
+        Layout.SecondaryPane = new PaneViewStateSettings();
+
+        var columns = new ColumnProfileSettings();
+        Layout.Standard.ShowDate = columns.ShowDate;
+        Layout.Standard.ShowType = columns.ShowType;
+        Layout.Standard.ShowSize = columns.ShowSize;
+    }
+
+    /// <summary>「操作与确认」页恢复默认。</summary>
+    public void ResetActionPage() => ResetBehaviorFields(ActionPageFields);
+
+    /// <summary>
+    /// 「常规」页恢复默认：新标签默认目录与启动方式。
+    /// 界面语言**不在其中**——按一下就把整个界面切回跟随系统，
+    /// 用户会以为程序坏了；这一项要改就自己在上面选。
+    /// </summary>
+    public void ResetGeneralPage()
+    {
+        var fresh = new GeneralSettings();
+        General.NewTabMode = fresh.NewTabMode;
+        General.NewTabPath = fresh.NewTabPath;
+
+        ResetBehaviorFields(GeneralPageFields);
+    }
+
+    /// <summary>
+    /// 「外观」页恢复默认。整段换掉，但把两样东西带过去：
+    ///
+    /// · **标签颜色名**——八行颜色名显示在「隐私与存储」页，由 <see cref="ResetPrivacyPage"/> 负责。
+    ///   旧版把颜色名显示在"隐私"段下、却由"恢复默认外观"清掉，操作与显示的位置对不上。
+    /// · **标签栏位置**——控件在「文件列表」页，由 <see cref="ResetListPage"/> 负责。
+    /// </summary>
+    public void ResetAppearancePage()
+    {
+        Dictionary<string, string> tagColorNames = Appearance.TagColorNames;
+        string tabStripPosition = Appearance.TabStripPosition;
+
+        Appearance = new AppearanceSettings
+        {
+            TagColorNames = tagColorNames,
+            TabStripPosition = tabStripPosition,
+        };
+        ResetBehaviorFields(AppearancePageFields);
+    }
+
+    /// <summary>「隐私与存储」页恢复默认：隐私三项 + 标签颜色名。</summary>
+    public void ResetPrivacyPage()
+    {
+        ResetPrivacy();
+        Appearance.TagColorNames = [];
+    }
+
+    /// <summary>
+    /// 把清单里那些字段推回出厂值。
+    ///
+    /// 按清单用反射赋值，而不是逐条手写：手写一份、清单一份，两者迟早对不上，
+    /// 而这里正是"漏一个就悄悄少重置一项"的地方。清单本身由单测守着。
+    /// </summary>
+    private void ResetBehaviorFields(IReadOnlyList<string> fields)
+    {
+        var fresh = new BehaviorSettings();
+
+        foreach (string name in fields)
+        {
+            System.Reflection.PropertyInfo? property = typeof(BehaviorSettings).GetProperty(name);
+            property?.SetValue(Behavior, property.GetValue(fresh));
+        }
+    }
+
     /// <summary>
     /// 读旧版的三列宽度并从 Extra 里摘掉：留着会一直被写回 settings.json，
     /// 文件里就有两份真值，下次读的人分不清哪份算数。

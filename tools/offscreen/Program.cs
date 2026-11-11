@@ -29,7 +29,7 @@ namespace OffscreenShot;
 ///   OffscreenShot.exe &lt;输出png&gt; [等待毫秒] [--tag 颜色名] [--activate 序号]
 ///                                        [--preview] [--select 序号] [--close-preview]
 ///                                        [--search 关键词]
-///                                        [--settings [--scroll-to 控件名]]
+///                                        [--settings [--settings-page 0..5] [--scroll-to 控件名]]
 ///                                        [--about] [--about-license license|notice|thirdparty]
 ///                                        [--tab N] [--lang 语言] [--theme 主题]
 /// 数据目录由 exe 旁边的 portable.flag + data\ 决定（便携模式），演示数据自己放进去。
@@ -168,6 +168,9 @@ internal static class Program
         bool thenEscape = false;
         bool showSettings = false;
         string? scrollTo = null;
+        int settingsPage = -1;
+        bool settingsMetrics = false;
+        int fontSizePt = 0;
         int cacheLimitMb = -1;
         bool showAbout = false;
         string? licenseView = null;
@@ -364,9 +367,24 @@ internal static class Program
                     showSettings = true;
                     break;
                 case "--scroll-to" when i + 1 < argv.Length:
-                    // 滚到设置页里某个 x:Name 的控件。默认滚到底（ScrollToEnd）是为了拍
-                    // 关于分节；缓存那一节在隐私区中段，滚到底会被带过去
+                    // 滚到设置页里某个 x:Name 的控件。设置页分页之后，
+                    // 要先用 --settings-page 切到那一页，否则控件在 Collapsed 的页里滚不动
                     scrollTo = argv[++i];
+                    break;
+                case "--settings-page" when i + 1 < argv.Length:
+                    // 设置页分类（0 常规 / 1 外观 / 2 文件列表 / 3 操作与确认 / 4 隐私与存储 / 5 关于）
+                    _ = int.TryParse(argv[++i], out settingsPage);
+                    break;
+                case "--settings-metrics":
+                    // 逐页打印内容高度 / 可视高度。判断"这一页要不要滚"靠看图会看错——
+                    // 差 20px 时滚动条一样很细，必须量出来才知道超多少
+                    settingsMetrics = true;
+                    break;
+                case "--font-size" when i + 1 < argv.Length && int.TryParse(argv[i + 1], out int fs):
+                    // 界面字号（pt）。AC-06 要在 9 / 14 / 24pt 三档下各走一遍，
+                    // 不设这个就只能去改设置文件再重启
+                    fontSizePt = fs;
+                    i++;
                     break;
                 case "--cache-limit" when i + 1 < argv.Length:
                     // 在下拉框里选一档（FR-5.3.5）。选完会真的触发 Trim 与占用刷新，
@@ -823,8 +841,27 @@ internal static class Program
 
                 if (showSettings)
                 {
+                    if (fontSizePt > 0)
+                    {
+                        Lingpane.App.App.Settings.Appearance.FontSizePt = fontSizePt;
+                        Lingpane.App.Typography.FontScaleService.Apply(fontSizePt, compact: false);
+                        await Task.Delay(300);
+                    }
+
                     target = OpenSettings(window);
                     await Task.Delay(700);
+
+                    if (settingsPage >= 0)
+                    {
+                        SelectSettingsPage(target, settingsPage);
+                        await Task.Delay(300);
+                    }
+
+                    if (settingsMetrics)
+                    {
+                        PrintSettingsMetrics(target);
+                        await Task.Delay(100);
+                    }
 
                     if (scrollTo is not null)
                     {
@@ -1247,30 +1284,71 @@ internal static class Program
         Window settings = Application.Current.Windows.OfType<SettingsWindow>().LastOrDefault()
                           ?? throw new InvalidOperationException("设置页没有出现");
 
-        // 关于分节在最底下，不滚到底拍不到
+        // 设置页分页之后不再需要"滚到底"：内容各归各页，切页由 --settings-page 指定
         settings.UpdateLayout();
-        ScrollToEnd(settings);
 
         return settings;
     }
 
-    private static void ScrollToEnd(DependencyObject root)    {
-        var pending = new System.Collections.Generic.Queue<DependencyObject>();
-        pending.Enqueue(root);
+    /// <summary>
+    /// 逐页量一遍"内容高度 / 可视高度"。切页是真实路径（设导航 SelectedIndex），
+    /// 量到的是那一页在当前字号、当前语言下的真实布局。
+    /// </summary>
+    private static void PrintSettingsMetrics(Window window)
+    {
+        (string Name, string Label)[] pages =
+        [
+            ("PageGeneral", "常规"),
+            ("PageAppearance", "外观"),
+            ("PageFiles", "文件列表"),
+            ("PageActions", "操作与确认"),
+            ("PagePrivacy", "隐私与存储"),
+            ("PageAbout", "关于"),
+        ];
 
-        while (pending.Count > 0)
+        if (window.FindName("NavList") is not System.Windows.Controls.ListBox nav)
         {
-            DependencyObject node = pending.Dequeue();
-
-            if (node is System.Windows.Controls.ScrollViewer viewer)
-            {
-                viewer.ScrollToEnd();
-                return;
-            }
-
-            int count = VisualTreeHelper.GetChildrenCount(node);
-            for (int i = 0; i < count; i++) pending.Enqueue(VisualTreeHelper.GetChild(node, i));
+            Console.WriteLine("METRIC 没有找到 NavList");
+            return;
         }
+
+        for (int i = 0; i < pages.Length; i++)
+        {
+            nav.SelectedIndex = i;
+            window.UpdateLayout();
+
+            if (window.FindName(pages[i].Name) is not ScrollViewer viewer) continue;
+
+            double ratio = viewer.ViewportHeight > 0 ? viewer.ExtentHeight / viewer.ViewportHeight : 0;
+            string verdict = ratio > 1.02 ? "要滚" : "一屏";
+
+            Console.WriteLine(
+                $"METRIC {pages[i].Label,-6} 内容={viewer.ExtentHeight,6:F0}  可视={viewer.ViewportHeight,6:F0}  倍数={ratio:F2}  {verdict}");
+        }
+    }
+
+    /// <summary>
+    /// 设 SelectedIndex 等于用户点了导航项，切页走的是真实那条路径。
+    /// </summary>
+    private static void SelectSettingsPage(Window window, int index)
+    {
+        if (window.FindName("NavList") is not System.Windows.Controls.ListBox nav)
+        {
+            Console.WriteLine("PAGE 没有找到 NavList");
+            return;
+        }
+
+        int max = nav.Items.Count - 1;
+        if (max < 0)
+        {
+            Console.WriteLine("PAGE 导航为空");
+            return;
+        }
+
+        nav.SelectedIndex = Math.Clamp(index, 0, max);
+        window.UpdateLayout();
+
+        Console.WriteLine($"PAGE 已切到第 {nav.SelectedIndex} 页");
     }
 
     /// <summary>

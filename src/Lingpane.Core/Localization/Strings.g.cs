@@ -1438,6 +1438,118 @@ public static class Strings
     /// <summary>Column settings are back to default</summary>
     public static string Settings_ResetLayout_Done => LocalizationService.Instance.Get("Settings.ResetLayout.Done");
 
+    /// <summary>General</summary>
+    public static string Settings_Page_General => LocalizationService.Instance.Get("Settings.Page.General");
+
+    /// <summary>Appearance</summary>
+    public static string Settings_Page_Appearance => LocalizationService.Instance.Get("Settings.Page.Appearance");
+
+    /// <summary>File list</summary>
+    public static string Settings_Page_Files => LocalizationService.Instance.Get("Settings.Page.Files");
+
+    /// <summary>Actions</summary>
+    public static string Settings_Page_Actions => LocalizationService.Instance.Get("Settings.Page.Actions");
+
+    /// <summary>Privacy and storage</summary>
+    public static string Settings_Page_Privacy => LocalizationService.Instance.Get("Settings.Page.Privacy");
+
+    /// <summary>About</summary>
+    public static string Settings_Page_About => LocalizationService.Instance.Get("Settings.Page.About");
+
+    /// <summary>Interface language, and where the window lands on each launch.</summary>
+    public static string Settings_Page_General_Desc => LocalizationService.Instance.Get("Settings.Page.General.Desc");
+
+    /// <summary>Theme, fonts, and which interface elements are shown.</summary>
+    public static string Settings_Page_Appearance_Desc => LocalizationService.Instance.Get("Settings.Page.Appearance.Desc");
+
+    /// <summary>What the list shows, and how it sorts.</summary>
+    public static string Settings_Page_Files_Desc => LocalizationService.Instance.Get("Settings.Page.Files.Desc");
+
+    /// <summary>How clicks behave, and which actions ask first.</summary>
+    public static string Settings_Page_Actions_Desc => LocalizationService.Instance.Get("Settings.Page.Actions.Desc");
+
+    /// <summary>What is stored locally, how much space it takes, and how to clear it.</summary>
+    public static string Settings_Page_Privacy_Desc => LocalizationService.Instance.Get("Settings.Page.Privacy.Desc");
+
+    /// <summary>Version, licences, and the privacy statement.</summary>
+    public static string Settings_Page_About_Desc => LocalizationService.Instance.Get("Settings.Page.About.Desc");
+
+    /// <summary>Startup</summary>
+    public static string Settings_Group_Startup => LocalizationService.Instance.Get("Settings.Group.Startup");
+
+    /// <summary>New tab</summary>
+    public static string Settings_Group_NewTab => LocalizationService.Instance.Get("Settings.Group.NewTab");
+
+    /// <summary>Theme and fonts</summary>
+    public static string Settings_Group_ThemeFont => LocalizationService.Instance.Get("Settings.Group.ThemeFont");
+
+    /// <summary>Layout</summary>
+    public static string Settings_Group_Layout => LocalizationService.Instance.Get("Settings.Group.Layout");
+
+    /// <summary>View and sorting</summary>
+    public static string Settings_Group_ViewSort => LocalizationService.Instance.Get("Settings.Group.ViewSort");
+
+    /// <summary>Display</summary>
+    public static string Settings_Group_Show => LocalizationService.Instance.Get("Settings.Group.Show");
+
+    /// <summary>Columns</summary>
+    public static string Settings_Group_Columns => LocalizationService.Instance.Get("Settings.Group.Columns");
+
+    /// <summary>Opening</summary>
+    public static string Settings_Group_Open => LocalizationService.Instance.Get("Settings.Group.Open");
+
+    /// <summary>Confirmation</summary>
+    public static string Settings_Group_Confirm => LocalizationService.Instance.Get("Settings.Group.Confirm");
+
+    /// <summary>History</summary>
+    public static string Settings_Group_History => LocalizationService.Instance.Get("Settings.Group.History");
+
+    /// <summary>Thumbnail cache</summary>
+    public static string Settings_Group_Cache => LocalizationService.Instance.Get("Settings.Group.Cache");
+
+    /// <summary>Local data</summary>
+    public static string Settings_Group_LocalData => LocalizationService.Instance.Get("Settings.Group.LocalData");
+
+    /// <summary>Reset</summary>
+    public static string Settings_Group_Danger => LocalizationService.Instance.Get("Settings.Group.Danger");
+
+    /// <summary>Reset this page</summary>
+    public static string Settings_ResetPage => LocalizationService.Instance.Get("Settings.ResetPage");
+
+    /// <summary>Resets only the items on this page. Interface language is not affected.</summary>
+    public static string Settings_ResetPage_Tip => LocalizationService.Instance.Get("Settings.ResetPage.Tip");
+
+    /// <summary>This page is back to default</summary>
+    public static string Settings_ResetPage_Done => LocalizationService.Instance.Get("Settings.ResetPage.Done");
+
+    /// <summary>Theme, font size, view, sorting and every confirmation switch go back together. Bookmarks, history and tags are kept.</summary>
+    public static string Settings_ResetAll_Hint => LocalizationService.Instance.Get("Settings.ResetAll.Hint");
+
+    /// <summary>Natural sort puts file2 before file10. Case sensitivity changes how names are compared, never the files themselves.</summary>
+    public static string Settings_Behavior_SortGroup_Hint => LocalizationService.Instance.Get("Settings.Behavior.SortGroup.Hint");
+
+    /// <summary>The default view and sorting apply from the next launch; clicking a column header only affects this session.</summary>
+    public static string Settings_Behavior_ViewSortGroup_Hint => LocalizationService.Instance.Get("Settings.Behavior.ViewSortGroup.Hint");
+
+    /// <summary>The first three ask before touching a file; the last one asks before running it.</summary>
+    public static string Settings_Behavior_ConfirmGroup_Hint => LocalizationService.Instance.Get("Settings.Behavior.ConfirmGroup.Hint");
+
+    /// <summary>{0} of {1} customised</summary>
+    public static string Settings_Tags_ColorNames_Summary => LocalizationService.Instance.Get("Settings.Tags.ColorNames.Summary");
+    // 含占位符：string.Format(Strings.Settings_Tags_ColorNames_Summary, ...)
+
+    /// <summary>Edit…</summary>
+    public static string Settings_Tags_ColorNames_Edit => LocalizationService.Instance.Get("Settings.Tags.ColorNames.Edit");
+
+    /// <summary>Done</summary>
+    public static string Settings_Tags_ColorNames_Collapse => LocalizationService.Instance.Get("Settings.Tags.ColorNames.Collapse");
+
+    /// <summary>Data location</summary>
+    public static string Settings_Privacy_DataDir => LocalizationService.Instance.Get("Settings.Privacy.DataDir");
+
+    /// <summary>Open</summary>
+    public static string Settings_Privacy_DataDir_Open => LocalizationService.Instance.Get("Settings.Privacy.DataDir.Open");
+
     /// <summary>Reset all settings</summary>
     public static string Dialog_ResetAll_Title => LocalizationService.Instance.Get("Dialog.ResetAll.Title");
 

@@ -125,6 +125,17 @@
     <sys:Double x:Key="Size.Preview.DefaultWidth">320</sys:Double>
     <sys:Double x:Key="Size.Preview.MaxWidth">720</sys:Double>
 
+    <!-- 设置页左侧分类导航的宽度区间。与侧栏同理：按内容取宽并夹住上下限。
+         上限给到 360 是因为 24pt 下英文页名（"Privacy and storage"，19 字符约 360px）
+         已经比侧栏的任何条目都长；默认字号下内容只有 80 出头，取不到这个上限。 -->
+    <sys:Double x:Key="Size.Settings.Nav.Min">168</sys:Double>
+    <sys:Double x:Key="Size.Settings.Nav.Max">360</sys:Double>
+
+    <!-- 设置页下拉框宽度（12pt 基准值）。实际值由 FontMetrics 按字号覆写，
+         这里只是首次加载前的兜底——写死会在 24pt 下把原文案截成前四个字母。 -->
+    <sys:Double x:Key="Size.Combo.Width">300</sys:Double>
+    <sys:Double x:Key="Size.Combo.Width.Narrow">120</sys:Double>
+
     <Thickness x:Key="Padding.Row">8,0,8,0</Thickness>
     <Thickness x:Key="Padding.NavItem">8,0,8,0</Thickness>
     <Thickness x:Key="Padding.Toolbar">12,0,12,0</Thickness>

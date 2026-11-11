@@ -1401,6 +1401,118 @@
   <data name="Settings.ResetLayout.Done" xml:space="preserve">
     <value>Column settings are back to default</value>
   </data>
+  <!-- 设置页分页（v2）：左导航六个分类 -->
+  <data name="Settings.Page.General" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="Settings.Page.Appearance" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="Settings.Page.Files" xml:space="preserve">
+    <value>File list</value>
+  </data>
+  <data name="Settings.Page.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Settings.Page.Privacy" xml:space="preserve">
+    <value>Privacy and storage</value>
+  </data>
+  <data name="Settings.Page.About" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="Settings.Page.General.Desc" xml:space="preserve">
+    <value>Interface language, and where the window lands on each launch.</value>
+  </data>
+  <data name="Settings.Page.Appearance.Desc" xml:space="preserve">
+    <value>Theme, fonts, and which interface elements are shown.</value>
+  </data>
+  <data name="Settings.Page.Files.Desc" xml:space="preserve">
+    <value>What the list shows, and how it sorts.</value>
+  </data>
+  <data name="Settings.Page.Actions.Desc" xml:space="preserve">
+    <value>How clicks behave, and which actions ask first.</value>
+  </data>
+  <data name="Settings.Page.Privacy.Desc" xml:space="preserve">
+    <value>What is stored locally, how much space it takes, and how to clear it.</value>
+  </data>
+  <data name="Settings.Page.About.Desc" xml:space="preserve">
+    <value>Version, licences, and the privacy statement.</value>
+  </data>
+  <data name="Settings.Group.Startup" xml:space="preserve">
+    <value>Startup</value>
+  </data>
+  <data name="Settings.Group.NewTab" xml:space="preserve">
+    <value>New tab</value>
+  </data>
+  <data name="Settings.Group.ThemeFont" xml:space="preserve">
+    <value>Theme and fonts</value>
+  </data>
+  <data name="Settings.Group.Layout" xml:space="preserve">
+    <value>Layout</value>
+  </data>
+  <data name="Settings.Group.ViewSort" xml:space="preserve">
+    <value>View and sorting</value>
+  </data>
+  <data name="Settings.Group.Show" xml:space="preserve">
+    <value>Display</value>
+  </data>
+  <data name="Settings.Group.Columns" xml:space="preserve">
+    <value>Columns</value>
+  </data>
+  <data name="Settings.Group.Open" xml:space="preserve">
+    <value>Opening</value>
+  </data>
+  <data name="Settings.Group.Confirm" xml:space="preserve">
+    <value>Confirmation</value>
+  </data>
+  <data name="Settings.Group.History" xml:space="preserve">
+    <value>History</value>
+  </data>
+  <data name="Settings.Group.Cache" xml:space="preserve">
+    <value>Thumbnail cache</value>
+  </data>
+  <data name="Settings.Group.LocalData" xml:space="preserve">
+    <value>Local data</value>
+  </data>
+  <data name="Settings.Group.Danger" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="Settings.ResetPage" xml:space="preserve">
+    <value>Reset this page</value>
+  </data>
+  <data name="Settings.ResetPage.Tip" xml:space="preserve">
+    <value>Resets only the items on this page. Interface language is not affected.</value>
+  </data>
+  <data name="Settings.ResetPage.Done" xml:space="preserve">
+    <value>This page is back to default</value>
+  </data>
+  <data name="Settings.ResetAll.Hint" xml:space="preserve">
+    <value>Theme, font size, view, sorting and every confirmation switch go back together. Bookmarks, history and tags are kept.</value>
+  </data>
+  <data name="Settings.Behavior.SortGroup.Hint" xml:space="preserve">
+    <value>Natural sort puts file2 before file10. Case sensitivity changes how names are compared, never the files themselves.</value>
+  </data>
+  <data name="Settings.Behavior.ViewSortGroup.Hint" xml:space="preserve">
+    <value>The default view and sorting apply from the next launch; clicking a column header only affects this session.</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmGroup.Hint" xml:space="preserve">
+    <value>The first three ask before touching a file; the last one asks before running it.</value>
+  </data>
+  <data name="Settings.Tags.ColorNames.Summary" xml:space="preserve">
+    <value>{0} of {1} customised</value>
+  </data>
+  <data name="Settings.Tags.ColorNames.Edit" xml:space="preserve">
+    <value>Edit…</value>
+  </data>
+  <data name="Settings.Tags.ColorNames.Collapse" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="Settings.Privacy.DataDir" xml:space="preserve">
+    <value>Data location</value>
+  </data>
+  <data name="Settings.Privacy.DataDir.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
   <data name="Dialog.ResetAll.Title" xml:space="preserve">
     <value>Reset all settings</value>
   </data>

@@ -18,9 +18,9 @@
     <Product>Lingpane</Product>
     <Copyright>Copyright © 2026 谦山</Copyright>
 
-    <Version>0.2.0</Version>
-    <AssemblyVersion>0.2.0.0</AssemblyVersion>
-    <FileVersion>0.2.0.0</FileVersion>
+    <Version>0.2.1</Version>
+    <AssemblyVersion>0.2.1.0</AssemblyVersion>
+    <FileVersion>0.2.1.0</FileVersion>
 
     <!--
       信息版号（关于页与 app.log 用的那个）。发版脚本 tools/release/publish.ps1 通过

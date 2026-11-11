@@ -32,6 +32,27 @@ public partial class SettingsWindow : Window
     private static readonly SortFieldKind[] SortOrder =
         [SortFieldKind.Name, SortFieldKind.Date, SortFieldKind.Type, SortFieldKind.Size];
 
+    /// <summary>
+    /// 左导航的六个分类。枚举值就是导航列表的索引顺序，切换靠强转，
+    /// 两侧不会因为插入一项而错位（真要插，插在末尾）。
+    /// </summary>
+    private enum SettingsPage
+    {
+        General = 0,
+        Appearance = 1,
+        Files = 2,
+        Actions = 3,
+        Privacy = 4,
+        About = 5,
+    }
+
+    /// <summary>
+    /// 本次运行内回到上次停留的页。**不落盘**：这是"刚才看到哪了"，
+    /// 不是一项偏好——写进 settings.json 的话，用户下次打开设置会莫名停在上次的页，
+    /// 而没有任何地方能改回"永远从外观开始"。
+    /// </summary>
+    private static SettingsPage _lastPage = SettingsPage.Appearance;
+
     public SettingsWindow()
     {
         InitializeComponent();
@@ -44,6 +65,18 @@ public partial class SettingsWindow : Window
             Strings.Settings_About_Content,
             AppInfo.DisplayVersion,
             AppPaths.Root);
+
+        // 数据位置是只读展示，启动期就定了，不必等 Loaded
+        DataDirText.Text = AppPaths.Root;
+        ToolTipService.SetToolTip(DataDirText, AppPaths.Root);
+
+        RefreshTagColorNameSummary();
+
+        FitToFontScale();
+
+        // 选中即切页（OnNavChanged）。放在所有控件就绪之后：
+        // ShowPage 要给 PageTitle / PageSubtitle 赋值，早了会拿到 null。
+        NavList.SelectedIndex = (int)_lastPage;
 
         // 字体枚举与标签库条数都不进构造：两者都要读盘/遍历系统字体，
         // 放在首帧之后跑，窗口才是"先出来再填"。缓存占用同理（要遍历上万个小文件）。
@@ -58,6 +91,80 @@ public partial class SettingsWindow : Window
     private AppSettings Settings => App.Settings;
 
     private MainWindow? Owner_ => Owner as MainWindow;
+
+    // ── 页面导航 ────────────────────────────────────────────────────────────
+
+    private void OnNavChanged(object sender, SelectionChangedEventArgs e)
+    {
+        int index = NavList.SelectedIndex;
+        if (index < 0) return;
+
+        ShowPage((SettingsPage)index);
+    }
+
+    /// <summary>
+    /// 切页。六个 ScrollViewer 一直都在树里，只改 Visibility——
+    /// 不重建内容，各页的滚动位置因此天然保留（切走再回来还在原处）。
+    /// </summary>
+    private void ShowPage(SettingsPage page)
+    {
+        _lastPage = page;
+
+        PageGeneral.Visibility = Visible(page == SettingsPage.General);
+        PageAppearance.Visibility = Visible(page == SettingsPage.Appearance);
+        PageFiles.Visibility = Visible(page == SettingsPage.Files);
+        PageActions.Visibility = Visible(page == SettingsPage.Actions);
+        PagePrivacy.Visibility = Visible(page == SettingsPage.Privacy);
+        PageAbout.Visibility = Visible(page == SettingsPage.About);
+
+        PageTitle.Text = TitleOf(page);
+        PageSubtitle.Text = SubtitleOf(page);
+
+        // 「关于」页没有可恢复的设置项，按钮留着只会让人点一下发现什么都没变
+        ResetPageButton.Visibility = Visible(page != SettingsPage.About);
+
+        static Visibility Visible(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private static string TitleOf(SettingsPage page) => page switch
+    {
+        SettingsPage.General => Strings.Settings_Page_General,
+        SettingsPage.Appearance => Strings.Settings_Page_Appearance,
+        SettingsPage.Files => Strings.Settings_Page_Files,
+        SettingsPage.Actions => Strings.Settings_Page_Actions,
+        SettingsPage.Privacy => Strings.Settings_Page_Privacy,
+        _ => Strings.Settings_Page_About,
+    };
+
+    private static string SubtitleOf(SettingsPage page) => page switch
+    {
+        SettingsPage.General => Strings.Settings_Page_General_Desc,
+        SettingsPage.Appearance => Strings.Settings_Page_Appearance_Desc,
+        SettingsPage.Files => Strings.Settings_Page_Files_Desc,
+        SettingsPage.Actions => Strings.Settings_Page_Actions_Desc,
+        SettingsPage.Privacy => Strings.Settings_Page_Privacy_Desc,
+        _ => Strings.Settings_Page_About_Desc,
+    };
+
+    /// <summary>
+    /// Ctrl+Tab / Ctrl+Shift+Tab 在六页之间循环。
+    /// 与主窗口切标签页是同一个手势——这个窗口开着时键盘在这里，
+    /// 用户按下去想要的多半是"下一页设置"，不是"切背后的标签"。
+    /// </summary>
+    private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Tab) return;
+        if ((Keyboard.Modifiers & ModifierKeys.Control) != ModifierKeys.Control) return;
+
+        int count = NavList.Items.Count;
+        if (count == 0) return;
+
+        bool back = (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
+        int next = NavList.SelectedIndex + (back ? -1 : 1);
+
+        NavList.SelectedIndex = next < 0 ? count - 1 : next % count;
+        e.Handled = true;
+    }
 
     // ── 初始化 ──────────────────────────────────────────────────────────────
 
@@ -176,6 +283,10 @@ public partial class SettingsWindow : Window
 
         if (Settings.General.Language == value) return;
         App.ApplyLanguage(value);
+
+        // 页标题与页说明是代码赋值的，不走 {loc:Tr} 绑定，切语言后得手动刷一遍；
+        // 导航项本身是 XAML 里的 loc:Tr，会自己跟上
+        ShowPage(_lastPage);
     }
 
     private async Task LoadFontsAsync()
@@ -326,6 +437,31 @@ public partial class SettingsWindow : Window
         if (anchor is { } a) Owner_?.RestoreScrollAnchor(a);
 
         UpdateFontSizeText();
+        FitToFontScale();
+    }
+
+    /// <summary>
+    /// 窗口尺寸跟着字号走。
+    ///
+    /// 24pt 下每一行都按比例变高，720 高的窗口只剩 158px 内容区——一屏两行，
+    /// 滚动条细得没法拖。按字号比例放大窗口，再夹进屏幕工作区（留 6% 边距）。
+    ///
+    /// 比例直接取"当前行高 ÷ 设计基线行高（13px）"，不再按 pt 换算：
+    /// 设置页里标签、下拉框、说明行的尺寸全是行高的函数，字号一档带来的实际
+    /// 增量也只有行高说得准。按 pt 折算时 12pt（16px 行）算出 ratio=1，
+    /// 窗口不长，可内容已经比设计稿高 10%，"一屏"就破了（AC-06 走查发现）。
+    ///
+    /// 不做缩小（ratio 小于 1 按 1 处理）——字号调小后窗口跟着缩只会更挤。
+    /// </summary>
+    private void FitToFontScale()
+    {
+        double ratio = Math.Clamp(
+            FontScaleService.Current.RowPx / FontMetrics.BaseRowPx, 1d, 2d);
+
+        Rect work = SystemParameters.WorkArea;
+
+        Width = Math.Min(Math.Max(880 * ratio, MinWidth), work.Width * 0.94);
+        Height = Math.Min(Math.Max(720 * ratio, MinHeight), work.Height * 0.94);
     }
 
     private void UpdateFontSizeText()
@@ -339,17 +475,39 @@ public partial class SettingsWindow : Window
     }
 
     /// <summary>
-    /// 分类恢复默认（FR-5.3.8）。重置后走一遍 <see cref="LoadSettingsIntoUi"/>，
-    /// 而不是逐控件赋初值：新增设置项时不必回来补第二处，少一个漏网的。
+    /// 「恢复本页默认」（FR-5.3.8 的分类恢复，粒度改成按页）。
+    ///
+    /// 重置后走一遍 <see cref="LoadSettingsIntoUi"/>，而不是逐控件赋初值：
+    /// 新增设置项时不必回来补第二处，少一个漏网的。
+    ///
+    /// 为什么按页而不是按 Settings 的子对象：BehaviorSettings 被四页瓜分，
+    /// 挂在任意一页上都会连带重置另外三页中看不见的字段（见 AppSettings 里的说明）。
     /// </summary>
-    private void OnResetAppearance(object sender, RoutedEventArgs e) =>
-        ResetAndSync(Settings.ResetAppearance, Strings.Settings_ResetAppearance_Done, resetFont: true);
+    private void OnResetPage(object sender, RoutedEventArgs e)
+    {
+        switch (_lastPage)
+        {
+            case SettingsPage.General:
+                ResetAndSync(Settings.ResetGeneralPage, Strings.Settings_ResetPage_Done, resetFont: false);
+                break;
 
-    private void OnResetBehavior(object sender, RoutedEventArgs e) =>
-        ResetAndSync(Settings.ResetBehavior, Strings.Settings_ResetBehavior_Done, resetFont: false);
+            case SettingsPage.Appearance:
+                ResetAndSync(Settings.ResetAppearancePage, Strings.Settings_ResetPage_Done, resetFont: true);
+                break;
 
-    private void OnResetPrivacy(object sender, RoutedEventArgs e) =>
-        ResetAndSync(Settings.ResetPrivacy, Strings.Settings_ResetPrivacy_Done, resetFont: false);
+            case SettingsPage.Files:
+                ResetAndSync(Settings.ResetListPage, Strings.Settings_ResetPage_Done, resetFont: false);
+                break;
+
+            case SettingsPage.Actions:
+                ResetAndSync(Settings.ResetActionPage, Strings.Settings_ResetPage_Done, resetFont: false);
+                break;
+
+            case SettingsPage.Privacy:
+                ResetAndSync(Settings.ResetPrivacyPage, Strings.Settings_ResetPage_Done, resetFont: false);
+                break;
+        }
+    }
 
     private void OnResetAll(object sender, RoutedEventArgs e)
     {
@@ -383,10 +541,19 @@ public partial class SettingsWindow : Window
             Settings.Appearance.FontSizePt,
             Settings.Appearance.Density == DensityKind.Compact);
 
+        // 重置可能把字号改回默认，窗口尺寸也要跟着回来
+        FitToFontScale();
+
         Owner_?.ApplySettingsToUi();
         App.SaveSettings();
 
-        FontHint.Text = message;
+        // 结果进底栏状态位。以前写的是 FontHint，于是"清空历史已完成"
+        // 会出现在字体下拉下面，像一句字体说明。
+        StatusText.Text = message;
+
+        // 重置可能清掉标签颜色名，折叠区里的输入框已经由 LoadSettingsIntoUi 重建，
+        // 摘要那行是手写的，得跟着刷新
+        RefreshTagColorNameSummary();
     }
 
     private void OnShowNavChanged(object sender, RoutedEventArgs e)
@@ -631,6 +798,34 @@ public partial class SettingsWindow : Window
         }
     }
 
+    /// <summary>
+    /// 折叠区上方的摘要（「已自定义 2 / 8」）。
+    /// 收起时这是唯一能看出"我改过几个"的地方，所以它数的是设置里存了几条，
+    /// 不是输入框的个数——输入框总是八行，数它永远等于八。
+    /// </summary>
+    private void RefreshTagColorNameSummary()
+    {
+        TagColorNameSummary.Text = string.Format(
+            CultureInfo.CurrentCulture,
+            Strings.Settings_Tags_ColorNames_Summary,
+            Settings.Appearance.TagColorNames.Count,
+            TagPresets.Colors.Count);
+    }
+
+    /// <summary>
+    /// 展开/收起那八行输入框。展开状态不落盘：它记的是"我正在改"，
+    /// 不是一项偏好——下次打开设置页仍该是收起的。
+    /// </summary>
+    private void OnToggleTagColorNames(object sender, RoutedEventArgs e)
+    {
+        bool expand = TagColorNameSection.Visibility != Visibility.Visible;
+
+        TagColorNameSection.Visibility = expand ? Visibility.Visible : Visibility.Collapsed;
+        TagColorNameToggle.Content = expand
+            ? Strings.Settings_Tags_ColorNames_Collapse
+            : Strings.Settings_Tags_ColorNames_Edit;
+    }
+
     private void OnTagColorNameKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter || sender is not TextBox box) return;
@@ -664,6 +859,8 @@ public partial class SettingsWindow : Window
 
         App.SaveSettings();
 
+        RefreshTagColorNameSummary();
+
         // 侧栏的标签节点与状态栏都算过名字了，改完要重算；右键菜单每次打开时重新取，不必刷新
         Owner_?.RefreshTagNames();
     }
@@ -677,7 +874,7 @@ public partial class SettingsWindow : Window
         int count = App.Tags.Count;
         if (count == 0)
         {
-            PrivacyStatus.Text = Strings.Settings_Privacy_TagStore_Empty;
+            StatusText.Text = Strings.Settings_Privacy_TagStore_Empty;
             return;
         }
 
@@ -697,14 +894,14 @@ public partial class SettingsWindow : Window
         try
         {
             int written = await Task.Run(() => TagArchive.Write(snapshot, path)).ConfigureAwait(true);
-            PrivacyStatus.Text = string.Format(
+            StatusText.Text = string.Format(
                 CultureInfo.CurrentCulture, Strings.Settings_Privacy_TagExported, written);
         }
         catch (TagArchiveException ex)
         {
             // 文件系统原文只进日志，界面给译文 + 原因（与文件操作同一口径）
             Diagnostics.AppLog.Warn("tags.export", "E3010", ex.Message);
-            PrivacyStatus.Text = string.Format(
+            StatusText.Text = string.Format(
                 CultureInfo.CurrentCulture, Strings.Settings_Privacy_TagExportFailed, ex.Message);
         }
     }
@@ -733,12 +930,12 @@ public partial class SettingsWindow : Window
         catch (TagArchiveException ex)
         {
             Diagnostics.AppLog.Warn("tags.import", "E3011", ex.Message);
-            PrivacyStatus.Text = string.Format(
+            StatusText.Text = string.Format(
                 CultureInfo.CurrentCulture, Strings.Settings_Privacy_TagImportFailed, ex.Message);
             return;
         }
 
-        PrivacyStatus.Text = string.Format(
+        StatusText.Text = string.Format(
             CultureInfo.CurrentCulture,
             Strings.Settings_Privacy_TagImported,
             result.Total, result.Added, result.Updated, result.Skipped);
@@ -786,7 +983,7 @@ public partial class SettingsWindow : Window
         Owner_?.ApplySettingsToUi();
         App.SaveSettings();
 
-        FontHint.Text = Strings.Settings_ResetLayout_Done;
+        StatusText.Text = Strings.Settings_ResetLayout_Done;
     }
 
     /// <summary>关闭最后一个标签时的行为（FR-2.8）。下一次关标签就生效，不用重启。</summary>
@@ -1015,7 +1212,7 @@ public partial class SettingsWindow : Window
     private void OnClearHistory(object sender, RoutedEventArgs e)
     {
         int removed = Owner_?.ClearHistory() ?? 0;
-        PrivacyStatus.Text = string.Format(
+        StatusText.Text = string.Format(
             CultureInfo.CurrentCulture, Strings.Settings_Privacy_HistoryCleared, removed);
     }
 
@@ -1034,7 +1231,7 @@ public partial class SettingsWindow : Window
 
         if (total == 0)
         {
-            PrivacyStatus.Text = Strings.Settings_Privacy_TagStore_Empty;
+            StatusText.Text = Strings.Settings_Privacy_TagStore_Empty;
             return;
         }
 
@@ -1044,11 +1241,11 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        PrivacyStatus.Text = Strings.Settings_Privacy_TagStore_Pruning;
+        StatusText.Text = Strings.Settings_Privacy_TagStore_Pruning;
 
         int removed = await Task.Run(() => App.Tags.PruneStale()).ConfigureAwait(true);
 
-        PrivacyStatus.Text = removed > 0
+        StatusText.Text = removed > 0
             ? string.Format(CultureInfo.CurrentCulture, Strings.Settings_Privacy_TagStore_Pruned, removed)
             : Strings.Settings_Privacy_TagStore_PruneNone;
 
@@ -1121,7 +1318,7 @@ public partial class SettingsWindow : Window
 
         UpdateThumbCacheText(bytes);
 
-        PrivacyStatus.Text = string.Format(
+        StatusText.Text = string.Format(
             CultureInfo.CurrentCulture,
             Strings.Settings_Privacy_ThumbCache_LimitApplied,
             FileEntry.FormatSizeText(cap),
@@ -1142,7 +1339,7 @@ public partial class SettingsWindow : Window
         if (before == 0)
         {
             UpdateThumbCacheText(0);
-            PrivacyStatus.Text = string.Format(
+            StatusText.Text = string.Format(
                 CultureInfo.CurrentCulture,
                 Strings.Settings_Privacy_ThumbCache_Cleared,
                 FileEntry.FormatSizeText(0));
@@ -1170,7 +1367,7 @@ public partial class SettingsWindow : Window
 
         // Clear 吞掉所有 IO 异常（缓存清不掉不该影响任何可见功能），所以"清没清干净"
         // 只能靠清完再量一次来判断。剩下的是正被占用的文件，换个说法比报"失败"准确。
-        PrivacyStatus.Text = after > 0
+        StatusText.Text = after > 0
             ? string.Format(
                 CultureInfo.CurrentCulture,
                 Strings.Settings_Privacy_ThumbCache_ClearBlocked,

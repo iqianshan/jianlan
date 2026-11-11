@@ -34,6 +34,8 @@ public sealed record FontMetrics(
     double TabMaxWidth,
     double TabTitleMaxWidth,
     double FieldLabelWidth,
+    double ComboWidth,
+    double ComboWidthNarrow,
     double ComboPaddingLeft,
     double ComboArrowWidth,
     double ComboArrowRight)
@@ -107,6 +109,12 @@ public sealed record FontMetrics(
             TabTitleMaxWidth: Math.Max(64d, Even(200d * s) - Even(72d * s)),
             // 设置页左侧标签列。原来是写死的 120，24pt 下"界面语言"被压成"界面…"（AC-06）
             FieldLabelWidth: Even(120d * s),
+            // 下拉框宽度：以 12pt（设计基准）为锚点随字号等比放大，只留两档——
+            // 常规 300、数值 120。同一页里混用 200/240/300 会让左边缘参差，
+            // 而写死任一档在英文 24pt 下都会出事："Follow system"只剩"Follow"、
+            // "Interface font"直接贴边（AC-06 走查发现）——文字在变宽，容器却不动。
+            ComboWidth: Even(300d / BaselineScale * s),
+            ComboWidthNarrow: Even(120d / BaselineScale * s),
             // 下拉框内边距：右侧要留出箭头的位置。写死 10/28 时 24pt 下
             // "简体中文"会顶到 ▾ 上（AC-06 走查发现）
             ComboPaddingLeft: Even(10d * s),
@@ -116,6 +124,13 @@ public sealed record FontMetrics(
 
     private static double Size(double basePx, double ratio, double min) =>
         Math.Max(min, Math.Round(basePx * ratio, MidpointRounding.AwayFromZero));
+
+    /// <summary>
+    /// 12pt 下的字号倍数（16px ÷ 13px ≈ 1.23）。凡是以 12pt 设计稿的像素值
+    /// 为锚点、希望"12pt 时正好等于该值"的尺寸，都要先除掉它再乘 s。
+    /// 直接写 <c>Even(200 * s)</c> 会把 12pt 撑成 246，12pt 布局就跟着漂。
+    /// </summary>
+    private static readonly double BaselineScale = PointsToPixels(12d) / BaseRowPx;
 
     /// <summary>
     /// 高度与列宽统一取偶数，保证 DPI 缩放下的像素对齐；间距仍走 4px 栅格。

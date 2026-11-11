@@ -1388,6 +1388,118 @@
   <data name="Settings.ResetLayout.Done" xml:space="preserve">
     <value>列配置已恢复默认</value>
   </data>
+  <!-- 设置页分页（v2）：左导航六个分类 -->
+  <data name="Settings.Page.General" xml:space="preserve">
+    <value>常规</value>
+  </data>
+  <data name="Settings.Page.Appearance" xml:space="preserve">
+    <value>外观</value>
+  </data>
+  <data name="Settings.Page.Files" xml:space="preserve">
+    <value>文件列表</value>
+  </data>
+  <data name="Settings.Page.Actions" xml:space="preserve">
+    <value>操作与确认</value>
+  </data>
+  <data name="Settings.Page.Privacy" xml:space="preserve">
+    <value>隐私与存储</value>
+  </data>
+  <data name="Settings.Page.About" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="Settings.Page.General.Desc" xml:space="preserve">
+    <value>界面语言，以及每次打开时落在哪里。</value>
+  </data>
+  <data name="Settings.Page.Appearance.Desc" xml:space="preserve">
+    <value>主题、字体与界面元素的显示方式。</value>
+  </data>
+  <data name="Settings.Page.Files.Desc" xml:space="preserve">
+    <value>列表里显示什么、按什么排。</value>
+  </data>
+  <data name="Settings.Page.Actions.Desc" xml:space="preserve">
+    <value>点开文件时怎么反应，危险操作前问不问。</value>
+  </data>
+  <data name="Settings.Page.Privacy.Desc" xml:space="preserve">
+    <value>本地存了什么、占多少地方、怎么清。</value>
+  </data>
+  <data name="Settings.Page.About.Desc" xml:space="preserve">
+    <value>版本、许可证与隐私声明。</value>
+  </data>
+  <data name="Settings.Group.Startup" xml:space="preserve">
+    <value>启动</value>
+  </data>
+  <data name="Settings.Group.NewTab" xml:space="preserve">
+    <value>新标签页</value>
+  </data>
+  <data name="Settings.Group.ThemeFont" xml:space="preserve">
+    <value>主题与字体</value>
+  </data>
+  <data name="Settings.Group.Layout" xml:space="preserve">
+    <value>布局显示</value>
+  </data>
+  <data name="Settings.Group.ViewSort" xml:space="preserve">
+    <value>视图与排序</value>
+  </data>
+  <data name="Settings.Group.Show" xml:space="preserve">
+    <value>显示</value>
+  </data>
+  <data name="Settings.Group.Columns" xml:space="preserve">
+    <value>列</value>
+  </data>
+  <data name="Settings.Group.Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="Settings.Group.Confirm" xml:space="preserve">
+    <value>确认与保护</value>
+  </data>
+  <data name="Settings.Group.History" xml:space="preserve">
+    <value>历史记录</value>
+  </data>
+  <data name="Settings.Group.Cache" xml:space="preserve">
+    <value>缩略图缓存</value>
+  </data>
+  <data name="Settings.Group.LocalData" xml:space="preserve">
+    <value>本地数据</value>
+  </data>
+  <data name="Settings.Group.Danger" xml:space="preserve">
+    <value>恢复默认</value>
+  </data>
+  <data name="Settings.ResetPage" xml:space="preserve">
+    <value>恢复本页默认</value>
+  </data>
+  <data name="Settings.ResetPage.Tip" xml:space="preserve">
+    <value>只恢复本页列出的项目，界面语言不受影响。</value>
+  </data>
+  <data name="Settings.ResetPage.Done" xml:space="preserve">
+    <value>本页已恢复默认</value>
+  </data>
+  <data name="Settings.ResetAll.Hint" xml:space="preserve">
+    <value>会同时改回主题、字号、视图、排序与各类确认开关；收藏、历史与标签不受影响。</value>
+  </data>
+  <data name="Settings.Behavior.SortGroup.Hint" xml:space="preserve">
+    <value>自然排序让 file2 排在 file10 之前；区分大小写只影响名称比较，不改变文件本身。</value>
+  </data>
+  <data name="Settings.Behavior.ViewSortGroup.Hint" xml:space="preserve">
+    <value>默认视图与排序在下次启动生效；点列头只在本次会话内有效。</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmGroup.Hint" xml:space="preserve">
+    <value>前三项问的是"要不要动这个文件"，最后一项问的是"要不要运行它"。</value>
+  </data>
+  <data name="Settings.Tags.ColorNames.Summary" xml:space="preserve">
+    <value>已自定义 {0} / {1} 项</value>
+  </data>
+  <data name="Settings.Tags.ColorNames.Edit" xml:space="preserve">
+    <value>编辑…</value>
+  </data>
+  <data name="Settings.Tags.ColorNames.Collapse" xml:space="preserve">
+    <value>收起</value>
+  </data>
+  <data name="Settings.Privacy.DataDir" xml:space="preserve">
+    <value>数据位置</value>
+  </data>
+  <data name="Settings.Privacy.DataDir.Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
   <data name="Dialog.ResetAll.Title" xml:space="preserve">
     <value>恢复全部默认</value>
   </data>

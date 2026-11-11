@@ -174,6 +174,7 @@ M0 阶段测得"关闭 IME 上下文创建"约省 500 ms，据此在启动阶段
 
 多标签与双窗格的前置重构见 [`docs/pane-refactor.md`](docs/pane-refactor.md)；
 彩色标签的存储方案复核见 [`docs/tags-storage.md`](docs/tags-storage.md)；
+设置项放在哪一页、动哪个字段见 [`docs/settings-layout.md`](docs/settings-layout.md)；
 内存门禁的现行口径见 [ADR-0008](docs/adr/0008-memory-baseline-recalibration.md)。
 
 ## 构建

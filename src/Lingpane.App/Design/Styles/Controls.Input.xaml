@@ -161,6 +161,20 @@
         <Setter Property="Margin" Value="0,0,0,8"/>
     </Style>
 
+    <!--
+        设置页内的分组标题（"主题与字体""确认与保护"这类）。
+
+        与页标题（Text.Subtitle，15px）差一级：这里降到正文字号、次级色、加粗。
+        用色相与字重而不是再放大字号——一页里出现两个 15px 标题时，
+        读的人分不清哪个是页面、哪个是段落。
+    -->
+    <Style x:Key="Text.GroupTitle" TargetType="TextBlock" BasedOn="{StaticResource Text.Base}">
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Body}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
+        <Setter Property="FontWeight" Value="{StaticResource Font.Weight.Emphasis}"/>
+        <Setter Property="Margin" Value="0,0,0,8"/>
+    </Style>
+
     <!-- 设置项标签：定宽，让右侧控件左边缘对齐。
          宽度必须随字号缩放（FontMetrics.FieldLabelWidth）：写死 120 时 24pt 下
          "界面语言"被截成"界面…"（AC-06 走查发现）。 -->
