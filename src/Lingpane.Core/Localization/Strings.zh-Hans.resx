@@ -1658,6 +1658,9 @@
   <data name="About.AppName" xml:space="preserve">
     <value>Lingpane</value>
   </data>
+  <data name="About.AppNameZh" xml:space="preserve">
+    <value>棂窗</value>
+  </data>
   <data name="About.Title" xml:space="preserve">
     <value>关于 Lingpane</value>
   </data>

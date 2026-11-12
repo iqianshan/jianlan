@@ -59,9 +59,18 @@
                    RenderOptions.BitmapScalingMode="HighQuality"/>
 
             <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                <TextBlock Style="{StaticResource Text.Subtitle}"
-                           FontWeight="{StaticResource Font.Weight.Emphasis}"
-                           Text="{loc:Tr Key=About.AppName}"/>
+                <!-- 中英文名并列：窗口标题用的是中文名（"产品工作 - 棂窗"），
+                     关于页只写 Lingpane 会对不上号。中文名用次级色，主次分明但不分家。 -->
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource Text.Subtitle}"
+                               FontWeight="{StaticResource Font.Weight.Emphasis}"
+                               Text="{loc:Tr Key=About.AppName}"/>
+                    <TextBlock Margin="8,0,0,0"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource Text.Subtitle}"
+                               Foreground="{DynamicResource Brush.Text.Secondary}"
+                               Text="{loc:Tr Key=About.AppNameZh}"/>
+                </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                     <TextBlock x:Name="VersionText"

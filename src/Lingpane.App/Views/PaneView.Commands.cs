@@ -228,11 +228,15 @@ public partial class PaneView
         });
         // 彩色标签（FR-4.1.3）。设色走预设表 + EventSetter，不进注册表；
         // "移除"有确定语义，进注册表以便将来给快捷键。
+        //
+        // 注意这里走 vm.ApplyTagAsync（直设）而不是 ToggleTagAsync：切换的语义是
+        // "mask 里有这一色就去掉、没有就加上"，传 None 进去异或的结果永远是原值——
+        // 表现为点了菜单毫无动静（v5 起的真实缺陷）。
         _commands.Register(new AppCommand
         {
             Id = CommandIds.RemoveTag,
             TitleFactory = () => Strings.Menu_Tag_Remove,
-            Execute = () => _ = ApplyTagAsync(TagColors.None),
+            Execute = () => _ = ClearTagsAsync(),
             CanExecute = HasSelection,
         });
         _commands.Register(new AppCommand

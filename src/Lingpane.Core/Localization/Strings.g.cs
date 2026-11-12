@@ -1707,6 +1707,9 @@ public static class Strings
     /// <summary>Lingpane</summary>
     public static string About_AppName => LocalizationService.Instance.Get("About.AppName");
 
+    /// <summary>棂窗</summary>
+    public static string About_AppNameZh => LocalizationService.Instance.Get("About.AppNameZh");
+
     /// <summary>About Lingpane</summary>
     public static string About_Title => LocalizationService.Instance.Get("About.Title");
 

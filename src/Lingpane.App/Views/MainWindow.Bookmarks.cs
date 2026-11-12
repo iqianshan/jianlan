@@ -128,11 +128,25 @@ public partial class MainWindow
         // 必须指定锚点：菜单项的显隐绑定（IsBookmarks / IsWorkspaces）靠 DataContext，
         // 而 ContextMenu 的 DataContext 是从 PlacementTarget 继承来的。
         // 少了这一句，两个分区的菜单会同时显示全部动作。
-        // 定位钉成 Bottom 而不是默认的 MousePoint：见 OnRowMenuOpening 里关于
-        // MenuDropAlignment 的说明——靠左的菜单用鼠标点定位会整个跑到窗口外。
-        menu.PlacementTarget = label;
-        menu.Placement = PlacementMode.Bottom;
+        // 定位用 AnchorMenuRight 而不是默认的 MousePoint：见那里的说明，侧栏太窄，
+        // 菜单只有"右边缘贴锚点向左铺"才留得下。
+        AnchorMenuRight(menu, label);
         menu.IsOpen = true;
+    }
+
+    /// <summary>
+    /// 侧栏里"菜单挂在元素上、没有代码定位"的那几处（收藏分组行、位置标题、分区标题右键）
+    /// 统一在这里补定位。
+    ///
+    /// 它们原先都靠默认的 <c>MousePoint</c>，菜单跟着鼠标往右下铺，越过侧栏压住文件列表。
+    /// 走 <c>ContextMenuOpening</c> 而不是 <c>Opened</c>：后者发生时位置已经算过一轮，
+    /// 再改 <c>Placement</c> 会让菜单先闪在旧位置。
+    /// </summary>
+    private void OnNavMenuOpeningRight(object sender, ContextMenuEventArgs e)
+    {
+        if (sender is not FrameworkElement { ContextMenu: { } menu } anchor) return;
+
+        AnchorMenuRight(menu, anchor);
     }
 
     /// <summary>

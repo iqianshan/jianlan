@@ -195,47 +195,6 @@
     </Style>
 
     <!--
-        分区标题行尾的小图标按钮（侧栏「位置」的齿轮，FR-1.2.9）。
-
-        为什么不复用 Button.Toolbar：那个最小 32px，会把 16px 高的分区标题行撑高，
-        四个分区的间距全被顶开。这里按标题行的语境重做一份：20×20、无内边距、
-        图标色跟标题一样是次要色，悬停才提到主色——它是个"就地配置"入口，
-        不该比它所属的分区名更醒目。
-    -->
-    <Style x:Key="Button.NavSectionCommand" TargetType="Button">
-        <Setter Property="Width" Value="{DynamicResource Size.IconButton.Small}"/>
-        <Setter Property="Height" Value="{DynamicResource Size.IconButton.Small}"/>
-        <Setter Property="MinWidth" Value="{DynamicResource Size.IconButton.Small}"/>
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Padding" Value="0"/>
-        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
-        <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="VerticalAlignment" Value="Center"/>
-        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Inset}"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border x:Name="Bd"
-                            Background="{TemplateBinding Background}"
-                            CornerRadius="{StaticResource CornerRadius.Control}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Surface.Hover}"/>
-                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
-                        </Trigger>
-                        <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Surface.Pressed}"/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <!--
         窗口按钮（FR-10.11）：最小化 / 最大化 / 关闭。
 
         不复用工具栏按钮：那套是 32px 见方 + 4px 圆角 + 悬停浅底，是"应用内控件"的语言；

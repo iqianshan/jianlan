@@ -86,6 +86,7 @@
                                PreviewMouseLeftButtonDown="OnNavInertRowClick">
                         <TextBlock.ContextMenu>
                             <ContextMenu Style="{StaticResource ContextMenu.Default}"
+                                         ContextMenuOpening="OnNavMenuOpeningRight"
                                          Opened="OnNavSectionMenuOpening">
                                 <MenuItem Style="{StaticResource MenuItem.Default}"
                                           Header="{loc:Tr Key=Bookmark.Group.NewMenu}"
@@ -109,13 +110,17 @@
                          其它三个分区不显示这个按钮（各自的增删在分区右键菜单里）。 -->
                     <Button x:Name="PlacesConfigButton"
                             Grid.Column="1"
-                            Style="{StaticResource Button.NavSectionCommand}"
+                            Style="{StaticResource Button.RowMenu}"
                             Visibility="Collapsed"
                             ToolTip="{loc:Tr Key=Nav.Places.Config}"
                             AutomationProperties.Name="{loc:Tr Key=Nav.Places.Config}"
                             Click="OnNavPlacesMenuClick">
-                        <TextBlock Style="{StaticResource Text.Glyph}"
-                                   Text="{Binding ConfigGlyph}"/>
+                        <!-- 图标与行尾的「⋯」一致：这一列里"点开一份菜单"的动作只有一种形状。
+                             齿轮会让人以为要进设置页，实际只是勾选这一列显示哪几项。 -->
+                        <TextBlock FontFamily="{DynamicResource Font.Family.Icon}"
+                                   FontSize="{DynamicResource Font.Size.Caption}"
+                                   Text="{Binding MoreGlyph}"
+                                   VerticalAlignment="Center"/>
                         <Button.ContextMenu>
                             <!-- 勾选态在 Opened 里按设置现算（与列配置菜单同一口径）：
                                  菜单一直开着时用户也可能在别处改了设置，打开瞬间值才可信。 -->
@@ -177,7 +182,8 @@
                   Background="Transparent"
                   VerticalAlignment="Center">
                 <Grid.ContextMenu>
-                    <ContextMenu Style="{StaticResource ContextMenu.Default}">
+                    <ContextMenu Style="{StaticResource ContextMenu.Default}"
+                                 ContextMenuOpening="OnNavMenuOpeningRight">
                         <MenuItem Style="{StaticResource MenuItem.Default}"
                                   Header="{loc:Tr Key=Bookmark.Group.Rename}"
                                   Click="OnBookmarkGroupRename"/>

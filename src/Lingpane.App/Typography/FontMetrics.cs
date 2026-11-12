@@ -91,7 +91,11 @@ public sealed record FontMetrics(
             RowHeight: Math.Max(rowFloor, Even(lhRow + rowPadding)),
             HeaderHeight: Math.Max(28d, Even(lhRow + 10)),
             NavItemHeight: Math.Max(rowFloor, Even(lhRow + rowPadding)),
-            TabHeight: Math.Max(30d, Even(lhRow + 10)),
+            // 标签比工具条按钮矮一档，但要装下图标 + 关闭键 + 活动指示线。
+            // 12pt 下原来卡在 30，卡片显得扁；抬到 34 后与 40 高的标题条还有 3px 呼吸位。
+            // 下限跟 DesignTokens 的 Size.Tab.Height 保持一致——那份 token 只是首帧的初值，
+            // 启动后会被这里算出的数覆盖，两处不同步就会出现"改了 token 没反应"。
+            TabHeight: Math.Max(34d, Even(lhRow + 14)),
             TitleBarHeight: Math.Max(40d, Even(lhRow + 16)),
             ToolbarHeight: Math.Max(48d, Even(basePx * 2.4 + 16)),
             StatusBarHeight: Math.Max(28d, Even(lhRow + 8)),

@@ -377,10 +377,14 @@ FR-10.11 把系统标题栏换成自绘：标签栏上移到标题栏位置，�
 
 ### 12.2 根因记录
 
-1. **菜单跑出窗口**：`MenuDropAlignment = 1`（平板/左手模式）时，WPF 以参考点为菜单**右边缘**
-   往左铺。侧栏 258px、菜单 262px，右键落在侧栏里菜单就整个缩到窗口左侧之外。
-   `Placement=MousePoint` 与 `Bottom` 都受这条设置影响，但 `Bottom` 的参考点是"行"，
-   右边缘贴行右边缘，仍在窗口内。
+1. **菜单跑出窗口**：当时的判断是"`MenuDropAlignment = 1`（平板/左手模式），WPF 以参考点为
+   菜单**右边缘**往左铺"，**该判断不成立**。2026-11-12 复核：`SystemParametersInfo`
+   的 `SPI_GETMENUDROPALIGNMENT` 返回 `0`，`HKCU\Control Panel\Desktop` 下没有
+   `MenuDropAlignment` 值，本机是标准左对齐；左对齐下菜单从参考点右下方铺，262px 宽的菜单
+   从侧栏 x≈218 DIP 起算，右边缘仍在 960 DIP 宽的窗口内，"整块跑到窗口左侧之外"在该设置下
+   不复现。改动仍保留（`PlacementTarget=行, Placement=Bottom`）：它让菜单位置不随鼠标在
+   行内的横向位置漂移，也不受该设置影响，是更稳的写法。教训——把一次截图判读当成系统设置
+   证据写进文档，应先读 `SPI_GETMENUDROPALIGNMENT` 实测。
 2. **右键变成打开**：`ListBox` 把右键当选中，而工作区行的选中＝打开工作区。改为
    `PreviewMouseRightButtonDown` 里 `e.Handled = true` 后自行开菜单。
 
@@ -391,3 +395,51 @@ FR-10.11 把系统标题栏换成自绘：标签栏上移到标题栏位置，�
   「按下点是否落在按钮内」跳过起拖，逻辑简单但未经真机。
 - 主页工作区卡片的右键菜单只做了代码走查，没有真机点击（卡片在主页，需要切到主页标签）。
 
+
+---
+
+## 13. 五项修复的复验（2026-11-12 下午）
+
+真机，主屏 125%，窗口 `(325,150) 1500×1025` 物理（1200×820 DIP）。
+
+### 13.1 侧栏菜单右对齐
+
+| 项 | 结果 |
+|---|---|
+| 工作区行「⋯」 | 菜单完整可见、落在侧栏内；行在窗口底部时自动翻到**上方**展开 |
+| 「位置」标题行「⋯」 | 菜单从标题下方展开，右边缘贴侧栏、左边缘收到窗口内 |
+| 与改前对比 | 改前菜单左边缘在 `x≈0` 之外被裁掉、只露右半截；改后整块在内 |
+
+量测手段：把 `Button.RowMenu` 临时改红底，扫 BMP 找 `r>200` 的连续块，得到按钮实际占位
+`x 198–219`、各行中心 `y=108/544/584/664/704/850/890`。按截图目测坐标点不中按钮，
+是这一轮唯一浪费掉的半小时——**目测误差 ≈ 90 物理像素**，别再省这一步。
+
+### 13.2 标签栏高度
+
+`FontMetrics.TabHeight` 由 `Math.Max(30, Even(lhRow+10))` 改为 `Math.Max(34, Even(lhRow+14))`。
+实测标签块 `y 4–45`（42 物理 = 34 DIP），标题条 49 物理 = 40 DIP，上下各 3 DIP。
+
+**踩坑**：先改的是 `DesignTokens.xaml` 的 `Size.Tab.Height`，重建后实测仍是 30。
+原因是 `FontScaleService.Apply` 启动时把 `Size.Tab.*` 全套覆盖成 `FontMetrics` 算出来的值，
+token 只是首帧初值。改这类尺寸必须改计算源，改 token 等于改了个寂寞。
+
+### 13.3 关于页
+
+品牌区第一行 `Lingpane 棂窗`，第二行 `0.2.1`。新增资源键 `About.AppNameZh`（中英两份 resx
+同值，中文名是品牌的一部分，不随界面语言变）。
+
+### 13.4 位置配置按钮
+
+齿轮 → 「⋯」，样式改用 `Button.RowMenu`，与行尾那颗完全一致（18px、次级色、悬停提亮）。
+顺手删掉因此变成死代码的 `Button.NavSectionCommand` 样式与 `NavSectionRow.ConfigGlyph`。
+
+### 13.5 「移除标签」
+
+代码修复已确认：`Execute` 从 `ApplyTagAsync(TagColors.None)`（内部走 `ToggleTagAsync`）
+改为 `ClearTagsAsync()`（直设 `None` → `RemoveMany`）。
+
+**未跑通端到端点击**：右键菜单是独立 Popup HWND，自动化脚本里 `GetWindowRect` 拿到的
+菜单 rect 与截图坐标对不上（DPI 虚拟化下主窗返回 DIP、菜单返回物理），点了两次都落在
+菜单外面导致菜单关闭。逻辑层证据是 `PaneViewModel.ApplyTagAsync(colors, toggle:false)`
+的 else 分支——`colors == None` 时调 `_tags.RemoveMany`，与切换分支的
+`entry.Tags | None`（恒等于原值）形成明确对比。**建议交付前手动点一次确认。**

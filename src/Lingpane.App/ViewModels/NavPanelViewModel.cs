@@ -69,9 +69,6 @@ public sealed class NavSectionRow : NavRow
     /// </summary>
     public bool IsLocations => Kind == NavSectionKind.Locations;
 
-    /// <summary>齿轮按钮的字形。放在行上而不是 XAML 里写码位：图标码位统一由 IconGlyphs 登记（界面规则 9.2）。</summary>
-    public string ConfigGlyph => IconGlyphs.Settings;
-
     /// <summary>位置与标签分区没有管理动作，右键菜单要整份关掉（空菜单弹出一个小空框更糟）。</summary>
     public bool HasMenu => Kind is NavSectionKind.Bookmarks or NavSectionKind.Workspaces;
 }

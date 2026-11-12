@@ -67,4 +67,25 @@ public partial class PaneView
             vm.ReportError(ex);
         }
     }
+
+    /// <summary>
+    /// 「移除标签」：把选中项身上的颜色标签清空（FR-4.1.3）。
+    ///
+    /// 必须直设 <see cref="TagColors.None"/>，不能借道 <see cref="ApplyTagAsync"/> 的切换语义。
+    /// 切换的实现是"mask 里有这一色就去掉、没有就加上"，传 <c>None</c>（全 0）进去异或的
+    /// 结果恒等于原值——点了菜单一点动静都没有，看上去就是"这一项坏了"。
+    /// </summary>
+    private async Task ClearTagsAsync()
+    {
+        if (_viewModel is not { } vm) return;
+
+        try
+        {
+            await vm.ApplyTagAsync(TagColors.None);
+        }
+        catch (Exception ex)
+        {
+            vm.ReportError(ex);
+        }
+    }
 }

@@ -83,7 +83,7 @@
     <sys:Double x:Key="Size.Row.Active">32</sys:Double>
     <sys:Double x:Key="Size.Row.Header">30</sys:Double>
 
-    <sys:Double x:Key="Size.Tab.Height">30</sys:Double>
+    <sys:Double x:Key="Size.Tab.Height">34</sys:Double>
     <sys:Double x:Key="Size.Tab.MinWidth">100</sys:Double>
     <sys:Double x:Key="Size.Tab.MaxWidth">200</sys:Double>
 
@@ -173,7 +173,7 @@
     <CornerRadius x:Key="CornerRadius.Control">4</CornerRadius>
     <!-- 标签页（FR-10.11）：7px 是 ui-guidelines 规则 7.5 定的值，比控件圆角大一档——
          标签是"卡片"，不是"按钮"，圆角小了看不出是在标题栏里浮起来 -->
-    <CornerRadius x:Key="CornerRadius.Tab">7</CornerRadius>
+    <CornerRadius x:Key="CornerRadius.Tab">8</CornerRadius>
     <CornerRadius x:Key="CornerRadius.Menu">8</CornerRadius>
     <CornerRadius x:Key="CornerRadius.Dialog">10</CornerRadius>
 

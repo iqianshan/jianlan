@@ -180,8 +180,7 @@ public partial class MainWindow
     {
         if (sender is not FrameworkElement { ContextMenu: { } menu } button) return;
 
-        menu.PlacementTarget = button;
-        menu.Placement = PlacementMode.Bottom;
+        AnchorMenuRight(menu, button);
         menu.IsOpen = true;
         e.Handled = true;
     }
@@ -250,7 +249,88 @@ public partial class MainWindow
     // ── 行尾「更多操作」与右键菜单的定位（FR-7.3 / FR-8.3） ────────────────────
 
     /// <summary>
-    /// 行尾「⋯」被点击：打开这一行自己的菜单，锚在按钮下方。
+    /// 侧栏里的菜单一律"右边缘贴侧栏右边界、向下展开"。
+    ///
+    /// 为什么不用默认的 <c>MousePoint</c>：菜单跟着鼠标在行内的横向位置漂，同一行每次点开
+    /// 落在不同地方。
+    ///
+    /// 为什么不用 <c>Bottom</c>：WPF 的 <c>Bottom</c> 是"下方 + **左边缘**对齐锚点"，
+    /// 不是水平居中——这一点和直觉相反。侧栏只有 227 DIP、菜单宽 210 DIP，左边缘贴上去
+    /// 就是向右铺，整块压到文件列表上（实测工作区菜单右缘越过侧栏 172 物理像素）。
+    ///
+    /// 两个必须自己算的偏移：
+    /// <list type="number">
+    /// <item>行的右边缘**不是**侧栏右边界。ListBox 的内边距与滚动条那一段不在行里，
+    ///   实测差 82 DIP；只贴行右边缘的话，菜单会整块被推出窗口左边（只剩右半截）。</item>
+    /// <item><c>PlacementMode.Custom</c> 下 WPF **不做越界修正**，坐标给多少就放多少。
+    ///   所以左边与下边都要自己 clamp，否则菜单在窗口边缘会被裁掉。</item>
+    /// </list>
+    /// </summary>
+    private static void AnchorMenuRight(ContextMenu menu, FrameworkElement anchor)
+    {
+        menu.PlacementTarget = anchor;
+        menu.Placement = PlacementMode.Custom;
+        menu.CustomPopupPlacementCallback = (popupSize, anchorSize, _) =>
+        {
+            // 锚点右边缘 → 侧栏右边缘的那一段，补上才等于"贴着侧栏右边"
+            double extra = 0;
+            double anchorLeft = 0;
+            double anchorTop = 0;
+            Window? window = Window.GetWindow(anchor);
+
+            if (FindNavScope(anchor) is { } scope)
+            {
+                try
+                {
+                    double right = anchor.TransformToAncestor(scope)
+                        .Transform(new Point(anchorSize.Width, 0)).X;
+                    extra = Math.Max(0, scope.ActualWidth - right);
+                }
+                catch (InvalidOperationException) { }
+            }
+
+            if (window is { IsLoaded: true })
+            {
+                try
+                {
+                    Point origin = anchor.TransformToAncestor(window).Transform(new Point(0, 0));
+                    anchorLeft = origin.X;
+                    anchorTop = origin.Y;
+                }
+                catch (InvalidOperationException) { }
+            }
+
+            double x = anchorSize.Width + extra - popupSize.Width;
+            double y = anchorSize.Height;
+
+            // 左边越界就往回收 4px（菜单比侧栏宽的那几像素宁可压一点内容区，
+            // 也不能整块跑到窗口外）
+            if (window is { IsLoaded: true }) x = Math.Max(x, 4 - anchorLeft);
+
+            // 下方放不下就翻到锚点上方；上方也放不下再压回窗口内
+            if (window is { IsLoaded: true } && anchorTop + y + popupSize.Height > window.ActualHeight - 4)
+            {
+                y = -popupSize.Height;
+                if (anchorTop + y < 4) y = 4 - anchorTop;
+            }
+
+            return [new CustomPopupPlacement(new Point(x, y), PopupPrimaryAxis.Horizontal)];
+        };
+    }
+
+    /// <summary>向上找到侧栏的 ListBox：它才是"侧栏右边界"的度量对象。</summary>
+    private static ListBox? FindNavScope(DependencyObject? node)
+    {
+        for (DependencyObject? cur = node; cur is not null; cur = VisualTreeHelper.GetParent(cur))
+        {
+            if (cur is ListBox list) return list;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 行尾「⋯」被点击：打开这一行自己的菜单，锚在按钮左下方向左展开。
     ///
     /// 锚点必须显式指定。菜单挂在行的根 Grid 上（数据模板里只写了一份），
     /// 而 ContextMenu 默认以"鼠标位置"为参考点——按钮是被点出来的，鼠标可能早就不在那儿了，
@@ -261,8 +341,7 @@ public partial class MainWindow
         if (sender is not FrameworkElement button) return;
         if (FindRowMenu(button) is not { } menu) return;
 
-        menu.PlacementTarget = button;
-        menu.Placement = PlacementMode.Bottom;
+        AnchorMenuRight(menu, button);
         menu.IsOpen = true;
         e.Handled = true;
     }
@@ -282,30 +361,21 @@ public partial class MainWindow
 
         e.Handled = true;
 
-        menu.PlacementTarget = row;
-        menu.Placement = PlacementMode.Bottom;
+        AnchorMenuRight(menu, row);
         menu.IsOpen = true;
     }
 
     /// <summary>
-    /// 右键打开同一份菜单。定位在这里重钉一次，而且**不用**
-    /// <c>MousePoint</c>：系统设置"菜单右对齐"（<c>MenuDropAlignment</c> = 1，平板/左手模式，
-    /// 本机就是）打开时，菜单是拿鼠标点当**右边缘**往左铺的。侧栏只有 258px 宽、
-    /// 菜单却有 260+，靠左的右键会让菜单大半跑到窗口外，只剩一条断字——这正是用户
-    /// 反映"右键像没反应"的原因。
-    /// <para>
-    /// 改成锚在行上向下弹：右对齐时菜单右边缘贴行右边缘、左对齐时贴行左边缘，
-    /// 两种设置下都落在窗口内，位置也稳定（不会随鼠标在行内的横向位置跳）。
-    /// 鼠标右键走 <see cref="OnRowRightButtonDown"/>，这里兜的是键盘（Shift+F10 / 菜单键）。
-    /// </para>
+    /// 键盘打开同一份菜单（Shift+F10 / 菜单键）。鼠标右键走
+    /// <see cref="OnRowRightButtonDown"/>，这里只补键盘那条路——定位规则相同，
+    /// 都交给 <see cref="AnchorMenuRight"/>。
     /// </summary>
     private void OnRowMenuOpening(object sender, ContextMenuEventArgs e)
     {
         if (sender is not FrameworkElement row) return;
         if (row.ContextMenu is not { } menu) return;
 
-        menu.PlacementTarget = row;
-        menu.Placement = PlacementMode.Bottom;
+        AnchorMenuRight(menu, row);
     }
 
     /// <summary>
