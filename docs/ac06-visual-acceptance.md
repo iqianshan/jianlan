@@ -435,11 +435,27 @@ token 只是首帧初值。改这类尺寸必须改计算源，改 token 等于�
 
 ### 13.5 「移除标签」
 
-代码修复已确认：`Execute` 从 `ApplyTagAsync(TagColors.None)`（内部走 `ToggleTagAsync`）
-改为 `ClearTagsAsync()`（直设 `None` → `RemoveMany`）。
+代码修复：`Execute` 从 `ApplyTagAsync(TagColors.None)`（内部走 `ToggleTagAsync`，
+`mask ^ None` 恒等于原值）改为 `ClearTagsAsync()`，直设 `None` → `RemoveMany`。
 
-**未跑通端到端点击**：右键菜单是独立 Popup HWND，自动化脚本里 `GetWindowRect` 拿到的
-菜单 rect 与截图坐标对不上（DPI 虚拟化下主窗返回 DIP、菜单返回物理），点了两次都落在
-菜单外面导致菜单关闭。逻辑层证据是 `PaneViewModel.ApplyTagAsync(colors, toggle:false)`
-的 else 分支——`colors == None` 时调 `_tags.RemoveMany`，与切换分支的
-`entry.Tags | None`（恒等于原值）形成明确对比。**建议交付前手动点一次确认。**
+**已在发布版上真机点通**（`publish\Lingpane.exe`，提交 `2b323b6`）：
+
+| 观察点 | 点击前 | 点击后 |
+|---|---|---|
+| `data\tags.jsonl` 行数 | 14 | 15，新增 `{"op":"del",…}` |
+| 「人事行政」行首色点 | 紫点 | 无 |
+| 侧栏「紫」「黑」 | 各 `(1)` | 两项整条消失 |
+| 侧栏「红」 | `(2)` | `(2)`（未受影响） |
+
+该文件原本带 `c:160`（= 紫 + 黑两个位），`RemoveMany` 一次清空，所以两项计数同时归零——
+这正是「移除标签」应有的语义（清空该项全部颜色），而不是只摘掉一种。
+
+**这轮自动化踩的坑**（前两次都判成"点不通"）：
+
+1. 主窗 `GetWindowRect` 与 Popup 菜单的坐标在 DPI 虚拟化下单位不一致，混算必偏；
+   改成全程用 `capture` 截图量、`lclick` 点击，两者都基于同一套客户区坐标，才对上。
+2. `keybd_event` / `PostMessage` 都不进菜单：菜单开着时前台窗口仍是被遮住的主窗，
+   必须先用 `AttachThreadInput` + `BringWindowToTop` + `SetForegroundWindow` 抢到前台，
+   否则按键落到别的窗口上。抢到前台后按 ↑↓ 又会让焦点跳出菜单、误选侧栏导航
+   （期间误开过「标签: 紫」视图），**菜单项一律用鼠标点，别用方向键**。
+3. 菜单左缘实测 `x=284`，`PlacementMode.MousePoint` 下不会与右键点重合，量一次比猜十次快。
