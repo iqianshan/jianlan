@@ -514,3 +514,8 @@ token 只是首帧初值。改这类尺寸必须改计算源，改 token 等于�
 3. **`keys enter` 会把焦点拽回窗口**，地址栏里打完路径要用 `sendkey 0x0D`（`PostMessage`
    投递，不动前台）才能提交；`type` 走 `SendInput` 的 Unicode 扫描码，中文与反斜杠都正常，
    但经 Git Bash 传参时注意 MSYS 会改写形如路径的参数。
+4. **整段走查必须在一个进程里跑完**：启动、操作、截图、关闭分到两次工具调用时，子进程会被回收，
+   第二次只会得到"未找到 pid=N 的可见窗口"。为此把这一轮的驱动脚本固化成
+   `tools/window-drive/session.py`（`python session.py <exe> <步骤...>`，步骤语法写在文件头）
+   与 `tools/window-drive/uia_select.ps1`（按行序号选侧栏，ASCII-only，避开 5.1 脚本宿主的编码坑）。
+   下一轮不必再从头写一遍。
