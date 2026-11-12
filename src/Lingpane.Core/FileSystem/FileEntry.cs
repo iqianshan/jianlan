@@ -111,6 +111,10 @@ public sealed class FileEntry : INotifyPropertyChanged
         {
             if ((_tags & color) == 0) continue;
 
+            // 已删除（仅隐藏）的标签不画点：记录还在，但侧栏没有对应入口，
+            // 行上留一个点不进去的标记只会让人以为程序坏了
+            if (!TagPalette.IsActive(color)) continue;
+
             dots.Add(color);
             if (dots.Count >= TagPalette.MaxDots) break;
         }
@@ -122,10 +126,18 @@ public sealed class FileEntry : INotifyPropertyChanged
     private static readonly PropertyChangedEventArgs HasTagsChanged = new(nameof(HasTags));
     private static readonly PropertyChangedEventArgs ColorDotsChanged = new(nameof(ColorDots));
 
-    /// <summary>设置颜色并通知。相同值不通知，避免整批刷新时的无谓布局。</summary>
+    /// <summary>
+    /// 设置颜色并通知。颜色相同也要重算色点：启用掩码会随"删除/新增标签"变化，
+    /// 位值没动的行同样要少画或多画一个点。重算代价是每行最多 32 次位与，可以忽略。
+    /// </summary>
     public void SetTags(TagColors colors)
     {
-        if (_tags == colors) return;
+        if (_tags == colors)
+        {
+            _dots = null;
+            PropertyChanged?.Invoke(this, ColorDotsChanged);
+            return;
+        }
 
         _tags = colors;
         _dots = null;

@@ -113,6 +113,9 @@
   <data name="Menu.Open" xml:space="preserve">
     <value>打开</value>
   </data>
+  <data name="Menu.Bookmark" xml:space="preserve">
+    <value>收藏</value>
+  </data>
   <data name="Menu.NewFolder" xml:space="preserve">
     <value>新建文件夹</value>
   </data>
@@ -935,6 +938,9 @@
   <data name="Status.TagResultMissing" xml:space="preserve">
     <value>该项所在的文件夹已不存在。</value>
   </data>
+  <data name="Status.TagResultMoved" xml:space="preserve">
+    <value>在这个位置已经找不到该项，可能已被移动或重命名。</value>
+  </data>
   <data name="Nav.Locations" xml:space="preserve">
     <value>位置</value>
   </data>
@@ -1222,6 +1228,9 @@
   </data>
   <data name="Tag.Color.Black" xml:space="preserve">
     <value>黑</value>
+  </data>
+  <data name="Tag.Custom.DefaultName" xml:space="preserve">
+    <value>标签 {0}</value>
   </data>
   <data name="Status.Tag.Applied" xml:space="preserve">
     <value>已为 {0} 项设置标签</value>
@@ -1932,5 +1941,38 @@
   </data>
   <data name="Undo.FailedWithReason" xml:space="preserve">
     <value>撤销出错：{0}</value>
+  </data>
+  <data name="Settings.Page.Tags" xml:space="preserve">
+    <value>标签</value>
+  </data>
+  <data name="Settings.Page.Tags.Desc" xml:space="preserve">
+    <value>管理标签的名称与增删。</value>
+  </data>
+  <data name="Settings.Group.Tags" xml:space="preserve">
+    <value>标签列表</value>
+  </data>
+  <data name="Settings.Tags.Hint" xml:space="preserve">
+    <value>名称会同时用于侧栏、右键菜单与标签页标题。删除标签只是不再显示它：已经打在文件上的标记仍然保留，重新添加同一颜色的标签即可恢复。</value>
+  </data>
+  <data name="Settings.Tags.Add" xml:space="preserve">
+    <value>新建标签</value>
+  </data>
+  <data name="Settings.Tags.Remove" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Settings.Tags.RemoveTitle" xml:space="preserve">
+    <value>删除标签</value>
+  </data>
+  <data name="Settings.Tags.RemoveBody" xml:space="preserve">
+    <value>「{0}」下有 {1} 项标记。删除后这些标记不再显示，但记录仍保留在标签库中——重新添加同一颜色的标签即可恢复。</value>
+  </data>
+  <data name="Settings.Tags.Limit" xml:space="preserve">
+    <value>32 个标签槽位已用完。</value>
+  </data>
+  <data name="Settings.Tags.KeepOne" xml:space="preserve">
+    <value>至少要保留一个标签。</value>
+  </data>
+  <data name="Settings.Tags.RenameTip" xml:space="preserve">
+    <value>改名后按回车生效</value>
   </data>
 </root>

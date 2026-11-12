@@ -103,10 +103,10 @@ public sealed class SettingsPageFieldTests
     }
 
     [Fact]
-    public void 恢复外观页保留标签颜色名与标签栏位置()
+    public void 恢复外观页保留标签定义与标签栏位置()
     {
         var settings = new AppSettings();
-        settings.Appearance.TagColorNames["Blue"] = "海蓝";
+        settings.Appearance.Tags = [new TagLabelSetting { Slot = 4, Name = "海蓝" }];
         settings.Appearance.TabStripPosition = AppearanceSettings.TabBottom;
         settings.Appearance.Theme = ThemeKind.Dark;
         settings.Behavior.PreviewAutoOpen = false;
@@ -117,8 +117,8 @@ public sealed class SettingsPageFieldTests
         Assert.Equal(ThemeKind.System, settings.Appearance.Theme);
         Assert.True(settings.Behavior.PreviewAutoOpen);
 
-        // 颜色名归「隐私与存储」页、标签栏位置归「文件列表」页，这一页都不该碰
-        Assert.Equal("海蓝", settings.Appearance.TagColorNames["Blue"]);
+        // 标签定义归「标签」页、标签栏位置归「文件列表」页，这一页都不该碰
+        Assert.Equal("海蓝", settings.Appearance.Tags.Single(t => t.Slot == 4).Name);
         Assert.Equal(AppearanceSettings.TabBottom, settings.Appearance.TabStripPosition);
     }
 
@@ -173,16 +173,29 @@ public sealed class SettingsPageFieldTests
     }
 
     [Fact]
-    public void 恢复隐私页清掉标签颜色名()
+    public void 恢复隐私页不动标签定义()
     {
         var settings = new AppSettings();
-        settings.Appearance.TagColorNames["Blue"] = "海蓝";
+        settings.Appearance.Tags = [new TagLabelSetting { Slot = 4, Name = "海蓝" }];
         settings.Privacy.HistoryLimit = 500;
 
         settings.ResetPrivacyPage();
 
-        Assert.Empty(settings.Appearance.TagColorNames);
+        // 标签管理已经搬到独立的「标签」页，这一页不该顺手把用户建的标签清掉
+        Assert.Equal("海蓝", settings.Appearance.Tags.Single(t => t.Slot == 4).Name);
         Assert.Equal(new PrivacySettings().HistoryLimit, settings.Privacy.HistoryLimit);
+    }
+
+    [Fact]
+    public void 恢复标签页回到默认八色且不动标记()
+    {
+        var settings = new AppSettings();
+        settings.Appearance.Tags = [new TagLabelSetting { Slot = 9, Name = "重要" }];
+
+        settings.ResetTagsPage();
+
+        Assert.Equal(AppearanceSettings.DefaultTagCount, settings.Appearance.Tags.Count);
+        Assert.All(settings.Appearance.Tags, tag => Assert.Null(tag.Name));
     }
 
     [Fact]

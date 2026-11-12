@@ -99,6 +99,11 @@
                     <ListBoxItem>
                         <TextBlock Margin="{StaticResource Padding.NavItem}"
                                    Style="{StaticResource Text.Nav}"
+                                   Text="{loc:Tr Key=Settings.Page.Tags}"/>
+                    </ListBoxItem>
+                    <ListBoxItem>
+                        <TextBlock Margin="{StaticResource Padding.NavItem}"
+                                   Style="{StaticResource Text.Nav}"
                                    Text="{loc:Tr Key=Settings.Page.About}"/>
                     </ListBoxItem>
                 </ListBox>
@@ -834,32 +839,6 @@
                                         ToolTip="{loc:Tr Key=Settings.Privacy.TagImport.Tip}"/>
                             </WrapPanel>
 
-                            <!-- 标签颜色名称（FR-4.1.7）。八行"色块 + 输入框"默认收起：
-                                 它是全页最大的一块，却也是改动频率最低的一块。
-                                 收起来时只报"改过几项"，点开才铺开八行。 -->
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <TextBlock Style="{StaticResource Text.FieldLabel}"
-                                           Text="{loc:Tr Key=Settings.Tags.ColorNames}"/>
-                                <TextBlock x:Name="TagColorNameSummary"
-                                           VerticalAlignment="Center"
-                                           Style="{StaticResource Text.FieldHint}"
-                                           Margin="0"/>
-                                <Button x:Name="TagColorNameToggle"
-                                        Margin="12,0,0,0"
-                                        VerticalAlignment="Center"
-                                        Style="{StaticResource Button.Link}"
-                                        Content="{loc:Tr Key=Settings.Tags.ColorNames.Edit}"
-                                        Click="OnToggleTagColorNames"/>
-                            </StackPanel>
-
-                            <StackPanel x:Name="TagColorNameSection" Visibility="Collapsed">
-                                <TextBlock Margin="0,0,0,8"
-                                           Style="{StaticResource Text.FieldHint}"
-                                           Text="{loc:Tr Key=Settings.Tags.ColorNames.Hint}"/>
-                                <!-- 行由代码生成：八行只差一个枚举值，在 XAML 里抄八遍既长又容易漏改 -->
-                                <WrapPanel x:Name="TagColorNamePanel" Margin="0,0,0,16"/>
-                            </StackPanel>
-
                             <!-- 数据位置。原先挂在底栏，与"恢复默认"四个按钮挤在一行；
                                  它答的是"东西存在哪"，属于这一页，不属于操作栏。
 
@@ -890,7 +869,40 @@
                         </StackPanel>
                     </ScrollViewer>
 
-                    <!-- ══════ 页 6：关于 ══════ -->
+                    <!-- ══════ 页 6：标签 ══════ -->
+                    <ScrollViewer x:Name="PageTags"
+                                  Padding="20,14,20,16"
+                                  Visibility="Collapsed"
+                                  VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Margin="0,0,0,12"
+                                       Style="{StaticResource Text.FieldHint}"
+                                       Text="{loc:Tr Key=Settings.Tags.Hint}"/>
+
+                            <Border Style="{StaticResource Heading.Group}">
+                                <TextBlock Style="{StaticResource Text.GroupTitle}"
+                                           Text="{loc:Tr Key=Settings.Group.Tags}"/>
+                            </Border>
+
+                            <!-- 行由代码生成：项目数随用户增删变化，写死在这里没法表达 -->
+                            <StackPanel x:Name="TagListPanel"/>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <Button x:Name="TagAddButton"
+                                        Style="{StaticResource Button.Toolbar}"
+                                        Content="{loc:Tr Key=Settings.Tags.Add}"
+                                        Click="OnAddTag"/>
+                                <TextBlock x:Name="TagLimitHint"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"
+                                           Visibility="Collapsed"
+                                           Style="{StaticResource Text.FieldHint}"
+                                           Text="{loc:Tr Key=Settings.Tags.Limit}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ══════ 页 7：关于 ══════ -->
                     <!--
                         整块内容来自 AboutView，不再弹窗（原 AboutWindow 已删除）。
                         原来这里只有一句摘要 + 一颗「关于 Lingpane」按钮，点了再开一扇窗——

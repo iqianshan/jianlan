@@ -99,6 +99,9 @@ public static class Strings
     /// <summary>Open</summary>
     public static string Menu_Open => LocalizationService.Instance.Get("Menu.Open");
 
+    /// <summary>Bookmark</summary>
+    public static string Menu_Bookmark => LocalizationService.Instance.Get("Menu.Bookmark");
+
     /// <summary>New folder</summary>
     public static string Menu_NewFolder => LocalizationService.Instance.Get("Menu.NewFolder");
 
@@ -954,6 +957,9 @@ public static class Strings
     /// <summary>That item's folder no longer exists.</summary>
     public static string Status_TagResultMissing => LocalizationService.Instance.Get("Status.TagResultMissing");
 
+    /// <summary>That item is no longer at this path; it may have been moved or renamed.</summary>
+    public static string Status_TagResultMoved => LocalizationService.Instance.Get("Status.TagResultMoved");
+
     /// <summary>Locations</summary>
     public static string Nav_Locations => LocalizationService.Instance.Get("Nav.Locations");
 
@@ -1260,6 +1266,10 @@ public static class Strings
 
     /// <summary>Black</summary>
     public static string Tag_Color_Black => LocalizationService.Instance.Get("Tag.Color.Black");
+
+    /// <summary>Tag {0}</summary>
+    public static string Tag_Custom_DefaultName => LocalizationService.Instance.Get("Tag.Custom.DefaultName");
+    // 含占位符：string.Format(Strings.Tag_Custom_DefaultName, ...)
 
     /// <summary>Tagged {0} item(s)</summary>
     public static string Status_Tag_Applied => LocalizationService.Instance.Get("Status.Tag.Applied");
@@ -1993,5 +2003,39 @@ public static class Strings
     /// <summary>Undo failed: {0}</summary>
     public static string Undo_FailedWithReason => LocalizationService.Instance.Get("Undo.FailedWithReason");
     // 含占位符：string.Format(Strings.Undo_FailedWithReason, ...)
+
+    /// <summary>Tags</summary>
+    public static string Settings_Page_Tags => LocalizationService.Instance.Get("Settings.Page.Tags");
+
+    /// <summary>Name your tags, add or remove them.</summary>
+    public static string Settings_Page_Tags_Desc => LocalizationService.Instance.Get("Settings.Page.Tags.Desc");
+
+    /// <summary>Tag list</summary>
+    public static string Settings_Group_Tags => LocalizationService.Instance.Get("Settings.Group.Tags");
+
+    /// <summary>Names show up in the sidebar, the context menu and tag pages. Removing a tag only hides it — marks already applied stay </summary>
+    public static string Settings_Tags_Hint => LocalizationService.Instance.Get("Settings.Tags.Hint");
+
+    /// <summary>Add tag</summary>
+    public static string Settings_Tags_Add => LocalizationService.Instance.Get("Settings.Tags.Add");
+
+    /// <summary>Remove</summary>
+    public static string Settings_Tags_Remove => LocalizationService.Instance.Get("Settings.Tags.Remove");
+
+    /// <summary>Remove tag</summary>
+    public static string Settings_Tags_RemoveTitle => LocalizationService.Instance.Get("Settings.Tags.RemoveTitle");
+
+    /// <summary>“{0}” has {1} marked item(s). They will no longer show up, but the records stay in the tag library — add a tag with the </summary>
+    public static string Settings_Tags_RemoveBody => LocalizationService.Instance.Get("Settings.Tags.RemoveBody");
+    // 含占位符：string.Format(Strings.Settings_Tags_RemoveBody, ...)
+
+    /// <summary>All 32 colour slots are in use.</summary>
+    public static string Settings_Tags_Limit => LocalizationService.Instance.Get("Settings.Tags.Limit");
+
+    /// <summary>Keep at least one tag.</summary>
+    public static string Settings_Tags_KeepOne => LocalizationService.Instance.Get("Settings.Tags.KeepOne");
+
+    /// <summary>Press Enter to apply the new name</summary>
+    public static string Settings_Tags_RenameTip => LocalizationService.Instance.Get("Settings.Tags.RenameTip");
 
 }

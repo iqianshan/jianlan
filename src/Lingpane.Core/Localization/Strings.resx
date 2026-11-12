@@ -119,6 +119,9 @@
   <data name="Menu.Open" xml:space="preserve">
     <value>Open</value>
   </data>
+  <data name="Menu.Bookmark" xml:space="preserve">
+    <value>Bookmark</value>
+  </data>
   <data name="Menu.NewFolder" xml:space="preserve">
     <value>New folder</value>
   </data>
@@ -948,6 +951,9 @@
   <data name="Status.TagResultMissing" xml:space="preserve">
     <value>That item's folder no longer exists.</value>
   </data>
+  <data name="Status.TagResultMoved" xml:space="preserve">
+    <value>That item is no longer at this path; it may have been moved or renamed.</value>
+  </data>
   <data name="Nav.Locations" xml:space="preserve">
     <value>Locations</value>
   </data>
@@ -1235,6 +1241,9 @@
   </data>
   <data name="Tag.Color.Black" xml:space="preserve">
     <value>Black</value>
+  </data>
+  <data name="Tag.Custom.DefaultName" xml:space="preserve">
+    <value>Tag {0}</value>
   </data>
   <data name="Status.Tag.Applied" xml:space="preserve">
     <value>Tagged {0} item(s)</value>
@@ -1941,5 +1950,38 @@
   </data>
   <data name="Undo.FailedWithReason" xml:space="preserve">
     <value>Undo failed: {0}</value>
+  </data>
+  <data name="Settings.Page.Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Settings.Page.Tags.Desc" xml:space="preserve">
+    <value>Name your tags, add or remove them.</value>
+  </data>
+  <data name="Settings.Group.Tags" xml:space="preserve">
+    <value>Tag list</value>
+  </data>
+  <data name="Settings.Tags.Hint" xml:space="preserve">
+    <value>Names show up in the sidebar, the context menu and tag pages. Removing a tag only hides it — marks already applied stay on the files and come back if you add the same colour again.</value>
+  </data>
+  <data name="Settings.Tags.Add" xml:space="preserve">
+    <value>Add tag</value>
+  </data>
+  <data name="Settings.Tags.Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Settings.Tags.RemoveTitle" xml:space="preserve">
+    <value>Remove tag</value>
+  </data>
+  <data name="Settings.Tags.RemoveBody" xml:space="preserve">
+    <value>“{0}” has {1} marked item(s). They will no longer show up, but the records stay in the tag library — add a tag with the same colour and they come back.</value>
+  </data>
+  <data name="Settings.Tags.Limit" xml:space="preserve">
+    <value>All 32 colour slots are in use.</value>
+  </data>
+  <data name="Settings.Tags.KeepOne" xml:space="preserve">
+    <value>Keep at least one tag.</value>
+  </data>
+  <data name="Settings.Tags.RenameTip" xml:space="preserve">
+    <value>Press Enter to apply the new name</value>
   </data>
 </root>

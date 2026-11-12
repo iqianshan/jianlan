@@ -550,7 +550,7 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
-    public void 颜色自定义名去掉非法键与空值并截断超长()
+    public void 旧版颜色名迁移到标签定义并清空旧表()
     {
         var settings = new AppSettings();
         settings.Appearance.TagColorNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -563,16 +563,36 @@ public sealed class SettingsStoreTests : IDisposable
 
         settings.Normalize();
 
-        Assert.Equal("重要", settings.Appearance.TagColorNames["Red"]);
-        Assert.False(settings.Appearance.TagColorNames.ContainsKey("blue"));
-        Assert.False(settings.Appearance.TagColorNames.ContainsKey("NotAColor"));
-        Assert.Equal(AppearanceSettings.MaxTagColorNameLength,
-            settings.Appearance.TagColorNames["Green"].Length);
+        // 搬完就清空：留着旧表就有两份真相，改一处不改另一处时谁也说不清算数的是哪份
+        Assert.Empty(settings.Appearance.TagColorNames);
 
-        // 键统一成枚举的正式写法：手写 blue 也可用，但存回来的是 Blue
-        settings.Appearance.TagColorNames["blue"] = "次要";
+        // 没有标签定义的老配置补成默认八色
+        Assert.Equal(AppearanceSettings.DefaultTagCount, settings.Appearance.Tags.Count);
+
+        Assert.Equal("重要", settings.Appearance.Tags.Single(t => t.Slot == 0).Name);
+        Assert.Null(settings.Appearance.Tags.Single(t => t.Slot == 4).Name);
+        Assert.Equal(
+            AppearanceSettings.MaxTagColorNameLength,
+            settings.Appearance.Tags.Single(t => t.Slot == 3).Name!.Length);
+    }
+
+    [Fact]
+    public void 标签定义去重丢越界并保留用户顺序()
+    {
+        var settings = new AppSettings();
+        settings.Appearance.Tags =
+        [
+            new TagLabelSetting { Slot = 9, Name = "重要" },
+            new TagLabelSetting { Slot = 9, Name = "重复" },   // 同槽位只留第一条
+            new TagLabelSetting { Slot = 99, Name = "越界" },  // 超出 32 位
+            new TagLabelSetting { Slot = 2, Name = "  " },     // 空白名回落默认
+        ];
+
         settings.Normalize();
-        Assert.Equal("次要", settings.Appearance.TagColorNames["Blue"]);
+
+        Assert.Equal([9, 2], settings.Appearance.Tags.Select(t => t.Slot).ToArray());
+        Assert.Equal("重要", settings.Appearance.Tags[0].Name);
+        Assert.Null(settings.Appearance.Tags[1].Name);
     }
 
     [Fact]
@@ -630,7 +650,7 @@ public sealed class SettingsStoreTests : IDisposable
             settings.Behavior.NaturalSort = false;
             settings.Behavior.CaseSensitiveSort = true;
             settings.Behavior.ConfirmOverwrite = false;
-            settings.Appearance.TagColorNames["Red"] = "重要";
+            settings.Appearance.Tags = [new TagLabelSetting { Slot = 0, Name = "重要" }];
             settings.Layout.SecondaryPane.View = DefaultViewKind.List;
             settings.Layout.GetOrAdd(ColumnProfileKind.Default, PaneSlot.Secondary).TypeWidth = 150;
 
@@ -641,7 +661,7 @@ public sealed class SettingsStoreTests : IDisposable
             Assert.False(loaded.Behavior.NaturalSort);
             Assert.True(loaded.Behavior.CaseSensitiveSort);
             Assert.False(loaded.Behavior.ConfirmOverwrite);
-            Assert.Equal("重要", loaded.Appearance.TagColorNames["Red"]);
+            Assert.Equal("重要", loaded.Appearance.Tags.Single(t => t.Slot == 0).Name);
             Assert.Equal(DefaultViewKind.List, loaded.Layout.SecondaryPane.View);
             Assert.Equal(150, loaded.Layout.Get(ColumnProfileKind.Default, PaneSlot.Secondary).TypeWidth);
         }

@@ -27,7 +27,7 @@ internal sealed class TagOpLine
     /// 颜色位掩码（FR-4.1.2 的多色就靠它）。可空：<c>del</c> 行没有颜色与时间，
     /// 写成 <c>"c":0,"t":0</c> 只会让这份用户会打开看的文件多两列无意义字段。
     /// </summary>
-    [JsonPropertyName("c")] public byte? C { get; set; }
+    [JsonPropertyName("c")] public uint? C { get; set; }
 
     /// <summary>Unix 秒。同样只在 <c>set</c> 行出现。</summary>
     [JsonPropertyName("t")] public long? T { get; set; }

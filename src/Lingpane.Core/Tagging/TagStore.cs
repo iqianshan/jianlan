@@ -58,6 +58,16 @@ public sealed class TagStore
     private int _lines;
     private bool _loaded;
 
+    /// <summary>
+    /// 内容版本号：每次真正改动记录就加一。
+    ///
+    /// 存在的理由只有一个——让读方（标签结果页）能区分"我这次拿到的还是上次那份"。
+    /// 原来那里按"颜色相同且列表非空"判重，结果给某一色新打了一项之后再点这一色，
+    /// 页面停在旧列表上：数量变了、内容没变，看起来就像"点的标签和我标的文件夹对不上"。
+    /// 比较版本号比"比较内容"便宜，也比"每次都重建"稳（重建会丢滚动位置与选中态）。
+    /// </summary>
+    private long _revision;
+
     /// <summary>整份文件不可用（读不了 / 目录不可写）：置位后只读，不再尝试追加。</summary>
     private bool _readOnly;
 
@@ -92,6 +102,17 @@ public sealed class TagStore
         get
         {
             lock (_gate) return _byKey.Count;
+        }
+    }
+
+    /// <summary>
+    /// 内容版本（见 <see cref="_revision"/>）。读方拿它判断"要不要重新取一遍"。
+    /// </summary>
+    public long Revision
+    {
+        get
+        {
+            lock (_gate) return _revision;
         }
     }
 
@@ -211,7 +232,7 @@ public sealed class TagStore
                     V = target.Volume,
                     F = target.FileId,
                     P = target.Path,
-                    C = (byte)colors,
+                    C = (uint)colors,
                     T = stamp.ToUnixTimeSeconds(),
                 });
             }
@@ -220,6 +241,9 @@ public sealed class TagStore
         if (lines.Count > 0)
         {
             Append(lines);
+
+            lock (_gate) _revision++;
+
             Changed?.Invoke();
         }
 
@@ -265,6 +289,9 @@ public sealed class TagStore
         if (lines.Count > 0)
         {
             Append(lines);
+
+            lock (_gate) _revision++;
+
             Changed?.Invoke();
         }
 
@@ -290,6 +317,9 @@ public sealed class TagStore
         // 清空不是"追加一堆 del"：那会让文件变成"死记录 + 一堆删除行"，
         // 下次加载还要先把它们折叠一遍。直接重写成空文件更干净。
         Rewrite([]);
+
+        lock (_gate) _revision++;
+
         Changed?.Invoke();
         return count;
     }
@@ -412,7 +442,7 @@ public sealed class TagStore
                     V = incoming.Volume,
                     F = incoming.FileId,
                     P = incoming.Path,
-                    C = (byte)incoming.Colors,
+                    C = (uint)incoming.Colors,
                     T = incoming.UpdatedAt.ToUnixTimeSeconds(),
                 });
             }
@@ -421,6 +451,9 @@ public sealed class TagStore
         if (lines.Count > 0)
         {
             Append(lines);
+
+            lock (_gate) _revision++;
+
             Changed?.Invoke();
         }
 
@@ -541,7 +574,7 @@ public sealed class TagStore
                     V = r.Volume,
                     F = r.FileId,
                     P = r.Path,
-                    C = (byte)r.Colors,
+                    C = (uint)r.Colors,
                     T = r.UpdatedAt.ToUnixTimeSeconds(),
                 })
                 .ToList();

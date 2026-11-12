@@ -43,6 +43,13 @@ public partial class PaneView
     public CommandAdapter MoreOptionsCommand { get; private set; } = null!;
     public CommandAdapter TagRemoveCommand { get; private set; } = null!;
 
+    /// <summary>
+    /// 右键菜单里的「收藏」（FR-7.1）。由窗口注入而不是在这里注册：
+    /// 收藏要同时刷导航栏、主页与设置文件，这些状态都归窗口；窗格只需要
+    /// 一个能绑到菜单上的 adapter（菜单的 DataContext 是窗格，不是窗口）。
+    /// </summary>
+    public CommandAdapter? BookmarkCommand { get; set; }
+
     /// <summary>请求开关第二窗格。分屏是窗口形态，窗格只把意图告诉宿主（FR-3.3）。</summary>
     public event Action? SplitToggleRequested;
 

@@ -162,8 +162,12 @@ public sealed class AppSettings
 
         Appearance.Accent = AppearanceSettings.NormalizeAccent(Appearance.Accent);
 
-        // 颜色自定义名称（FR-4.1.7）：认不出来的键、空值、超长都清掉（见 NormalizeTagColorNames）
+        // 标签定义（FR-4.1.7 扩展）：槽位去重、越界丢弃；老配置补成默认八色，
+        // 老版单独存的颜色名搬到各条定义上。搬完把旧表清空——
+        // 留着它就有两份真相，改一处不改另一处时谁也说不清哪份算数。
         Appearance.TagColorNames = AppearanceSettings.NormalizeTagColorNames(Appearance.TagColorNames);
+        Appearance.Tags = AppearanceSettings.NormalizeTags(Appearance.Tags, Appearance.TagColorNames);
+        Appearance.TagColorNames = [];
 
         Privacy.HistoryLimit = Math.Clamp(Privacy.HistoryLimit, 0, 500);
         Privacy.CacheLimitMb = Math.Clamp(Privacy.CacheLimitMb, 64, 4096);
@@ -461,21 +465,34 @@ public sealed class AppSettings
     /// </summary>
     public void ResetAppearancePage()
     {
-        Dictionary<string, string> tagColorNames = Appearance.TagColorNames;
+        // 标签定义：控件在「标签」页，由 ResetTagsPage 负责；这里只把它原样带过去，
+        // 否则"恢复默认外观"会顺手把用户新建的标签一起抹掉。
+        List<TagLabelSetting> tags = Appearance.Tags;
         string tabStripPosition = Appearance.TabStripPosition;
 
         Appearance = new AppearanceSettings
         {
-            TagColorNames = tagColorNames,
+            Tags = tags,
             TabStripPosition = tabStripPosition,
         };
         ResetBehaviorFields(AppearancePageFields);
     }
 
-    /// <summary>「隐私与存储」页恢复默认：隐私三项 + 标签颜色名。</summary>
+    /// <summary>「隐私与存储」页恢复默认：隐私三项（标签名已迁到「标签」页，不在这里）。</summary>
     public void ResetPrivacyPage()
     {
         ResetPrivacy();
+    }
+
+    /// <summary>
+    /// 「标签」页恢复默认：回到默认八色、名字清空。
+    ///
+    /// **不碰 <c>tags.jsonl</c>**：恢复默认改的是"有哪些标签、叫什么"，
+    /// 不是"哪些文件打过标签"。把记录一起清掉属于另一个操作（标签库清空）。
+    /// </summary>
+    public void ResetTagsPage()
+    {
+        Appearance.Tags = AppearanceSettings.NormalizeTags(null, null);
         Appearance.TagColorNames = [];
     }
 
@@ -652,6 +669,20 @@ public sealed class AppearanceSettings
     /// </summary>
     public Dictionary<string, string> TagColorNames { get; set; } = [];
 
+    /// <summary>
+    /// 标签定义（FR-4.1.7 扩展）：**按显示顺序排列的启用标签**。
+    ///
+    /// 列表里有的槽位就是启用的标签，没有的等于已删除——删除只从这张表里移除，
+    /// 不去改 <c>tags.jsonl</c>：打过的标记还在（位值不变），重新添加同一个槽位
+    /// 就能原样回来。这也是"删除标签"确认框说"记录保留"的底气。
+    ///
+    /// 空列表 = 老配置，归一化时补成默认八色（见 <see cref="NormalizeTags"/>）。
+    /// </summary>
+    public List<TagLabelSetting> Tags { get; set; } = [];
+
+    /// <summary>老配置没有标签定义时，默认启用几个槽位（红橙黄绿蓝紫灰黑）。</summary>
+    public const int DefaultTagCount = 8;
+
     /// <summary>自定义名长度上限。名字进的是右键菜单与侧栏，写一整句话会把菜单撑开。</summary>
     public const int MaxTagColorNameLength = 24;
 
@@ -685,6 +716,68 @@ public sealed class AppearanceSettings
     }
 
     /// <summary>
+    /// 归一化标签定义：槽位去重、越界丢弃、名字修剪截断；空表补成默认八色。
+    ///
+    /// <paramref name="legacyNames"/> 是老版的 <see cref="TagColorNames"/>：
+    /// 那时名字单独存一份、键是枚举名。现在名字挂在标签定义上，迁移时搬过去，
+    /// 搬完那一份就没用了——两份真相迟早对不上，所以调用方在迁移后清空它。
+    /// </summary>
+    public static List<TagLabelSetting> NormalizeTags(
+        List<TagLabelSetting>? source,
+        Dictionary<string, string>? legacyNames)
+    {
+        var result = new List<TagLabelSetting>();
+        var seen = new HashSet<int>();
+
+        if (source is { Count: > 0 })
+        {
+            foreach (TagLabelSetting? item in source)
+            {
+                if (item is null) continue;
+                if (item.Slot is < 0 or >= Tagging.TagPalette.SlotCount) continue;
+                if (!seen.Add(item.Slot)) continue;
+
+                result.Add(new TagLabelSetting { Slot = item.Slot, Name = CleanTagName(item.Name) });
+            }
+        }
+
+        if (result.Count == 0)
+        {
+            for (int slot = 0; slot < DefaultTagCount; slot++)
+            {
+                result.Add(new TagLabelSetting { Slot = slot, Name = null });
+            }
+        }
+
+        if (legacyNames is { Count: > 0 })
+        {
+            foreach (TagLabelSetting item in result)
+            {
+                if (!string.IsNullOrWhiteSpace(item.Name)) continue;
+
+                // 老键只有前八个槽位有（枚举名），第九位往后不存在"老名字"
+                if (item.Slot >= DefaultTagCount) continue;
+
+                string key = Tagging.TagPalette.FromSlot(item.Slot).ToString();
+                if (legacyNames.TryGetValue(key, out string? name) && !string.IsNullOrWhiteSpace(name))
+                {
+                    item.Name = CleanTagName(name);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private static string? CleanTagName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+
+        string trimmed = name.Trim();
+        return trimmed.Length > MaxTagColorNameLength ? trimmed[..MaxTagColorNameLength] : trimmed;
+    }
+
+    /// <summary>
     /// 强调色只接受 <c>#RRGGBB</c>。手改成 <c>red</c> 或 <c>#F00</c> 一律当"跟随系统"——
     /// 与其让界面去猜颜色名，不如回落到系统色，至少不会出现一块读不出来的黑洞。
     /// </summary>
@@ -706,6 +799,22 @@ public sealed class AppearanceSettings
     /// <summary>未知字段原样保留，避免降级版本吃掉新版本写入的设置（settings-schema §4）。</summary>
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
+}
+
+/// <summary>
+/// 一条标签定义。<see cref="Slot"/> 是位序（0–31），位值由
+/// <c>TagPalette.FromSlot</c> 换算——存槽位而不是位值，是为了让人打开 settings.json
+/// 时看到 <c>slot: 4</c> 能对上"第五个标签"，而不是一个随版本变化的 16。
+/// </summary>
+public sealed class TagLabelSetting
+{
+    public int Slot { get; set; }
+
+    /// <summary>
+    /// 显示名。null/空 = 用该槽位内置的语言名（前八个有"红/橙/…"，第九位起是"标签 9"）。
+    /// 之所以允许空：默认八个标签的名字要跟着界面语言走，写死成中文后切成英文就再也变不回来。
+    /// </summary>
+    public string? Name { get; set; }
 }
 
 public sealed class BehaviorSettings

@@ -217,6 +217,11 @@ public partial class App : Application
         _loadedLastPath = Settings.Session.LastPath;
         _loadedTabs = [.. Settings.Session.Tabs];
 
+        // 启用中的标签掩码。行内色点在 Core 层算（FileEntry），拿不到设置，
+        // 所以在读设置之后注入一次：被删除的标签即使记录还在，也不该在行上留点。
+        Core.Tagging.TagPalette.SetActiveMask(
+            Core.Tagging.TagPalette.Mask(Settings.Appearance.Tags.Select(t => t.Slot)));
+
         // 缩略图缓存上限（FR-5.3.5）以设置为准。ThumbnailCache 是静态设施，写入侧
         // （缩略图服务、预览、列表滚动）不该为了一个数字多传一个参数，所以在启动这里注入一次。
         // 用 1024L 而不是 1024：CacheLimitMb 最大 4096，乘完超出 int 范围会变成负数。

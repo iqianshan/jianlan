@@ -17,7 +17,13 @@ namespace Lingpane.Core.Tagging;
 public sealed class TagArchiveDocument
 {
     public const string CurrentKind = "tags";
-    public const int CurrentVersion = 1;
+
+    /// <summary>
+    /// 文件格式版本。2 起多了一个 <see cref="TagArchiveEntry.Slots"/> 字段
+    /// （标签从"八色"扩到 32 个槽位之后，光靠颜色名表达不了第九位以后）。
+    /// 只是加字段，读 1 版文件仍然有效：没有 <c>slots</c> 时回退按 <c>colors</c> 匹配。
+    /// </summary>
+    public const int CurrentVersion = 2;
 
     /// <summary>写出方标识。导入时不校验具体值，只在缺失时提示"这可能不是标签库文件"。</summary>
     public string App { get; set; } = "lingpane";
@@ -49,6 +55,14 @@ public sealed class TagArchiveEntry
     /// 空数组表示该项其实没有颜色——正常不会出现，但读到别处造的文件时要能容下。
     /// </summary>
     public List<string> Colors { get; set; } = [];
+
+    /// <summary>
+    /// 槽位号（0–31），与 <see cref="Colors"/> 表达同一件事，只是不受"名字改过"影响。
+    ///
+    /// 用户把某个标签改名成"重要"之后，导入端按名字匹配就找不到它了；
+    /// 槽位是磁盘上的位序，不随命名变化，所以从这一版开始以它为准。
+    /// </summary>
+    public List<int> Slots { get; set; } = [];
 
     /// <summary>
     /// ISO 8601 时刻。写时刻而不是 Unix 秒：秒数在文本里既看不出是哪天，
@@ -93,6 +107,7 @@ public static class TagArchive
                 FileId = record.FileId,
                 Path = record.Path,
                 Colors = ColorNames(record.Colors),
+                Slots = Slots(record.Colors),
                 UpdatedAt = record.UpdatedAt,
             });
         }
@@ -178,45 +193,97 @@ public static class TagArchive
                 entry.Volume,
                 entry.FileId,
                 entry.Path ?? string.Empty,
-                ParseColors(entry.Colors),
+                ParseColors(entry.Slots, entry.Colors),
                 entry.UpdatedAt));
         }
 
         return records;
     }
 
-    /// <summary>把位掩码摊成颜色名，按 <see cref="TagPalette.All"/> 的顺序。</summary>
+    /// <summary>把位掩码摊成槽位号，按位序。</summary>
+    private static List<int> Slots(TagColors colors)
+    {
+        var slots = new List<int>();
+
+        foreach (TagColors one in TagPalette.All)
+        {
+            if ((colors & one) == one) slots.Add(TagPalette.SlotOf(one));
+        }
+
+        return slots;
+    }
+
+    /// <summary>
+    /// 把位掩码摊成名字（给人看的）。
+    ///
+    /// 前八个槽位用枚举名（<c>Red</c> 这种），第九位以后写 <c>Slot9</c>：
+    /// 枚举里没有它们的名字，直接 <c>ToString()</c> 会得到 <c>"16"</c> 这样的数字，
+    /// 混在一列颜色名里读起来像笔误。
+    /// </summary>
     private static List<string> ColorNames(TagColors colors)
     {
         var names = new List<string>();
 
         foreach (TagColors one in TagPalette.All)
         {
-            if (one != TagColors.None && (colors & one) == one) names.Add(one.ToString());
+            if ((colors & one) == one) names.Add(NameOfSlot(TagPalette.SlotOf(one)));
         }
 
         return names;
     }
 
+    private static string NameOfSlot(int slot)
+        => slot < 8 ? TagPalette.FromSlot(slot).ToString() : $"Slot{slot}";
+
     /// <summary>
-    /// 颜色名还原成位掩码。认不出的名字跳过而不是整份文件报错：
-    /// 将来版本加了新颜色，旧版本读的时候应当丢掉那一色、保住其余。
+    /// 槽位与名字还原成位掩码。优先用槽位（改名也不影响），没有 <c>slots</c> 的旧文件
+    /// 才按名字反查。认不出的值跳过而不是整份文件报错：新版本加的东西，
+    /// 旧版本读的时候应当丢掉那一项、保住其余。
     /// </summary>
-    private static TagColors ParseColors(List<string>? names)
+    private static TagColors ParseColors(List<int>? slots, List<string>? names)
     {
         TagColors colors = TagColors.None;
+
+        if (slots is { Count: > 0 })
+        {
+            foreach (int slot in slots)
+            {
+                if (slot is >= 0 and < TagPalette.SlotCount) colors |= TagPalette.FromSlot(slot);
+            }
+
+            return colors;
+        }
 
         if (names is null) return colors;
 
         foreach (string name in names)
         {
-            if (Enum.TryParse(name, ignoreCase: true, out TagColors one) && one != TagColors.None)
-            {
-                colors |= one;
-            }
+            if (TryParseSlot(name, out int slot)) colors |= TagPalette.FromSlot(slot);
         }
 
         return colors;
+    }
+
+    private static bool TryParseSlot(string name, out int slot)
+    {
+        slot = -1;
+        if (string.IsNullOrWhiteSpace(name)) return false;
+
+        if (name.StartsWith("Slot", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(name.AsSpan(4), out int parsed)
+            && parsed is >= 0 and < TagPalette.SlotCount)
+        {
+            slot = parsed;
+            return true;
+        }
+
+        if (Enum.TryParse(name, ignoreCase: true, out TagColors one) && one != TagColors.None)
+        {
+            slot = TagPalette.SlotOf(one);
+            return true;
+        }
+
+        return false;
     }
 }
 

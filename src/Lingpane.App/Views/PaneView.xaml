@@ -606,12 +606,19 @@
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.Open}"
                                       Command="{Binding OpenItemCommand}"/>
+                            <!-- 收藏（FR-7.1）。与 Ctrl+D 同一条命令：有选中项就收藏选中的那些，
+                                 没选中就收藏当前目录；文件与文件夹都收，重复收藏由命令自己报"已存在"。
+                                 命令由窗口注入（BookmarkCommand），因为收藏要一起刷导航栏与主页。 -->
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.Bookmark}"
+                                      Command="{Binding BookmarkCommand}"/>
                             <Separator Style="{StaticResource Menu.Separator}"/>
                             <!-- 彩色标签（FR-4.1.1）。子项由预设表驱动：MenuItem 容器只被塞进
                                  Header/HeaderTemplate，**不设 DataContext**，所以处理器读 Header 取预设，
                                  父菜单的 DataContext 才是本窗格（见 FR-7 那次踩坑）。 -->
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.Tag}"
+                                      Tag="TagMenu"
                                       ToolTip="{loc:Tr Key=Menu.Tag.Tip}"
                                       ItemsSource="{Binding Source={x:Static vm:TagPresets.Colors}}"
                                       ItemContainerStyle="{StaticResource Menu.TagItem}"

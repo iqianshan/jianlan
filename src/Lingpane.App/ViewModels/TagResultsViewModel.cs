@@ -52,6 +52,9 @@ public sealed class TagResultsViewModel : INotifyPropertyChanged
     private TagColors _color = TagColors.None;
     private string _colorName = string.Empty;
 
+    /// <summary>上次填充时的标签库版本（<see cref="TagStore.Revision"/>）。判重用它，不用"列表非空"。</summary>
+    private long _loadedRevision = -1;
+
     /// <summary>当前结果页的颜色（<c>#RRGGBB</c>），头部那个大色点用它。</summary>
     public string ColorHex => TagPalette.Hex(_color);
 
@@ -66,18 +69,24 @@ public sealed class TagResultsViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>
-    /// 重新填一遍列表。<paramref name="color"/> 与上次相同时直接返回——
-    /// 切标签会反复调到这里，而标签结果页在同一颜色下来回切不该重算一遍。
+    /// 重新填一遍列表。
     ///
-    /// <paramref name="force"/> 用于"这一色刚被改动过"：数量或内容变了，
-    /// 判重会让页面停在旧结果上，看起来像"刚打的标签没生效"。
+    /// 判重看两样：颜色与**标签库版本**。只比颜色（原来还要求列表非空）会漏掉最要紧的一种变化——
+    /// 同一颜色下新打了一项，再点开这一色，页面停在旧列表上：侧栏数字变了、内容没变。
+    /// 这比"每次重建"划算：版本没变时连 <see cref="Items"/> 都不用碰，滚动位置与选中态都留着。
+    ///
+    /// <paramref name="force"/> 用于"这一色刚被改动过、但版本号可能因批量操作只加了一次"的场合，
+    /// 以及导入之后要立刻看到结果的场合。
     /// </summary>
     public void Load(TagStore tags, TagColors color, string colorName, bool force = false)
     {
-        if (!force && _color == color && Items.Count > 0) return;
+        long revision = tags.Revision;
+
+        if (!force && _color == color && _loadedRevision == revision) return;
 
         _color = color;
         _colorName = colorName;
+        _loadedRevision = revision;
 
         string hex = TagPalette.Hex(color);
 

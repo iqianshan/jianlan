@@ -109,6 +109,15 @@ public partial class MainWindow : Window
     // 在 PaneView 自己的表里，见 PaneView.Commands.cs。
     public CommandAdapter ThemeCommand { get; }
 
+    /// <summary>
+    /// 收藏命令，交给窗格的右键菜单用（FR-7.1）。
+    ///
+    /// 命令本身留在窗口：收藏库、导航栏、主页三处要一起刷，这些都属于窗口级状态。
+    /// 窗格只拿一份 adapter 用来在菜单里显示标题与 Ctrl+D 手势——菜单的 DataContext
+    /// 是窗格自己，所以要有一个窗格可见的属性指向它。
+    /// </summary>
+    public CommandAdapter BookmarkCommand { get; }
+
     public MainWindow() : this(null, null)
     {
     }
@@ -259,6 +268,7 @@ public partial class MainWindow : Window
         });
 
         ThemeCommand = new CommandAdapter(_commands.Get(CommandIds.CycleTheme));
+        BookmarkCommand = new CommandAdapter(_commands.Get(CommandIds.Bookmark));
 
         RegisterTabCommands();
         RegisterSplitCommands();
@@ -269,6 +279,11 @@ public partial class MainWindow : Window
         // 只有主窗格显示按钮——分屏是窗口形态，两颗按钮会看起来像"两个窗格各分各的"。
         Pane.SplitToggleRequested += ToggleSplit;
         Pane2.ShowSplitButton = false;
+
+        // 右键菜单里的「收藏」：命令在窗口（要一起刷导航栏与主页），
+        // 但菜单的 DataContext 是窗格，所以两个窗格各拿一份 adapter 指过去。
+        Pane.BookmarkCommand = BookmarkCommand;
+        Pane2.BookmarkCommand = BookmarkCommand;
 
         // 第二窗格带自己的槽位（FR-3.7）：列配置与视图/排序按"右侧"各存一份
         Pane2.Slot = PaneSlot.Secondary;

@@ -34,12 +34,19 @@ public partial class MainWindow
     }
 
     /// <summary>
-    /// 颜色名改了（FR-4.1.7）：侧栏那八个节点的文案要按新名字重建。
+    /// 标签定义变了（改名 / 新建 / 删除）：侧栏、结果页标题、行内色点一起跟上。
     ///
-    /// 复用 <see cref="RefreshTagViews"/> 而不是只刷侧栏：正在看的标签结果页标题里
-    /// 也写着颜色名，只刷一半会出现"侧栏写重要、页面标题写红色"。
+    /// 三件事缺一不可：
+    /// · 重设启用掩码——删除的标签不再画点、新增的开始画；
+    /// · 重建侧栏那一段——名字与条目都跟着定义走；
+    /// · 重刷已有行的色点——位值没变的行也要按新掩码重算。
     /// </summary>
-    public void RefreshTagNames() => RefreshTagViews();
+    public void RefreshTagNames()
+    {
+        TagPalette.SetActiveMask(TagPalette.Mask(App.Settings.Appearance.Tags.Select(t => t.Slot)));
+        RefreshTagViews();
+        _ = RefreshTagsAsync();
+    }
 
     private void OnTagsChanged()
     {
@@ -100,6 +107,9 @@ public partial class MainWindow
             AppLog.Warn("tags.init", "E3007", ex.Message);
             return;
         }
+
+        // 一条就够回答"为什么侧栏是空的"：文件在哪、读到几条
+        AppLog.Info("tags.ready", $"count={tags.Count} file=\"{tags.FilePath}\"");
 
         if (tags.Count == 0) return;
 
@@ -179,6 +189,14 @@ public partial class MainWindow
 
             // 已经离开结果页了，侧栏不该还亮着那个颜色节点
             SyncNavSelection(path);
+
+            // 父目录还在、但那一项自己已经不在原路径：同卷移动或改名之后标签仍按 FileId 命中，
+            // 记录里的路径却停在打标那一刻。这时列表里选不中任何一行，不说明原因就是"双击没反应"。
+            // 轻量做法只提示、不重新定位（按 FileId 反查要扫遍父目录，代价远大于收益）。
+            if (!System.IO.File.Exists(item.Path) && !System.IO.Directory.Exists(item.Path))
+            {
+                pane.SetStatus(Strings.Status_TagResultMoved);
+            }
         }
 
         pane.NavigationCompleted += OnArrived;

@@ -43,7 +43,8 @@ public partial class SettingsWindow : Window
         Files = 2,
         Actions = 3,
         Privacy = 4,
-        About = 5,
+        Tags = 5,
+        About = 6,
     }
 
     /// <summary>
@@ -63,8 +64,6 @@ public partial class SettingsWindow : Window
         // 数据位置是只读展示，启动期就定了，不必等 Loaded
         DataDirText.Text = AppPaths.Root;
         ToolTipService.SetToolTip(DataDirText, AppPaths.Root);
-
-        RefreshTagColorNameSummary();
 
         FitToFontScale();
 
@@ -109,6 +108,7 @@ public partial class SettingsWindow : Window
         PageFiles.Visibility = Visible(page == SettingsPage.Files);
         PageActions.Visibility = Visible(page == SettingsPage.Actions);
         PagePrivacy.Visibility = Visible(page == SettingsPage.Privacy);
+        PageTags.Visibility = Visible(page == SettingsPage.Tags);
         PageAbout.Visibility = Visible(page == SettingsPage.About);
 
         PageTitle.Text = TitleOf(page);
@@ -127,6 +127,7 @@ public partial class SettingsWindow : Window
         SettingsPage.Files => Strings.Settings_Page_Files,
         SettingsPage.Actions => Strings.Settings_Page_Actions,
         SettingsPage.Privacy => Strings.Settings_Page_Privacy,
+        SettingsPage.Tags => Strings.Settings_Page_Tags,
         _ => Strings.Settings_Page_About,
     };
 
@@ -137,6 +138,7 @@ public partial class SettingsWindow : Window
         SettingsPage.Files => Strings.Settings_Page_Files_Desc,
         SettingsPage.Actions => Strings.Settings_Page_Actions_Desc,
         SettingsPage.Privacy => Strings.Settings_Page_Privacy_Desc,
+        SettingsPage.Tags => Strings.Settings_Page_Tags_Desc,
         _ => Strings.Settings_Page_About_Desc,
     };
 
@@ -214,7 +216,7 @@ public partial class SettingsWindow : Window
         UpdateNewTabPathAvailability();
         UpdateNewTabPathHint();
 
-        BuildTagColorNameRows();
+        BuildTagRows();
 
         ShowNavCheck.IsChecked = Settings.Appearance.ShowNavPane;
         ImmersiveTitleBarCheck.IsChecked = Settings.Appearance.ImmersiveTitleBar;
@@ -503,6 +505,11 @@ public partial class SettingsWindow : Window
             case SettingsPage.Privacy:
                 ResetAndSync(Settings.ResetPrivacyPage, Strings.Settings_ResetPage_Done, resetFont: false);
                 break;
+
+            // 恢复默认只把标签名单换回默认八色，不动 tags.jsonl 里打过的标记
+            case SettingsPage.Tags:
+                ResetAndSync(Settings.ResetTagsPage, Strings.Settings_ResetPage_Done, resetFont: false);
+                break;
         }
     }
 
@@ -548,9 +555,8 @@ public partial class SettingsWindow : Window
         // 会出现在字体下拉下面，像一句字体说明。
         StatusText.Text = message;
 
-        // 重置可能清掉标签颜色名，折叠区里的输入框已经由 LoadSettingsIntoUi 重建，
-        // 摘要那行是手写的，得跟着刷新
-        RefreshTagColorNameSummary();
+        // 重置可能整份换掉标签定义，列表是手写的，得按新定义重建
+        BuildTagRows();
     }
 
     private void OnShowNavChanged(object sender, RoutedEventArgs e)
@@ -755,122 +761,190 @@ public partial class SettingsWindow : Window
         NewTabPathRow.Opacity = usesPath ? 1 : 0.5;
     }
 
-    // ── 标签颜色名称（FR-4.1.7）──────────────────────────────────────────
+    // ── 标签管理（FR-4.1.7 扩展）────────────────────────────────────────
+
+    /// <summary>新增标签后要聚焦的槽位。行是重建的，只能在这之后把焦点放回去。</summary>
+    private int _focusSlot = -1;
 
     /// <summary>
-    /// 八行"色块 + 输入框"。行由代码生成：八行只差一个枚举值，在 XAML 里抄八遍
-    /// 既长又容易漏改（改个间距要改八处）。
+    /// 标签列表：色块 + 名称输入框 + 删除。行由代码生成——项目数随用户增删变化，
+    /// 在 XAML 里写死没法表达。
     ///
-    /// 输入框里放的是**当前显示的名字**（用户改过的或标：默认的）。提交时与默认名比较：
-    /// 一样就存空（回落默认名），不一样才存自定义名——这样没动过的颜色仍然跟着界面语言走。
+    /// 输入框里放的是**当前显示的名字**。提交时与默认名比较：一样就存 null
+    /// （回落成跟随界面语言的默认名），不一样才存自定义名——这样没动过的标签
+    /// 切成英文后仍然显示英文色名，而不是被钉死成中文。
     /// </summary>
-    private void BuildTagColorNameRows()
+    private void BuildTagRows()
     {
-        TagColorNamePanel.Children.Clear();
+        TagListPanel.Children.Clear();
 
         foreach (TagPresets.ColorPreset preset in TagPresets.Colors)
         {
-            var swatch = new System.Windows.Controls.Border
+            var swatch = new Border
             {
-                Width = 12,
-                Height = 12,
-                CornerRadius = new CornerRadius(6),
-                Margin = new Thickness(0, 0, 8, 0),
+                Width = 14,
+                Height = 14,
+                CornerRadius = new CornerRadius(7),
+                Margin = new Thickness(0, 0, 10, 0),
                 VerticalAlignment = VerticalAlignment.Center,
-                Background = new SolidColorBrush(
-                    (Color)ColorConverter.ConvertFromString(preset.Hex)),
+                Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(preset.Hex)),
                 BorderBrush = (Brush)FindResource("Brush.Border.Strong"),
                 BorderThickness = new Thickness(0.5),
             };
 
             var box = new TextBox
             {
-                Width = 128,
+                Width = 168,
                 Text = preset.Name,
                 Tag = preset.Value,
                 Style = (Style)FindResource("TextBox.Address"),
-                ToolTip = preset.Name,
+                ToolTip = Strings.Settings_Tags_RenameTip,
+                VerticalAlignment = VerticalAlignment.Center,
             };
 
-            box.LostFocus += OnTagColorNameCommitted;
-            box.KeyDown += OnTagColorNameKeyDown;
+            box.LostFocus += OnTagNameCommitted;
+            box.KeyDown += OnTagNameKeyDown;
 
-            var row = new StackPanel
+            if (preset.Slot == _focusSlot)
             {
-                Orientation = Orientation.Horizontal,
-                Margin = new Thickness(0, 0, 16, 8),
+                // 刚新建的那一行：把焦点放进去、全选默认名，用户直接打字就替换掉
+                box.Loaded += (_, _) =>
+                {
+                    box.Focus();
+                    box.SelectAll();
+                };
+                _focusSlot = -1;
+            }
+
+            var remove = new Button
+            {
+                Content = Strings.Settings_Tags_Remove,
+                Tag = preset.Value,
+                Margin = new Thickness(10, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Style = (Style)FindResource("Button.Link"),
             };
+
+            remove.Click += OnRemoveTag;
+
+            var row = new Grid { Margin = new Thickness(0, 0, 0, 10) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            Grid.SetColumn(swatch, 0);
+            Grid.SetColumn(box, 1);
+            Grid.SetColumn(remove, 2);
 
             row.Children.Add(swatch);
             row.Children.Add(box);
-            TagColorNamePanel.Children.Add(row);
+            row.Children.Add(remove);
+
+            TagListPanel.Children.Add(row);
         }
+
+        // 32 个槽位用尽：把按钮灰掉并说明原因，而不是点了没反应
+        bool full = TagPresets.NextFreeSlot() < 0;
+        TagAddButton.IsEnabled = !full;
+        TagLimitHint.Visibility = full ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>
-    /// 折叠区上方的摘要（「已自定义 2 / 8」）。
-    /// 收起时这是唯一能看出"我改过几个"的地方，所以它数的是设置里存了几条，
-    /// 不是输入框的个数——输入框总是八行，数它永远等于八。
+    /// 新建一个标签：占一个还空着的槽位，名字先留空（显示为"标签 9"这样的占位），
+    /// 焦点直接落到输入框里，用户打完回车就是它了。
     /// </summary>
-    private void RefreshTagColorNameSummary()
+    private void OnAddTag(object sender, RoutedEventArgs e)
     {
-        TagColorNameSummary.Text = string.Format(
+        int slot = TagPresets.NextFreeSlot();
+        if (slot < 0) return;
+
+        Settings.Appearance.Tags.Add(new TagLabelSetting { Slot = slot });
+        _focusSlot = slot;
+
+        SaveTagDefinitions();
+    }
+
+    /// <summary>
+    /// 删除标签：只从定义里移除，**不动 tags.jsonl**。
+    ///
+    /// 确认框必须写清"记录还在"：用户看到"删除"两个字时默认以为标记也没了，
+    /// 而这里的行为是"不再显示、但重新加回同一个颜色就能原样恢复"。
+    /// 两者预期差得太远，不说明就是欺骗。
+    /// </summary>
+    private void OnRemoveTag(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: TagColors color }) return;
+
+        // 只剩一个时不让删：删到零会让右键菜单里的「标签」变成一个空弹层，
+        // 而空弹层比没有入口更难解释
+        if (Settings.Appearance.Tags.Count <= 1)
+        {
+            StatusText.Text = Strings.Settings_Tags_KeepOne;
+            return;
+        }
+
+        string name = TagPresets.NameOf(color);
+        int count = App.Tags.IsLoaded ? App.Tags.OfColor(color).Count : 0;
+
+        string body = string.Format(
             CultureInfo.CurrentCulture,
-            Strings.Settings_Tags_ColorNames_Summary,
-            Settings.Appearance.TagColorNames.Count,
-            TagPresets.Colors.Count);
+            Strings.Settings_Tags_RemoveBody,
+            name,
+            count);
+
+        if (!ConfirmWindow.Ask(this, Strings.Settings_Tags_RemoveTitle, body)) return;
+
+        Settings.Appearance.Tags.RemoveAll(item => item.Slot == TagPalette.SlotOf(color));
+
+        SaveTagDefinitions();
     }
 
-    /// <summary>
-    /// 展开/收起那八行输入框。展开状态不落盘：它记的是"我正在改"，
-    /// 不是一项偏好——下次打开设置页仍该是收起的。
-    /// </summary>
-    private void OnToggleTagColorNames(object sender, RoutedEventArgs e)
-    {
-        bool expand = TagColorNameSection.Visibility != Visibility.Visible;
-
-        TagColorNameSection.Visibility = expand ? Visibility.Visible : Visibility.Collapsed;
-        TagColorNameToggle.Content = expand
-            ? Strings.Settings_Tags_ColorNames_Collapse
-            : Strings.Settings_Tags_ColorNames_Edit;
-    }
-
-    private void OnTagColorNameKeyDown(object sender, KeyEventArgs e)
+    private void OnTagNameKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key != Key.Enter || sender is not TextBox box) return;
 
-        CommitTagColorName(box);
+        CommitTagName(box);
         e.Handled = true;
     }
 
-    private void OnTagColorNameCommitted(object sender, RoutedEventArgs e)
+    private void OnTagNameCommitted(object sender, RoutedEventArgs e)
     {
-        if (sender is TextBox box) CommitTagColorName(box);
+        if (sender is TextBox box) CommitTagName(box);
     }
 
-    private void CommitTagColorName(TextBox box)
+    /// <summary>
+    /// 把输入框里的名字写回定义。与默认名相同就存 null：
+    /// 这样"红色"没改过的标签，切成英文后显示 "Red"，而不是被固定成中文。
+    /// </summary>
+    private void CommitTagName(TextBox box)
     {
         if (box.Tag is not TagColors color) return;
 
         string typed = box.Text.Trim();
         string fallback = TagPresets.DefaultNameOf(color);
+        int slot = TagPalette.SlotOf(color);
 
-        bool store = typed.Length > 0 && !string.Equals(typed, fallback, StringComparison.Ordinal);
+        TagLabelSetting? target = Settings.Appearance.Tags.FirstOrDefault(item => item.Slot == slot);
+        if (target is null) return;
 
-        if (store)
-        {
-            Settings.Appearance.TagColorNames[color.ToString()] = typed;
-        }
-        else
-        {
-            Settings.Appearance.TagColorNames.Remove(color.ToString());
-        }
+        string? stored = typed.Length == 0 || string.Equals(typed, fallback, StringComparison.Ordinal)
+            ? null
+            : typed;
 
+        if (string.Equals(target.Name, stored, StringComparison.Ordinal)) return;
+
+        target.Name = stored;
+        SaveTagDefinitions();
+    }
+
+    /// <summary>定义改完的统一出口：落盘、重建列表、让主窗口跟新（侧栏、菜单、行内色点）。</summary>
+    private void SaveTagDefinitions()
+    {
         App.SaveSettings();
 
-        RefreshTagColorNameSummary();
+        BuildTagRows();
 
-        // 侧栏的标签节点与状态栏都算过名字了，改完要重算；右键菜单每次打开时重新取，不必刷新
+        // 侧栏的标签节点、右键菜单、行内色点都按定义算，改完一处就要全刷一遍
         Owner_?.RefreshTagNames();
     }
 

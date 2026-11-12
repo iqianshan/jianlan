@@ -869,6 +869,15 @@ public partial class PaneView : UserControl
         {
             if (item is not MenuItem menuItem) continue;
 
+            // 颜色子菜单的项来自标签定义。x:Static 绑定只在首次求值时读一次，
+            // 用户在设置里新建或删除了标签，这里必须重设一遍才看得见。
+            // 顺手跳过手势检查：它本来就没有 Command（点击走 OnTagColorPicked）。
+            if (menuItem.Tag as string == "TagMenu")
+            {
+                menuItem.ItemsSource = ViewModels.TagPresets.Colors;
+                continue;
+            }
+
             if (menuItem.Command is not Commands.CommandAdapter adapter)
             {
                 // 绑定名字写错时 Command 为 null，菜单项会静默失效——界面上完全看不出，

@@ -1,6 +1,6 @@
 # 设置页对照表（控件 ↔ 页 ↔ 字段）
 
-设置页在 0.2.1 从"一列八个分区"改成**左侧六页导航 + 右侧单页滚动**，分页口径从
+设置页在 0.2.1 从"一列八个分区"改成**左侧七页导航 + 右侧单页滚动**（0.2.1 中段新增「标签」页），分页口径从
 "设置项属于哪个对象"变成"用户想干什么"。这一步把 `GeneralSettings` / `AppearanceSettings` /
 `BehaviorSettings` 的对象边界打散了，同一个对象里的字段现在分属不同页。
 
@@ -8,12 +8,12 @@
 说明归类没想清楚，不要先写 XAML。它也记录了哪些字段的"页位置"与"对象位置"不一致——
 那正是按页恢复最容易出错的地方。
 
-> 最后核对：2026-11-11，对应 `SettingsWindow.xaml` 的六页结构。字段路径为 `settings.json` 中的实际键名
+> 最后核对：2026-11-12，对应 `SettingsWindow.xaml` 的七页结构。字段路径为 `settings.json` 中的实际键名
 > （camelCase），规范见 `docs/settings-schema.md`。
 
 ---
 
-## 1. 六页总览
+## 1. 七页总览
 
 | # | 页 | 设置项数 | 承载的设置对象 | 按页恢复方法 |
 |---|---|---|---|---|
@@ -21,13 +21,14 @@
 | 2 | 外观 | 10 | `appearance` + `behavior.previewAutoOpen` | `ResetAppearancePage()` |
 | 3 | 文件列表 | 11 | `behavior` 的视图排序 + `appearance.tabStripPosition` + `columns` | `ResetListPage()` |
 | 4 | 操作与确认 | 8 | `behavior` 的打开与确认项 | `ResetActionPage()` |
-| 5 | 隐私与存储 | 4 | `privacy` + `appearance.tagColorNames` + 标签库 | `ResetPrivacyPage()` |
-| 6 | 关于 | 0 | 无（内嵌 `AboutView`，全只读） | 无（隐藏恢复按钮） |
+| 5 | 隐私与存储 | 4 | `privacy` + 标签库 | `ResetPrivacyPage()` |
+| 6 | 标签 | 3 | `appearance.tags` | `ResetTagsPage()` |
+| 7 | 关于 | 0 | 无（内嵌 `AboutView`，全只读） | 无（隐藏恢复按钮） |
 
 "设置项"按**一个可写字段**计：复合控件（字号 `−`/`+` 与"跟随系统"勾选、上限下拉与"清空"按钮）
 算一项；只读块（缓存占用、标签条数、数据目录）与纯动作按钮（导出/导入/打开目录）不计数。
 
-六页之外还有三处全局控件：页标题栏的「恢复本页默认」、底栏的「恢复全部设置」与「关闭」、
+七页之外还有三处全局控件：页标题栏的「恢复本页默认」、底栏的「恢复全部设置」与「关闭」、
 底栏状态位。见第 7 节。
 
 ---
@@ -81,7 +82,7 @@
 **恢复本页默认**：整段换掉 `AppearanceSettings`，但**把两样东西带过去**——
 标签颜色名（显示在第 5 页，由 `ResetPrivacyPage()` 负责）与标签栏位置（控件在第 3 页，
 由 `ResetListPage()` 负责）。旧版把颜色名显示在"隐私"段下、却由"恢复默认外观"清掉，
-操作与显示的位置对不上；标签栏位置是同一个问题在 0.2.1 六页结构里的翻版，一并纠正。
+操作与显示的位置对不上；标签栏位置是同一个问题在 0.2.1 分页结构里的翻版，一并纠正。
 
 ---
 
@@ -155,24 +156,43 @@
 | 「清空缓存」按钮 | `Settings.Privacy.ThumbCache.Clear` | 缩略图缓存目录 | 动作 |
 | `TagCountText` | `Settings.Privacy.TagStore.Loading` | 标签库条数（只读） | 与三个按钮同一行 |
 | 「清理/导出/导入」 | `Settings.Privacy.TagPrune` 等 | `tags.json`（非 settings.json） | FR-4.2.7 / FR-5.3.6 |
-| `TagColorNameSummary` / `TagColorNameToggle` / `TagColorNamePanel` | `Settings.Tags.ColorNames` | **`appearance.tagColorNames`** | 默认折叠 |
 | `DataDirText` + 「打开目录」 | `Settings.Privacy.DataDir` | 只读，`AppPaths.Root` | 三列 `Grid` |
 
-**恢复本页默认**：`ResetPrivacy()` 三项 + **清掉 `appearance.tagColorNames`**。
+**恢复本页默认**：`ResetPrivacy()` 三项（历史开关、历史条数、缓存上限）。
 
-这里有两处"页边界跨对象"要记住：
+0.2.1 中段把**标签命名与增删**从这一页搬到了独立的「标签」页（见 §7）：它既是"标签叫什么"
+（`appearance.*`），也是"要有哪几个标签"（标签库的前置条件），挂在隐私页下本身就说不通——
+用户去隐私页是来找"清空/删除"的，不是来给标签改名的。
 
-1. `appearance.tagColorNames` 虽然叫 `appearance.*`，但显示位置与重置归属都在这一页。
-   旧版它挂在"隐私"段下、却由"恢复默认外观"清掉——两边对不上，本次一并纠正。
-2. 标签库与历史、缓存**不在** `settings.json` 里，是独立文件。恢复本页默认不碰它们
-   （那是用户数据，不是设置），要清必须走各自的按钮。
+这里有一处"页边界跨对象"要记住：标签库与历史、缓存**不在** `settings.json` 里，是独立文件。
+恢复本页默认不碰它们（那是用户数据，不是设置），要清必须走各自的按钮。
 
 `CacheLimitCombo` 打开设置页时会**吸附到最近一档并落盘**：旧版本留下的默认值可能不在档位里，
 不归一就会出现"下拉框显示 1024、占用行写着上限 512 MB、实际淘汰按第三个值"三套说法。
 
 ---
 
-## 7. 页 6：关于
+## 7. 页 6：标签
+
+| 控件 `x:Name` | 界面标签 | 字段 | 取值 |
+|---|---|---|---|
+| `TagListPanel`（代码生成的行） | `Settings.Group.Tags` | `appearance.tags[].name` | 每个槽位一行：色块 + 名称输入框 + 「删除」 |
+| `TagAddButton` | `Settings.Tags.Add` | 追加 `{ slot, name: null }` | 占用最小的空槽位，焦点落到新行输入框 |
+| `TagLimitHint` | `Settings.Tags.Limit` | 只读提示 | 32 个槽位用尽时才显示，「新建标签」同时置灰 |
+
+**名称一栏提交时与默认名比较**：一样就存 `null`（回落成跟随界面语言的默认色名），
+不一样才存自定义名。否则没动过的"红色"在切成英文后仍显示"红"，等于把语言钉死。
+
+**「删除」只从定义里移除，不动 `tags.jsonl`。** 确认框必须写明"标记记录仍在、重新添加同一种颜色
+即可恢复"——用户看到"删除"两个字时默认以为标记也没了，不说清就是欺骗。
+只剩一个标签时拒绝删除：删到零会让右键菜单里的「标签」变成一个空弹层。
+
+**恢复本页默认**：`ResetTagsPage()` 回到默认八色（槽位 0–7、名字全 `null`），
+**不动** `appearance.tagColorNames`（已废弃）与 `tags.jsonl`（用户数据）。
+
+---
+
+## 8. 页 7：关于
 
 | 控件 `x:Name` | 界面标签 | 数据源 |
 |---|---|---|
@@ -187,7 +207,7 @@
 
 ---
 
-## 8. 全局控件
+## 9. 全局控件
 
 | 控件 | 位置 | 作用 |
 |---|---|---|
@@ -195,7 +215,7 @@
 | 「恢复全部设置」 | 底栏 | `Settings.ResetAll()`，先弹确认框；收藏、历史、标签、工作区不受影响 |
 | 「关闭」 | 底栏 | `OnClose` |
 | `StatusText` | 底栏左侧 | 全局唯一的状态反馈位，14 处写入 |
-| `NavList` | 左侧 | 六页 `ListBox`，`Ctrl+Tab` / `Ctrl+Shift+Tab` 翻页，记忆上次停留页（`static _lastPage`） |
+| `NavList` | 左侧 | 七页 `ListBox`，`Ctrl+Tab` / `Ctrl+Shift+Tab` 翻页，记忆上次停留页（`static _lastPage`） |
 
 **状态反馈只有一处**。重构前是 12 处写「隐私状态」、3 处借用字体提示行——同一件事出现在
 三个位置，用户不知道看哪里。新增任何"操作完成/失败"的提示，一律写 `StatusText`，
@@ -204,9 +224,9 @@
 「恢复本页默认」在页标题栏、「恢复全部设置」在底栏，**位置本身说明作用范围**。
 页级动作不要挪进内容区，全局动作不要塞进某一页。
 
-### 8.1 不进设置页的设置项
+### 9.1 不进设置页的设置项
 
-有些偏好**故意不在这六页里**——因为它的调整入口就在被调整的那个东西旁边，
+有些偏好**故意不在这七页里**——因为它的调整入口就在被调整的那个东西旁边，
 放进设置页反而让人先去别处找一遍再回来：
 
 | 设置 | 字段 | 入口 | 为什么不做进设置页 |
@@ -221,7 +241,7 @@
 
 ---
 
-## 9. 字段反向索引
+## 10. 字段反向索引
 
 按 `settings.json` 对象查"该去第几页改"。
 
@@ -236,7 +256,8 @@
 | `appearance` | `density` | 2 外观 | `ResetAppearancePage` |
 | `appearance` | `showNavPane` / `showStatusBar` / `showPreview` / `immersiveTitleBar` | 2 外观 | `ResetAppearancePage` |
 | `appearance` | `tabStripPosition` | **3 文件列表** | `ResetListPage` |
-| `appearance` | `tagColorNames` | **5 隐私与存储** | `ResetPrivacyPage` |
+| `appearance` | `tags` | **6 标签** | `ResetTagsPage` |
+| `appearance` | `tagColorNames`（旧版，只读兼容） | **6 标签** | 不重置（装载时并入 `tags` 后清空） |
 | `behavior` | `restoreLastSession` / `startupWorkspace` | 1 常规 | `ResetGeneralPage` |
 | `behavior` | `previewAutoOpen` | **2 外观** | `ResetAppearancePage` |
 | `behavior` | `defaultView` / `sortBy` / `sortDescending` | 3 文件列表 | `ResetListPage` |
@@ -258,7 +279,7 @@
 
 ---
 
-## 10. 新增一个设置项时的判断顺序
+## 11. 新增一个设置项时的判断顺序
 
 按顺序问，第一个答"是"的就是答案：
 
@@ -287,12 +308,12 @@
 
 ---
 
-## 11. 已知缺口
+## 12. 已知缺口
 
 | 项 | 说明 | 处置 |
 |---|---|---|
-| 按页拆 `UserControl` | 六页仍在一个 `SettingsWindow.xaml` 里，code-behind 约 1400 行 | 未到 1600 行阈值，暂不拆 |
-| 设置项搜索 | 六页 + 折叠低频项之后未做搜索框 | 页面数超 8 页或单页需滚动两屏以上时再评估 |
+| 按页拆 `UserControl` | 七页仍在一个 `SettingsWindow.xaml` 里，code-behind 约 1400 行 | 未到 1600 行阈值，暂不拆 |
+| 设置项搜索 | 七页 + 折叠低频项之后未做搜索框 | 页面数超 8 页或单页需滚动两屏以上时再评估 |
 
 已修的一项留档：`appearance.tabStripPosition` 的控件在「文件列表」页、重置却走「外观」页，
 导致页 3 点恢复不动它、页 2 点恢复会动一个页 2 看不见的控件。2026-11-11 按方案一改为
