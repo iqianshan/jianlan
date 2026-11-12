@@ -964,6 +964,15 @@ public static class Strings
     /// <summary>Locations</summary>
     public static string Nav_Locations => LocalizationService.Instance.Get("Nav.Locations");
 
+    /// <summary>Choose which locations to show</summary>
+    public static string Nav_Places_Config => LocalizationService.Instance.Get("Nav.Places.Config");
+
+    /// <summary>Show all locations</summary>
+    public static string Nav_Places_RestoreAll => LocalizationService.Instance.Get("Nav.Places.RestoreAll");
+
+    /// <summary>All locations are hidden. Use the gear icon to bring them back.</summary>
+    public static string Nav_Places_AllHidden => LocalizationService.Instance.Get("Nav.Places.AllHidden");
+
     /// <summary>Tags</summary>
     public static string Nav_Tags => LocalizationService.Instance.Get("Nav.Tags");
 
@@ -1654,6 +1663,12 @@ public static class Strings
     /// <summary>Show preview pane</summary>
     public static string Settings_Appearance_ShowPreview => LocalizationService.Instance.Get("Settings.Appearance.ShowPreview");
 
+    /// <summary>Hide the system title bar</summary>
+    public static string Settings_Appearance_ImmersiveTitleBar => LocalizationService.Instance.Get("Settings.Appearance.ImmersiveTitleBar");
+
+    /// <summary>The tab strip moves into the title bar and the minimize, maximize and close buttons are drawn by the app. Takes effect a</summary>
+    public static string Settings_Appearance_ImmersiveTitleBar_Hint => LocalizationService.Instance.Get("Settings.Appearance.ImmersiveTitleBar.Hint");
+
     /// <summary>Preview automatically when a file is selected</summary>
     public static string Settings_Behavior_PreviewAuto => LocalizationService.Instance.Get("Settings.Behavior.PreviewAuto");
 
@@ -1665,6 +1680,18 @@ public static class Strings
 
     /// <summary>Tabs</summary>
     public static string A11y_TabStrip => LocalizationService.Instance.Get("A11y.TabStrip");
+
+    /// <summary>Minimize</summary>
+    public static string A11y_WindowMinimize => LocalizationService.Instance.Get("A11y.WindowMinimize");
+
+    /// <summary>Maximize</summary>
+    public static string A11y_WindowMaximize => LocalizationService.Instance.Get("A11y.WindowMaximize");
+
+    /// <summary>Restore down</summary>
+    public static string A11y_WindowRestore => LocalizationService.Instance.Get("A11y.WindowRestore");
+
+    /// <summary>Close</summary>
+    public static string A11y_WindowClose => LocalizationService.Instance.Get("A11y.WindowClose");
 
     /// <summary>Address bar</summary>
     public static string A11y_Address => LocalizationService.Instance.Get("A11y.Address");

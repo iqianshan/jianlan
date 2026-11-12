@@ -3,11 +3,14 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using Lingpane.App.Diagnostics;
 using Lingpane.App.ViewModels;
 using Lingpane.Core.Localization;
+using Lingpane.Core.Navigation;
 using Lingpane.Core.Settings;
 
 namespace Lingpane.App.Views;
@@ -164,6 +167,83 @@ public partial class MainWindow
         }
 
         // 高亮还给当前目录：这两项不是"当前位置"，选中态留在它们上面会撒谎
+        SyncNavSelection(Vm.CurrentPath);
+    }
+
+    /// <summary>
+    /// 「位置」标题行尾的齿轮 → 打开勾选菜单（FR-1.2.9）。
+    ///
+    /// 菜单挂在按钮自己的 ContextMenu 上而不是新建 Popup：这样右键也能开出同一份，
+    /// 且与明细视图的列配置菜单共用一套样式和勾选列排版，不必再造一份"看起来像菜单"的东西。
+    /// </summary>
+    private void OnNavPlacesMenuClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { ContextMenu: { } menu } button) return;
+
+        menu.PlacementTarget = button;
+        menu.Placement = PlacementMode.Bottom;
+        menu.IsOpen = true;
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// 菜单打开瞬间按当前设置刷新勾选态。
+    ///
+    /// 不在打开之后维持双向绑定：设置是唯一真相，菜单只是它的一次投影。
+    /// 每次开都重算，就不存在"菜单开着时设置被别处改了、关掉再开还是旧状态"的问题。
+    /// </summary>
+    private void OnNavPlacesMenuOpening(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ContextMenu menu) return;
+
+        IReadOnlyList<string> hidden = App.Settings.Layout.NavHiddenPlaces;
+
+        foreach (object entry in menu.Items)
+        {
+            if (entry is not MenuItem item) continue;
+
+            // 带 Tag 的是九项位置；不带 Tag 的是「恢复全部显示」——它只在真隐藏过东西时可用。
+            // 全部显示着的时候点它什么也不会发生，留着可点等于在菜单里放一个坏按钮。
+            if (item.Tag is string key) item.IsChecked = !NavPlaces.IsHidden(hidden, key);
+            else item.IsEnabled = hidden.Count > 0;
+        }
+    }
+
+    /// <summary>勾选/取消一项位置。勾选 = 显示，取消 = 隐藏。</summary>
+    private void OnToggleNavPlace(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: string key }) return;
+
+        // 菜单项自己已经把 IsChecked 翻过面了，这里只跟设置对齐，不再读 IsChecked——
+        // 免得两处各翻一次，变成"点一下没变、点两下才对"。
+        List<string> hidden = App.Settings.Layout.NavHiddenPlaces;
+        if (!hidden.Remove(key)) hidden.Add(key);
+
+        ApplyNavPlaces();
+    }
+
+    /// <summary>「恢复全部显示」：清空隐藏清单。</summary>
+    private void OnRestoreAllNavPlaces(object sender, RoutedEventArgs e)
+    {
+        App.Settings.Layout.NavHiddenPlaces.Clear();
+        ApplyNavPlaces();
+    }
+
+    /// <summary>
+    /// 隐藏清单变了之后的三件事：归一后落盘、重建「位置」这一段、把高亮还给当前目录。
+    ///
+    /// 归一不能省：用户勾选的顺序是随机的，落盘前按显示顺序排好，settings.json 才读得懂；
+    /// 顺带丢掉认不出的键（旧版本残留、手改的错字），不让它被下一次保存再写回去。
+    ///
+    /// 重建后要重新同步高亮：被隐掉的可能正是当前目录那一项，那时该没有高亮，
+    /// 而不是让高亮停在一条已经不在列表里的行上。
+    /// </summary>
+    private void ApplyNavPlaces()
+    {
+        App.Settings.Layout.NavHiddenPlaces = [.. NavPlaces.Normalize(App.Settings.Layout.NavHiddenPlaces)];
+        App.SaveSettings();
+
+        _nav.RefreshLocationRows();
         SyncNavSelection(Vm.CurrentPath);
     }
 }

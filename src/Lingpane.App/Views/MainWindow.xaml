@@ -73,33 +73,88 @@
                         Height="1"
                         Margin="10,10,10,0"
                         Background="{DynamicResource Brush.Border.Hairline}"/>
-                <TextBlock x:Name="Label"
-                           Margin="12,6,8,4"
-                           Style="{StaticResource Text.NavSection}"
-                           Text="{Binding Title}"
-                           PreviewMouseLeftButtonDown="OnNavInertRowClick">
-                    <TextBlock.ContextMenu>
-                        <ContextMenu Style="{StaticResource ContextMenu.Default}"
-                                     Opened="OnNavSectionMenuOpening">
-                            <MenuItem Style="{StaticResource MenuItem.Default}"
-                                      Header="{loc:Tr Key=Bookmark.Group.NewMenu}"
-                                      Click="OnBookmarkNewGroup"
-                                      Visibility="{Binding IsBookmarks, Converter={StaticResource BoolToVisibility}}"/>
-                            <MenuItem Style="{StaticResource MenuItem.Default}"
-                                      Header="{loc:Tr Key=Bookmark.CleanMissing}"
-                                      Click="OnBookmarkCleanMissing"
-                                      Visibility="{Binding IsBookmarks, Converter={StaticResource BoolToVisibility}}"/>
-                            <MenuItem Style="{StaticResource MenuItem.Default}"
-                                      Header="{loc:Tr Key=Nav.Workspace.SaveCurrent}"
-                                      Click="OnWorkspaceSaveCurrent"
-                                      Visibility="{Binding IsWorkspaces, Converter={StaticResource BoolToVisibility}}"/>
-                        </ContextMenu>
-                    </TextBlock.ContextMenu>
-                </TextBlock>
+                <Grid Margin="12,6,8,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="Label"
+                               Grid.Column="0"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource Text.NavSection}"
+                               Text="{Binding Title}"
+                               PreviewMouseLeftButtonDown="OnNavInertRowClick">
+                        <TextBlock.ContextMenu>
+                            <ContextMenu Style="{StaticResource ContextMenu.Default}"
+                                         Opened="OnNavSectionMenuOpening">
+                                <MenuItem Style="{StaticResource MenuItem.Default}"
+                                          Header="{loc:Tr Key=Bookmark.Group.NewMenu}"
+                                          Click="OnBookmarkNewGroup"
+                                          Visibility="{Binding IsBookmarks, Converter={StaticResource BoolToVisibility}}"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}"
+                                          Header="{loc:Tr Key=Bookmark.CleanMissing}"
+                                          Click="OnBookmarkCleanMissing"
+                                          Visibility="{Binding IsBookmarks, Converter={StaticResource BoolToVisibility}}"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}"
+                                          Header="{loc:Tr Key=Nav.Workspace.SaveCurrent}"
+                                          Click="OnWorkspaceSaveCurrent"
+                                          Visibility="{Binding IsWorkspaces, Converter={StaticResource BoolToVisibility}}"/>
+                            </ContextMenu>
+                        </TextBlock.ContextMenu>
+                    </TextBlock>
+
+                    <!-- 「位置」的配置入口（FR-1.2.9）：九项系统位置不是每个人都用得上，
+                         隐藏其中几项比逼着用户扫过一整列更实际。入口放在标题行尾而不是设置页：
+                         调的是"这一列显示什么"，用户的注意力此刻就在这一列上。
+                         其它三个分区不显示这个按钮（各自的增删在分区右键菜单里）。 -->
+                    <Button x:Name="PlacesConfigButton"
+                            Grid.Column="1"
+                            Style="{StaticResource Button.NavSectionCommand}"
+                            Visibility="Collapsed"
+                            ToolTip="{loc:Tr Key=Nav.Places.Config}"
+                            AutomationProperties.Name="{loc:Tr Key=Nav.Places.Config}"
+                            Click="OnNavPlacesMenuClick">
+                        <TextBlock Style="{StaticResource Text.Glyph}"
+                                   Text="{Binding ConfigGlyph}"/>
+                        <Button.ContextMenu>
+                            <!-- 勾选态在 Opened 里按设置现算（与列配置菜单同一口径）：
+                                 菜单一直开着时用户也可能在别处改了设置，打开瞬间值才可信。 -->
+                            <ContextMenu Style="{StaticResource ContextMenu.Default}"
+                                         Opened="OnNavPlacesMenuOpening">
+                                <MenuItem Style="{StaticResource MenuItem.Default}" IsCheckable="True"
+                                          Tag="Desktop" Header="{loc:Tr Key=Nav.Desktop}" Click="OnToggleNavPlace"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}" IsCheckable="True"
+                                          Tag="Documents" Header="{loc:Tr Key=Nav.Documents}" Click="OnToggleNavPlace"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}" IsCheckable="True"
+                                          Tag="Downloads" Header="{loc:Tr Key=Nav.Downloads}" Click="OnToggleNavPlace"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}" IsCheckable="True"
+                                          Tag="Pictures" Header="{loc:Tr Key=Nav.Pictures}" Click="OnToggleNavPlace"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}" IsCheckable="True"
+                                          Tag="Music" Header="{loc:Tr Key=Nav.Music}" Click="OnToggleNavPlace"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}" IsCheckable="True"
+                                          Tag="Videos" Header="{loc:Tr Key=Nav.Videos}" Click="OnToggleNavPlace"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}" IsCheckable="True"
+                                          Tag="ThisPc" Header="{loc:Tr Key=Nav.ThisPc}" Click="OnToggleNavPlace"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}" IsCheckable="True"
+                                          Tag="RecycleBin" Header="{loc:Tr Key=Nav.RecycleBin}" Click="OnToggleNavPlace"/>
+                                <MenuItem Style="{StaticResource MenuItem.Default}" IsCheckable="True"
+                                          Tag="Network" Header="{loc:Tr Key=Nav.Network}" Click="OnToggleNavPlace"/>
+                                <Separator Style="{StaticResource Menu.Separator}"/>
+                                <!-- 没有 Tag 的那一项是"恢复全部显示"，Opened 里按"有没有隐藏项"决定可用性 -->
+                                <MenuItem Style="{StaticResource MenuItem.Default}"
+                                          Header="{loc:Tr Key=Nav.Places.RestoreAll}"
+                                          Click="OnRestoreAllNavPlaces"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                </Grid>
             </StackPanel>
             <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding IsFirst}" Value="True">
                     <Setter TargetName="Rule" Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsLocations}" Value="True">
+                    <Setter TargetName="PlacesConfigButton" Property="Visibility" Value="Visible"/>
                 </DataTrigger>
             </DataTemplate.Triggers>
         </DataTemplate>
@@ -461,6 +516,41 @@
                 BorderThickness="0,0,0,1">
             <views:TabStrip x:Name="TabBar"/>
         </Border>
+
+        <!--
+            标题条覆盖层（FR-10.11）。只在"隐藏系统标题栏"开启时出现，
+            否则整块高度为 0，界面与改造前一致（见 ApplyTabStripPosition）。
+
+            两层而不是把按钮塞进 TabFrame：TabFrame 会跟着"标签栏位置"上下搬家，
+            窗口键必须钉在窗口右上角，不能跟着标签跑到底部去。
+
+            两列而不是给标题文字写右外边距：按钮组宽度不是一个定值
+            （标签栏在底部时 TabFrame 不在这一行，让位宽度也不同），
+            Auto 列让文字自动停在按钮左侧。
+        -->
+        <Grid x:Name="TitleBarHost"
+              Grid.Row="0" Grid.ColumnSpan="5"
+              Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 标签栏在底部时，这一行只剩标题文字。
+                 顶部模式下它隐藏——标题由当前标签承担，重复一遍反而杂乱。 -->
+            <TextBlock x:Name="TitleFallback"
+                       Grid.Column="0"
+                       Margin="14,0"
+                       Height="{DynamicResource Size.TitleBar.Height}"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource Text.Base}"
+                       Foreground="{DynamicResource Brush.Text.Primary}"
+                       Text="{Binding TitleText}"
+                       TextTrimming="CharacterEllipsis"
+                       Visibility="Collapsed"/>
+
+            <views:WindowControls x:Name="WindowButtons" Grid.Column="1"/>
+        </Grid>
 
         <!-- 导航栏（FR-1.2 + FR-7.3）。系统节点与收藏区在**同一条列表**里，
              行模板按类型挑（见 Window.Resources）。宽度由列上的 Min/Max 夹在 160–320 之间

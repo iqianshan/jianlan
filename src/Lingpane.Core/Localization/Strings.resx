@@ -957,6 +957,15 @@
   <data name="Nav.Locations" xml:space="preserve">
     <value>Locations</value>
   </data>
+  <data name="Nav.Places.Config" xml:space="preserve">
+    <value>Choose which locations to show</value>
+  </data>
+  <data name="Nav.Places.RestoreAll" xml:space="preserve">
+    <value>Show all locations</value>
+  </data>
+  <data name="Nav.Places.AllHidden" xml:space="preserve">
+    <value>All locations are hidden. Use the gear icon to bring them back.</value>
+  </data>
   <data name="Nav.Tags" xml:space="preserve">
     <value>Tags</value>
   </data>
@@ -1613,6 +1622,12 @@
   <data name="Settings.Appearance.ShowPreview" xml:space="preserve">
     <value>Show preview pane</value>
   </data>
+  <data name="Settings.Appearance.ImmersiveTitleBar" xml:space="preserve">
+    <value>Hide the system title bar</value>
+  </data>
+  <data name="Settings.Appearance.ImmersiveTitleBar.Hint" xml:space="preserve">
+    <value>The tab strip moves into the title bar and the minimize, maximize and close buttons are drawn by the app. Takes effect after a restart.</value>
+  </data>
   <data name="Settings.Behavior.PreviewAuto" xml:space="preserve">
     <value>Preview automatically when a file is selected</value>
   </data>
@@ -1627,6 +1642,18 @@
   </data>
   <data name="A11y.TabStrip" xml:space="preserve">
     <value>Tabs</value>
+  </data>
+  <data name="A11y.WindowMinimize" xml:space="preserve">
+    <value>Minimize</value>
+  </data>
+  <data name="A11y.WindowMaximize" xml:space="preserve">
+    <value>Maximize</value>
+  </data>
+  <data name="A11y.WindowRestore" xml:space="preserve">
+    <value>Restore down</value>
+  </data>
+  <data name="A11y.WindowClose" xml:space="preserve">
+    <value>Close</value>
   </data>
   <data name="A11y.Address" xml:space="preserve">
     <value>Address bar</value>

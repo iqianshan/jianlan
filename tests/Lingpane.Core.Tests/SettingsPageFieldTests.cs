@@ -123,6 +123,21 @@ public sealed class SettingsPageFieldTests
     }
 
     /// <summary>
+    /// 隐藏系统标题栏的控件在「外观」页，恢复本页时必须一起回默认值（true）。
+    /// 归错页的症状与上面那条相反：控件明明在这一页，点恢复却没有变化。
+    /// </summary>
+    [Fact]
+    public void 恢复外观页重置隐藏系统标题栏()
+    {
+        var settings = new AppSettings();
+        settings.Appearance.ImmersiveTitleBar = false;
+
+        settings.ResetAppearancePage();
+
+        Assert.True(settings.Appearance.ImmersiveTitleBar);
+    }
+
+    /// <summary>
     /// 标签栏位置的控件在「文件列表」页，所以"恢复本页默认"必须能重置它。
     /// 归属写错时的症状是：点了恢复，页面上那一项纹丝不动，而另一页悄悄变了。
     /// </summary>

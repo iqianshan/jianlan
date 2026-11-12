@@ -48,6 +48,9 @@
     <sys:Double x:Key="Font.Size.Subtitle">15</sys:Double>
     <sys:Double x:Key="Font.Size.Title">20</sys:Double>
     <sys:Double x:Key="Font.Size.Display">28</sys:Double>
+    <!-- 窗口按钮图标（FR-10.11）。10px 是 MDL2 的 chrome 字形画出来正好 10×10 的尺寸，
+         固定不随字号放大（FONT-06）：这是"系统键"，不是正文。 -->
+    <sys:Double x:Key="Font.Size.WindowControl">10</sys:Double>
 
     <FontWeight x:Key="Font.Weight.Normal">Normal</FontWeight>
     <FontWeight x:Key="Font.Weight.Emphasis">Bold</FontWeight>
@@ -86,7 +89,15 @@
 
     <sys:Double x:Key="Size.Toolbar.Height">48</sys:Double>
     <sys:Double x:Key="Size.StatusBar.Height">28</sys:Double>
+    <!-- 标题条（FR-10.11）。40 与资源管理器一致：30px 的标签居中放进去，上下各 5px 余白。
+         随字号变化，运行期由 FontScaleService 写回。 -->
     <sys:Double x:Key="Size.TitleBar.Height">40</sys:Double>
+
+    <!-- 窗口按钮（FR-10.11）：46×32 是 Windows 自己的尺寸，改小会失去"系统键"的手感 -->
+    <sys:Double x:Key="Size.WindowControl.Width">46</sys:Double>
+    <sys:Double x:Key="Size.WindowControl.Height">32</sys:Double>
+    <!-- 三个按钮的总宽，标签栏据此让出右侧空间，避免标签被按钮压住 -->
+    <sys:Double x:Key="Size.WindowControls.Width">138</sys:Double>
 
     <!-- 工具栏搜索框（FR-6.13）。150 是"能看见 8~10 个汉字"的宽度：
          再宽会在分屏时把地址栏压没，再窄连一个常见关键词都显示不全。
@@ -117,6 +128,11 @@
 
     <sys:Double x:Key="Size.Tag.Dot">6</sys:Double>
     <sys:Double x:Key="Size.Tag.Gutter">24</sys:Double>
+
+    <!-- 小图标按钮的命中区（分区标题行尾的齿轮，FR-1.2.9）。
+         固定 20 不随字号放大：图标尺寸本就不随字号变化（FONT-06），
+         而它所在的那一行由 Caption 行高撑开，20 在最挤的 9pt 下也装得下。 -->
+    <sys:Double x:Key="Size.IconButton.Small">20</sys:Double>
 
     <sys:Double x:Key="Size.ScrollBar.Thickness">10</sys:Double>
     <sys:Double x:Key="Size.Splitter.Thickness">6</sys:Double>
@@ -152,6 +168,9 @@
     <sys:Double x:Key="Radius.Window">10</sys:Double>
 
     <CornerRadius x:Key="CornerRadius.Control">4</CornerRadius>
+    <!-- 标签页（FR-10.11）：7px 是 ui-guidelines 规则 7.5 定的值，比控件圆角大一档——
+         标签是"卡片"，不是"按钮"，圆角小了看不出是在标题栏里浮起来 -->
+    <CornerRadius x:Key="CornerRadius.Tab">7</CornerRadius>
     <CornerRadius x:Key="CornerRadius.Menu">8</CornerRadius>
     <CornerRadius x:Key="CornerRadius.Dialog">10</CornerRadius>
 

@@ -33,6 +33,7 @@
     "showStatusBar": true,
     "showPreview": false,       // 预览窗格的默认状态（FR-5.2.10）。默认关闭：内存占用最大的可选功能
     "tabStripPosition": "top",  // top | bottom（FR-2.4），无法识别时回落 top
+    "immersiveTitleBar": true,  // 隐藏系统标题栏，标签栏充当标题栏（FR-10.11）。**改后需重启**
     "tagColorNames": {          // 颜色自定义名称（FR-4.1.7）。**只存被改过的**
       "Red": "紧急"             // 键是枚举名（不是位值）：这份文件是给人看、也可能手改的
     }                           // 清空或写回默认名即删键；值最多 24 字符（MaxTagColorNameLength）
@@ -110,10 +111,22 @@
     "splitVertical": false,     // false = 左右，true = 上下（FR-3.1）
     "previewWidth": 320,        // 预览窗格宽度，240–720（FR-9.1.1）。与 showPreview 分开：关掉再打开要回到原宽度
     "navWidth": 184,            // 导航栏宽度，160–320（FR-1.2.4）。拖完分隔条才落盘，双击分隔条回 184
-    "thisPcExpanded": false     // 侧栏「此电脑」是否展开（FR-1.2.7）。默认折叠：侧栏只有 184px 宽时先摆目录与收藏
+    "thisPcExpanded": false,    // 侧栏「此电脑」是否展开（FR-1.2.7）。默认折叠：侧栏只有 184px 宽时先摆目录与收藏
+    "navHiddenPlaces": []       // 侧栏「位置」被隐藏的项（FR-1.2.9）。空 = 九项全显示；键见下表
   }
 }
 ```
+
+`navHiddenPlaces` 的键（取值即枚举名，与 `knownFolderPaths` 的键同一套写法）：
+
+| 键 | 对应 | 键 | 对应 |
+|---|---|---|---|
+| `Desktop` | 桌面 | `ThisPc` | 此电脑 |
+| `Documents` | 文档 | `RecycleBin` | 回收站 |
+| `Downloads` | 下载 | `Network` | 网络 |
+| `Pictures` | 图片 | | |
+| `Music` | 音乐 | | |
+| `Videos` | 视频 | | |
 
 ## 3. 字段约束
 
@@ -124,6 +137,7 @@
 | `theme` | 四值枚举，且系统高对比度开启时强制 `HighContrast` | 回落 `system`。`highContrast` 是用户手动开启的路径（FR-5.1.2）；系统那边开着时以系统为准——那个开关的语义是"我看不清"，比应用内偏好更强 |
 | `windowLeft/windowTop` | `null` 或任意整数坐标（负数是副屏在主屏左侧/上方） | 不夹取：夹到非负会把副屏用户的布局每次启动拽回主屏。启动时若与虚拟屏的相交面积不足（宽 <120 或高 <40）就回主屏正中，见 `WindowPlacement` |
 | `thisPcExpanded` | 布尔 | 默认 `false`（折叠）。改动当场落盘，与收藏分组折叠同一口径 |
+| `navHiddenPlaces` | 上面那张键表的子集，数组 | 认不出的键**丢弃**、重复项合并、顺序归一到侧栏显示顺序（`NavPlaces.Normalize`）。空数组 = 九项全显示，也是默认值——老用户的文件里没有这个字段，读出来就是升级前的样子。存"隐藏了哪些"而不是"显示了哪些"：将来新增一项时老用户自动看得见 |
 | `fontSizePt` | `null` 或 8–24 整数 | 超范围夹取到边界 |
 | `fontFamily` | 必须存在于系统字体列表 | 不存在则回落默认栈，不报错 |
 | `accent` | `null` 或 `#RRGGBB` | 三位写法、颜色名、非十六进制一律归为 `null`（跟随系统）：让界面去猜颜色名只会得到一块读不出来的黑洞。派生色（悬停/按下/浅底）不落盘，由 `AccentService` 按当前主题现算 |

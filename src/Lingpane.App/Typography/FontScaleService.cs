@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using Lingpane.App.Shell;
 
 namespace Lingpane.App.Typography;
 
@@ -86,6 +87,14 @@ public static class FontScaleService
         res["Size.ComboArrow.Margin"] = new Thickness(0, 0, m.ComboArrowRight, 0);
 
         // Size.Icon.* 有意不写入：FONT-06 要求图标尺寸不随字号变化
+
+        // 自绘标题条（FR-10.11）的可拖动区域跟着标题条长高。
+        // WindowChrome.CaptionHeight 不是依赖属性，绑不了 DynamicResource，只能在这里推一次；
+        // 不推的话 24pt 下标题条高 50、只有上面 40 能拖，下半截按下去毫无反应。
+        foreach (Window window in app.Windows)
+        {
+            if (res["Size.TitleBar.Height"] is double caption) WindowChromeHelper.UpdateCaptionHeight(window, caption);
+        }
 
         SelectedPoints = points is null ? null : Math.Round(m.Points, 2);
         IsCompact = compact;

@@ -62,6 +62,10 @@
     <!-- 滚动条 / 遮罩 -->
     <Color x:Key="Color.Scroll.Thumb">#FF3E3E46</Color>
     <Color x:Key="Color.Scroll.ThumbHover">#FF55555F</Color>
+    <!-- 关闭键悬停底色（FR-10.11）。取 Windows 自己的关闭红，
+         三个主题里只有前两个用它——高对比度下红底不可读，退回系统强调色 -->
+    <Color x:Key="Color.Window.CloseHover">#FFC42B1C</Color>
+
     <Color x:Key="Color.Overlay.Scrim">#99000000</Color>
 
     <SolidColorBrush x:Key="Brush.Surface.Window" Color="{StaticResource Color.Surface.Window}" po:Freeze="True"/>
@@ -116,6 +120,8 @@
 
     <SolidColorBrush x:Key="Brush.Scroll.Thumb" Color="{StaticResource Color.Scroll.Thumb}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Brush.Scroll.ThumbHover" Color="{StaticResource Color.Scroll.ThumbHover}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Window.CloseHover" Color="{StaticResource Color.Window.CloseHover}" po:Freeze="True"/>
+
     <SolidColorBrush x:Key="Brush.Overlay.Scrim" Color="{StaticResource Color.Overlay.Scrim}" po:Freeze="True"/>
 
 </ResourceDictionary>

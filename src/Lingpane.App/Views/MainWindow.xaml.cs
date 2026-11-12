@@ -12,6 +12,7 @@ using System.Windows.Threading;
 using Lingpane.App.Commands;
 using Lingpane.App.Diagnostics;
 using Lingpane.App.Services;
+using Lingpane.App.Shell;
 using Lingpane.App.ViewModels;
 using Lingpane.Core.Commands;
 using Lingpane.Core.Diagnostics;
@@ -67,6 +68,13 @@ public partial class MainWindow : Window
     /// 新标签也该是分屏；否则"切个标签分屏就没了"会被当成 bug。
     /// </summary>
     private bool _splitEnabled;
+
+    /// <summary>
+    /// 本次运行是否使用自绘标题栏（FR-10.11）。取值是**启动那一刻**的快照，不是实时读设置：
+    /// WindowStyle 建完窗口就改不了，设置页改完只提示重启。若这里跟着设置实时变，
+    /// 用户改完开关再切一下标签栏位置，就会得到"标签让位了、系统标题栏还在"的错位。
+    /// </summary>
+    private bool _immersiveTitleBar;
 
     /// <summary>
     /// 撤销栈（FR-6.8）。窗口级、单层，两个窗格共用一份。
@@ -169,6 +177,10 @@ public partial class MainWindow : Window
 
         InitializeComponent();
 
+        // 自绘标题栏（FR-10.11）。必须在首帧前定：WindowStyle 一旦建了窗口就改不了，
+        // 运行期切换要重建 HWND，所以设置页改完只提示"重启生效"。
+        ApplyWindowChrome();
+
         // 导航栏宽度取设置里的值（FR-1.2.4）。必须在首帧前套上：放在 Loaded 里会让
         // 侧栏先按默认宽度画一帧、再跳到用户拖过的宽度，看起来像闪了一下。
         ApplyNavLayout();
@@ -194,7 +206,10 @@ public partial class MainWindow : Window
                 // FR-1.2.7：节点展开状态属于"用户调过一次就要记住"的那类设置
                 App.Settings.Layout.ThisPcExpanded = expanded;
                 App.SaveSettings();
-            });
+            },
+            // FR-1.2.9：勾掉的位置不进列表。传委托而不是传当时的快照，
+            // 每次重建都问一次最新值，勾完立刻生效、不必重启。
+            hiddenPlaces: () => App.Settings.Layout.NavHiddenPlaces);
         QuickAccessList.ItemsSource = _nav.Rows;
 
         // 新建标签走「设置 → 新标签页默认目录」，没设就是主页（FR-2.1）；关掉最后一个标签
@@ -1104,14 +1119,64 @@ public partial class MainWindow : Window
     private void ApplyTabStripPosition()
     {
         bool bottom = App.Settings.Appearance.TabStripPosition == AppearanceSettings.TabBottom;
+        bool immersive = _immersiveTitleBar;
 
         Grid.SetRow(TabFrame, bottom ? 3 : 0);
-        TabRowTop.Height = bottom ? new GridLength(0) : GridLength.Auto;
+
+        // 沉浸模式下顶部那一行即使标签栏搬到底部也要留着——窗口键还钉在右上角。
+        // 非沉浸模式没有窗口键，行高归零，界面回到改造前的样子。
+        TabRowTop.Height = bottom && !immersive ? new GridLength(0) : GridLength.Auto;
         TabRowBottom.Height = bottom ? GridLength.Auto : new GridLength(0);
 
         // 分隔线画在朝向浏览区的那一侧：顶部时在下方，底部时在上方
         TabFrame.BorderThickness = bottom ? new Thickness(0, 1, 0, 0) : new Thickness(0, 0, 0, 1);
+
+        // 顶部模式下标签栏就是标题栏：撑到标题条高度，并给右侧窗口键让出位置。
+        // 不让位的话最后一个标签会被三个按钮压住，且只有标签滚到那里才看得出来。
+        if (immersive && !bottom)
+        {
+            TabFrame.Height = Metric("Size.TitleBar.Height");
+            TabFrame.Margin = new Thickness(0, 0, Metric("Size.WindowControls.Width"), 0);
+        }
+        else
+        {
+            TabFrame.ClearValue(HeightProperty);
+            TabFrame.Margin = new Thickness(0);
+        }
+
+        // 标签栏在底部时，标题条左侧用窗口标题补位；否则那一条只剩三个按键，空得莫名其妙
+        TitleFallback.Visibility = immersive && bottom ? Visibility.Visible : Visibility.Collapsed;
     }
+
+    /// <summary>
+    /// 切换自绘标题栏形态（FR-10.11）。设置项只影响窗口创建这一次：
+    /// 运行期改 WindowStyle 要重建 HWND，整棵可视树都得重来，代价与收益不成比例。
+    /// </summary>
+    private void ApplyWindowChrome()
+    {
+        _immersiveTitleBar = App.Settings.Appearance.ImmersiveTitleBar;
+
+        if (!_immersiveTitleBar)
+        {
+            // 系统标题栏已经在，覆盖层不能留：否则标签右侧白让 138px，顶部还多一条空行
+            TitleBarHost.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        WindowChromeHelper.Attach(this);
+        TitleBarHost.Visibility = Visibility.Visible;
+        UpdateCaptionHeight();
+    }
+
+    /// <summary>
+    /// 标题条高度随字号变，可拖动区域（CaptionHeight）必须跟着走。
+    /// 不跟的话 24pt 下标题条高 50、只有上面 40 能拖，用户会以为窗口卡住了。
+    /// </summary>
+    private void UpdateCaptionHeight() =>
+        WindowChromeHelper.UpdateCaptionHeight(this, Metric("Size.TitleBar.Height"));
+
+    /// <summary>取一个尺寸令牌。资源缺失直接抛出，不静默回退到魔数。</summary>
+    private double Metric(string key) => (double)FindResource(key);
 
     /// <summary>
     /// 分屏网格的实际几何。构造函数里 ApplySplitLayout 跑在布局之前，ActualWidth 全是 0，

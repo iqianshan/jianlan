@@ -304,6 +304,8 @@ public static void ApplyTheme(string name)
 
 **规则 7.7**　标题栏必须自绘（`WindowChrome`），用于两平台统一的深色标题栏与 40px 高度。自绘后拖拽区用 `WindowChrome.IsHitTestVisibleInChrome` 在按钮上放行。
 
+**规则 7.8（强制）**　自绘标题栏的最大化尺寸必须钉在当前显示器的工作区（`rcWork`），实现在 `WindowChromeHelper` 的 `WM_WINDOWPOSCHANGING` 处理里。**不要在 `WM_GETMINMAXINFO` 里改**——`WindowChromeWorker` 会在前一个消息里把最大化窗口设成"整个显示器 + 8px 隐形边框"，覆盖掉那里算好的值；有系统标题栏时那 8px 藏在屏幕外看不见，自绘后客户区等于窗口矩形，任务栏会被整条盖住（实测副屏 125% 下溢出 68px）。
+
 ---
 
 ## 8. 动效

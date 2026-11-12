@@ -1,0 +1,45 @@
+<UserControl x:Class="Lingpane.App.Views.WindowHeader"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:Lingpane.App.Views"
+             Height="{DynamicResource Size.TitleBar.Height}"
+             Background="{DynamicResource Brush.Surface.Window}"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Display"
+             TextOptions.TextRenderingMode="ClearType"
+             TextOptions.TextHintingMode="Fixed">
+
+    <!--
+        对话框的自绘标题条（FR-10.11）：左边窗口标题，右边窗口键。
+
+        整条都是 caption 区域（WindowChromeHelper 的 CaptionHeight 与本条等高），
+        拖动、双击最大化、贴边吸附由系统负责，这里不需要任何鼠标处理。
+        标题文字不能标 IsHitTestVisibleInChrome——它压在 caption 上，
+        标了反而会把拖动切成"选中文字"。
+
+        为什么不用主窗口那套"标签栏即标题栏"：对话框没有标签，
+        一条 40px 的空标签栏只会白占高度。
+
+        两列而不是给文字写右外边距：按钮组宽度会随 ShowMaximize 变（3 个 46 或 2 个 46），
+        写死一个数总有一边对不上，Auto 列让文字自动停在按钮左侧。
+    -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <TextBlock x:Name="Caption"
+                   Grid.Column="0"
+                   Margin="14,0"
+                   VerticalAlignment="Center"
+                   Style="{StaticResource Text.Base}"
+                   Foreground="{DynamicResource Brush.Text.Primary}"
+                   TextTrimming="CharacterEllipsis"/>
+
+        <views:WindowControls x:Name="Buttons"
+                              Grid.Column="1"
+                              ShowMaximize="False"/>
+    </Grid>
+</UserControl>

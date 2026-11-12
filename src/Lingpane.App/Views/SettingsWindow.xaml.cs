@@ -223,6 +223,7 @@ public partial class SettingsWindow : Window
         BuildTagColorNameRows();
 
         ShowNavCheck.IsChecked = Settings.Appearance.ShowNavPane;
+        ImmersiveTitleBarCheck.IsChecked = Settings.Appearance.ImmersiveTitleBar;
         ShowStatusCheck.IsChecked = Settings.Appearance.ShowStatusBar;
         ShowPreviewCheck.IsChecked = Settings.Appearance.ShowPreview;
         PreviewAutoCheck.IsChecked = Settings.Behavior.PreviewAutoOpen;
@@ -569,6 +570,18 @@ public partial class SettingsWindow : Window
         if (_loading) return;
         Settings.Appearance.ShowStatusBar = ShowStatusCheck.IsChecked == true;
         Owner_?.ApplySettingsToUi();
+        App.SaveSettings();
+    }
+
+    /// <summary>
+    /// 隐藏系统标题栏（FR-10.11）。只写设置、不刷新界面：WindowStyle 只能在建窗口时定，
+    /// 运行期切换要重建 HWND。强行让主窗口局部响应，只会得到"标题栏撤了、无边框还在"的半成品。
+    /// </summary>
+    private void OnImmersiveTitleBarChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+
+        Settings.Appearance.ImmersiveTitleBar = ImmersiveTitleBarCheck.IsChecked == true;
         App.SaveSettings();
     }
 

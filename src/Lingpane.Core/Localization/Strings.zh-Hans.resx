@@ -944,6 +944,15 @@
   <data name="Nav.Locations" xml:space="preserve">
     <value>位置</value>
   </data>
+  <data name="Nav.Places.Config" xml:space="preserve">
+    <value>选择要显示的位置</value>
+  </data>
+  <data name="Nav.Places.RestoreAll" xml:space="preserve">
+    <value>恢复全部显示</value>
+  </data>
+  <data name="Nav.Places.AllHidden" xml:space="preserve">
+    <value>位置已全部隐藏，点右侧齿轮可恢复</value>
+  </data>
   <data name="Nav.Tags" xml:space="preserve">
     <value>标签</value>
   </data>
@@ -1600,6 +1609,12 @@
   <data name="Settings.Appearance.ShowPreview" xml:space="preserve">
     <value>显示预览窗格</value>
   </data>
+  <data name="Settings.Appearance.ImmersiveTitleBar" xml:space="preserve">
+    <value>隐藏系统标题栏</value>
+  </data>
+  <data name="Settings.Appearance.ImmersiveTitleBar.Hint" xml:space="preserve">
+    <value>标签栏上移到标题栏位置，最小化、最大化、关闭改由界面绘制。更改后需重启应用。</value>
+  </data>
   <data name="Settings.Behavior.PreviewAuto" xml:space="preserve">
     <value>选中文件后自动预览</value>
   </data>
@@ -1613,6 +1628,18 @@
   </data>
   <data name="A11y.TabStrip" xml:space="preserve">
     <value>标签栏</value>
+  </data>
+  <data name="A11y.WindowMinimize" xml:space="preserve">
+    <value>最小化</value>
+  </data>
+  <data name="A11y.WindowMaximize" xml:space="preserve">
+    <value>最大化</value>
+  </data>
+  <data name="A11y.WindowRestore" xml:space="preserve">
+    <value>向下还原</value>
+  </data>
+  <data name="A11y.WindowClose" xml:space="preserve">
+    <value>关闭</value>
   </data>
   <data name="A11y.Address" xml:space="preserve">
     <value>地址栏</value>

@@ -59,4 +59,26 @@ public static class IconGlyphs
     /// EDA2 是单块硬盘，都不如它"这台机器上所有盘"的意思准）。
     /// </summary>
     public const string ThisPc = "\uE977";
+
+    /// <summary>
+    /// 齿轮（FR-1.2.9）：侧栏「位置」标题行尾的"选择显示哪些位置"入口。
+    /// E713 是 MDL2 的 Setting，就是系统设置里那个齿轮，用户不需要额外学习。
+    /// </summary>
+    public const string Settings = "\uE713";
+
+    // ── 窗口键（FR-10.11）────────────────────────────────────────────────
+    // 这三个是 MDL2 的 Chrome 系列，字形就是 Windows 自己的 10×10 细线，
+    // 换成 E8BB 之类的普通图形会在 10px 下糊成一团。
+
+    /// <summary>最小化：一条横线。</summary>
+    public const string WindowMinimize = "\uE921";
+
+    /// <summary>最大化：一个空心方框。</summary>
+    public const string WindowMaximize = "\uE922";
+
+    /// <summary>还原：两个叠放的方框。最大化态时替换掉最大化图标。</summary>
+    public const string WindowRestore = "\uE923";
+
+    /// <summary>关闭：一个叉。</summary>
+    public const string WindowClose = "\uE106";
 }

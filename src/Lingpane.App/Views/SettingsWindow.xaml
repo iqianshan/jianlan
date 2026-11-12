@@ -1,12 +1,14 @@
 ﻿<Window x:Class="Lingpane.App.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:Lingpane.App.Shell"
         xmlns:loc="clr-namespace:Lingpane.App.Localization"
         Title="{loc:Tr Key=Toolbar.Settings}"
         Icon="pack://application:,,,/Lingpane;component/Assets/Brand/lingpane.ico"
         Width="880" Height="720"
         MinWidth="780" MinHeight="520"
         WindowStartupLocation="CenterOwner"
+        shell:ImmersiveChrome.Enabled="True"
         Background="{DynamicResource Brush.Surface.Window}"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
@@ -417,6 +419,21 @@
                                       Content="{loc:Tr Key=Settings.Appearance.ShowPreview}"
                                       Checked="OnShowPreviewChanged"
                                       Unchecked="OnShowPreviewChanged"/>
+
+                            <!-- 隐藏系统标题栏（FR-10.11）。改完要重启：WindowStyle 在窗口创建后改不了，
+                                 运行期切换得重建 HWND。所以这里不调 ApplySettingsToUi——
+                                 强行让主窗口局部响应，只会变成"标题栏没了、边框还在"的半成品。 -->
+                            <CheckBox x:Name="ImmersiveTitleBarCheck"
+                                      Margin="0,0,0,4"
+                                      Style="{StaticResource CheckBox.Default}"
+                                      Content="{loc:Tr Key=Settings.Appearance.ImmersiveTitleBar}"
+                                      Checked="OnImmersiveTitleBarChanged"
+                                      Unchecked="OnImmersiveTitleBarChanged"/>
+
+                            <TextBlock Margin="0,0,0,8"
+                                       Style="{StaticResource Text.Secondary}"
+                                       TextWrapping="Wrap"
+                                       Text="{loc:Tr Key=Settings.Appearance.ImmersiveTitleBar.Hint}"/>
 
                             <!-- 触发方式（FR-5.2.10 的后半句）。关掉之后预览窗格还在，
                                  但要按里面的「立即预览」才动——给"一选中就卡一下"的大文件目录留的开关。 -->

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Lingpane.Core.Navigation;
 
 namespace Lingpane.Core.Settings;
 
@@ -290,6 +291,10 @@ public sealed class AppSettings
         }
 
         Layout.NavWidth = Math.Clamp(Layout.NavWidth, MinNavWidth, MaxNavWidth);
+
+        // 侧栏「位置」的隐藏清单：认不出的键丢弃、重复合并、顺序归一到显示顺序。
+        // 手改过 settings.json 的人写 "desktop" 也认，下次保存统一成 "Desktop"。
+        Layout.NavHiddenPlaces = [.. NavPlaces.Normalize(Layout.NavHiddenPlaces)];
     }
 
     // ── 恢复默认值（FR-5.3.8）─────────────────────────────────────────────
@@ -345,6 +350,10 @@ public sealed class AppSettings
         Layout.SplitVertical = false;
         Layout.PreviewWidth = DefaultPreviewWidth;
         Layout.NavWidth = DefaultNavWidth;
+
+        // 「位置」的隐藏清单属于布局偏好，一起回出厂（= 九项全显示）。
+        // 它有独立的恢复入口（齿轮菜单里的「恢复全部显示」），这里是"恢复全部设置"那条路径。
+        Layout.NavHiddenPlaces = [];
     }
 
     // ── 按页恢复默认（设置页分页后的粒度）───────────────────────────────
@@ -621,6 +630,17 @@ public sealed class AppearanceSettings
     public const string TabBottom = "bottom";
 
     public static bool IsKnownTabPosition(string? value) => value is TabTop or TabBottom;
+
+    /// <summary>
+    /// 隐藏系统标题栏（FR-10.11）：标签栏上移到标题栏位置，窗口键自绘在右侧。
+    ///
+    /// 默认开——不隐藏的话标签栏与系统标题栏是上下两条，与资源管理器、终端的形态都不一致。
+    /// 关掉的入口留给两类场景：远程桌面/第三方窗口管理器下自绘标题栏可能拖不动，
+    /// 以及高对比度主题下想完全交还给系统。
+    ///
+    /// 只影响窗口创建那一刻：改完提示重启，运行期改 WindowStyle 要重建 HWND。
+    /// </summary>
+    public bool ImmersiveTitleBar { get; set; } = true;
 
     /// <summary>
     /// 八色的自定义名称（FR-4.1.7）：键是 <c>TagColors</c> 的枚举名（<c>Red</c>…），值是用户写的名字。
@@ -1220,6 +1240,18 @@ public sealed class LayoutSettings
     /// 侧栏只有 184px 高时先摆目录与收藏，用户要盘符时点一下即可。
     /// </summary>
     public bool ThisPcExpanded { get; set; }
+
+    /// <summary>
+    /// 侧栏「位置」分区里被用户隐藏的项（FR-1.2.9）。键见 <see cref="NavPlaces"/>。
+    ///
+    /// **空集合 = 九项全部显示**，这是默认值也是兼容路径：老用户的设置文件里没有
+    /// 这个字段，反序列化后是空集合，侧栏与升级前完全一样。反过来若默认写成
+    /// "隐藏若干项"，那就成了升级即改界面。
+    ///
+    /// 存"隐藏了哪些"而不是"显示了哪些"：将来新增一项（比如"最近访问"）时，
+    /// 老用户自动看见它；存白名单则要在升级时把新项补进每个人的列表，漏一次就少一项。
+    /// </summary>
+    public List<string> NavHiddenPlaces { get; set; } = [];
 
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }

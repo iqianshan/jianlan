@@ -54,6 +54,15 @@ public sealed class NavSectionRow : NavRow
 
     public bool IsWorkspaces => Kind == NavSectionKind.Workspaces;
 
+    /// <summary>
+    /// 「位置」分区的标题行。它是唯一一个自带配置入口的分区：
+    /// 齿轮按钮与右键菜单都按这个属性显示/挂载，其它三个分区没有（它们的增删在各自的分区菜单里）。
+    /// </summary>
+    public bool IsLocations => Kind == NavSectionKind.Locations;
+
+    /// <summary>齿轮按钮的字形。放在行上而不是 XAML 里写码位：图标码位统一由 IconGlyphs 登记（界面规则 9.2）。</summary>
+    public string ConfigGlyph => IconGlyphs.Settings;
+
     /// <summary>位置与标签分区没有管理动作，右键菜单要整份关掉（空菜单弹出一个小空框更糟）。</summary>
     public bool HasMenu => Kind is NavSectionKind.Bookmarks or NavSectionKind.Workspaces;
 }
@@ -391,17 +400,27 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
     /// <summary>展开状态变化时通知宿主落盘。</summary>
     private readonly Action<bool>? _onThisPcExpandedChanged;
 
+    /// <summary>
+    /// 「位置」分区里被隐藏的项（FR-1.2.9）。用委托注入而不是直接读 <c>App.Settings</c>：
+    /// 本类在单测里能单独构造，且"隐藏了哪些"是窗口级设置，改完要能立刻反映出来——
+    /// 每次重建都重新问一次，比自己缓存一份再想办法失效可靠。
+    /// null = 不隐藏任何项（测试与将来的无设置宿主）。
+    /// </summary>
+    private readonly Func<IReadOnlyList<string>>? _hiddenPlaces;
+
     /// <summary>驱动器是否正在枚举。并发保护：展开一次只发起一轮，避免连点堆出多次读盘。</summary>
     private bool _drivesLoading;
 
     public NavPanelViewModel(BookmarkStore store, Func<IReadOnlyList<NavItem>> systemRows,
-        TagStore? tags = null, bool thisPcExpanded = false, Action<bool>? onThisPcExpandedChanged = null)
+        TagStore? tags = null, bool thisPcExpanded = false, Action<bool>? onThisPcExpandedChanged = null,
+        Func<IReadOnlyList<string>>? hiddenPlaces = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _systemRows = systemRows ?? throw new ArgumentNullException(nameof(systemRows));
         _tags = tags;
         _thisPcExpanded = thisPcExpanded;
         _onThisPcExpandedChanged = onThisPcExpandedChanged;
+        _hiddenPlaces = hiddenPlaces;
 
         // 这里**不**调 Rebuild：systemRows 要读窗口的活动标签，而本对象在
         // "标签集合刚建出来"之前就被构造了，此时取不到东西（一取就是空引用）。
@@ -454,19 +473,7 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
             IsFirst = true,
         });
 
-        foreach (NavItem item in system)
-        {
-            if (item.IsHome) continue;
-
-            // 此电脑（FR-1.2.2）换成一个可展开的容器行，展开时把驱动器插在它下面
-            if (item.IsExpandable)
-            {
-                AddThisPcRows();
-                continue;
-            }
-
-            Rows.Add(item);
-        }
+        foreach (INavRow row in BuildLocationRows(system)) Rows.Add(row);
 
         Rows.Add(new NavSectionRow { Title = Strings.Nav_Bookmarks, Kind = NavSectionKind.Bookmarks });
 
@@ -498,21 +505,92 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// 「位置」分区的全部内容行（不含分区标题），已剔除用户隐藏的项（FR-1.2.9）。
+    ///
+    /// 过滤放在这里而不是 <see cref="PaneViewModel.BuildQuickAccess"/>：后者刻意不依赖
+    /// <c>App.Settings</c>（视图模型要能单独测试），而且它按窗格各建一份——
+    /// 隐藏是窗口级的偏好，两侧窗格不该各算一次。
+    ///
+    /// 全部被隐藏时给一行提示而不是留个空标题：不留入口的话，用户唯一的自救方式是
+    /// 手改 settings.json，那等于把功能锁死了。
+    /// </summary>
+    private List<INavRow> BuildLocationRows(IReadOnlyList<NavItem> system)
+    {
+        var rows = new List<INavRow>(system.Count);
+        IReadOnlyList<string> hidden = _hiddenPlaces?.Invoke() ?? [];
+
+        // 源头本身是空的（还没有活动标签，启动初期）与"全部被隐藏"是两回事：
+        // 前者不该冒出"已隐藏全部位置"的提示，那会凭空说一句假话。
+        bool hasSource = false;
+
+        foreach (NavItem item in system)
+        {
+            if (item.IsHome) continue;
+
+            hasSource = true;
+            if (NavPlaces.IsHidden(hidden, item.PlaceKey)) continue;
+
+            // 此电脑（FR-1.2.2）换成一个可展开的容器行，展开时把驱动器插在它下面
+            if (item.IsExpandable)
+            {
+                AppendThisPcRows(rows);
+                continue;
+            }
+
+            rows.Add(item);
+        }
+
+        if (rows.Count == 0 && hasSource)
+        {
+            rows.Add(new NavEmptyRow { Text = Strings.Nav_Places_AllHidden });
+        }
+
+        return rows;
+    }
+
+    /// <summary>
+    /// 只重建「位置」这一段，不动收藏/标签/工作区。
+    ///
+    /// 与 <see cref="RefreshTagRows"/>、<see cref="RefreshThisPcRows"/> 同一个理由：
+    /// 勾掉一项就要立刻看见它消失，而整条 <see cref="Rebuild"/> 会把 500 条收藏
+    /// 一并重建、并触发一次失效检测——为了藏一个目录做这些是浪费。
+    /// </summary>
+    public void RefreshLocationRows()
+    {
+        int start = -1;
+        for (int i = 0; i < Rows.Count; i++)
+        {
+            if (Rows[i] is NavSectionRow { Kind: NavSectionKind.Locations }) { start = i; break; }
+        }
+
+        if (start < 0) return;
+
+        // 分区到下一个分区标题为止
+        int end = start + 1;
+        while (end < Rows.Count && Rows[end] is not NavSectionRow) end++;
+
+        for (int i = end - 1; i > start; i--) Rows.RemoveAt(i);
+
+        int insert = start;
+        foreach (INavRow row in BuildLocationRows([.. _systemRows()])) Rows.Insert(++insert, row);
+    }
+
+    /// <summary>
     /// 「此电脑」那一行，以及展开时的驱动器子行（FR-1.2.2）。
     ///
     /// 驱动器来自 <see cref="DriveService.Cached"/>——首次展开时它是空的，
     /// 先放一行"正在读取"再把枚举结果补进来。为什么不在这里同步枚举：
     /// 一个断线的映射盘会让这一行卡上十几秒，而整条导航栏都在 UI 线程上。
     /// </summary>
-    private void AddThisPcRows()
+    private void AppendThisPcRows(List<INavRow> rows)
     {
-        Rows.Add(new NavThisPcRow(_thisPcExpanded));
+        rows.Add(new NavThisPcRow(_thisPcExpanded));
         if (!_thisPcExpanded) return;
 
         IReadOnlyList<DriveEntry> drives = DriveService.Cached;
         if (drives.Count == 0)
         {
-            Rows.Add(new NavThisPcNoteRow
+            rows.Add(new NavThisPcNoteRow
             {
                 Text = _drivesLoading ? Strings.Nav_ThisPc_Loading : Strings.Nav_ThisPc_Empty,
             });
@@ -521,7 +599,7 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
             return;
         }
 
-        foreach (DriveEntry drive in drives) Rows.Add(new NavDriveRow(drive));
+        foreach (DriveEntry drive in drives) rows.Add(new NavDriveRow(drive));
     }
 
     /// <summary>

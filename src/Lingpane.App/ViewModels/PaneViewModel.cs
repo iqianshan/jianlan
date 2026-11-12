@@ -39,12 +39,18 @@ public enum NavItemKind
 /// <see cref="Kind"/> 为 <see cref="NavItemKind.Home"/> 的那一项是主页入口（FR-1.2.1）：
 /// 它没有路径，点击的语义是"把当前标签切到主页"，不是"导航到某个目录"。
 /// </summary>
+/// <param name="PlaceKey">
+/// 「位置」分区里这一项的稳定键（<see cref="NavPlaces"/>），供"隐藏指定位置"使用（FR-1.2.9）。
+/// 主页与将来其它不该被隐藏的节点留空。<see cref="NavItemKind.Folder"/> 一类的节点
+/// 光看 Kind 分不出"桌面"和"下载"，隐藏清单只能靠这个键对上号。
+/// </param>
 public sealed record NavItem(
     string Name,
     string Glyph,
     string Path,
     NavItemKind Kind = NavItemKind.Folder,
-    string? Tooltip = null) : INavRow
+    string? Tooltip = null,
+    string? PlaceKey = null) : INavRow
 {
     public bool IsHome => Kind == NavItemKind.Home;
 
@@ -1384,7 +1390,7 @@ public sealed class PaneViewModel : INotifyPropertyChanged
                 _ => (Strings.Nav_ThisPc, IconGlyphs.Account),
             };
 
-            list.Add(new NavItem(name, glyph, folder.Path));
+            list.Add(new NavItem(name, glyph, folder.Path, PlaceKey: NavPlaces.KeyOf(folder.Kind)));
         }
 
         // 此电脑（FR-1.2.2）。放在已知文件夹之后、回收站之前，与资源管理器侧栏的顺序一致。
@@ -1393,7 +1399,7 @@ public sealed class PaneViewModel : INotifyPropertyChanged
         // （见 NavPanelViewModel.ToggleThisPc）。展开状态落盘（FR-1.2.7），下次启动仍是这样。
         list.Add(new NavItem(
             Strings.Nav_ThisPc, IconGlyphs.ThisPc, string.Empty,
-            NavItemKind.ThisPc, Strings.Nav_ThisPc_Tip));
+            NavItemKind.ThisPc, Strings.Nav_ThisPc_Tip, NavPlaces.ThisPc));
 
         // 回收站与网络（FR-1.2.3）。排在已知文件夹之后，与资源管理器侧栏的顺序一致。
         //
@@ -1404,11 +1410,11 @@ public sealed class PaneViewModel : INotifyPropertyChanged
         // （SlowLocations / PaneViewModel.NavigateAsync），这才是真正会卡住用户的那条路。
         list.Add(new NavItem(
             Strings.Nav_RecycleBin, IconGlyphs.RecycleBin, string.Empty,
-            NavItemKind.RecycleBin, Strings.Nav_RecycleBin_Tip));
+            NavItemKind.RecycleBin, Strings.Nav_RecycleBin_Tip, NavPlaces.RecycleBin));
 
         list.Add(new NavItem(
             Strings.Nav_Network, IconGlyphs.Network, string.Empty,
-            NavItemKind.Network, Strings.Nav_Network_Tip));
+            NavItemKind.Network, Strings.Nav_Network_Tip, NavPlaces.Network));
 
         return list;
     }

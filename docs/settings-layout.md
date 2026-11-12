@@ -18,7 +18,7 @@
 | # | 页 | 设置项数 | 承载的设置对象 | 按页恢复方法 |
 |---|---|---|---|---|
 | 1 | 常规 | 5 | `general` + `behavior` 的启动项 | `ResetGeneralPage()` |
-| 2 | 外观 | 9 | `appearance` + `behavior.previewAutoOpen` | `ResetAppearancePage()` |
+| 2 | 外观 | 10 | `appearance` + `behavior.previewAutoOpen` | `ResetAppearancePage()` |
 | 3 | 文件列表 | 11 | `behavior` 的视图排序 + `appearance.tabStripPosition` + `columns` | `ResetListPage()` |
 | 4 | 操作与确认 | 8 | `behavior` 的打开与确认项 | `ResetActionPage()` |
 | 5 | 隐私与存储 | 4 | `privacy` + `appearance.tagColorNames` + 标签库 | `ResetPrivacyPage()` |
@@ -65,12 +65,18 @@
 | `ShowNavCheck` | `Settings.Appearance.ShowNav` | `appearance.showNavPane` | 布尔 |
 | `ShowStatusCheck` | `Settings.Appearance.ShowStatus` | `appearance.showStatusBar` | 布尔 |
 | `ShowPreviewCheck` | `Settings.Appearance.ShowPreview` | `appearance.showPreview` | 布尔 |
+| `ImmersiveTitleBarCheck` | `Settings.Appearance.ImmersiveTitleBar` | `appearance.immersiveTitleBar` | 布尔（**改后需重启**） |
 | `PreviewAutoCheck` | `Settings.Behavior.PreviewAuto` | **`behavior.previewAutoOpen`** | 布尔 |
 | `FontHint` | — | 只读提示 | 字体族回落到默认栈时才写（FONT-03） |
 
 **跨对象项**：`PreviewAutoCheck` 控的是预览行为，落在外观页——它与上面三条同属
 "窗格长什么样"，与「操作与确认」页那组"打开/确认"不是一类。这是**唯一**一个
 `behavior.*` 字段落在外观页，`AppearancePageFields` 里就是为它单独列的一项。
+
+**唯一需要重启的一项**：`ImmersiveTitleBarCheck` 决定窗口是否用自绘标题栏（FR-10.11）。
+`WindowStyle` 一旦创建窗口就改不了，运行期切换要重建 HWND，所以这里只写设置、不调
+`ApplySettingsToUi()`——强行让主窗口局部响应，只会得到"系统标题栏撤了、无边框还在"的半成品。
+开关下方的提示文字明确写了"更改后需重启应用"。
 
 **恢复本页默认**：整段换掉 `AppearanceSettings`，但**把两样东西带过去**——
 标签颜色名（显示在第 5 页，由 `ResetPrivacyPage()` 负责）与标签栏位置（控件在第 3 页，
@@ -196,6 +202,21 @@
 「恢复本页默认」在页标题栏、「恢复全部设置」在底栏，**位置本身说明作用范围**。
 页级动作不要挪进内容区，全局动作不要塞进某一页。
 
+### 8.1 不进设置页的设置项
+
+有些偏好**故意不在这六页里**——因为它的调整入口就在被调整的那个东西旁边，
+放进设置页反而让人先去别处找一遍再回来：
+
+| 设置 | 字段 | 入口 | 为什么不做进设置页 |
+|---|---|---|---|
+| 导航栏宽度 | `layout.navWidth` | 拖侧栏分隔条，双击回 184 | 调宽度时眼睛盯着那条线 |
+| 导航栏开合 | `appearance.showNavPane` | 页 2「外观」（这一项**在**设置里，因为它是"整窗样子"） | — |
+| 「位置」显示哪些项 | `layout.navHiddenPlaces` | 侧栏「位置」标题右端的齿轮 | 调的是"这一列显示什么"，注意力此刻就在这一列上 |
+| 列宽 / 列顺序 | `layout.columns.*` | 拖列头、右键列头 | 同上 |
+
+新增这一类设置时，**要在本表登记一行**，写清字段与入口。否则下次有人翻设置页找不到它，
+会以为是漏做，然后再做一份进设置页——同一件事两个入口，改哪边生效就成了玄学。
+
 ---
 
 ## 9. 字段反向索引
@@ -211,7 +232,7 @@
 | `appearance` | `fontFamily` | 2 外观 | `ResetAppearancePage` |
 | `appearance` | `fontSizePt` | 2 外观 | `ResetAppearancePage` |
 | `appearance` | `density` | 2 外观 | `ResetAppearancePage` |
-| `appearance` | `showNavPane` / `showStatusBar` / `showPreview` | 2 外观 | `ResetAppearancePage` |
+| `appearance` | `showNavPane` / `showStatusBar` / `showPreview` / `immersiveTitleBar` | 2 外观 | `ResetAppearancePage` |
 | `appearance` | `tabStripPosition` | **3 文件列表** | `ResetListPage` |
 | `appearance` | `tagColorNames` | **5 隐私与存储** | `ResetPrivacyPage` |
 | `behavior` | `restoreLastSession` / `startupWorkspace` | 1 常规 | `ResetGeneralPage` |
@@ -247,7 +268,9 @@
 4. **它是"打开/删除时问一句"吗？** 是 → 页 4 操作与确认。
 5. **它涉及本地数据的存在与保留（历史/缓存/标签）吗？** 是 → 页 5 隐私与存储。
 6. **它是启动瞬间发生的事吗？** 是 → 页 1 常规。
-7. **以上都不是** → 先别写 XAML，回头想清楚它属于哪个用户场景。
+7. **它的调整入口就在被调整的那个东西旁边吗**（导航栏宽度拖分隔条、「位置」显示项走分区齿轮、
+   列宽拖列头）？是 → **不进设置页**，在 §8.1 登记一行，写清字段与入口。
+8. **以上都不是** → 先别写 XAML，回头想清楚它属于哪个用户场景。
 
 定好页之后，还必须做完三件事，少一件都会变成下一个"恢复了却没生效"：
 

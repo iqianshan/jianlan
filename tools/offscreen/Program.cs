@@ -152,6 +152,8 @@ internal static class Program
         bool navReset = false;
         string? navMiddleLabel = null;
         string? navLeftLabel = null;
+        bool navPlacesMenu = false;
+        List<string> navPlacesToggle = [];
         bool printPaneStatus = false;
         bool printRect = false;
         int xButton = 0;
@@ -189,6 +191,7 @@ internal static class Program
         bool newWindow = false;
         int newWindowTab = -1;
         bool printSettingsState = false;
+        bool showConfirmDemo = false;
         string? tagExportPath = null;
         string? tagImportPath = null;
         double[]? sortOptions = null;
@@ -272,6 +275,16 @@ internal static class Program
                 case "--nav-left" when i + 1 < argv.Length:
                     // 左键对照：同样的行，左键不该新开标签
                     navLeftLabel = argv[++i];
+                    break;
+                case "--nav-places-menu":
+                    // 打开「位置」标题行尾的齿轮菜单并打印每项的勾选/可用状态（FR-1.2.9）。
+                    // 弹出层是独立的 HWND，截不进 RenderTargetBitmap，所以只能这样验：
+                    // 菜单项有没有生成、勾选态有没有按设置算对、底部"恢复全部"的可用性对不对
+                    navPlacesMenu = true;
+                    break;
+                case "--nav-places-toggle" when i + 1 < argv.Length:
+                    // 直接触发某个菜单项的 Click（走的是真处理器），验"取消勾选 → 设置落盘 → 该行消失"
+                    navPlacesToggle.Add(argv[++i]);
                     break;
                 case "--band-rect" when i + 4 < argv.Length:
                     // 直接喂一个矩形给框选的命中逻辑（绕过鼠标）。
@@ -365,6 +378,12 @@ internal static class Program
                 case "--settings":
                     // 设置页。改了关于分节之后要能自己出一张图，不用每次手工开窗口
                     showSettings = true;
+                    break;
+                case "--confirm-demo":
+                    // 确认框（FR-12）。它是唯一 SizeToContent=Height 的自绘标题栏窗口，
+                    // 高度由内容撑开，最容易在无边框改造后出问题，所以单独留一个入口。
+                    // 只是把窗口开出来，不执行任何操作。
+                    showConfirmDemo = true;
                     break;
                 case "--scroll-to" when i + 1 < argv.Length:
                     // 滚到设置页里某个 x:Name 的控件。设置页分页之后，
@@ -685,6 +704,12 @@ internal static class Program
                     await Task.Delay(900);
                 }
 
+                if (navPlacesMenu || navPlacesToggle.Count > 0)
+                {
+                    ExerciseNavPlaces(window, navPlacesMenu, navPlacesToggle);
+                    await Task.Delay(300);
+                }
+
                 if (focusSearch)
                 {
                     FocusSearch(window);
@@ -882,6 +907,12 @@ internal static class Program
                 if (showAbout || licenseView is not null)
                 {
                     target = OpenAbout(window);
+                    await Task.Delay(600);
+                }
+
+                if (showConfirmDemo)
+                {
+                    target = OpenConfirmDemo(window);
                     await Task.Delay(600);
                 }
 
@@ -1431,6 +1462,41 @@ internal static class Program
 
         Console.WriteLine($"icon.ico.frames={decoder.Frames.Count} " +
                           $"sizes=[{string.Join(",", decoder.Frames.Select(f => f.PixelWidth))}]");
+    }
+
+    /// <summary>
+    /// 打开一个空的确认框（FR-12 走查用）。
+    /// 构造函数是私有的（对外只有 Ask/Notify），这里反射拿无参构造；
+    /// 用 Show 而不是 ShowDialog——模态会把本方法的后续截图挡在外面。
+    /// </summary>
+    private static Window OpenConfirmDemo(Window owner)
+    {
+        var ctor = typeof(ConfirmWindow).GetConstructor(
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+            binder: null,
+            types: Type.EmptyTypes,
+            modifiers: null) ?? throw new InvalidOperationException("ConfirmWindow 没有无参构造");
+
+        var dialog = (Window)ctor.Invoke(null);
+        dialog.Owner = owner;
+        dialog.Title = "确认操作";
+
+        if (dialog.FindName("MessageText") is System.Windows.Controls.TextBlock text)
+        {
+            text.Text = "这是一次界面走查用的确认框，不会执行任何操作。";
+        }
+
+        // 按钮文案平时由 Ask/Notify 填（走可本地化的资源键）。
+        // 这里直接 new，所以自己补一份，否则按钮宽度为 0、截图里只剩一条空白
+        if (dialog.FindName("ConfirmButton") is System.Windows.Controls.Button ok) ok.Content = "是";
+        if (dialog.FindName("CancelButton") is System.Windows.Controls.Button no) no.Content = "否";
+
+        dialog.Show();
+
+        Console.WriteLine($"confirm.size={dialog.ActualWidth:0}x{dialog.ActualHeight:0} " +
+                          $"title={dialog.Title} state={dialog.WindowState}");
+
+        return dialog;
     }
 
     private static Window OpenAbout(Window owner)
@@ -3167,6 +3233,110 @@ internal static class Program
                 string header = (item.Header as string ?? "?").Replace("_", string.Empty, StringComparison.Ordinal);
                 return item.Visibility == Visibility.Visible ? header : $"{header}(藏)";
             }));
+    }
+
+    /// <summary>
+    /// 走一遍「位置」的齿轮菜单（FR-1.2.9）。
+    ///
+    /// 为什么不像别的用例那样只截图：菜单是独立的弹出 HWND，不进主窗口的视觉树，
+    /// RenderTargetBitmap 拍不到。所以这里验的是"看不见但会坏"的部分——
+    /// 齿轮在不在、菜单生成了没有、勾选态有没有按设置算对、"恢复全部"该不该可用，
+    /// 以及取消勾选之后那一行是不是真的从列表里消失了。
+    /// </summary>
+    private static void ExerciseNavPlaces(Window window, bool openMenu, List<string> toggleTags)
+    {
+        Button? button = FindPlacesButton(window);
+        if (button is null)
+        {
+            Console.WriteLine("PLACES 未找到齿轮按钮");
+            return;
+        }
+
+        Console.WriteLine($"PLACES 齿轮 可见={button.Visibility} 宽={button.ActualWidth:0} 高={button.ActualHeight:0}");
+
+        if (openMenu)
+        {
+            // 走真处理器：它负责 PlacementTarget 与 IsOpen，等价于用户点了一下
+            button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        }
+
+        ContextMenu? menu = button.ContextMenu;
+        if (menu is null)
+        {
+            Console.WriteLine("PLACES 没有挂菜单");
+            return;
+        }
+
+        Console.WriteLine($"PLACES 菜单 已打开={menu.IsOpen}");
+        foreach (object entry in menu.Items)
+        {
+            if (entry is not MenuItem item) continue;
+
+            Console.WriteLine(
+                $"PLACES 项 tag={item.Tag ?? "(恢复全部)"} 勾选={item.IsChecked} 可用={item.IsEnabled} 标题={item.Header}");
+        }
+
+        foreach (string tag in toggleTags)
+        {
+            MenuItem? item = menu.Items.OfType<MenuItem>().FirstOrDefault(m => (m.Tag as string) == tag);
+            if (item is null)
+            {
+                Console.WriteLine($"PLACES 未找到 {tag}");
+                continue;
+            }
+
+            item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Console.WriteLine($"PLACES 已切换 {tag}");
+        }
+
+        if (menu.IsOpen) menu.IsOpen = false;
+
+        PrintNavPlaceRows(window);
+    }
+
+    /// <summary>打印「位置」分区当前列出的项，确认隐藏/恢复真的落到界面上。</summary>
+    private static void PrintNavPlaceRows(Window window)
+    {
+        if (window.FindName("QuickAccessList") is not ListBox list)
+        {
+            Console.WriteLine("PLACES 找不到 QuickAccessList");
+            return;
+        }
+
+        string[] names = [.. list.Items.OfType<NavItem>().Where(item => !item.IsHome).Select(item => item.Name)];
+        Console.WriteLine($"PLACES 列表 {names.Length} 项：{string.Join(" / ", names)}");
+    }
+
+    /// <summary>在导航列表里找齿轮按钮。它在 NavSectionRow 的模板里，只能按名字在容器里翻。</summary>
+    private static Button? FindPlacesButton(Window window)
+    {
+        if (window.FindName("QuickAccessList") is not ListBox list) return null;
+
+        list.UpdateLayout();
+
+        foreach (object item in list.Items)
+        {
+            if (list.ItemContainerGenerator.ContainerFromItem(item) is not DependencyObject container) continue;
+
+            var pending = new Queue<DependencyObject>();
+            pending.Enqueue(container);
+
+            while (pending.Count > 0)
+            {
+                DependencyObject node = pending.Dequeue();
+
+                if (node is Button { Name: "PlacesConfigButton" } found
+                    && found.Visibility == Visibility.Visible)
+                {
+                    return found;
+                }
+
+                int count = VisualTreeHelper.GetChildrenCount(node);
+                for (int i = 0; i < count; i++) pending.Enqueue(VisualTreeHelper.GetChild(node, i));
+            }
+        }
+
+        return null;
     }
 
     private static TextBlock? FindSectionLabel(DependencyObject root, string title)
