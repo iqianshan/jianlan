@@ -956,7 +956,19 @@ public partial class PaneView : UserControl
         // 没有"打开哪一项"这回事。
         if (_bandArmed)
         {
+            // 空白处单击（没拉出框）= 取消选择。ListBox 自己不做这件事：
+            // 点空白命中的是 ScrollViewer / ItemsPresenter，Selector 只在命中
+            // ListBoxItem 时才改选中，所以这里必须显式清一次。
+            // Ctrl+点空白保留原选中——那是"接着加选"的准备动作，清掉反而碍事。
+            bool dragged = _bandVisible;
             EndRubberBand();
+
+            if (!dragged && (Keyboard.Modifiers & ModifierKeys.Control) == 0 &&
+                FileList.SelectedItems.Count > 0)
+            {
+                FileList.UnselectAll();
+            }
+
             e.Handled = true;
             return;
         }

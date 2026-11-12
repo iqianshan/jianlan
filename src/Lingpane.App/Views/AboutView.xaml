@@ -38,30 +38,47 @@
     </UserControl.Resources>
 
     <StackPanel>
-        <!-- ══ 标识与版本 ══
-             不再重复应用名与 tagline：页标题栏里已经写着「关于」和一句说明，
-             这里只留品牌图形 + 版本号，信息不重样。 -->
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+        <!-- ══ 品牌与版本 ══
+             图标 + 右侧两行：第一行产品名，第二行版本号与构建号。
+             原来这里只排了一个版本号，页面顶部看不出这是哪个程序的关于页——
+             设置窗的标题条写着"设置"、页标题写着"关于"，唯独缺了产品名。 -->
+        <Grid Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
             <!--
                 品牌图形（概念 A · 棂格）。用 DynamicResource 而不是写死路径：
                 图形是"深色描边 + 强调色实心格"的单色稿，深底上直接用会糊，
                 三套主题各指一份（见 Themes/Theme.*.xaml 的 Image.Brand.Mark）。
             -->
-            <Image Width="32" Height="32"
+            <Image Width="40" Height="40"
                    Source="{DynamicResource Image.Brand.Mark}"
                    Stretch="Uniform"
                    RenderOptions.BitmapScalingMode="HighQuality"/>
-            <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock x:Name="VersionText" Style="{StaticResource Text.Subtitle}"/>
-                    <!-- 构建标识（短 commit）排在版本号右下，小字 -->
+
+            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                <TextBlock Style="{StaticResource Text.Subtitle}"
+                           FontWeight="{StaticResource Font.Weight.Emphasis}"
+                           Text="{loc:Tr Key=About.AppName}"/>
+
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBlock x:Name="VersionText"
+                               Style="{StaticResource Text.Caption}"
+                               Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                    <!-- 分隔点跟着构建号一起显隐：没有 commit 时不留下一个孤零零的间隔号 -->
+                    <TextBlock x:Name="BuildSeparator"
+                               Margin="5,0,5,0"
+                               Style="{StaticResource Text.Caption}"
+                               Foreground="{DynamicResource Brush.Text.Secondary}"
+                               Text="·"/>
                     <TextBlock x:Name="BuildTagText"
-                               Margin="8,0,0,2"
-                               VerticalAlignment="Bottom"
-                               Style="{StaticResource Text.Caption}"/>
+                               Style="{StaticResource Text.Caption}"
+                               Foreground="{DynamicResource Brush.Text.Secondary}"/>
                 </StackPanel>
             </StackPanel>
-        </StackPanel>
+        </Grid>
 
         <!-- ══ 运行环境 ══
              四行而不是 2×2：系统版本串本身就占满一整行

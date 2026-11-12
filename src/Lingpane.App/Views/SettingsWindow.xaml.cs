@@ -455,10 +455,10 @@ public partial class SettingsWindow : Window
 
         Rect work = SystemParameters.WorkArea;
 
-        // 基线 800×640：去掉全局页头后腾出 64px，640 高的内容区与原来 720 高基本持平。
+        // 基线 760×600：去掉全局页头后腾出 64px，600 高的内容区与 0.2.0 的 720 高基本持平。
         // 再小就要动各页的排版密度了，"常规"页放不下四组。
-        Width = Math.Min(Math.Max(800 * ratio, MinWidth), work.Width * 0.94);
-        Height = Math.Min(Math.Max(640 * ratio, MinHeight), work.Height * 0.94);
+        Width = Math.Min(Math.Max(760 * ratio, MinWidth), work.Width * 0.94);
+        Height = Math.Min(Math.Max(600 * ratio, MinHeight), work.Height * 0.94);
     }
 
     private void UpdateFontSizeText()

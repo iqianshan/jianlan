@@ -126,7 +126,8 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 
 | 项 | 做法 |
 |---|---|
-| 形态 | `src/Lingpane.App/Views/AboutView.xaml(.cs)` 用户控件，挂在 `SettingsWindow` 的 `PageAbout`（第六页）里。尺寸随设置窗（800×640），不单独设宽高，长文案靠 `TextWrapping` 换行。0.2.0 时是 480×680 的独立窗口，0.2.1 删除 |
+| 形态 | `src/Lingpane.App/Views/AboutView.xaml(.cs)` 用户控件，挂在 `SettingsWindow` 的 `PageAbout`（第六页）里。尺寸随设置窗（760×600），不单独设宽高，长文案靠 `TextWrapping` 换行。0.2.0 时是 480×680 的独立窗口，0.2.1 删除 |
+| 品牌区 | 图标 40×40 + 右侧两行：第一行 `Lingpane`（资源键 `About.AppName`，中英同值，品牌名不翻译），第二行版本号与实际构建号（`·` 分隔）。无构建号时版本行只剩版本号，分隔点一并隐藏 |
 | 版本号 | `Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion`；`+` 后为 commit，无 `+` 时只显示版本号 |
 | 打开目录 | `Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })`；路径不存在先 `Directory.CreateDirectory`（日志目录可能尚未创建）；异常 → 状态行提示，不弹原始异常 |
 | 复制诊断 | `Clipboard.SetText` 包在 try/catch（剪贴板被占用是常态），失败提示"剪贴板被占用，请重试" |

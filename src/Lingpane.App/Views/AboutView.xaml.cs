@@ -52,7 +52,12 @@ public partial class AboutView : UserControl
         if (AppInfo.BuildTag is { } tag)
         {
             BuildTagText.Text = string.Format(CultureInfo.CurrentCulture, Strings.About_Build, tag);
+            return;
         }
+
+        // 没有构建号（本地随手构建）时连分隔点一起收掉，不留一个孤立的"·"
+        BuildTagText.Visibility = Visibility.Collapsed;
+        BuildSeparator.Visibility = Visibility.Collapsed;
     }
 
     private void FillEnvironment()

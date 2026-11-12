@@ -6,8 +6,8 @@
         xmlns:loc="clr-namespace:Lingpane.App.Localization"
         Title="{loc:Tr Key=Toolbar.Settings}"
         Icon="pack://application:,,,/Lingpane;component/Assets/Brand/lingpane.ico"
-        Width="800" Height="640"
-        MinWidth="720" MinHeight="560"
+        Width="760" Height="600"
+        MinWidth="680" MinHeight="520"
         WindowStartupLocation="CenterOwner"
         shell:ImmersiveChrome.Enabled="True"
         Background="{DynamicResource Brush.Surface.Window}"
@@ -147,7 +147,7 @@
 
                     <!-- ══════ 页 1：常规 ══════ -->
                     <ScrollViewer x:Name="PageGeneral"
-                                  Padding="20,16,20,20"
+                                  Padding="20,14,20,16"
                                   VerticalScrollBarVisibility="Auto">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
@@ -263,7 +263,7 @@
 
                     <!-- ══════ 页 2：外观 ══════ -->
                     <ScrollViewer x:Name="PageAppearance"
-                                  Padding="20,16,20,20"
+                                  Padding="20,14,20,16"
                                   Visibility="Collapsed"
                                   VerticalScrollBarVisibility="Auto">
                         <StackPanel>
@@ -448,7 +448,7 @@
 
                     <!-- ══════ 页 3：文件列表 ══════ -->
                     <ScrollViewer x:Name="PageFiles"
-                                  Padding="20,16,20,20"
+                                  Padding="20,14,20,16"
                                   Visibility="Collapsed"
                                   VerticalScrollBarVisibility="Auto">
                         <StackPanel>
@@ -617,7 +617,7 @@
 
                     <!-- ══════ 页 4：操作与确认 ══════ -->
                     <ScrollViewer x:Name="PageActions"
-                                  Padding="20,16,20,20"
+                                  Padding="20,14,20,16"
                                   Visibility="Collapsed"
                                   VerticalScrollBarVisibility="Auto">
                         <StackPanel>
@@ -716,7 +716,7 @@
 
                     <!-- ══════ 页 5：隐私与存储 ══════ -->
                     <ScrollViewer x:Name="PagePrivacy"
-                                  Padding="20,16,20,20"
+                                  Padding="20,14,20,16"
                                   Visibility="Collapsed"
                                   VerticalScrollBarVisibility="Auto">
                         <StackPanel>
@@ -898,7 +898,7 @@
                         许可全文仍开窗显示：11KB 的法律文本内嵌进来，这一页会变成几千行。
                     -->
                     <ScrollViewer x:Name="PageAbout"
-                                  Padding="20,16,20,20"
+                                  Padding="20,14,20,16"
                                   Visibility="Collapsed"
                                   VerticalScrollBarVisibility="Auto">
                         <views:AboutView x:Name="AboutPanel"/>

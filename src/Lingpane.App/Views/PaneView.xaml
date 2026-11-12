@@ -180,7 +180,11 @@
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Style="{StaticResource Breadcrumb.Separator}"/>
+                                    <!-- 每段左右留 10（Button.Link 默认是 6）：
+                                         路径短的时候各段挤成一串，看不出"这是几个可以点的段"。
+                                         只加内边距不动分隔符间距，段与段的视觉间隔不变。 -->
                                     <Button Style="{StaticResource Button.Link}"
+                                            Padding="10,0,10,0"
                                             Content="{Binding Label}"
                                             Tag="{Binding FullPath}"
                                             Click="OnBreadcrumbClick"

@@ -1652,6 +1652,9 @@
   </data>
 
   <!-- 关于页（FR-10.8） -->
+  <data name="About.AppName" xml:space="preserve">
+    <value>Lingpane</value>
+  </data>
   <data name="About.Title" xml:space="preserve">
     <value>关于 Lingpane</value>
   </data>

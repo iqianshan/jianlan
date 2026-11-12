@@ -179,11 +179,15 @@
         线不抢眼，但在两种主题下都能把"段"和"项"分成两级。
         间距（上 14 / 线下 10 / 下 4）比文字本身更重要——它是分段感的主要来源。
     -->
+    <!-- 分组标题：标题在上、1px 细线在下，线只负责"切段"，不参与分级。
+         线放在标题下方而不是上方，是因为读的顺序是"先看到组名，再看到线，
+         再看到这一组的内容"——线在标题上面时，用户先撞到的是一条线，
+         标题反而像是上一组的结尾。 -->
     <Style x:Key="Heading.Group" TargetType="Border">
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Hairline}"/>
-        <Setter Property="BorderThickness" Value="0,1,0,0"/>
-        <Setter Property="Padding" Value="0,10,0,0"/>
-        <Setter Property="Margin" Value="0,14,0,4"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="Padding" Value="0,0,0,8"/>
+        <Setter Property="Margin" Value="0,14,0,10"/>
     </Style>
 
     <Style x:Key="Text.GroupTitle" TargetType="TextBlock" BasedOn="{StaticResource Text.Base}">

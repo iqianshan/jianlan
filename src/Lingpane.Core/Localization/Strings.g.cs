@@ -1701,6 +1701,9 @@ public static class Strings
     /// <summary>Toolbar</summary>
     public static string A11y_Toolbar => LocalizationService.Instance.Get("A11y.Toolbar");
 
+    /// <summary>Lingpane</summary>
+    public static string About_AppName => LocalizationService.Instance.Get("About.AppName");
+
     /// <summary>About Lingpane</summary>
     public static string About_Title => LocalizationService.Instance.Get("About.Title");
 

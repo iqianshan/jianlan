@@ -1666,6 +1666,9 @@
   </data>
 
   <!-- 关于页（FR-10.8）。许可证与依赖清单的正文不在这里：法律文本以原文为准，不翻译。 -->
+  <data name="About.AppName" xml:space="preserve">
+    <value>Lingpane</value>
+  </data>
   <data name="About.Title" xml:space="preserve">
     <value>About Lingpane</value>
   </data>
