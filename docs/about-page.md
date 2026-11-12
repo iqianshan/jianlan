@@ -3,6 +3,19 @@
 > 对应 `docs/requirements.md` FR-10.8、FR-10.9、AC-10。阶段：**0.2.0**。
 > 依赖：`docs/i18n.md` 先落地——关于页文案全部走资源键，否则又要抽一遍。
 
+> **0.2.1 变更（v3 走查）**：形态从「独立窗口」改为「内嵌设置页第六页」。
+> 下文 §二 的方案对比与 §五、§六 里的窗口尺寸，是 0.2.0 的决策记录，保留作依据；
+> 现状以实现为准——
+>
+> - 内容是 `src/Lingpane.App/Views/AboutView.xaml(.cs)`（`UserControl`），
+>   由 `SettingsWindow` 的 `PageAbout` 直接承载；`AboutWindow` 已删除。
+> - 理由：入口本来就只有设置页那一颗按钮，点开再弹一扇 480×680 的窗，
+>   等于把同一份内容放到更远的地方，还多一次关闭。§二 里"会把设置页拉得很长"的顾虑，
+>   在设置页改成分页导航后不成立——第六页本来就是空的。
+> - 三个许可全文仍然开独立的 `LicenseWindow`：11KB 法律文本内嵌进来，
+>   这一页会变成几千行，且它不该参与本地化。
+> - 版本号、运行环境、目录、诊断四段与 0.2.0 完全一致，没有删减。
+
 ## 一、一个必须先分清的前提
 
 Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并保留变更声明」，**不要求有关于页**。
@@ -21,12 +34,14 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 
 | 方案 | 优点 | 缺点 | 结论 |
 |---|---|---|---|
-| A. 设置窗口内加「关于」分节 | 零新窗口 | 许可证全文 + 依赖清单是长文本，会把设置页拉得很长；设置页当前是单 `ScrollViewer` 顺序分区，加长后首屏要滚很久才能看到隐私开关 | ❌ |
-| B. **独立 `AboutWindow`（非模态，480×680）** | 长文本独立滚动；可单独截图传播；不干扰设置页布局 | 多一个窗口、多一份 XAML | ✅ **采用**（高度由 600 改 680，原因见 §六） |
+| A. 设置窗口内加「关于」分节 | 零新窗口 | 许可证全文 + 依赖清单是长文本，会把设置页拉得很长；设置页当前是单 `ScrollViewer` 顺序分区，加长后首屏要滚很久才能看到隐私开关 | ⚠️ 0.2.1 重新采纳（设置页已分页，"拉长"不再成立） |
+| B. **独立 `AboutWindow`（非模态，480×680）** | 长文本独立滚动；可单独截图传播；不干扰设置页布局 | 多一个窗口、多一份 XAML | 0.2.0 采用，0.2.1 移除 |
 | C. 独立进程 | 隔离 | 与 P3 单进程单窗口冲突 | ❌ |
 
 入口：设置页底部（「隐私」分节之后）一个 `关于 Lingpane` 按钮。不加新快捷键（`F1` 已是快捷键帮助，
 `Ctrl+,` 是设置，再占一个不值）。
+
+> 0.2.1：入口即「关于」页本身，上述按钮已删除。
 
 ## 三、页面内容
 
@@ -111,7 +126,7 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 
 | 项 | 做法 |
 |---|---|
-| 窗口 | `src/Lingpane.App/Views/AboutWindow.xaml(.cs)`，`WindowStartupLocation=CenterOwner`，`ResizeMode=CanResize`，`ShowInTaskbar=false`，**480×680**（650 以上才装得下全部内容：实测内容 425px，600 高的窗里视口只有 401，首屏会把"目录"整段切掉） |
+| 形态 | `src/Lingpane.App/Views/AboutView.xaml(.cs)` 用户控件，挂在 `SettingsWindow` 的 `PageAbout`（第六页）里。尺寸随设置窗（800×640），不单独设宽高，长文案靠 `TextWrapping` 换行。0.2.0 时是 480×680 的独立窗口，0.2.1 删除 |
 | 版本号 | `Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion`；`+` 后为 commit，无 `+` 时只显示版本号 |
 | 打开目录 | `Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })`；路径不存在先 `Directory.CreateDirectory`（日志目录可能尚未创建）；异常 → 状态行提示，不弹原始异常 |
 | 复制诊断 | `Clipboard.SetText` 包在 try/catch（剪贴板被占用是常态），失败提示"剪贴板被占用，请重试" |
@@ -123,9 +138,9 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 
 | 指标 | 目标 | 依据 |
 |---|---|---|
-| 启动成本 | **0ms** | 关于页不在启动路径，`AboutWindow` 按需 `new` |
+| 启动成本 | **0ms** | 关于页不在启动路径；`AboutView` 随设置窗一起构建 |
 | 首次打开 | <100ms | 读 3 个内嵌资源（<1KB + 11KB + 2KB）+ 拼 20 行文本 |
-| 内存 | <2MB（含窗口视觉树） | 打开后关闭即释放；不做常驻缓存 |
+| 内存 | <2MB（含视觉树） | 随设置窗关闭释放；不做常驻缓存 |
 
 不预加载任何清单，不缓存 `Strings` 之外的数据。
 
@@ -145,7 +160,7 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 
 | 项 | 工作量 |
 |---|---|
-| `AboutWindow` XAML + 代码（含三个目录按钮、复制诊断） | 0.5 天 |
+| 关于页 XAML + 代码（含三个目录按钮、复制诊断；0.2.1 起为 `AboutView`） | 0.5 天 |
 | 许可证/NOTICE 内嵌 + 只读查看窗 | 0.25 天 |
 | `gen-third-party.ps1` + CI 校验 | 0.25 天 |
 | 设置页入口 + i18n 抽键 | 0.25 天 |

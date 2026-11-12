@@ -916,7 +916,7 @@ internal static class Program
                     await Task.Delay(600);
                 }
 
-                if (aboutWidth > 0 && target is AboutWindow)
+                if (aboutWidth > 0 && target?.Tag as string == AboutHostTag)
                 {
                     target.Width = aboutWidth;
                     target.UpdateLayout();
@@ -1499,17 +1499,45 @@ internal static class Program
         return dialog;
     }
 
+    /// <summary>关于内容宿主窗口的标记。关于内容已经不是一扇独立窗口了（AboutView 用户控件），
+    /// 离屏截图要自己套一个壳，靠这个标记认出"这是我自己搭的"。</summary>
+    private const string AboutHostTag = "offscreen.about-host";
+
+    /// <summary>
+    /// 关于内容。原先是打开 AboutWindow；现在内容是设置页里的一块用户控件，
+    /// 这里套一个最小外壳（外框 + 滚动）把它渲染出来，尺寸与设置页内容区接近。
+    /// </summary>
     private static Window OpenAbout(Window owner)
     {
-        AboutWindow.ShowFor(owner);
+        var view = new AboutView();
 
-        Window about = Application.Current.Windows.OfType<AboutWindow>().LastOrDefault()
-                       ?? throw new InvalidOperationException("关于页没有出现");
+        var host = new Window
+        {
+            Title = "关于",
+            Owner = owner,
+            Width = 480,
+            Height = 680,
+            Tag = AboutHostTag,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Background = (System.Windows.Media.Brush)Application.Current.Resources["Brush.Surface.Window"],
+            Content = new System.Windows.Controls.ScrollViewer
+            {
+                Content = view,
+                VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
+                Padding = new Thickness(20),
+            },
+        };
 
-        PrintScrollExtent(about);
+        host.Show();
+        PrintScrollExtent(host);
 
-        return about;
+        return host;
     }
+
+    /// <summary>从关于宿主窗口里取出 AboutView（反射调用它的私有事件处理器要用）。</summary>
+    private static AboutView AboutViewOf(Window host) =>
+        (host.Content as System.Windows.Controls.ScrollViewer)?.Content as AboutView
+        ?? throw new InvalidOperationException("关于宿主里没有 AboutView");
 
     /// <summary>
     /// 关于页要不要滚动，靠读值而不是看图：截图只能看到首屏，
@@ -1572,12 +1600,14 @@ internal static class Program
             _ => "OnViewLicense",
         };
 
-        MethodInfo? method = typeof(AboutWindow).GetMethod(
+        AboutView view = AboutViewOf(about);
+
+        MethodInfo? method = typeof(AboutView).GetMethod(
             handler, BindingFlags.NonPublic | BindingFlags.Instance);
 
-        if (method is null) throw new MissingMethodException($"AboutWindow.{handler}");
+        if (method is null) throw new MissingMethodException($"AboutView.{handler}");
 
-        method.Invoke(about, [about, new RoutedEventArgs()]);
+        method.Invoke(view, [view, new RoutedEventArgs()]);
 
         return Application.Current.Windows.OfType<LicenseWindow>().LastOrDefault()
                ?? throw new InvalidOperationException("许可证窗口没有出现");

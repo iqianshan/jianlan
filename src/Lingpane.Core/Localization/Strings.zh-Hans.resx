@@ -638,9 +638,6 @@
   <data name="Hint.DragCopyTo" xml:space="preserve">
     <value>复制到「{0}」</value>
   </data>
-  <data name="Settings.Subtitle" xml:space="preserve">
-    <value>修改即时生效并保存；标注「下次启动」的项除外。</value>
-  </data>
   <data name="Settings.Tabs.NewTabPath" xml:space="preserve">
     <value>新标签页默认目录</value>
   </data>
@@ -799,9 +796,6 @@
   </data>
   <data name="Settings.Privacy.Cleared" xml:space="preserve">
     <value>已清空记录的路径</value>
-  </data>
-  <data name="Settings.About.Content" xml:space="preserve">
-    <value>Lingpane {0}&#10;数据目录：{1}</value>
   </data>
   <data name="Common.Close" xml:space="preserve">
     <value>关闭</value>
@@ -1660,9 +1654,6 @@
   <!-- 关于页（FR-10.8） -->
   <data name="About.Title" xml:space="preserve">
     <value>关于 Lingpane</value>
-  </data>
-  <data name="About.Open" xml:space="preserve">
-    <value>关于 Lingpane…</value>
   </data>
   <data name="About.Tagline" xml:space="preserve">
     <value>一个安静、键盘优先的 Windows 文件管理器。</value>

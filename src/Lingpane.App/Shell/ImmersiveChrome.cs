@@ -61,7 +61,7 @@ public static class ImmersiveChrome
     private static void Wrap(Window window)
     {
         // 幂等：Initialized 与后续可能的重复赋值都走这里
-        if (window.Content is Grid { Tag: WindowHeaderMarker }) return;
+        if (window.Content is Border { Tag: WindowHeaderMarker }) return;
         if (window.Content is not UIElement content) return;
 
         bool resizable = window.ResizeMode is ResizeMode.CanResize or ResizeMode.CanResizeWithGrip;
@@ -82,7 +82,18 @@ public static class ImmersiveChrome
         root.Children.Add(header);
         root.Children.Add(content);
 
-        window.Content = root;
+        // 一圈 1px 外描边。系统标题栏没了之后，对话框与主窗口的背景同为 Surface.Window，
+        // 叠在一起只剩 DWM 的投影在分界——深色主题下那点投影几乎看不见，弹窗看上去像
+        // 主窗口里长出来的一块。描边只在对话框加：主窗口最大化时贴着屏幕边，画线反而多余。
+        var outline = new Border
+        {
+            Tag = WindowHeaderMarker,
+            BorderThickness = new Thickness(1),
+            Child = root,
+        };
+        outline.SetResourceReference(Border.BorderBrushProperty, "Brush.Border.Strong");
+
+        window.Content = outline;
 
         // 顺序不能反：WindowChrome 要在窗口创建前设好附着的 chrome，
         // 而 WindowStyle 一旦建了窗口就改不回来

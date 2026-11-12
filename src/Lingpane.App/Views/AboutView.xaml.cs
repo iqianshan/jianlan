@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using Lingpane.App.Services;
 using Lingpane.Core.Diagnostics;
 using Lingpane.Core.FileSystem;
@@ -11,17 +12,19 @@ using Lingpane.Core.Localization;
 namespace Lingpane.App.Views;
 
 /// <summary>
-/// 关于页（FR-10.8 / FR-10.9）。
+/// 关于内容（FR-10.8 / FR-10.9）。原先是独立窗口 <c>AboutWindow</c>，现改为用户控件，
+/// 直接嵌在设置页的「关于」分区里——入口本来就只有设置页一颗按钮，
+/// 再开一扇窗只是让用户多按一次关闭。
 ///
 /// 与设置页同一个取向：不引入视图模型，全是"采集一次 → 写进控件"的直线逻辑。
-/// 所有数据都在构造时采集，窗口打开之后再没有任何 IO，关闭即释放。
+/// 所有数据都在构造时采集，之后再不碰 IO。
 /// </summary>
-public partial class AboutWindow : Window
+public partial class AboutView : UserControl
 {
     /// <summary>发布页地址。不发任何网络请求，只是交给浏览器打开（FR-5.3.7 的"不联网"）。</summary>
     private const string ReleasesUrl = "https://github.com/lingpane/lingpane/releases";
 
-    public AboutWindow()
+    public AboutView()
     {
         InitializeComponent();
 
@@ -39,17 +42,8 @@ public partial class AboutWindow : Window
         }
     }
 
-    /// <summary>非模态打开，同一时刻只留一个实例（重复点「关于」不该叠出五扇窗）。</summary>
-    public static void ShowFor(Window owner)
-    {
-        if (Application.Current.Windows.OfType<AboutWindow>().FirstOrDefault() is { } existing)
-        {
-            existing.Activate();
-            return;
-        }
-
-        new AboutWindow { Owner = owner }.Show();
-    }
+    /// <summary>宿主窗口。<see cref="LicenseWindow"/> 与文件对话框都需要一个 Owner。</summary>
+    private Window? HostWindow => Window.GetWindow(this);
 
     private void FillVersion()
     {
@@ -92,7 +86,15 @@ public partial class AboutWindow : Window
             return;
         }
 
-        LicenseWindow.ShowText(this, title, text);
+        // LicenseWindow 要一个 Owner 才能在设置窗之上居中；游离状态下宁可不弹，
+        // 也不弹一扇没有归属的窗口（本控件目前只挂在设置窗里，这里只是兜底）
+        if (HostWindow is not { } owner)
+        {
+            ShowStatus(Strings.About_License_Missing);
+            return;
+        }
+
+        LicenseWindow.ShowText(owner, title, text);
     }
 
     // ── 目录入口（FR-10.9）────────────────────────────────────────────────
@@ -189,7 +191,11 @@ public partial class AboutWindow : Window
             OverwritePrompt = true,
         };
 
-        if (dialog.ShowDialog(this) != true) return;
+        bool confirmed = HostWindow is { } owner
+            ? dialog.ShowDialog(owner) == true
+            : dialog.ShowDialog() == true;
+
+        if (!confirmed) return;
 
         try
         {
@@ -224,6 +230,4 @@ public partial class AboutWindow : Window
     }
 
     private void ShowStatus(string message) => StatusText.Text = message;
-
-    private void OnClose(object sender, RoutedEventArgs e) => Close();
 }

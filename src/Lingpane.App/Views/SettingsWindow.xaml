@@ -2,11 +2,12 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:Lingpane.App.Shell"
+        xmlns:views="clr-namespace:Lingpane.App.Views"
         xmlns:loc="clr-namespace:Lingpane.App.Localization"
         Title="{loc:Tr Key=Toolbar.Settings}"
         Icon="pack://application:,,,/Lingpane;component/Assets/Brand/lingpane.ico"
-        Width="880" Height="720"
-        MinWidth="780" MinHeight="520"
+        Width="800" Height="640"
+        MinWidth="720" MinHeight="560"
         WindowStartupLocation="CenterOwner"
         shell:ImmersiveChrome.Enabled="True"
         Background="{DynamicResource Brush.Surface.Window}"
@@ -35,27 +36,18 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- ══ 全局页头：应用名 + 一句总说明 ══ -->
-        <Border Grid.Row="0"
-                Padding="{StaticResource Padding.Dialog}"
-                Background="{DynamicResource Brush.Surface.Window}"
-                BorderBrush="{DynamicResource Brush.Border.Hairline}"
-                BorderThickness="0,0,0,1">
-            <StackPanel>
-                <TextBlock Style="{StaticResource Text.Title}" Text="{loc:Tr Key=Toolbar.Settings}"/>
-                <!-- 用可换行版本：24pt 下这句副标题比窗口宽，单行会被省略号截断（AC-06） -->
-                <TextBlock Margin="0,4,0,0"
-                           Style="{StaticResource Text.Caption.Wrap}"
-                           Text="{loc:Tr Key=Settings.Subtitle}"/>
-            </StackPanel>
-        </Border>
+        <!--
+            全局页头（"设置" + "修改立即生效…"）已去掉。
+            理由有二：上面那条自绘标题条已经写着"设置"两个字，重复一次只是占掉 64px；
+            副标题那句"修改立即生效"对每一页都成立，等于没说，而它占的高度是从
+            "常规"页首屏里扣的。省下的这一块正好抵掉窗口从 720 缩到 640 的差额。
+        -->
 
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
@@ -73,7 +65,7 @@
                     BorderBrush="{DynamicResource Brush.Border.Hairline}"
                     BorderThickness="0,0,1,0">
                 <ListBox x:Name="NavList"
-                         Padding="4,8,4,8"
+                         Padding="8,10,8,10"
                          Style="{StaticResource Nav.Surface}"
                          Background="Transparent"
                          BorderThickness="0"
@@ -173,8 +165,10 @@
 
                             <!-- 启动（FR-5.2.9）两项在同一组：语义互斥（一个说"回到上次的现场"，
                                  一个说"每次固定打开这一份"），分开放反而要用户自己推。 -->
-                            <TextBlock Style="{StaticResource Text.GroupTitle}"
-                                       Text="{loc:Tr Key=Settings.Group.Startup}"/>
+                            <Border Style="{StaticResource Heading.Group}">
+                                <TextBlock Style="{StaticResource Text.GroupTitle}"
+                                           Text="{loc:Tr Key=Settings.Group.Startup}"/>
+                            </Border>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                 <TextBlock Style="{StaticResource Text.FieldLabel}"
@@ -214,8 +208,10 @@
 
                             <!-- 新标签页默认目录（FR-5.2.6）。先选模式，再（仅在「指定路径」时）填路径。
                                  顺序反过来会让人以为"路径空着就没得选"，而实际还有主页与上次目录两种。 -->
-                            <TextBlock Style="{StaticResource Text.GroupTitle}"
-                                       Text="{loc:Tr Key=Settings.Group.NewTab}"/>
+                            <Border Style="{StaticResource Heading.Group}">
+                                <TextBlock Style="{StaticResource Text.GroupTitle}"
+                                           Text="{loc:Tr Key=Settings.Group.NewTab}"/>
+                            </Border>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                 <TextBlock Style="{StaticResource Text.FieldLabel}"
@@ -271,8 +267,10 @@
                                   Visibility="Collapsed"
                                   VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <TextBlock Style="{StaticResource Text.GroupTitle}"
-                                       Text="{loc:Tr Key=Settings.Group.ThemeFont}"/>
+                            <Border Style="{StaticResource Heading.Group}">
+                                <TextBlock Style="{StaticResource Text.GroupTitle}"
+                                           Text="{loc:Tr Key=Settings.Group.ThemeFont}"/>
+                            </Border>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                                 <TextBlock Style="{StaticResource Text.FieldLabel}"
@@ -391,8 +389,10 @@
                                 </ComboBox>
                             </StackPanel>
 
-                            <TextBlock Style="{StaticResource Text.GroupTitle}"
-                                       Text="{loc:Tr Key=Settings.Group.Layout}"/>
+                            <Border Style="{StaticResource Heading.Group}">
+                                <TextBlock Style="{StaticResource Text.GroupTitle}"
+                                           Text="{loc:Tr Key=Settings.Group.Layout}"/>
+                            </Border>
 
                             <!-- 导航栏与状态栏并排：两项都是"这一条要不要显示"，且都很短。
                                  分两行放，这一页就多出 40px——而它本来正好卡在一屏的边上。 -->
@@ -452,8 +452,10 @@
                                   Visibility="Collapsed"
                                   VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <TextBlock Style="{StaticResource Text.GroupTitle}"
-                                       Text="{loc:Tr Key=Settings.Group.ViewSort}"/>
+                            <Border Style="{StaticResource Heading.Group}">
+                                <TextBlock Style="{StaticResource Text.GroupTitle}"
+                                           Text="{loc:Tr Key=Settings.Group.ViewSort}"/>
+                            </Border>
 
                             <!-- 标签栏位置（FR-2.4）从「外观」页挪到这里：它决定的是列表区上方
                                  还是下方多出一条，属于列表布局，不属于配色与字体。 -->
@@ -537,8 +539,10 @@
                                        Style="{StaticResource Text.FieldHint}"
                                        Text="{loc:Tr Key=Settings.Behavior.SortGroup.Hint}"/>
 
-                            <TextBlock Style="{StaticResource Text.GroupTitle}"
-                                       Text="{loc:Tr Key=Settings.Group.Show}"/>
+                            <Border Style="{StaticResource Heading.Group}">
+                                <TextBlock Style="{StaticResource Text.GroupTitle}"
+                                           Text="{loc:Tr Key=Settings.Group.Show}"/>
+                            </Border>
 
                             <!-- 隐藏文件与扩展名并排：两条都短、都无附加说明，各占一行纯属浪费 -->
                             <WrapPanel Margin="0,0,0,8">
@@ -571,8 +575,10 @@
                             <!-- 列（FR-6.4）改的是默认档：用户正在图片目录里调完再来看，
                                  看到的是默认档，这一点必须写在提示里，否则"我明明取消勾选了，
                                  图片目录还是三列"就成了 bug 报告。 -->
-                            <TextBlock Style="{StaticResource Text.GroupTitle}"
-                                       Text="{loc:Tr Key=Settings.Group.Columns}"/>
+                            <Border Style="{StaticResource Heading.Group}">
+                                <TextBlock Style="{StaticResource Text.GroupTitle}"
+                                           Text="{loc:Tr Key=Settings.Group.Columns}"/>
+                            </Border>
 
                             <TextBlock Margin="0,0,0,8"
                                        Style="{StaticResource Text.FieldHint}"
@@ -615,8 +621,10 @@
                                   Visibility="Collapsed"
                                   VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <TextBlock Style="{StaticResource Text.GroupTitle}"
-                                       Text="{loc:Tr Key=Settings.Group.Open}"/>
+                            <Border Style="{StaticResource Heading.Group}">
+                                <TextBlock Style="{StaticResource Text.GroupTitle}"
+                                           Text="{loc:Tr Key=Settings.Group.Open}"/>
+                            </Border>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                 <TextBlock Style="{StaticResource Text.FieldLabel}"
@@ -668,8 +676,10 @@
                             <!-- 四项确认（FR-5.2.8 + FR-5.2.11）放在一组：它们都是"动手之前问一句"。
                                  前三项问的是"要不要动这个文件"，最后一项问的是"要不要运行它"，
                                  性质不同，所以组说明里点明这一层，而不是各配一条注释。 -->
-                            <TextBlock Style="{StaticResource Text.GroupTitle}"
-                                       Text="{loc:Tr Key=Settings.Group.Confirm}"/>
+                            <Border Style="{StaticResource Heading.Group}">
+                                <TextBlock Style="{StaticResource Text.GroupTitle}"
+                                           Text="{loc:Tr Key=Settings.Group.Confirm}"/>
+                            </Border>
 
                             <CheckBox x:Name="ConfirmDeleteCheck"
                                       Margin="0,0,0,8"
@@ -710,8 +720,10 @@
                                   Visibility="Collapsed"
                                   VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <TextBlock Style="{StaticResource Text.GroupTitle}"
-                                       Text="{loc:Tr Key=Settings.Group.History}"/>
+                            <Border Style="{StaticResource Heading.Group}">
+                                <TextBlock Style="{StaticResource Text.GroupTitle}"
+                                           Text="{loc:Tr Key=Settings.Group.History}"/>
+                            </Border>
 
                             <CheckBox x:Name="RememberPathCheck"
                                       Margin="0,0,0,4"
@@ -753,8 +765,10 @@
                             <!-- 缩略图缓存（FR-5.3.5）。占用在这里同步不下（要遍历几万个文件），
                                  打开设置页后异步统计；统计出来贴在"上限"上面，
                                  因为用户问的是"这东西占了我多少空间"。 -->
-                            <TextBlock Style="{StaticResource Text.GroupTitle}"
-                                       Text="{loc:Tr Key=Settings.Group.Cache}"/>
+                            <Border Style="{StaticResource Heading.Group}">
+                                <TextBlock Style="{StaticResource Text.GroupTitle}"
+                                           Text="{loc:Tr Key=Settings.Group.Cache}"/>
+                            </Border>
 
                             <TextBlock x:Name="ThumbCacheText"
                                        Margin="0,0,0,8"
@@ -791,8 +805,10 @@
                                        Style="{StaticResource Text.FieldHint}"
                                        Text="{loc:Tr Key=Settings.Privacy.ThumbCache.Limit.Hint}"/>
 
-                            <TextBlock Style="{StaticResource Text.GroupTitle}"
-                                       Text="{loc:Tr Key=Settings.Group.LocalData}"/>
+                            <Border Style="{StaticResource Heading.Group}">
+                                <TextBlock Style="{StaticResource Text.GroupTitle}"
+                                           Text="{loc:Tr Key=Settings.Group.LocalData}"/>
+                            </Border>
 
                             <!-- 标签库（FR-5.3.6）。这里只做"看有多少条"与"清掉对不上的"，
                                  导出/导入属于 FR-4.2.7，同一份能力放在同一处入口免得两边各写一套。
@@ -875,28 +891,17 @@
                     </ScrollViewer>
 
                     <!-- ══════ 页 6：关于 ══════ -->
+                    <!--
+                        整块内容来自 AboutView，不再弹窗（原 AboutWindow 已删除）。
+                        原来这里只有一句摘要 + 一颗「关于 Lingpane」按钮，点了再开一扇窗——
+                        入口和内容都在设置页里，那扇窗除了多一次关闭没有任何作用。
+                        许可全文仍开窗显示：11KB 的法律文本内嵌进来，这一页会变成几千行。
+                    -->
                     <ScrollViewer x:Name="PageAbout"
                                   Padding="20,16,20,20"
                                   Visibility="Collapsed"
                                   VerticalScrollBarVisibility="Auto">
-                        <StackPanel>
-                            <TextBlock x:Name="AboutText"
-                                       Style="{StaticResource Text.Caption.Wrap}"/>
-
-                            <!-- 版本号、运行环境、许可证全文、依赖清单、三个目录入口都在关于页（FR-10.8 / 10.9）。
-                                 设置页只留这句摘要与入口：许可证全文是 11KB，放在这里会把别的内容推下首屏。 -->
-                            <Button Margin="0,12,0,0"
-                                    HorizontalAlignment="Left"
-                                    Style="{StaticResource Button.Toolbar}"
-                                    Content="{loc:Tr Key=About.Open}"
-                                    Click="OnOpenAbout"/>
-
-                            <!-- 隐私声明（FR-5.3.7）。放在设置页而不是只写进 README：
-                                 用户判断"这东西会不会偷偷联网"的地方，就是设置页。 -->
-                            <TextBlock Margin="0,16,0,0"
-                                       Style="{StaticResource Text.Caption.Wrap}"
-                                       Text="{loc:Tr Key=Settings.About.Privacy}"/>
-                        </StackPanel>
+                        <views:AboutView x:Name="AboutPanel"/>
                     </ScrollViewer>
                 </Grid>
             </Grid>
@@ -909,7 +914,7 @@
              「恢复全部设置」留在这里而不是塞进某一页：它是全局动作，
              放页内会让人以为只影响当前这页。页级动作（恢复本页默认）在页标题栏，
              两者分开之后，"作用于多广"由位置本身说明。 -->
-        <Border Grid.Row="2"
+        <Border Grid.Row="1"
                 Padding="{StaticResource Padding.Dialog}"
                 Background="{DynamicResource Brush.Surface.Window}"
                 BorderBrush="{DynamicResource Brush.Border.Hairline}"

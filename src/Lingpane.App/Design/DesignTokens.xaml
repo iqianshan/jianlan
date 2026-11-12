@@ -153,7 +153,10 @@
     <sys:Double x:Key="Size.Combo.Width.Narrow">120</sys:Double>
 
     <Thickness x:Key="Padding.Row">8,0,8,0</Thickness>
-    <Thickness x:Key="Padding.NavItem">8,0,8,0</Thickness>
+    <!-- 导航行左缩进 14 而不是 8：8px 时图标几乎贴着分隔线，整列看起来被挤在左边；
+         选中底色块自己还内缩 4px，视觉上只剩 4px 留白。分区标题同取 14，
+         让"分类名"与"条目图标"落在同一条竖线上（原来标题 12、条目 8，层级是反的）。 -->
+    <Thickness x:Key="Padding.NavItem">14,0,8,0</Thickness>
     <Thickness x:Key="Padding.Toolbar">12,0,12,0</Thickness>
     <Thickness x:Key="Padding.MenuItem">12,6,12,6</Thickness>
     <Thickness x:Key="Padding.Dialog">20</Thickness>

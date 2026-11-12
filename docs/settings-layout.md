@@ -22,7 +22,7 @@
 | 3 | 文件列表 | 11 | `behavior` 的视图排序 + `appearance.tabStripPosition` + `columns` | `ResetListPage()` |
 | 4 | 操作与确认 | 8 | `behavior` 的打开与确认项 | `ResetActionPage()` |
 | 5 | 隐私与存储 | 4 | `privacy` + `appearance.tagColorNames` + 标签库 | `ResetPrivacyPage()` |
-| 6 | 关于 | 0 | 无（只读 + 入口） | 无（隐藏恢复按钮） |
+| 6 | 关于 | 0 | 无（内嵌 `AboutView`，全只读） | 无（隐藏恢复按钮） |
 
 "设置项"按**一个可写字段**计：复合控件（字号 `−`/`+` 与"跟随系统"勾选、上限下拉与"清空"按钮）
 算一项；只读块（缓存占用、标签条数、数据目录）与纯动作按钮（导出/导入/打开目录）不计数。
@@ -176,12 +176,14 @@
 
 | 控件 `x:Name` | 界面标签 | 数据源 |
 |---|---|---|
-| `AboutText` | — | `AppInfo.DisplayVersion`（= `InformationalVersion`，发版时由脚本写入 `0.2.1+<短commit>`） |
-| 「关于 Lingpane」按钮 | `About.Open` | 打开关于窗口（版本、运行环境、许可证全文、依赖清单、目录入口） |
-| 隐私声明段落 | `Settings.About.Privacy` | 静态文案（FR-5.3.7） |
+| `AboutPanel` | — | `views:AboutView` 用户控件，内容整块内嵌（版本号、运行环境、许可三键、目录三键、诊断与更新、隐私声明） |
+| 「查看许可证全文 / NOTICE / 第三方依赖」 | `About.ViewLicense` 等 | 打开独立 `LicenseWindow`（11KB 法律文本不内嵌） |
 
 这一页**没有可写字段**，因此页标题栏的「恢复本页默认」在此页隐藏（`ShowPage` 里控制）。
-版本号全文不在这里展开：许可证 11KB，放进来会把别的内容推下首屏。
+
+0.2.1 起不再有「关于 Lingpane」按钮与独立窗口：整块内容就是这一页本身（`AboutWindow` 已删除）。
+版本号取自 `AboutView` 内部的 `AppInfo.DisplayVersion`（= `InformationalVersion`，发版时由脚本写入
+`0.2.1+<短commit>`）。
 
 ---
 

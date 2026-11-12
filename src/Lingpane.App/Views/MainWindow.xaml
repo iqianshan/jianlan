@@ -71,9 +71,9 @@
             <StackPanel Background="Transparent">
                 <Border x:Name="Rule"
                         Height="1"
-                        Margin="10,10,10,0"
+                        Margin="14,10,14,0"
                         Background="{DynamicResource Brush.Border.Hairline}"/>
-                <Grid Margin="12,6,8,4">
+                <Grid Margin="14,6,8,4">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -161,7 +161,7 @@
 
         <!-- 空态提示。折行显示：窄侧栏里"按 Ctrl+D 收藏当前位置"一行放不下 -->
         <DataTemplate DataType="{x:Type vm:NavEmptyRow}">
-            <TextBlock Margin="12,0,8,6"
+            <TextBlock Margin="14,0,8,6"
                        Style="{StaticResource Text.Caption}"
                        Text="{Binding Text}"
                        TextWrapping="Wrap"
@@ -620,13 +620,16 @@
                 Background="{DynamicResource Brush.Surface.Sidebar}"
                 BorderBrush="{DynamicResource Brush.Border.Hairline}"
                 BorderThickness="0,1,0,0">
+            <!-- 内容居中而不是跟随导航项左对齐：这一颗是"整个应用的入口"，不是列表中的一行。
+                 左右内边距必须对称（Padding.NavItem 现在是 14/8），否则居中的中心点会偏右 3px。 -->
             <Button x:Name="SettingsButton"
                     Height="Auto"
-                    Padding="{StaticResource Padding.NavItem}"
+                    Padding="8,0,8,0"
                     Style="{StaticResource Button.NavCommand}"
+                    HorizontalContentAlignment="Center"
                     Click="OnSettingsButtonClick"
                     ToolTip="{loc:Tr Key=Toolbar.Settings.Tip}"
-                    AutomationProperties.Name="{loc:Tr Key=Toolbar.Settings}">
+                    AutomationProperties.Name="{loc:Tr Key:Toolbar.Settings}">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Margin="0,0,8,0"
                                VerticalAlignment="Center"

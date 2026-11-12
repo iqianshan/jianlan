@@ -651,9 +651,6 @@
   <data name="Hint.DragCopyTo" xml:space="preserve">
     <value>Copy to "{0}"</value>
   </data>
-  <data name="Settings.Subtitle" xml:space="preserve">
-    <value>Changes take effect immediately and are saved, except items marked “next launch”.</value>
-  </data>
   <data name="Settings.Tabs.NewTabPath" xml:space="preserve">
     <value>Default folder for new tabs</value>
   </data>
@@ -812,9 +809,6 @@
   </data>
   <data name="Settings.Privacy.Cleared" xml:space="preserve">
     <value>Recorded paths cleared</value>
-  </data>
-  <data name="Settings.About.Content" xml:space="preserve">
-    <value>Lingpane {0}&#10;Data folder: {1}</value>
   </data>
   <data name="Common.Close" xml:space="preserve">
     <value>Close</value>
@@ -1674,9 +1668,6 @@
   <!-- 关于页（FR-10.8）。许可证与依赖清单的正文不在这里：法律文本以原文为准，不翻译。 -->
   <data name="About.Title" xml:space="preserve">
     <value>About Lingpane</value>
-  </data>
-  <data name="About.Open" xml:space="preserve">
-    <value>About Lingpane…</value>
   </data>
   <data name="About.Tagline" xml:space="preserve">
     <value>A quiet, keyboard-first file manager for Windows.</value>

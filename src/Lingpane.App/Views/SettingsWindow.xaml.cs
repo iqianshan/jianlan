@@ -60,12 +60,6 @@ public partial class SettingsWindow : Window
         LoadSettingsIntoUi();
         _loading = false;
 
-        AboutText.Text = string.Format(
-            CultureInfo.CurrentCulture,
-            Strings.Settings_About_Content,
-            AppInfo.DisplayVersion,
-            AppPaths.Root);
-
         // 数据位置是只读展示，启动期就定了，不必等 Loaded
         DataDirText.Text = AppPaths.Root;
         ToolTipService.SetToolTip(DataDirText, AppPaths.Root);
@@ -444,7 +438,7 @@ public partial class SettingsWindow : Window
     /// <summary>
     /// 窗口尺寸跟着字号走。
     ///
-    /// 24pt 下每一行都按比例变高，720 高的窗口只剩 158px 内容区——一屏两行，
+    /// 24pt 下每一行都按比例变高，窗口不跟着长的话内容区只剩一百多像素——一屏两行，
     /// 滚动条细得没法拖。按字号比例放大窗口，再夹进屏幕工作区（留 6% 边距）。
     ///
     /// 比例直接取"当前行高 ÷ 设计基线行高（13px）"，不再按 pt 换算：
@@ -461,8 +455,10 @@ public partial class SettingsWindow : Window
 
         Rect work = SystemParameters.WorkArea;
 
-        Width = Math.Min(Math.Max(880 * ratio, MinWidth), work.Width * 0.94);
-        Height = Math.Min(Math.Max(720 * ratio, MinHeight), work.Height * 0.94);
+        // 基线 800×640：去掉全局页头后腾出 64px，640 高的内容区与原来 720 高基本持平。
+        // 再小就要动各页的排版密度了，"常规"页放不下四组。
+        Width = Math.Min(Math.Max(800 * ratio, MinWidth), work.Width * 0.94);
+        Height = Math.Min(Math.Max(640 * ratio, MinHeight), work.Height * 0.94);
     }
 
     private void UpdateFontSizeText()
@@ -1419,10 +1415,4 @@ public partial class SettingsWindow : Window
     }
 
     private void OnClose(object sender, RoutedEventArgs e) => Close();
-
-    /// <summary>
-    /// 打开关于页（FR-10.8）。关于页覆盖在设置页之上而不是替换它：
-    /// 用户看完版本号多半还要回来继续改设置，关掉一扇就回到原处更顺手。
-    /// </summary>
-    private void OnOpenAbout(object sender, RoutedEventArgs e) => AboutWindow.ShowFor(this);
 }

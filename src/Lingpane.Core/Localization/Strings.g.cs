@@ -651,9 +651,6 @@ public static class Strings
     public static string Hint_DragCopyTo => LocalizationService.Instance.Get("Hint.DragCopyTo");
     // 含占位符：string.Format(Strings.Hint_DragCopyTo, ...)
 
-    /// <summary>Changes take effect immediately and are saved, except items marked “next launch”.</summary>
-    public static string Settings_Subtitle => LocalizationService.Instance.Get("Settings.Subtitle");
-
     /// <summary>Default folder for new tabs</summary>
     public static string Settings_Tabs_NewTabPath => LocalizationService.Instance.Get("Settings.Tabs.NewTabPath");
 
@@ -814,10 +811,6 @@ public static class Strings
 
     /// <summary>Recorded paths cleared</summary>
     public static string Settings_Privacy_Cleared => LocalizationService.Instance.Get("Settings.Privacy.Cleared");
-
-    /// <summary>Lingpane {0} Data folder: {1}</summary>
-    public static string Settings_About_Content => LocalizationService.Instance.Get("Settings.About.Content");
-    // 含占位符：string.Format(Strings.Settings_About_Content, ...)
 
     /// <summary>Close</summary>
     public static string Common_Close => LocalizationService.Instance.Get("Common.Close");
@@ -1710,9 +1703,6 @@ public static class Strings
 
     /// <summary>About Lingpane</summary>
     public static string About_Title => LocalizationService.Instance.Get("About.Title");
-
-    /// <summary>About Lingpane…</summary>
-    public static string About_Open => LocalizationService.Instance.Get("About.Open");
 
     /// <summary>A quiet, keyboard-first file manager for Windows.</summary>
     public static string About_Tagline => LocalizationService.Instance.Get("About.Tagline");

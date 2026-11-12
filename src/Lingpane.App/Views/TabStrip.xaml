@@ -148,7 +148,14 @@
                                     <Grid Margin="8,0,4,0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="Auto"/>
+                                            <!-- 标题列取星号而不是 Auto：标签有 MinWidth=100，
+                                                 标题短（"D:\"）时卡片被撑到 100，三列全 Auto 的话
+                                                 多出来的宽度留在卡片右侧，关闭键停在文字后面，
+                                                 看起来像"× 跑到左边去了"。星号列吸收余量后，
+                                                 × 恒定贴在卡片右端。
+                                                 标签在横向 StackPanel 里测量时约束是无限宽，
+                                                 此时 Star 退化为 Auto，不会反过来把卡片撑宽。 -->
+                                            <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <!-- 图标位：固定后换成实心图钉并染强调色（FR-2.9）。
