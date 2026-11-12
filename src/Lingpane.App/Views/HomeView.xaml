@@ -464,6 +464,34 @@
                             <Button Style="{StaticResource Home.Card}"
                                     ToolTip="{Binding Tooltip}"
                                     Click="OnWorkspaceClick">
+                                <!-- 与侧栏工作区行同一份菜单（FR-8.3）。卡片是宽大的入口，
+                                     没有行尾「⋯」的位置，右键是它唯一的第二入口 ——
+                                     在此之前，主页上连右键都打不开任何东西。 -->
+                                <Button.ContextMenu>
+                                    <ContextMenu Style="{StaticResource ContextMenu.Default}">
+                                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                                  Tag="Open"
+                                                  Header="{loc:Tr Key=Workspace.Open}"
+                                                  Click="OnWorkspaceMenuCommand"/>
+                                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                                  Tag="Overwrite"
+                                                  Header="{loc:Tr Key=Workspace.Overwrite}"
+                                                  Click="OnWorkspaceMenuCommand"/>
+                                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                                  Tag="Rename"
+                                                  Header="{loc:Tr Key=Workspace.Rename}"
+                                                  Click="OnWorkspaceMenuCommand"/>
+                                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                                  Tag="ToggleStartup"
+                                                  Header="{Binding StartupMenuText}"
+                                                  Click="OnWorkspaceMenuCommand"/>
+                                        <Separator Style="{StaticResource Menu.Separator}"/>
+                                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                                  Tag="Delete"
+                                                  Header="{loc:Tr Key=Workspace.Delete}"
+                                                  Click="OnWorkspaceMenuCommand"/>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>

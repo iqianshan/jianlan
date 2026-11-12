@@ -21,7 +21,16 @@ namespace Lingpane.App.ViewModels;
 public interface INavRow;
 
 /// <summary>收藏区的行（分区标题 / 空态 / 分组 / 收藏项）的共同基类。</summary>
-public abstract class NavRow : INavRow;
+public abstract class NavRow : INavRow
+{
+    /// <summary>
+    /// 行尾「更多操作」按钮的字形（FR-7 / FR-8）。
+    ///
+    /// 放在基类上而不是每个行类型各写一遍：按钮是模板级的通用件（收藏项与工作区项
+    /// 都挂同一颗），行类型只管数据。字形本身仍由 <see cref="IconGlyphs"/> 登记（界面规则 9.2）。
+    /// </summary>
+    public string MoreGlyph => IconGlyphs.More;
+}
 
 /// <summary>
 /// 分区标题（如"收藏"）。不可选中，点击无动作；右键出该分区的管理菜单。
@@ -441,12 +450,20 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
     /// <summary>
     /// 接上工作区数据（FR-8.6）。首帧之后再调：workspaces.json 不参与冷启动默认路径，
     /// 而导航栏是在首帧前就建好的，所以只能先出架子、稍后补这一段。
+    ///
+    /// 已接上之后再调（改名 / 删除 / 改启动项之后）只重建「工作区」这一段：
+    /// 整条 <see cref="Rebuild"/> 会顺手清掉侧栏的选中项与滚动位置，
+    /// 为了改一个名字去重建 500 条收藏、再跑一次失效检测，不值。
     /// </summary>
     public void SetWorkspaces(WorkspaceStore store, string? startupWorkspace)
     {
+        bool attached = _workspaces is not null;
+
         _workspaces = store ?? throw new ArgumentNullException(nameof(store));
         _startupWorkspace = startupWorkspace;
-        Rebuild();
+
+        if (attached) RefreshWorkspaceRows();
+        else Rebuild();
     }
 
     /// <summary>
@@ -757,21 +774,64 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
     /// <summary>工作区一段（FR-8.6）。数据没接上时整段都不出，不留一个空标题。</summary>
     private void AddWorkspaceRows()
     {
-        if (_workspaces is not { } store) return;
+        foreach (INavRow row in BuildWorkspaceRows()) Rows.Add(row);
+        Raise(nameof(HasWorkspaces));
+    }
 
-        Rows.Add(new NavSectionRow { Title = Strings.Nav_Workspaces, Kind = NavSectionKind.Workspaces });
+    /// <summary>「工作区」一段的全部行：分区标题 + 各行。数据没接上时返回空表。</summary>
+    private List<INavRow> BuildWorkspaceRows()
+    {
+        var rows = new List<INavRow>();
+        if (_workspaces is not { } store) return rows;
+
+        rows.Add(new NavSectionRow { Title = Strings.Nav_Workspaces, Kind = NavSectionKind.Workspaces });
 
         if (store.Count == 0)
         {
-            Rows.Add(new NavEmptyRow { Text = Strings.Nav_Workspaces_Empty });
-            return;
+            rows.Add(new NavEmptyRow { Text = Strings.Nav_Workspaces_Empty });
+            return rows;
         }
 
         foreach (Workspace ws in store.Items)
         {
             bool isStartup = string.Equals(ws.Name, _startupWorkspace, StringComparison.OrdinalIgnoreCase);
-            Rows.Add(new NavWorkspaceRow(ws, isStartup));
+            rows.Add(new NavWorkspaceRow(ws, isStartup));
         }
+
+        return rows;
+    }
+
+    /// <summary>
+    /// 只重建「工作区」这一段，不动「位置」「收藏」「标签」。
+    ///
+    /// 与 <see cref="RefreshTagRows"/>、<see cref="RefreshLocationRows"/> 同一个理由：
+    /// 改名、删除、切换启动项之后侧栏要立刻反映出来，而整条 <see cref="Rebuild"/>
+    /// 会连带重扫 500 条收藏的失效状态、并丢掉选中项与滚动位置。
+    /// </summary>
+    public void RefreshWorkspaceRows()
+    {
+        int start = -1;
+        for (int i = 0; i < Rows.Count; i++)
+        {
+            if (Rows[i] is NavSectionRow { Kind: NavSectionKind.Workspaces }) { start = i; break; }
+        }
+
+        if (start < 0)
+        {
+            // 这一段本来就不在（数据是首帧之后才接上的）：退回整条重建，别留下"有数据没显示"
+            Rebuild();
+            return;
+        }
+
+        // 工作区目前是最后一段，仍按"到下一个分区标题为止"来算：
+        // 将来在它后面再加分区的，这段不用回来改
+        int end = start + 1;
+        while (end < Rows.Count && Rows[end] is not NavSectionRow) end++;
+
+        for (int i = end - 1; i > start; i--) Rows.RemoveAt(i);
+
+        int insert = start;
+        foreach (INavRow row in BuildWorkspaceRows().Skip(1)) Rows.Insert(++insert, row);
 
         Raise(nameof(HasWorkspaces));
     }

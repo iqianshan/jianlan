@@ -278,12 +278,15 @@
         </DataTemplate>
 
         <!-- 工作区（FR-8.6）。行标题带标签数，提示里给最后保存时间（FR-8.3）；
-             单击 = 打开（会替换当前标签，宿主那边会先问一句），右键是管理入口。 -->
+             单击 = 打开（会替换当前标签，宿主那边会先问一句）。
+             管理动作有两个入口：行尾常显的「⋯」与右键，两者打开的是同一份菜单。 -->
         <DataTemplate DataType="{x:Type vm:NavWorkspaceRow}">
             <Grid Margin="{StaticResource Padding.NavItem}"
                   Background="Transparent"
                   VerticalAlignment="Center"
-                  ToolTip="{Binding TooltipText}">
+                  ToolTip="{Binding TooltipText}"
+                  ContextMenuOpening="OnRowMenuOpening"
+                  PreviewMouseRightButtonDown="OnRowRightButtonDown">
                 <Grid.ContextMenu>
                     <ContextMenu Style="{StaticResource ContextMenu.Default}">
                         <MenuItem Style="{StaticResource MenuItem.Default}"
@@ -308,6 +311,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0"
                            Margin="0,0,8,0"
@@ -327,17 +331,31 @@
                          Fill="{DynamicResource Brush.Accent.Default}"
                          ToolTip="{loc:Tr Key=Workspace.SetStartup}"
                          Visibility="{Binding IsStartup, Converter={StaticResource BoolToVisibility}}"/>
+                <Button Grid.Column="3"
+                        Margin="2,0,0,0"
+                        Style="{StaticResource Button.RowMenu}"
+                        Click="OnRowMenuClick"
+                        ToolTip="{loc:Tr Key=A11y.RowMenu}"
+                        AutomationProperties.Name="{loc:Tr Key=A11y.RowMenu}">
+                    <TextBlock FontFamily="{DynamicResource Font.Family.Icon}"
+                               FontSize="{DynamicResource Font.Size.Caption}"
+                               Text="{Binding MoreGlyph}"
+                               VerticalAlignment="Center"/>
+                </Button>
             </Grid>
         </DataTemplate>
 
-        <!-- 收藏项（FR-7.1 / FR-7.2）。失效项（FR-7.7）文字转次级色，提示里说明原因 -->
+        <!-- 收藏项（FR-7.1 / FR-7.2）。失效项（FR-7.7）文字转次级色，提示里说明原因。
+             管理动作有两个入口：行尾常显的「⋯」与右键，两者打开的是同一份菜单。 -->
         <DataTemplate DataType="{x:Type vm:NavBookmarkRow}">
             <Grid Margin="{StaticResource Padding.NavItem}"
                   Background="Transparent"
                   VerticalAlignment="Center"
                   ToolTip="{Binding TooltipText}"
                   PreviewMouseDown="OnBookmarkMouseDown"
-                  PreviewMouseMove="OnBookmarkDragMove">
+                  PreviewMouseMove="OnBookmarkDragMove"
+                  ContextMenuOpening="OnRowMenuOpening"
+                  PreviewMouseRightButtonDown="OnRowRightButtonDown">
                 <Grid.ContextMenu>
                     <ContextMenu Style="{StaticResource ContextMenu.Default}">
                         <MenuItem Style="{StaticResource MenuItem.Default}"
@@ -406,6 +424,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0"
                            Margin="0,0,8,0"
@@ -438,6 +457,17 @@
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
+                <Button Grid.Column="2"
+                        Margin="2,0,0,0"
+                        Style="{StaticResource Button.RowMenu}"
+                        Click="OnRowMenuClick"
+                        ToolTip="{loc:Tr Key=A11y.RowMenu}"
+                        AutomationProperties.Name="{loc:Tr Key=A11y.RowMenu}">
+                    <TextBlock FontFamily="{DynamicResource Font.Family.Icon}"
+                               FontSize="{DynamicResource Font.Size.Caption}"
+                               Text="{Binding MoreGlyph}"
+                               VerticalAlignment="Center"/>
+                </Button>
             </Grid>
         </DataTemplate>
 

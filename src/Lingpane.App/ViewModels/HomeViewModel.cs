@@ -209,16 +209,17 @@ public sealed class HomeBookmarkTile : INotifyPropertyChanged, IHomeEntry
 }
 
 /// <summary>
-/// 主页工作区的一项（FR-8.6）。单击 = 打开这份工作区。
+/// 主页工作区的一项（FR-8.6）。单击 = 打开这份工作区，右键 = 与侧栏行同一份管理菜单。
 ///
 /// 不实现 <see cref="IHomeEntry"/>：那个接口的形状是"一个有路径的位置"，
 /// 工作区没有路径——硬塞一个空 Path 进去，点击处理器就会拿着空串去导航。
 /// </summary>
 public sealed class HomeWorkspaceTile
 {
-    public HomeWorkspaceTile(Workspace workspace)
+    public HomeWorkspaceTile(Workspace workspace, bool isStartup)
     {
         Workspace = workspace;
+        IsStartup = isStartup;
         Title = $"{workspace.Name} ({workspace.Tabs.Count})";
         Tooltip = $"{workspace.SavedAt.ToLocalTime():yyyy-MM-dd HH:mm}\n"
                 + string.Format(Strings.Nav_Workspace_Tooltip, workspace.Tabs.Count);
@@ -231,6 +232,28 @@ public sealed class HomeWorkspaceTile
     public string Tooltip { get; }
 
     public string Glyph => IconGlyphs.Workspace;
+
+    /// <summary>是不是"启动时自动恢复"的那一份。菜单里据此决定给"设为"还是"取消"。</summary>
+    public bool IsStartup { get; }
+
+    public string StartupMenuText
+        => IsStartup ? Strings.Workspace_ClearStartup : Strings.Workspace_SetStartup;
+}
+
+/// <summary>
+/// 主页工作区卡片上能发起的动作。
+///
+/// 用一个枚举 + 一个事件，而不是五个事件：五个动作的载荷完全一样（哪一份工作区），
+/// 宿主那边也是一个 switch 分派到已有的 <c>RenameWorkspace</c> / <c>RemoveWorkspace</c> 等，
+/// 开五个事件只会让订阅处多五行、把"这是同一件事"这个事实藏起来。
+/// </summary>
+public enum WorkspaceCommand
+{
+    Open,
+    Overwrite,
+    Rename,
+    ToggleStartup,
+    Delete,
 }
 
 /// <summary>
@@ -253,6 +276,9 @@ public sealed class HomeViewModel : INotifyPropertyChanged
 
     /// <summary>工作区（FR-8.6）。null = 还没加载（首帧不读 workspaces.json）。</summary>
     private WorkspaceStore? _workspaces;
+
+    /// <summary>启动时自动恢复的那份工作区名（FR-8.4）。卡片要据此决定菜单里给"设为"还是"取消"。</summary>
+    private string? _startupWorkspace;
 
     private bool _isBookmarksExpanded;
     private bool _isLoadingDrives;
@@ -351,9 +377,10 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     /// 接上工作区数据（FR-8.6）。首帧之后才调：workspaces.json 不参与冷启动，
     /// 主页先按"没有工作区"渲染，数据到了再补这一块。
     /// </summary>
-    public void SetWorkspaces(WorkspaceStore store)
+    public void SetWorkspaces(WorkspaceStore store, string? startupWorkspace)
     {
         _workspaces = store ?? throw new ArgumentNullException(nameof(store));
+        _startupWorkspace = startupWorkspace;
         RebuildWorkspaces();
     }
 
@@ -363,7 +390,11 @@ public sealed class HomeViewModel : INotifyPropertyChanged
 
         if (_workspaces is { } store)
         {
-            foreach (Workspace ws in store.Items) Workspaces.Add(new HomeWorkspaceTile(ws));
+            foreach (Workspace ws in store.Items)
+            {
+                bool isStartup = string.Equals(ws.Name, _startupWorkspace, StringComparison.OrdinalIgnoreCase);
+                Workspaces.Add(new HomeWorkspaceTile(ws, isStartup));
+            }
         }
 
         Raise(nameof(HasWorkspaces));

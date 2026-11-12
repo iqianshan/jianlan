@@ -29,6 +29,12 @@ public partial class HomeView : UserControl
     /// <summary>点了某份工作区。</summary>
     public event Action<Core.Workspaces.Workspace>? WorkspaceRequested;
 
+    /// <summary>
+    /// 在主页的工作区卡片上选了管理动作（FR-8.3）：打开 / 覆盖 / 重命名 / 启动恢复 / 删除。
+    /// 与侧栏行开的是同一份菜单，动作本身全部由宿主执行——主页不知道工作区存在哪。
+    /// </summary>
+    public event Action<Core.Workspaces.Workspace, WorkspaceCommand>? WorkspaceCommandRequested;
+
     /// <summary>点了"保存当前标签…"。</summary>
     public event Action? SaveWorkspaceRequested;
 
@@ -63,6 +69,18 @@ public partial class HomeView : UserControl
         {
             WorkspaceRequested?.Invoke(tile.Workspace);
         }
+    }
+
+    /// <summary>
+    /// 卡片右键菜单里的一项（FR-8.3）。动作名写在 <c>Tag</c> 上：
+    /// 五个菜单项共用这一个处理器，免得为了"点的是哪一条"再写五段一模一样的转发。
+    /// </summary>
+    private void OnWorkspaceMenuCommand(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { DataContext: HomeWorkspaceTile tile } item) return;
+        if (item.Tag is not string name || !Enum.TryParse(name, out WorkspaceCommand command)) return;
+
+        WorkspaceCommandRequested?.Invoke(tile.Workspace, command);
     }
 
     private void OnSaveWorkspaceClick(object sender, RoutedEventArgs e) => SaveWorkspaceRequested?.Invoke();

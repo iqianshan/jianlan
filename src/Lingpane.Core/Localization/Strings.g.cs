@@ -1674,6 +1674,9 @@ public static class Strings
     /// <summary>Tabs</summary>
     public static string A11y_TabStrip => LocalizationService.Instance.Get("A11y.TabStrip");
 
+    /// <summary>More actions</summary>
+    public static string A11y_RowMenu => LocalizationService.Instance.Get("A11y.RowMenu");
+
     /// <summary>Minimize</summary>
     public static string A11y_WindowMinimize => LocalizationService.Instance.Get("A11y.WindowMinimize");
 

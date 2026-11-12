@@ -1637,6 +1637,9 @@
   <data name="A11y.TabStrip" xml:space="preserve">
     <value>Tabs</value>
   </data>
+  <data name="A11y.RowMenu" xml:space="preserve">
+    <value>More actions</value>
+  </data>
   <data name="A11y.WindowMinimize" xml:space="preserve">
     <value>Minimize</value>
   </data>

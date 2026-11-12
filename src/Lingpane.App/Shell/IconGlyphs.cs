@@ -42,6 +42,12 @@ public static class IconGlyphs
     public const string ChevronRight = "\uE76C";
 
     /// <summary>
+    /// 行内「更多操作」（侧栏收藏 / 工作区行）。E712 是三点横排的 More，
+    /// 资源管理器侧栏与 Edge 的行尾菜单都用同一个字形——用户不需要认新符号。
+    /// </summary>
+    public const string More = "\uE712";
+
+    /// <summary>
     /// 工作区（FR-8）。MDL2 的 MapLayers：三层叠放的菱形，正好表示"多份可切换的集合"。
     /// 码位是先渲染出来看过再定的——别照抄图标表，E8B7 的教训。
     /// </summary>

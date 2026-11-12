@@ -1623,6 +1623,9 @@
   <data name="A11y.TabStrip" xml:space="preserve">
     <value>标签栏</value>
   </data>
+  <data name="A11y.RowMenu" xml:space="preserve">
+    <value>更多操作</value>
+  </data>
   <data name="A11y.WindowMinimize" xml:space="preserve">
     <value>最小化</value>
   </data>

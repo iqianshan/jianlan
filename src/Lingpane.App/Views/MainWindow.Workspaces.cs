@@ -50,7 +50,7 @@ public partial class MainWindow
         }
 
         _nav.SetWorkspaces(store, App.Settings.Behavior.StartupWorkspace);
-        _home.SetWorkspaces(store);
+        _home.SetWorkspaces(store, App.Settings.Behavior.StartupWorkspace);
     }
 
     /// <summary>
@@ -343,11 +343,16 @@ public partial class MainWindow
         ApplyWorkspaceChange();
     }
 
-    /// <summary>改完工作区：重建导航栏、刷主页。落盘由 <see cref="WorkspaceStore"/> 自己做。</summary>
+    /// <summary>
+    /// 改完工作区：导航栏只重建「工作区」那一段、主页重排卡片。落盘由 <see cref="WorkspaceStore"/> 自己做。
+    ///
+    /// 不走整条 <c>Rebuild()</c>：那会把 500 条收藏一并重建、再触发一次失效检测，
+    /// 还会丢掉侧栏的选中项与滚动位置——改个名字，侧栏却闪一下跳回顶部，看起来像出了故障。
+    /// </summary>
     private void ApplyWorkspaceChange()
     {
         _nav.SetWorkspaces(Workspaces, App.Settings.Behavior.StartupWorkspace);
-        _home.SetWorkspaces(Workspaces);
+        _home.SetWorkspaces(Workspaces, App.Settings.Behavior.StartupWorkspace);
     }
 
     // ── 导航栏与主页的入口（FR-8.6） ─────────────────────────────────────────
@@ -379,6 +384,42 @@ public partial class MainWindow
         if (RowWorkspace(sender) is { } workspace) ToggleStartupWorkspace(workspace);
     }
 
-    private static Workspace? RowWorkspace(object sender)
-        => sender is FrameworkElement { DataContext: NavWorkspaceRow row } ? row.Workspace : null;
+    /// <summary>
+    /// 主页卡片菜单的动作分派（FR-8.3）。落到与侧栏菜单完全相同的那批方法上——
+    /// 两个入口共用一套实现，才不会有"侧栏能删、主页删不掉"这种分歧。
+    /// </summary>
+    private void OnHomeWorkspaceCommand(Workspace workspace, WorkspaceCommand command)
+    {
+        switch (command)
+        {
+            case WorkspaceCommand.Open:
+                OpenWorkspace(workspace);
+                break;
+            case WorkspaceCommand.Overwrite:
+                OverwriteWorkspace(workspace.Name);
+                break;
+            case WorkspaceCommand.Rename:
+                RenameWorkspace(workspace);
+                break;
+            case WorkspaceCommand.ToggleStartup:
+                ToggleStartupWorkspace(workspace);
+                break;
+            case WorkspaceCommand.Delete:
+                RemoveWorkspace(workspace);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// 从菜单项反查它属于哪一份工作区。侧栏行与主页卡片是两种不同的行对象，
+    /// 但都只带一个 <see cref="Workspace"/>——统一在这里认，五个菜单处理器就不用各写两版。
+    /// </summary>
+    private static Workspace? RowWorkspace(object sender) => sender is FrameworkElement element
+        ? element.DataContext switch
+        {
+            NavWorkspaceRow row => row.Workspace,
+            HomeWorkspaceTile tile => tile.Workspace,
+            _ => null,
+        }
+        : null;
 }

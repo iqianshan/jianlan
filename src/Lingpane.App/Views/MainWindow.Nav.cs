@@ -246,4 +246,80 @@ public partial class MainWindow
         _nav.RefreshLocationRows();
         SyncNavSelection(Vm.CurrentPath);
     }
+
+    // ── 行尾「更多操作」与右键菜单的定位（FR-7.3 / FR-8.3） ────────────────────
+
+    /// <summary>
+    /// 行尾「⋯」被点击：打开这一行自己的菜单，锚在按钮下方。
+    ///
+    /// 锚点必须显式指定。菜单挂在行的根 Grid 上（数据模板里只写了一份），
+    /// 而 ContextMenu 默认以"鼠标位置"为参考点——按钮是被点出来的，鼠标可能早就不在那儿了，
+    /// 菜单就会飘到上一次鼠标所在的角落。
+    /// </summary>
+    private void OnRowMenuClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement button) return;
+        if (FindRowMenu(button) is not { } menu) return;
+
+        menu.PlacementTarget = button;
+        menu.Placement = PlacementMode.Bottom;
+        menu.IsOpen = true;
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// 右键按下时直接接管：打开菜单，并且**吃掉这次按键**。
+    ///
+    /// 吃掉这一下不是洁癖，是必须的：<see cref="ListBox"/> 会把右键当成"选中这一行"，
+    /// 而选中工作区行／收藏项就等于打开它（<c>OnQuickAccessSelectionChanged</c>）。
+    /// 实测右键工作区行会直接弹出"打开工作区"的确认框——用户只是想改个名字，
+    /// 却先被问"要不要替换当前标签"。在隧道阶段拦下，行的选中态就不会动。
+    /// </summary>
+    private void OnRowRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not FrameworkElement row) return;
+        if (row.ContextMenu is not { } menu) return;
+
+        e.Handled = true;
+
+        menu.PlacementTarget = row;
+        menu.Placement = PlacementMode.Bottom;
+        menu.IsOpen = true;
+    }
+
+    /// <summary>
+    /// 右键打开同一份菜单。定位在这里重钉一次，而且**不用**
+    /// <c>MousePoint</c>：系统设置"菜单右对齐"（<c>MenuDropAlignment</c> = 1，平板/左手模式，
+    /// 本机就是）打开时，菜单是拿鼠标点当**右边缘**往左铺的。侧栏只有 258px 宽、
+    /// 菜单却有 260+，靠左的右键会让菜单大半跑到窗口外，只剩一条断字——这正是用户
+    /// 反映"右键像没反应"的原因。
+    /// <para>
+    /// 改成锚在行上向下弹：右对齐时菜单右边缘贴行右边缘、左对齐时贴行左边缘，
+    /// 两种设置下都落在窗口内，位置也稳定（不会随鼠标在行内的横向位置跳）。
+    /// 鼠标右键走 <see cref="OnRowRightButtonDown"/>，这里兜的是键盘（Shift+F10 / 菜单键）。
+    /// </para>
+    /// </summary>
+    private void OnRowMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (sender is not FrameworkElement row) return;
+        if (row.ContextMenu is not { } menu) return;
+
+        menu.PlacementTarget = row;
+        menu.Placement = PlacementMode.Bottom;
+    }
+
+    /// <summary>
+    /// 从按钮往上找到挂着菜单的那一层（就是行的根 Grid）。
+    /// 碰到 <see cref="ListBoxItem"/> 就停：再往上就是别的行，绝不能借到邻居的菜单。
+    /// </summary>
+    private static ContextMenu? FindRowMenu(DependencyObject? start)
+    {
+        for (DependencyObject? node = start; node is not null; node = VisualTreeHelper.GetParent(node))
+        {
+            if (node is ListBoxItem) return null;
+            if (node is FrameworkElement { ContextMenu: { } menu }) return menu;
+        }
+
+        return null;
+    }
 }

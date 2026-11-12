@@ -3,7 +3,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 using Lingpane.App.Diagnostics;
 using Lingpane.App.ViewModels;
 using Lingpane.Core.FileSystem;
@@ -125,8 +127,11 @@ public partial class MainWindow
 
         // 必须指定锚点：菜单项的显隐绑定（IsBookmarks / IsWorkspaces）靠 DataContext，
         // 而 ContextMenu 的 DataContext 是从 PlacementTarget 继承来的。
-        // 少了这一句，两个分区的菜单会同时显示全部动作
+        // 少了这一句，两个分区的菜单会同时显示全部动作。
+        // 定位钉成 Bottom 而不是默认的 MousePoint：见 OnRowMenuOpening 里关于
+        // MenuDropAlignment 的说明——靠左的菜单用鼠标点定位会整个跑到窗口外。
         menu.PlacementTarget = label;
+        menu.Placement = PlacementMode.Bottom;
         menu.IsOpen = true;
     }
 
@@ -152,6 +157,7 @@ public partial class MainWindow
         {
             // 记下按下的位置：拖拽要超过系统阈值才开始，否则每一次单击都会被当成拖动
             _bookmarkDragOrigin = e.GetPosition(QuickAccessList);
+            _pressOnRowButton = IsInsideRowButton(e.OriginalSource as DependencyObject);
         }
 
         if (e.ChangedButton == MouseButton.Middle)
@@ -381,6 +387,24 @@ public partial class MainWindow
     /// <summary>按下点在收藏行上的位置，超过系统的拖拽阈值才真的开始拖。</summary>
     private Point _bookmarkDragOrigin;
 
+    /// <summary>这一下按在行尾「⋯」按钮上。置真时不起拖，让按钮把点击收走。</summary>
+    private bool _pressOnRowButton;
+
+    /// <summary>
+    /// 起点是否落在某个按钮里。只往上走到列表项为止——再往上就是整条侧栏，
+    /// 那不是"这一行的按钮"。非可视元素（如 Run）拿不到父级，停在那里当作不是在按钮里。
+    /// </summary>
+    private static bool IsInsideRowButton(DependencyObject? start)
+    {
+        for (DependencyObject? node = start; node is Visual visual; node = VisualTreeHelper.GetParent(visual))
+        {
+            if (node is Button) return true;
+            if (node is ListBoxItem) return false;
+        }
+
+        return false;
+    }
+
     /// <summary>
     /// 拖拽经过导航栏。三种情况都要给出不同的效果与提示：
     /// 文件拖入 = 收藏（FR-7.4）；收藏项内部拖动 = 排序（FR-7.6）；其他一律拒绝。
@@ -464,6 +488,10 @@ public partial class MainWindow
         {
             return;
         }
+
+        // 从行尾「⋯」上按下的不算拖动：那一下是"点菜单"。
+        // 手抖 5px 就会超过拖拽阈值，把这一下吞成拖拽的话，按钮就变成"点了没反应"。
+        if (_pressOnRowButton) return;
 
         Point now = e.GetPosition(QuickAccessList);
         if (Math.Abs(now.X - _bookmarkDragOrigin.X) < SystemParameters.MinimumHorizontalDragDistance &&

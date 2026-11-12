@@ -291,6 +291,7 @@ public partial class MainWindow : Window
         Home.NewTabRequested += NewTab;
         Home.NewFolderRequested += NewFolderFromHome;
         Home.WorkspaceRequested += ws => OpenWorkspace(ws);
+        Home.WorkspaceCommandRequested += OnHomeWorkspaceCommand;
         Home.SaveWorkspaceRequested += SaveCurrentWorkspace;
         Home.Attach(_home);
 
