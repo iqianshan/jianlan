@@ -4,6 +4,7 @@
              xmlns:conv="clr-namespace:Lingpane.App.Converters"
              xmlns:loc="clr-namespace:Lingpane.App.Localization"
              xmlns:local="clr-namespace:Lingpane.App.Views"
+             xmlns:shell="clr-namespace:Lingpane.App.Shell"
              xmlns:vm="clr-namespace:Lingpane.App.ViewModels"
              Background="{DynamicResource Brush.Surface.Window}"
              UseLayoutRounding="True"
@@ -20,6 +21,28 @@
     -->
 
     <UserControl.Resources>
+        <!--
+            导航按钮里的字形。
+
+            以前四个按钮直接用 Unicode 字符（← / → / ↑ / ⟳）当 Content，字号取 Font.Size.Body。
+            问题出在字形不占满字身：U+2190 这类箭头横向铺满、看着还行，而 ⟳（U+27F3）的圆圈
+            在字符框里天然缩一圈，12px 字号下视觉高度只剩 8px 左右，于是"刷新看着比箭头小"。
+
+            改成 MDL2 字形后字号可以直接控制视觉高度（14 对应约 14px 字形），
+            而且与侧栏、标签页用的是同一批码位——`IconGlyphs` 里 Refresh 早有登记，只是这里一直没用。
+
+            Foreground 绑到 Button 而不是继承：按钮禁用时模板换的是 Button.Foreground，
+            文本不主动跟随就还是亮色，禁用态等于没生效。
+        -->
+        <Style x:Key="Nav.Glyph" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Family.Icon}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground"
+                    Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"/>
+        </Style>
+
         <!-- 导航按钮（←/→/↑/⟳）。默认就是 Button.Toolbar；窗格窄到压缩态时收紧内边距，
              四个按钮一共能省下约 32px，全部让给地址栏（见 PaneView.ApplySearchBoxWidth）。 -->
         <Style x:Key="Nav.Command" TargetType="Button" BasedOn="{StaticResource Button.Toolbar}">
@@ -145,24 +168,28 @@
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Style="{StaticResource Nav.Command}"
                             Command="{Binding BackCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
-                            Content="←"
                             ToolTip="{loc:Tr Key=Toolbar.Back}"
-                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Back}"/>
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Back}">
+                        <TextBlock Style="{StaticResource Nav.Glyph}" Text="{x:Static shell:IconGlyphs.Back}"/>
+                    </Button>
                     <Button Style="{StaticResource Nav.Command}"
                             Command="{Binding ForwardCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
-                            Content="→"
                             ToolTip="{loc:Tr Key=Toolbar.Forward}"
-                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Forward}"/>
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Forward}">
+                        <TextBlock Style="{StaticResource Nav.Glyph}" Text="{x:Static shell:IconGlyphs.Forward}"/>
+                    </Button>
                     <Button Style="{StaticResource Nav.Command}"
                             Command="{Binding UpCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
-                            Content="↑"
                             ToolTip="{loc:Tr Key=Toolbar.Up}"
-                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Up}"/>
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Up}">
+                        <TextBlock Style="{StaticResource Nav.Glyph}" Text="{x:Static shell:IconGlyphs.Up}"/>
+                    </Button>
                     <Button Style="{StaticResource Nav.Command}"
                             Command="{Binding RefreshCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
-                            Content="⟳"
                             ToolTip="{loc:Tr Key=Toolbar.Refresh}"
-                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Refresh}"/>
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Refresh}">
+                        <TextBlock Style="{StaticResource Nav.Glyph}" Text="{x:Static shell:IconGlyphs.Refresh}"/>
+                    </Button>
                 </StackPanel>
 
                 <!-- 地址栏：面包屑 ↔ 可编辑完整路径（Ctrl+L 或点击空白处切换） -->
@@ -407,17 +434,21 @@
                             ToolTip="{loc:Tr Key=Toolbar.Split.Tip}"
                             AutomationProperties.Name="{loc:Tr Key=Toolbar.Split.Tip}">
                         <!-- 图标自绘：Segoe MDL2 没有语义明确的"左右分栏"字形，
-                             用方框 + 中线比借一个"平铺/窗口"字形更不容易被误解。 -->
-                        <Viewbox Width="15" Height="15">
-                            <Canvas Width="15" Height="15">
-                                <Rectangle Canvas.Left="1.5" Canvas.Top="3.5"
-                                           Width="12" Height="8"
-                                           RadiusX="1.2" RadiusY="1.2"
+                             用方框 + 中线比借一个"平铺/窗口"字形更不容易被误解。
+
+                             尺寸从 15 提到 18：原来 12×8 的框在 32px 按钮里只剩约 10px 高，
+                             比同一行的文字按钮（"详细""列表"）轻一档，看着像没对齐。
+                             描边同步 1.3→1.4，放大后线才不至于变细。 -->
+                        <Viewbox Width="18" Height="18">
+                            <Canvas Width="18" Height="18">
+                                <Rectangle Canvas.Left="2" Canvas.Top="4"
+                                           Width="14" Height="10"
+                                           RadiusX="1.4" RadiusY="1.4"
                                            Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                                           StrokeThickness="1.3"/>
-                                <Line X1="7.5" Y1="3.5" X2="7.5" Y2="11.5"
+                                           StrokeThickness="1.4"/>
+                                <Line X1="9" Y1="4" X2="9" Y2="14"
                                       Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
-                                      StrokeThickness="1.3"/>
+                                      StrokeThickness="1.4"/>
                             </Canvas>
                         </Viewbox>
                     </Button>

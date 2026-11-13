@@ -118,7 +118,7 @@ public static void ApplyTheme(string name)
 | 列表行高（舒适 / 紧凑） | 32 / 26 | `Size.Row.Comfortable` / `Size.Row.Compact` | 随动 |
 | 状态栏高度 | 28 | `Size.StatusBar.Height` | 随动 |
 | 列表图标 | 16 | `Size.Icon.List` | **不动**（FONT-06） |
-| 滚动条宽度 | 10 | `Size.ScrollBar.Thickness` | 不动 |
+| 滚动条宽度 | 10 | `Size.ScrollBar.Thickness` | 不动。实现见 `Design/Styles/Controls.ScrollBar.xaml`：无箭头按钮、滑块圆角胶囊（`CornerRadius.ScrollThumb`），横向同样 10 |
 | 分隔条宽度 | 6 | `Size.Splitter.Thickness` | 不动 |
 | 间距 / 内边距 | 4 的倍数 | `Space.*` / `Padding.*` | 不动 |
 
@@ -180,6 +180,18 @@ public static void ApplyTheme(string name)
 分屏按钮的图标是自绘的方框 + 中线，不用 `Segoe MDL2 Assets`：字体里没有语义明确的"左右分栏"字形，
 借用 `Tiles`（四宫格）之类反而更像"切换视图"。自绘图标描边取 `Foreground`，
 才能跟着按钮的选中态一起变色。
+
+**规则 3.10**　**图标按钮里的字形用 `IconGlyphs` 的 MDL2 码位，不要拿 Unicode 字符当 `Content`。**
+工具栏那四颗导航按钮（←/→/↑/⟳）原先直接用字符 U+2190 一族、字号取 `Font.Size.Body`（12）。
+箭头在字符框里横向铺满、看着还行，而 `⟳`（U+27F3）的圆圈只占字身约 70%，
+12px 下视觉高度只剩 8px——用户的反馈是"刷新图标比别的都小"。字符的字面大小由字体决定，
+调字号只能整体放大，调不出想要的视觉尺寸；MDL2 字形占满字身，**字号就是视觉高度**。
+现在四颗统一用 `E72B / E72A / E74A / E72C` + 字号 14，`Foreground` 绑到 Button
+（禁用时模板换的是 Button.Foreground，文本不主动跟随就还是亮色）。
+
+自绘图标同理要按"行内的字"定尺寸：分屏图标原来 `Viewbox` 15、框 12×8，
+在 32px 按钮里只剩约 10px 高，比同一行的"详细""列表"轻一档。改为 18 / 14×10，
+描边 1.3→1.4，放大后线才不至于变细。
 
 ---
 

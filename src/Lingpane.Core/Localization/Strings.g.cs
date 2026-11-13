@@ -1675,6 +1675,9 @@ public static class Strings
     /// <summary>Preview automatically when a file is selected</summary>
     public static string Settings_Behavior_PreviewAuto => LocalizationService.Instance.Get("Settings.Behavior.PreviewAuto");
 
+    /// <summary>Only applies while the preview pane is shown. Turning this on also opens the preview pane.</summary>
+    public static string Settings_Behavior_PreviewAuto_Hint => LocalizationService.Instance.Get("Settings.Behavior.PreviewAuto.Hint");
+
     /// <summary>File list</summary>
     public static string A11y_FileList => LocalizationService.Instance.Get("A11y.FileList");
 

@@ -1635,6 +1635,10 @@
     <value>Preview automatically when a file is selected</value>
   </data>
 
+  <data name="Settings.Behavior.PreviewAuto.Hint" xml:space="preserve">
+    <value>Only applies while the preview pane is shown. Turning this on also opens the preview pane.</value>
+  </data>
+
   <!-- 屏幕阅读器标签（FR-10.7）。给"自己不说话"的容器一个名字：
        列表、导航栏、标签栏、地址栏、状态栏。可见文字已经能读出内容的控件不再重复给。 -->
   <data name="A11y.FileList" xml:space="preserve">

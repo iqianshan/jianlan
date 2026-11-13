@@ -69,11 +69,14 @@
              第一分区不画上方分隔线——它上面只有主页，再切一刀反而像断了。 -->
         <DataTemplate DataType="{x:Type vm:NavSectionRow}">
             <StackPanel Background="Transparent">
+                <!-- 分隔线上方 18px：这是分区之间唯一的"呼吸"。原来 10px，加上标题行自身
+                     只有 6px 上边距，四个分区标题（尤其是中间只夹一行内容的「标签」「工作区」）
+                     在视觉上会连成一片，读起来像一棵挤在一起的树而不是四段并列的东西。 -->
                 <Border x:Name="Rule"
                         Height="1"
-                        Margin="14,10,14,0"
+                        Margin="14,18,14,0"
                         Background="{DynamicResource Brush.Border.Hairline}"/>
-                <Grid Margin="14,6,8,4">
+                <Grid x:Name="LabelRow" Margin="14,8,8,8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -157,6 +160,9 @@
             <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding IsFirst}" Value="True">
                     <Setter TargetName="Rule" Property="Visibility" Value="Collapsed"/>
+                    <!-- 首区没有分隔线，上边距只能由标题行自己给：主页那一行与「位置」之间
+                         原来只有 6px，读起来像"位置"是主页的子项。 -->
+                    <Setter TargetName="LabelRow" Property="Margin" Value="14,12,8,8"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding IsLocations}" Value="True">
                     <Setter TargetName="PlacesConfigButton" Property="Visibility" Value="Visible"/>

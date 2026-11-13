@@ -1622,6 +1622,10 @@
     <value>选中文件后自动预览</value>
   </data>
 
+  <data name="Settings.Behavior.PreviewAuto.Hint" xml:space="preserve">
+    <value>仅在预览窗格显示时生效；勾选这一项会一并打开预览窗格。</value>
+  </data>
+
   <!-- 屏幕阅读器标签（FR-10.7） -->
   <data name="A11y.FileList" xml:space="preserve">
     <value>文件列表</value>

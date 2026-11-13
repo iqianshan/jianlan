@@ -174,9 +174,17 @@ public partial class MainWindow
     /// <summary>设置页改完预览相关的项后调用（<see cref="ApplySettingsToUi"/> 的一部分）。</summary>
     private void ApplyPreviewSettings()
     {
+        bool wasOpen = _previewOpen;
+
         _preview.AutoPreview = App.Settings.Behavior.PreviewAutoOpen;
         _previewOpen = App.Settings.Appearance.ShowPreview;
         ApplyPreviewLayout();
+
+        // 由关变开时补取一次：布置完栏位只是"有个框"，内容要另取一次。
+        // 少了这一步，用户勾上「自动预览」（现在会顺带打开窗格）之后，
+        // 当前已经选中的那个文件仍然显示空态，得再点一下才出来——
+        // 这与"设置没生效"在用户眼里是同一件事。
+        if (!wasOpen && _previewOpen) RefreshPreview();
     }
 
     private void RegisterPreviewCommands()

@@ -176,6 +176,10 @@
     <CornerRadius x:Key="CornerRadius.Tab">8</CornerRadius>
     <CornerRadius x:Key="CornerRadius.Menu">8</CornerRadius>
     <CornerRadius x:Key="CornerRadius.Dialog">10</CornerRadius>
+    <!-- 滚动条滑块（ui-guidelines §5 尺寸表）：取半宽 3，圆角等于半宽才是胶囊。
+         写成字面 3 而不是绑 Size.ScrollBar.Thickness 的一半——WPF 的 CornerRadius
+         不支持表达式，能变的是宽度本身，圆角跟着变就得写转换器，不值当。 -->
+    <CornerRadius x:Key="CornerRadius.ScrollThumb">3</CornerRadius>
 
     <!-- ============ 05 描边 ============ -->
 

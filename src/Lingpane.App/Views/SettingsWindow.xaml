@@ -448,6 +448,15 @@
                                       Content="{loc:Tr Key=Settings.Behavior.PreviewAuto}"
                                       Checked="OnPreviewAutoChanged"
                                       Unchecked="OnPreviewAutoChanged"/>
+
+                            <!-- 这两个开关是依赖关系，不是并列关系：「自动预览」只在预览窗格
+                                 显示时才有效，而窗格默认是关的。不加这一句的话，用户勾了
+                                 这一项、窗格没开，选中文件什么都不会发生——看起来就是功能坏了。
+                                 实际现象见 docs/ac06 §15.1。 -->
+                            <TextBlock Margin="0,0,0,8"
+                                       Style="{StaticResource Text.Secondary}"
+                                       TextWrapping="Wrap"
+                                       Text="{loc:Tr Key=Settings.Behavior.PreviewAuto.Hint}"/>
                         </StackPanel>
                     </ScrollViewer>
 

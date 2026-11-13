@@ -622,7 +622,25 @@ public partial class SettingsWindow : Window
     private void OnPreviewAutoChanged(object sender, RoutedEventArgs e)
     {
         if (_loading) return;
-        Settings.Behavior.PreviewAutoOpen = PreviewAutoCheck.IsChecked == true;
+
+        bool auto = PreviewAutoCheck.IsChecked == true;
+        Settings.Behavior.PreviewAutoOpen = auto;
+
+        // 「自动预览」只在预览窗格显示时才成立，而窗格默认是关的。
+        // 勾这一项的人要的是"选中就能看到预览"，所以顺手把窗格打开——
+        // 不打开的话勾完再选中文件什么都不会发生，用户看到的就是"设置没生效"。
+        // 反向不联动：关掉窗格时保留这一项，下次打开仍然是自动。
+        if (auto && !Settings.Appearance.ShowPreview)
+        {
+            Settings.Appearance.ShowPreview = true;
+
+            // 用 _loading 包住：那颗勾选框的 Checked 事件会再走一遍
+            // OnShowPreviewChanged（重复 ApplySettingsToUi + 存盘），这里已经替它做了。
+            _loading = true;
+            try { ShowPreviewCheck.IsChecked = true; }
+            finally { _loading = false; }
+        }
+
         Owner_?.ApplySettingsToUi();
         App.SaveSettings();
     }

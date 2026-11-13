@@ -519,3 +519,60 @@ token 只是首帧初值。改这类尺寸必须改计算源，改 token 等于�
    `tools/window-drive/session.py`（`python session.py <exe> <步骤...>`，步骤语法写在文件头）
    与 `tools/window-drive/uia_select.ps1`（按行序号选侧栏，ASCII-only，避开 5.1 脚本宿主的编码坑）。
    下一轮不必再从头写一遍。
+
+---
+
+## 15. 图标尺寸、分区间距、滚动条与预览联动（2026-11-13）
+
+这一节与前面几节不同：**改动当天机器处于锁屏状态（`LogonUI` 常驻），截图全部拍成了锁屏壁纸**，
+所以下面是"代码侧已确认 + 真机待复核"的分工，不含伪造的观察结果。
+
+### 15.1 「选中文件后自动预览」为什么没有反应
+
+不是功能坏了，是两个开关的依赖没表达出来。实测用户这台机器的配置：
+
+```
+appearance.showPreview   = false   ← 预览窗格本身没开
+behavior.previewAutoOpen = true    ← 勾的是这个
+```
+
+`MainWindow.RefreshPreview()` 第一行是 `if (!_previewOpen) return;`，
+于是「自动预览」在前者为假时**完全空转**，而界面上两行相邻、没有任何提示表明它们有先后。
+
+三处改动：
+
+| 位置 | 改动 |
+|---|---|
+| `SettingsWindow.OnPreviewAutoChanged` | 勾上时若 `ShowPreview` 未开，一并设为 `true` 并把 `ShowPreviewCheck` 同步勾上（用 `_loading` 包住，避免 Checked 事件再走一遍） |
+| `MainWindow.ApplyPreviewSettings` | 记下 `_previewOpen` 的旧值，由关变开时补一次 `RefreshPreview()` |
+| 外观页 | 勾选框下常显一行 `Settings.Behavior.PreviewAuto.Hint`（"仅在预览窗格显示时生效；勾选这一项会一并打开预览窗格。"） |
+
+反向不联动：关掉预览窗格时保留「自动」这一项，下次打开仍是自动。
+
+### 15.2 滚动条（FR-5.1.1 的欠账）
+
+`Size.ScrollBar.Thickness = 10` 与三套主题的 `Brush.Scroll.Thumb` / `ThumbHover` 一直存在，
+但**从来没有一处 `ScrollBar` 样式**，全程用 WPF 默认 Aero2：17px 宽、带箭头按钮、浅灰配色，
+深色主题下仍是浅灰。新增 `Design/Styles/Controls.ScrollBar.xaml`（隐式样式）+ `App.xaml` 末尾合并。
+
+代码侧已确认的两点：
+
+1. `MinWidth` / `MinHeight` 必须与 `Width` 一起设——ScrollBar 的系统默认最小宽度是 17，
+   只改 `Width` 会被顶回去（这是这类样式"看着没生效"最常见的原因）。
+2. 横向用 `Trigger Property="Orientation" Value="Horizontal"` 换模板并把 `Width` 放回 `Auto`；
+   不换的话横向滚动条会被压成 10px 宽的一条竖线。
+
+### 15.3 待真机复核的清单
+
+解锁后按此顺序走一遍（`publish\Lingpane.exe` 可直接双击，或用 `tools/window-drive/session.py`）：
+
+| # | 动作 | 期望 |
+|---|---|---|
+| 1 | 主窗口看工具栏左侧四颗图标 | 四个字形视觉大小一致，刷新是清楚的圆形箭头（不再是 8px 的小圈） |
+| 2 | 看工具栏最右的分屏按钮 | 方框约 14×10，与"详细""列表"两字的视觉重量相当 |
+| 3 | 看侧栏四个分区标题 | 分隔线上方留白明显变宽；主页与「位置」之间不再是紧贴 |
+| 4 | 外观页勾「选中文件后自动预览」 | 「显示预览窗格」自动跟着勾上；主窗口右侧那栏出现 |
+| 5 | 在文件列表里点一个文件 | 预览栏直接出内容，不需要再点第二次 |
+| 6 | 设置里切深色 / 浅色 | 文件列表、侧栏、设置页、预览页的滚动条跟着变色，宽度都是 10、无上下箭头 |
+| 7 | 设置里「恢复本页默认」 | 回到默认八色标签、预览相关的两项回到默认值 |
+

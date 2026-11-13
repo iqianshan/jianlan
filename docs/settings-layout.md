@@ -68,11 +68,23 @@
 | `ShowPreviewCheck` | `Settings.Appearance.ShowPreview` | `appearance.showPreview` | 布尔 |
 | `ImmersiveTitleBarCheck` | `Settings.Appearance.ImmersiveTitleBar` | `appearance.immersiveTitleBar` | 布尔（**改后需重启**） |
 | `PreviewAutoCheck` | `Settings.Behavior.PreviewAuto` | **`behavior.previewAutoOpen`** | 布尔 |
+| `PreviewAutoHint` | `Settings.Behavior.PreviewAuto.Hint` | 只读提示 | 常显。写明"仅在预览窗格显示时生效" |
 | `FontHint` | — | 只读提示 | 字体族回落到默认栈时才写（FONT-03） |
 
 **跨对象项**：`PreviewAutoCheck` 控的是预览行为，落在外观页——它与上面三条同属
 "窗格长什么样"，与「操作与确认」页那组"打开/确认"不是一类。这是**唯一**一个
 `behavior.*` 字段落在外观页，`AppearancePageFields` 里就是为它单独列的一项。
+
+**这两个预览项是依赖关系，不是并列关系**，界面必须替用户表达出来：
+`ShowPreview`（默认关）决定那一栏存不存在，`PreviewAutoOpen`（默认开）只决定栏里要不要
+自动装内容。后者在前者为假时完全空转——`RefreshPreview()` 第一行就是 `if (!_previewOpen) return;`。
+所以：
+
+1. 勾上「选中文件后自动预览」时，若「显示预览窗格」没勾，**一并打开**（并把那颗勾同步勾上）。
+   反向不联动：关掉窗格时保留这一项，下次打开仍然是自动。
+2. `ApplyPreviewSettings()` 在 `_previewOpen` 由关变开时补一次 `RefreshPreview()`，
+   否则栏出现了、内容还是空态，得再点一下文件。
+3. 勾选框下常显一行 `PreviewAutoHint`，把依赖关系写在用户眼前——不靠界面上两行相邻来暗示。
 
 **唯一需要重启的一项**：`ImmersiveTitleBarCheck` 决定窗口是否用自绘标题栏（FR-10.11）。
 `WindowStyle` 一旦创建窗口就改不了，运行期切换要重建 HWND，所以这里只写设置、不调
