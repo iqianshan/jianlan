@@ -525,6 +525,9 @@ public static class Strings
     public static string Status_PathsCopied => LocalizationService.Instance.Get("Status.PathsCopied");
     // 含占位符：string.Format(Strings.Status_PathsCopied, ...)
 
+    /// <summary>Copied the current folder path</summary>
+    public static string Status_FolderPathCopied => LocalizationService.Instance.Get("Status.FolderPathCopied");
+
     /// <summary>Could not copy the path</summary>
     public static string Status_CopyPathFailed => LocalizationService.Instance.Get("Status.CopyPathFailed");
 

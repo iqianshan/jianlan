@@ -555,6 +555,9 @@ def main() -> int:
             "enter": (0x0D,),
             "ctrl+a": (0x11, 0x41),
             "ctrl+d": (0x11, 0x44),
+            # 复制完整路径（FR-6.14）。VK_C = 0x43，Shift 用 VK_LSHIFT(0xA0)
+            # 而不是 VK_SHIFT(0x10)——与上面 ctrl+shift+n/m/d 保持同一写法。
+            "ctrl+shift+c": (0x11, 0xA0, 0x43),
             # 设置入口（FR-5.1.10）。VK_OEM_COMMA = 0xBC，逗号必须走 OEM 码，
             # 没有对应的 ASCII/字母虚拟键。
             "ctrl+,": (0x11, 0xBC),

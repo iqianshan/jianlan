@@ -215,7 +215,7 @@ public partial class PaneView
             Id = CommandIds.CopyPath,
             TitleFactory = () => Strings.Command_CopyPath,
             Execute = CopyPathSelection,
-            CanExecute = HasSelection,
+            CanExecute = CanCopyPath,
         });
 
         // 撤销（FR-6.8）。可执行性挂在栈上，不是挂在选中状态上——

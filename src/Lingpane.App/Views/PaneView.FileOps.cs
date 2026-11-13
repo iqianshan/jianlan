@@ -331,23 +331,39 @@ public partial class PaneView
             : ConflictPolicy.KeepBoth;
     }
 
+    /// <summary>
+    /// 复制完整路径。选中了条目就复制那些条目，没选中就复制**当前目录本身**——
+    /// 在列表空白处右键时，用户要的往往正是后者（见 <see cref="CanCopyPath"/>）。
+    /// </summary>
     internal void CopyPathSelection()
     {
         var items = Vm.SelectedEntries;
-        if (items.Count == 0) return;
+        if (items.Count > 0)
+        {
+            CopyPaths(items);
+            return;
+        }
 
-        CopyPaths(items);
+        if (!string.IsNullOrEmpty(Vm.CurrentPath))
+        {
+            CopyPathText(Vm.CurrentPath, Strings.Status_FolderPathCopied);
+        }
     }
 
     /// <summary>把某一项的路径放进剪贴板（FR-9.1.5 的预览按钮走这里）。</summary>
     internal void CopyPathOf(FileEntry entry) => CopyPaths([entry]);
 
     private void CopyPaths(IReadOnlyList<FileEntry> items)
+        => CopyPathText(
+            string.Join(Environment.NewLine, items.Select(i => i.FullPath)),
+            string.Format(Strings.Status_PathsCopied, items.Count));
+
+    private void CopyPathText(string text, string status)
     {
         try
         {
-            Clipboard.SetText(string.Join(Environment.NewLine, items.Select(i => i.FullPath)));
-            Vm.SetStatus(string.Format(Strings.Status_PathsCopied, items.Count));
+            Clipboard.SetText(text);
+            Vm.SetStatus(status);
         }
         catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or ArgumentException)
         {

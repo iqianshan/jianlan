@@ -519,6 +519,9 @@
   <data name="Status.PathsCopied" xml:space="preserve">
     <value>已复制 {0} 个完整路径</value>
   </data>
+  <data name="Status.FolderPathCopied" xml:space="preserve">
+    <value>已复制当前文件夹路径</value>
+  </data>
   <data name="Status.CopyPathFailed" xml:space="preserve">
     <value>复制路径失败</value>
   </data>

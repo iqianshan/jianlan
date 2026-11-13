@@ -650,6 +650,15 @@ public partial class PaneView : UserControl
         => _viewModel is { IsLoading: false } && _viewModel.SelectedEntries.Count == 1;
 
     /// <summary>
+    /// 「复制完整路径」的可执行条件。它比别的条目命令宽一档：没有选中项时
+    /// 复制当前目录本身，所以空白处右键也能用——那正是用户最常想要"这个文件夹的路径"的时机。
+    /// 其余条目命令仍只认 <see cref="HasSelection"/>。
+    /// </summary>
+    internal bool CanCopyPath()
+        => _viewModel is { IsLoading: false }
+           && (_viewModel.SelectedEntries.Count > 0 || !string.IsNullOrEmpty(_viewModel.CurrentPath));
+
+    /// <summary>
     /// 选中的项里至少有一个目录——「计算大小」的可执行条件。
     /// 全选文件时置灰而不是隐藏：菜单项位置固定，用户才不会以为功能没了。
     /// </summary>
@@ -676,6 +685,10 @@ public partial class PaneView : UserControl
     internal void ShowContextMenu()
     {
         if (FileList.ContextMenu is not { } menu) return;
+
+        // 键盘菜单键不经过 ListBox 的 ContextMenuOpening，可见性要在这里单独刷一次，
+        // 否则沿用上一次右键留下的布局。
+        ApplyMenuScope(HasSelection());
 
         menu.PlacementTarget = FileList;
         menu.Placement = PlacementMode.Center;
@@ -957,7 +970,7 @@ public partial class PaneView : UserControl
             // 颜色子菜单的项来自标签定义。x:Static 绑定只在首次求值时读一次，
             // 用户在设置里新建或删除了标签，这里必须重设一遍才看得见。
             // 顺手跳过手势检查：它本来就没有 Command（点击走 OnTagColorPicked）。
-            if (menuItem.Tag as string == "TagMenu")
+            if (HasMenuTag(menuItem, MenuTagTagMenu))
             {
                 menuItem.ItemsSource = ViewModels.TagPresets.Colors;
                 continue;
@@ -974,6 +987,70 @@ public partial class PaneView : UserControl
             menuItem.InputGestureText = Input.KeyBindings.Gestures.TryGetValue(adapter.Source.Id, out string? text)
                 ? text
                 : string.Empty;
+        }
+    }
+
+    // 菜单项的作用域标记。写进 Tag，多个标记用空格分隔：
+    //   TagMenu   —— 颜色子菜单，展开前要重设一遍 ItemsSource；
+    //   ItemScope —— 针对选中条目，空白处右键时收起。
+    private const string MenuTagTagMenu = "TagMenu";
+    private const string MenuTagItemScope = "ItemScope";
+
+    private static bool HasMenuTag(MenuItem item, string tag)
+        => item.Tag is string text
+           && text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Contains(tag);
+
+    /// <summary>
+    /// 右键落在列表空白处时，把「针对条目」的菜单项收起。
+    ///
+    /// 收成 Collapsed 而不是置灰：一整排灰项既不解释"为什么不能用"，又把真正可做的
+    /// 目录级操作（新建、粘贴）挤到很远。收起之后菜单本身变短，看到的就是"这里能做哪些事"。
+    /// 「复制完整路径」不在收起之列——没有选中项时它复制当前目录，见 <see cref="CanCopyPath"/>。
+    ///
+    /// 顺带收拾空出来的分隔线：开头一条、连着两条、结尾一条都没有意义。
+    /// </summary>
+    private void ApplyMenuScope(bool hasSelection)
+    {
+        if (FileList.ContextMenu is not { } menu) return;
+
+        foreach (object item in menu.Items)
+        {
+            if (item is MenuItem menuItem && HasMenuTag(menuItem, MenuTagItemScope))
+            {
+                menuItem.Visibility = hasSelection ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        // 分隔线：前面还没有可见项、或上一条可见的就是分隔线，都不留。
+        bool sawItem = false;
+        bool prevSeparator = false;
+        foreach (object item in menu.Items)
+        {
+            switch (item)
+            {
+                case MenuItem { Visibility: Visibility.Visible }:
+                    sawItem = true;
+                    prevSeparator = false;
+                    break;
+
+                case Separator separator:
+                    bool keep = sawItem && !prevSeparator;
+                    separator.Visibility = keep ? Visibility.Visible : Visibility.Collapsed;
+                    prevSeparator = keep;
+                    break;
+            }
+        }
+
+        // 收尾：末尾的可见元素是分隔线的话去掉——"更多选项"若被隐藏才会出现，防一手。
+        for (int i = menu.Items.Count - 1; i >= 0; i--)
+        {
+            if (menu.Items[i] is not UIElement element || element.Visibility != Visibility.Visible)
+            {
+                continue;
+            }
+
+            if (element is Separator) element.Visibility = Visibility.Collapsed;
+            break;
         }
     }
 

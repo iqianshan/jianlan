@@ -723,6 +723,7 @@
                                      DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.Open}"
+                                      Tag="ItemScope"
                                       Command="{Binding OpenItemCommand}"/>
                             <!-- 收藏（FR-7.1）。与 Ctrl+D 同一条命令：有选中项就收藏选中的那些，
                                  没选中就收藏当前目录；文件与文件夹都收，重复收藏由命令自己报"已存在"。
@@ -736,7 +737,7 @@
                                  父菜单的 DataContext 才是本窗格（见 FR-7 那次踩坑）。 -->
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.Tag}"
-                                      Tag="TagMenu"
+                                      Tag="TagMenu ItemScope"
                                       ToolTip="{loc:Tr Key=Menu.Tag.Tip}"
                                       ItemsSource="{Binding Source={x:Static vm:TagPresets.Colors}}"
                                       ItemContainerStyle="{StaticResource Menu.TagItem}"
@@ -760,6 +761,7 @@
                             </MenuItem>
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.Tag.Remove}"
+                                      Tag="ItemScope"
                                       Command="{Binding TagRemoveCommand}"/>
                             <Separator Style="{StaticResource Menu.Separator}"/>
                             <MenuItem Style="{StaticResource MenuItem.Default}"
@@ -770,13 +772,16 @@
                                       Command="{Binding NewFileCommand}"/>
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.Rename}"
+                                      Tag="ItemScope"
                                       Command="{Binding RenameCommand}"/>
                             <Separator Style="{StaticResource Menu.Separator}"/>
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.Copy}"
+                                      Tag="ItemScope"
                                       Command="{Binding CopyItemsCommand}"/>
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.Cut}"
+                                      Tag="ItemScope"
                                       Command="{Binding CutItemsCommand}"/>
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.Paste}"
@@ -784,9 +789,11 @@
                             <Separator Style="{StaticResource Menu.Separator}"/>
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.Delete}"
+                                      Tag="ItemScope"
                                       Command="{Binding DeleteCommand}"/>
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.DeletePermanent}"
+                                      Tag="ItemScope"
                                       Command="{Binding DeletePermanentCommand}"/>
                             <Separator Style="{StaticResource Menu.Separator}"/>
                             <MenuItem Style="{StaticResource MenuItem.Default}"
@@ -794,10 +801,12 @@
                                       Command="{Binding CopyPathCommand}"/>
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.CalculateSize}"
+                                      Tag="ItemScope"
                                       ToolTip="{loc:Tr Key=Menu.CalculateSize.Tip}"
                                       Command="{Binding CalculateSizeCommand}"/>
                             <MenuItem Style="{StaticResource MenuItem.Default}"
                                       Header="{loc:Tr Key=Menu.Properties}"
+                                      Tag="ItemScope"
                                       Command="{Binding PropertiesCommand}"/>
                             <Separator Style="{StaticResource Menu.Separator}"/>
                             <!-- FR-6.9：系统菜单只在用户显式要"更多选项"时加载。

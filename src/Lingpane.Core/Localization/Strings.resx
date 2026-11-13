@@ -532,6 +532,9 @@
   <data name="Status.PathsCopied" xml:space="preserve">
     <value>Copied {0} full paths</value>
   </data>
+  <data name="Status.FolderPathCopied" xml:space="preserve">
+    <value>Copied the current folder path</value>
+  </data>
   <data name="Status.CopyPathFailed" xml:space="preserve">
     <value>Could not copy the path</value>
   </data>

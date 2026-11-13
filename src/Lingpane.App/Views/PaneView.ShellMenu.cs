@@ -41,10 +41,16 @@ public partial class PaneView
     /// </summary>
     private void OnFileContextMenuOpening(object sender, ContextMenuEventArgs e)
     {
-        if (!_shellMenuPending) return;
+        if (_shellMenuPending)
+        {
+            e.Handled = true;
+            _shellMenuPending = false;
+            return;
+        }
 
-        e.Handled = true;
-        _shellMenuPending = false;
+        // 空白处与条目上的菜单项集合不同：这里按当前选中态收起「针对条目」的那些。
+        // 放在 Opening 而不是 Opened：Opened 时菜单已经显示出来了，改可见性会闪一下。
+        ApplyMenuScope(HasSelection());
     }
 
     /// <summary>
