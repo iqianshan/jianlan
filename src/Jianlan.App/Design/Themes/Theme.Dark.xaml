@@ -4,7 +4,7 @@
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
     xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options">
 
-    <!-- 深色主题 v1.0 · 强调色提亮至 #5B8DEF 以维持 4.5:1 -->
+    <!-- 深色主题 v1.0 · 强调色 #82A7FF（品牌深色主色，对 #1A1A1C 是 7.38:1） -->
     <sys:String x:Key="Theme.Name">Dark</sys:String>
 
     <!-- 表面 L0–L3 -->
@@ -15,14 +15,14 @@
     <Color x:Key="Color.Surface.Interactive">#FF2A2A2F</Color>
     <Color x:Key="Color.Surface.Hover">#FF26262A</Color>
     <Color x:Key="Color.Surface.Pressed">#FF2E2E33</Color>
-    <Color x:Key="Color.Surface.Selected">#FF25303F</Color>
+    <Color x:Key="Color.Surface.Selected">#FF202C44</Color>
     <Color x:Key="Color.Surface.SelectedInactive">#FF26262A</Color>
 
     <!-- 描边 -->
     <Color x:Key="Color.Border.Window">#FF45454D</Color>
     <Color x:Key="Color.Border.Strong">#FF3A3A42</Color>
     <Color x:Key="Color.Border.Hairline">#FF2A2A2F</Color>
-    <Color x:Key="Color.Border.Focus">#FF5B8DEF</Color>
+    <Color x:Key="Color.Border.Focus">#FF82A7FF</Color>
 
     <!-- 文字 -->
     <Color x:Key="Color.Text.Primary">#FFEDEDF0</Color>
@@ -31,30 +31,33 @@
     <Color x:Key="Color.Text.Disabled">#FF55555F</Color>
     <Color x:Key="Color.Text.OnAccent">#FFFFFFFF</Color>
     <Color x:Key="Color.Text.OnSelected">#FFF2F2F5</Color>
-    <Color x:Key="Color.Text.Link">#FF5B8DEF</Color>
+    <Color x:Key="Color.Text.Link">#FF82A7FF</Color>
 
     <!-- 图标 -->
     <Color x:Key="Color.Icon.Primary">#FFB9B9C4</Color>
     <Color x:Key="Color.Icon.Secondary">#FF7A7A85</Color>
 
     <!-- 强调色 -->
-    <Color x:Key="Color.Accent.Default">#FF5B8DEF</Color>
-    <Color x:Key="Color.Accent.Hover">#FF6F9BF2</Color>
-    <Color x:Key="Color.Accent.Pressed">#FF4A7BD8</Color>
-    <Color x:Key="Color.Accent.Subtle">#FF25303F</Color>
+    <Color x:Key="Color.Accent.Default">#FF82A7FF</Color>
+    <Color x:Key="Color.Accent.Hover">#FF91B2FF</Color>
+    <Color x:Key="Color.Accent.Pressed">#FF7191DE</Color>
+    <Color x:Key="Color.Accent.Subtle">#FF202C44</Color>
+    <!-- 落在强调色实心块上的文字与字形：深色主题的强调色是浅蓝，
+         白字只有 2.35:1，必须用深墨（7.59:1） -->
+    <Color x:Key="Color.Accent.OnFill">#FF0F1729</Color>
 
     <!-- 状态 -->
     <Color x:Key="Color.Status.Danger">#FFF07171</Color>
     <Color x:Key="Color.Status.Warning">#FFE0A33E</Color>
     <Color x:Key="Color.Status.Success">#FF4FBE84</Color>
-    <Color x:Key="Color.Status.Info">#FF5B8DEF</Color>
+    <Color x:Key="Color.Status.Info">#FF82A7FF</Color>
 
     <!-- 彩色标签（深色下统一提亮，避免在 #202023 上发暗） -->
     <Color x:Key="Color.Tag.Red">#FFF07171</Color>
     <Color x:Key="Color.Tag.Orange">#FFFF8C42</Color>
     <Color x:Key="Color.Tag.Yellow">#FFF2C94C</Color>
     <Color x:Key="Color.Tag.Green">#FF4FBE84</Color>
-    <Color x:Key="Color.Tag.Blue">#FF5B8DEF</Color>
+    <Color x:Key="Color.Tag.Blue">#FF82A7FF</Color>
     <Color x:Key="Color.Tag.Purple">#FFB07BE0</Color>
     <Color x:Key="Color.Tag.Gray">#FF8B8D98</Color>
     <Color x:Key="Color.Tag.Black">#FFC9C9D2</Color>
@@ -96,13 +99,14 @@
 
     <SolidColorBrush x:Key="Brush.Accent.Default" Color="{StaticResource Color.Accent.Default}" po:Freeze="True"/>
 
-    <!-- 深底用浅描边那份，实心格同步换成提亮后的蓝（#5B8DEF） -->
+    <!-- 深底用浅描边那份，实心格与强调色同为 #82A7FF -->
     <BitmapImage x:Key="Image.Brand.Mark"
                  UriSource="pack://application:,,,/Jianlan;component/Assets/Brand/mark-dark-128.png"
                  po:Freeze="True"/>
     <SolidColorBrush x:Key="Brush.Accent.Hover" Color="{StaticResource Color.Accent.Hover}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Brush.Accent.Pressed" Color="{StaticResource Color.Accent.Pressed}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Brush.Accent.Subtle" Color="{StaticResource Color.Accent.Subtle}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Accent.OnFill" Color="{StaticResource Color.Accent.OnFill}" po:Freeze="True"/>
 
     <SolidColorBrush x:Key="Brush.Status.Danger" Color="{StaticResource Color.Status.Danger}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Brush.Status.Warning" Color="{StaticResource Color.Status.Warning}" po:Freeze="True"/>

@@ -4,7 +4,7 @@
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
     xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options">
 
-    <!-- 浅色主题 v1.0 · 强调色 #2F6BE0 -->
+    <!-- 浅色主题 v1.0 · 强调色 #245EEB（品牌蓝，与 Logo 浅色主色一致） -->
     <sys:String x:Key="Theme.Name">Light</sys:String>
 
     <!-- 表面 L0–L3 -->
@@ -15,14 +15,14 @@
     <Color x:Key="Color.Surface.Interactive">#FFF2F2F5</Color>
     <Color x:Key="Color.Surface.Hover">#FFF4F4F7</Color>
     <Color x:Key="Color.Surface.Pressed">#FFEDEDF1</Color>
-    <Color x:Key="Color.Surface.Selected">#FFEAF0FD</Color>
+    <Color x:Key="Color.Surface.Selected">#FFE9EFFD</Color>
     <Color x:Key="Color.Surface.SelectedInactive">#FFF0F0F3</Color>
 
     <!-- 描边 -->
     <Color x:Key="Color.Border.Window">#FFD8D8DE</Color>
     <Color x:Key="Color.Border.Strong">#FFE8E8EC</Color>
     <Color x:Key="Color.Border.Hairline">#FFEFEFF2</Color>
-    <Color x:Key="Color.Border.Focus">#FF2F6BE0</Color>
+    <Color x:Key="Color.Border.Focus">#FF245EEB</Color>
 
     <!-- 文字 -->
     <Color x:Key="Color.Text.Primary">#FF1B1B1F</Color>
@@ -31,30 +31,33 @@
     <Color x:Key="Color.Text.Disabled">#FFBEBEC6</Color>
     <Color x:Key="Color.Text.OnAccent">#FFFFFFFF</Color>
     <Color x:Key="Color.Text.OnSelected">#FF1B1B1F</Color>
-    <Color x:Key="Color.Text.Link">#FF2F6BE0</Color>
+    <Color x:Key="Color.Text.Link">#FF245EEB</Color>
 
     <!-- 图标 -->
     <Color x:Key="Color.Icon.Primary">#FF5A5A66</Color>
     <Color x:Key="Color.Icon.Secondary">#FF9C9CA6</Color>
 
     <!-- 强调色 -->
-    <Color x:Key="Color.Accent.Default">#FF2F6BE0</Color>
-    <Color x:Key="Color.Accent.Hover">#FF2A60C8</Color>
-    <Color x:Key="Color.Accent.Pressed">#FF2455B0</Color>
-    <Color x:Key="Color.Accent.Subtle">#FFEAF0FD</Color>
+    <Color x:Key="Color.Accent.Default">#FF245EEB</Color>
+    <Color x:Key="Color.Accent.Hover">#FF2054D2</Color>
+    <Color x:Key="Color.Accent.Pressed">#FF1C4AB9</Color>
+    <Color x:Key="Color.Accent.Subtle">#FFE9EFFD</Color>
+    <!-- 落在强调色实心块上的文字与字形（勾选标记）：白字对 #245EEB 是 5.42:1，
+         用深字只有 3.17:1，所以这里不能跟 Selected 共用一眼色 -->
+    <Color x:Key="Color.Accent.OnFill">#FFFFFFFF</Color>
 
     <!-- 状态 -->
     <Color x:Key="Color.Status.Danger">#FFC93B3B</Color>
     <Color x:Key="Color.Status.Warning">#FFB4740C</Color>
     <Color x:Key="Color.Status.Success">#FF2C8C57</Color>
-    <Color x:Key="Color.Status.Info">#FF2F6BE0</Color>
+    <Color x:Key="Color.Status.Info">#FF245EEB</Color>
 
     <!-- 彩色标签（仅用于 6px 圆点） -->
     <Color x:Key="Color.Tag.Red">#FFE5484D</Color>
     <Color x:Key="Color.Tag.Orange">#FFF76B15</Color>
     <Color x:Key="Color.Tag.Yellow">#FFE8B520</Color>
     <Color x:Key="Color.Tag.Green">#FF30A46C</Color>
-    <Color x:Key="Color.Tag.Blue">#FF2F6BE0</Color>
+    <Color x:Key="Color.Tag.Blue">#FF245EEB</Color>
     <Color x:Key="Color.Tag.Purple">#FF8E4EC6</Color>
     <Color x:Key="Color.Tag.Gray">#FF8B8D98</Color>
     <Color x:Key="Color.Tag.Black">#FF1B1B1F</Color>
@@ -107,6 +110,7 @@
     <SolidColorBrush x:Key="Brush.Accent.Hover" Color="{StaticResource Color.Accent.Hover}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Brush.Accent.Pressed" Color="{StaticResource Color.Accent.Pressed}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Brush.Accent.Subtle" Color="{StaticResource Color.Accent.Subtle}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Accent.OnFill" Color="{StaticResource Color.Accent.OnFill}" po:Freeze="True"/>
 
     <SolidColorBrush x:Key="Brush.Status.Danger" Color="{StaticResource Color.Status.Danger}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Brush.Status.Warning" Color="{StaticResource Color.Status.Warning}" po:Freeze="True"/>

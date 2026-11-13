@@ -2,10 +2,10 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-on-dark.png">
-  <img src="docs/assets/logo.png" alt="简览 Jianlan — A clean file manager for Windows" width="420">
+  <img src="docs/assets/logo.png" alt="简览 Jianlan — A simpler, lighter, more controllable file manager for Windows" width="420">
 </picture>
 
-轻量、原生、启动即用的 Windows 文件管理器 —— *A clean file manager for Windows*。
+更简洁、轻量、可控的 Windows 文件资源管理器 —— *A simpler, lighter, more controllable file manager for Windows*。
 双窗格、多标签、彩色标签，基于 .NET 9 + WPF。
 
 > 简览：简（简洁）＋ 览（浏览，一眼看全）。英文名 Jianlan 取拼音，中英同指一个产品。

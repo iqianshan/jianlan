@@ -3121,7 +3121,7 @@ internal static class Program
 
         Console.WriteLine($"icon.size={source.PixelWidth}x{source.PixelHeight}");
 
-        // 采几个点看底色：蓝底反白版四周应接近 #2F6BE0，透明底版四周 alpha 为 0
+        // 采几个点看底色：蓝底反白版四周应接近 #245EEB，透明底版四周 alpha 为 0
         var pixels = new byte[source.PixelWidth * source.PixelHeight * 4];
         source.CopyPixels(pixels, source.PixelWidth * 4, 0);
 

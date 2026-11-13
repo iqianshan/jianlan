@@ -16,7 +16,8 @@
 >   这一页会变成几千行，且它不该参与本地化。
 > - 版本号、运行环境、目录、诊断四段与 0.2.0 完全一致，没有删减。
 > - 品牌区由两行变三行：名称（中英并列）/ 版本号与构建号 / **Slogan**（`About.Tagline`，
->   产品更名时定为 *A clean file manager for Windows*）。Slogan 排在名称下方而不是上方——
+>   中文「更简洁、轻量、可控的 Windows 文件资源管理器」/ 英文 *A simpler, lighter, more
+>   controllable file manager for Windows*）。Slogan 排在名称下方而不是上方——
 >   它是"这个程序是什么"的一句话，不该跟产品名抢第一落点。
 
 ## 一、一个必须先分清的前提

@@ -63,6 +63,7 @@
     <SolidColorBrush x:Key="Brush.Accent.Hover" Color="{x:Static SystemColors.HighlightColor}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Brush.Accent.Pressed" Color="{x:Static SystemColors.HighlightColor}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Brush.Accent.Subtle" Color="{x:Static SystemColors.HighlightColor}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Brush.Accent.OnFill" Color="{x:Static SystemColors.HighlightTextColor}" po:Freeze="True"/>
 
     <SolidColorBrush x:Key="Brush.Status.Danger" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Brush.Status.Warning" Color="{x:Static SystemColors.WindowTextColor}" po:Freeze="True"/>

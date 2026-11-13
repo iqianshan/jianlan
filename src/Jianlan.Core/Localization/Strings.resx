@@ -1698,7 +1698,7 @@
     <value>About Jianlan</value>
   </data>
   <data name="About.Tagline" xml:space="preserve">
-    <value>A clean file manager for Windows</value>
+    <value>A simpler, lighter, more controllable file manager for Windows</value>
   </data>
   <data name="About.Build" xml:space="preserve">
     <value>build {0}</value>

@@ -132,7 +132,7 @@
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"
                                        FontSize="11"
-                                       Foreground="{DynamicResource Brush.Text.OnSelected}"
+                                       Foreground="{DynamicResource Brush.Accent.OnFill}"
                                        Text="✓"
                                        Visibility="Collapsed"/>
                         </Border>

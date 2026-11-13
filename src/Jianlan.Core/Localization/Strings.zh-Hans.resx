@@ -1684,7 +1684,7 @@
     <value>关于 Jianlan</value>
   </data>
   <data name="About.Tagline" xml:space="preserve">
-    <value>A clean file manager for Windows</value>
+    <value>更简洁、轻量、可控的 Windows 文件资源管理器</value>
   </data>
   <data name="About.Build" xml:space="preserve">
     <value>构建 {0}</value>

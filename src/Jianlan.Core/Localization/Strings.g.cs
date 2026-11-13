@@ -1732,7 +1732,7 @@ public static class Strings
     /// <summary>About Jianlan</summary>
     public static string About_Title => LocalizationService.Instance.Get("About.Title");
 
-    /// <summary>A clean file manager for Windows</summary>
+    /// <summary>A simpler, lighter, more controllable file manager for Windows</summary>
     public static string About_Tagline => LocalizationService.Instance.Get("About.Tagline");
 
     /// <summary>build {0}</summary>

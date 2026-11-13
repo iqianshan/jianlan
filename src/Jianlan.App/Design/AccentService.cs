@@ -17,10 +17,18 @@ namespace Jianlan.App.Design;
 /// </summary>
 public static class AccentService
 {
+    /// <summary>
+    /// 品牌蓝的两份。Logo 就是这么给的：浅色底用 <c>#245EEB</c>，深色底用 <c>#82A7FF</c>。
+    /// 深色底那份不是"提亮版"，是设计稿里的另一支主色——<c>#245EEB</c> 落在 <c>#1A1A1C</c>
+    /// 上对比只有 2.2:1，2px 选中条会看不见。
+    /// </summary>
+    public const string BrandBlueLight = "#245EEB";
+    public const string BrandBlueDark = "#82A7FF";
+
     /// <summary>预设六色（蓝、青、绿、橙、紫、红）。顺序即设置页下拉的顺序。</summary>
     public static readonly (string Name, string Hex)[] Presets =
     [
-        ("Blue", "#2F6BE0"),
+        ("Blue", BrandBlueLight),
         ("Teal", "#0F7B8A"),
         ("Green", "#1F7A3F"),
         ("Orange", "#C2600F"),
@@ -28,8 +36,10 @@ public static class AccentService
         ("Red", "#C42B1C"),
     ];
 
-    /// <summary>拿不到系统色时的回落值，与浅色主题的默认强调色一致。</summary>
-    private const string FallbackHex = "#2F6BE0";
+    /// <summary>拿不到系统色时的回落值，与当前主题的默认强调色一致。</summary>
+    private static string FallbackHex => IsDark ? BrandBlueDark : BrandBlueLight;
+
+    private static bool IsDark => ThemeService.Current == ThemeService.EffectiveTheme.Dark;
 
     /// <summary>用户的选择。null = 跟随系统。缓存下来是为了切主题时能原地重算。</summary>
     private static string? _requested;
@@ -50,15 +60,20 @@ public static class AccentService
 
         Color accent = ResolveBase();
 
+        // 深色主题下"悬停更亮、按下更暗"，浅色主题下"悬停按下都压暗"——
+        // 与 Theme.*.xaml 里写死的那三档保持同一套方向，否则切主题后手感会反过来。
+        Color hover = IsDark ? Blend(accent, Colors.White, 0.10) : Scale(accent, 0.88);
+        Color pressed = IsDark ? Scale(accent, 0.86) : Scale(accent, 0.76);
+
         app.Resources["Brush.Accent.Default"] = Freeze(new SolidColorBrush(accent));
-        app.Resources["Brush.Accent.Hover"] = Freeze(new SolidColorBrush(Scale(accent, 0.88)));
-        app.Resources["Brush.Accent.Pressed"] = Freeze(new SolidColorBrush(Scale(accent, 0.76)));
+        app.Resources["Brush.Accent.Hover"] = Freeze(new SolidColorBrush(hover));
+        app.Resources["Brush.Accent.Pressed"] = Freeze(new SolidColorBrush(pressed));
         app.Resources["Brush.Accent.Subtle"] = Freeze(new SolidColorBrush(Subtle(accent)));
     }
 
     private static Color ResolveBase()
     {
-        if (_requested is { } hex && Parse(hex) is { } chosen) return chosen;
+        if (_requested is { } hex && Parse(hex) is { } chosen) return AdaptBrandBlue(chosen, hex);
 
         // 跟随系统：DWM 的 AccentColor 是 ABGR 打包的 DWORD（不是 ARGB），
         // 而且系统主题常带"自动取色"（打开后这个值跟着壁纸变），拿到什么用什么。
@@ -66,6 +81,16 @@ public static class AccentService
 
         return Parse(FallbackHex) ?? Colors.RoyalBlue;
     }
+
+    /// <summary>
+    /// 用户存的是浅色那份品牌蓝，深色主题下换成深色那份。
+    /// 只认这一个值：其余五种预设是用户自己挑的颜色，深浅两套主题下都用同一个，
+    /// 擅自替他换色就成了"我选的颜色怎么变了"。
+    /// </summary>
+    private static Color AdaptBrandBlue(Color chosen, string hex)
+        => IsDark && hex.Equals(BrandBlueLight, StringComparison.OrdinalIgnoreCase)
+            ? Parse(BrandBlueDark) ?? chosen
+            : chosen;
 
     private static Color? SystemAccent()
     {
@@ -99,6 +124,12 @@ public static class AccentService
         (byte)Math.Round(c.R * factor),
         (byte)Math.Round(c.G * factor),
         (byte)Math.Round(c.B * factor));
+
+    /// <summary>按比例向目标色混合。深色主题的"悬停更亮"用它。</summary>
+    private static Color Blend(Color c, Color target, double amount) => Color.FromRgb(
+        (byte)Math.Round(c.R * (1 - amount) + target.R * amount),
+        (byte)Math.Round(c.G * (1 - amount) + target.G * amount),
+        (byte)Math.Round(c.B * (1 - amount) + target.B * amount));
 
     /// <summary>浅底：强调色与当前主题底色混合。深色主题下混黑，浅色下混白。</summary>
     private static Color Subtle(Color accent)
