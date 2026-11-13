@@ -1,0 +1,181 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:bhv="clr-namespace:Jianlan.App.Design">
+
+    <!--
+        列表与列表项样式 v1.0
+        规则 10.3：必须覆盖系统默认选中画刷，否则深色模式下会出现刺眼的系统蓝块。
+        颜色一律 DynamicResource 取自主题字典；本文件不定义任何颜色值（规则 2.4）。
+    -->
+
+    <!-- 列表行：常态 / 悬停 / 选中（焦点条） -->
+    <Style x:Key="Row.Item" TargetType="{x:Type ListBoxItem}">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Inset}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                    <Grid x:Name="Root" Background="Transparent">
+                        <Border x:Name="Sel" Background="Transparent"/>
+                        <Border x:Name="Bar"
+                                Width="2"
+                                HorizontalAlignment="Left"
+                                Background="{DynamicResource Brush.Accent.Default}"
+                                Visibility="Collapsed"/>
+                        <ContentPresenter VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <!--
+                            悬停高亮要两个条件同时成立（FR-5.2.5）：
+                            IsMouseOver 保证鼠标真的在这一行上（容器复用残留的 IsHovered 不会露出来），
+                            RowHover.IsHovered 负责延迟——双击模式下 PaneView 立即置位，
+                            单击模式下推迟 600ms，扫过去的行不会有反馈。
+                        -->
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                                <Condition Property="bhv:RowHover.IsHovered" Value="True"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Sel" Property="Background"
+                                    Value="{DynamicResource Brush.Surface.Hover}"/>
+                        </MultiTrigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Sel" Property="Background"
+                                    Value="{DynamicResource Brush.Surface.Selected}"/>
+                            <Setter TargetName="Bar" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 导航项：高度随字号，选中态只换文字色，不加左侧竖条 -->
+    <Style x:Key="Nav.Item" TargetType="{x:Type ListBoxItem}">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <!-- 分区标题行没有 Name，绑定失败留空，退回 Content.ToString()，与改动前一致 -->
+        <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Height" Value="{DynamicResource Size.Nav.Item.Height}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Inset}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                    <Grid Background="Transparent">
+                        <Border x:Name="Sel" Background="Transparent" CornerRadius="{StaticResource CornerRadius.Control}"
+                                Margin="4,0,4,0"/>
+                        <ContentPresenter VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Sel" Property="Background"
+                                    Value="{DynamicResource Brush.Surface.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Sel" Property="Background"
+                                    Value="{DynamicResource Brush.Surface.Selected}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <!--
+                分区标题行高自适应：标题要装下分隔线与上方留白，
+                28px 的固定行高会把它们挤掉。只有 NavSectionRow 带 IsSection，
+                其余行绑定失败、不触发，行高仍是 28。
+            -->
+            <DataTrigger Binding="{Binding IsSection}" Value="True">
+                <Setter Property="Height" Value="Auto"/>
+            </DataTrigger>
+            <!-- 空态提示要能折成两行：窄侧栏里"右键文件即可添加颜色标记"一行放不下，
+                固定 28px 会把它从中间裁断 -->
+            <DataTrigger Binding="{Binding IsHint}" Value="True">
+                <Setter Property="Height" Value="Auto"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        文件列表。虚拟化三件套必须同时开启（R-01）：
+        IsVirtualizing + Recycling + ScrollUnit=Pixel
+    -->
+    <Style x:Key="List.Surface" TargetType="{x:Type ListBox}">
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface.Content}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="ItemContainerStyle" Value="{StaticResource Row.Item}"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+        <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True"/>
+        <Setter Property="VirtualizingStackPanel.VirtualizationMode" Value="Recycling"/>
+        <Setter Property="VirtualizingPanel.ScrollUnit" Value="Pixel"/>
+        <Setter Property="VirtualizingPanel.IsVirtualizingWhenGrouping" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ListBox}">
+                    <Border Background="{TemplateBinding Background}">
+                        <ScrollViewer Focusable="False"
+                                      Padding="0"
+                                      CanContentScroll="{TemplateBinding ScrollViewer.CanContentScroll}"
+                                      HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}"
+                                      VerticalScrollBarVisibility="Auto">
+                            <ItemsPresenter/>
+                        </ScrollViewer>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 导航列表：同样开启虚拟化，避免"快速访问 + 固定项"变多后拖慢首帧 -->
+    <Style x:Key="Nav.Surface" TargetType="{x:Type ListBox}" BasedOn="{StaticResource List.Surface}">
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sidebar}"/>
+        <Setter Property="ItemContainerStyle" Value="{StaticResource Nav.Item}"/>
+    </Style>
+
+    <!--
+        列宽拖拽把手：盖在列头按钮的左边缘上（5px）。
+        常态只有一条几乎看不见的竖线，悬停/拖动时才亮成强调色——
+        避免列头出现一排"斑马纹"，同时又不至于完全找不到。
+
+        为什么挂左边缘而不是右边缘：名称列是星号列，会吸收剩余宽度。
+        若把手挂在右边缘，向右拖时列宽 +X、名称列同步 -X，日期列的
+        左边界左移而右边界不动（总宽守恒），手感是"反的"。
+        挂在左边缘后，拖动等价于推这根分隔线：左邻列 +X、本列 -X，
+        边界跟着鼠标走，总宽不变，也不会把最右侧的列挤出可视区。
+    -->
+    <Style x:Key="Thumb.ColumnResize" TargetType="{x:Type Thumb}">
+        <Setter Property="Width" Value="5"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Setter Property="Cursor" Value="SizeWE"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Thumb}">
+                    <Grid Background="Transparent">
+                        <Border x:Name="Line"
+                                Width="1"
+                                HorizontalAlignment="Center"
+                                Background="Transparent"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Line" Property="Background"
+                                    Value="{DynamicResource Brush.Border.Strong}"/>
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Line" Property="Background"
+                                    Value="{DynamicResource Brush.Accent.Default}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

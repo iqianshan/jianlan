@@ -6,11 +6,11 @@
     这个程序只有空窗口，不含任何业务代码。它的启动耗时代表**当前这台机器跑 WPF 的
     最低成本**。判据很直接：
 
-      空窗口 P50 <= 800ms  -> 环境正常，Lingpane 的启动数字可信
+      空窗口 P50 <= 800ms  -> 环境正常，Jianlan 的启动数字可信
       空窗口 P50 >  800ms  -> 环境异常，任何 WPF 程序的启动数字都不可信
 
-    为什么这个判据有效：2026-11-03 同一台机器实测，Lingpane 从 569ms 涨到 1102ms 时，
-    空窗口同步从 541ms 涨到 1095ms——两者同幅变化。若只看 Lingpane 的数字，会误判成
+    为什么这个判据有效：2026-11-03 同一台机器实测，Jianlan 从 569ms 涨到 1102ms 时，
+    空窗口同步从 541ms 涨到 1095ms——两者同幅变化。若只看 Jianlan 的数字，会误判成
     代码回归；有了这个对照，可以立刻排除。
 
 .EXAMPLE
@@ -86,12 +86,12 @@ Write-Host ("判定阈值         P50 <= {0} ms" -f $GateMs)
 Write-Host ''
 
 if ($p50 -le $GateMs) {
-    Write-Host '结论：环境正常。此时 Lingpane 的启动数字可信，超标即为代码问题。' -ForegroundColor Green
+    Write-Host '结论：环境正常。此时 Jianlan 的启动数字可信，超标即为代码问题。' -ForegroundColor Green
     exit 0
 }
 else {
-    Write-Host '结论：环境异常。这台机器现在跑任何 WPF 程序都慢，Lingpane 的启动数字不可信。' -ForegroundColor Red
+    Write-Host '结论：环境异常。这台机器现在跑任何 WPF 程序都慢，Jianlan 的启动数字不可信。' -ForegroundColor Red
     Write-Host '      先排除：重启系统 / 关闭驻留的安全与监控软件 / 关闭浏览器与办公软件。' -ForegroundColor Yellow
-    Write-Host '      排除后再测一次本脚本；回到 800ms 以内再测 Lingpane。' -ForegroundColor Yellow
+    Write-Host '      排除后再测一次本脚本；回到 800ms 以内再测 Jianlan。' -ForegroundColor Yellow
     exit 2
 }

@@ -24,7 +24,7 @@ Release + ReadyToRun，AMD Ryzen 7 PRO 5850U / Windows 11，同机对照，各 3
 | WPF 最小空窗口（默认） | 1030–1120 ms |
 | WPF 最小空窗口（禁 IME） | **541–665 ms** |
 | WPF `HwndSource` 直建（绕过 `Application`/`Window`） | 978–1051 ms |
-| Lingpane M0（禁 IME） | 574–649 ms |
+| Jianlan M0（禁 IME） | 574–649 ms |
 
 关键发现：
 

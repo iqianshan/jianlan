@@ -1,0 +1,1988 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  简体中文。键集合必须与 Strings.resx 完全一致（tools/i18n/check-keys.py 校验）。
+  改完不要手动同步 —— 缺键会在 CI 报出来。
+-->
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="Application.Name" xml:space="preserve">
+    <value>简览</value>
+  </data>
+  <data name="Window.Title" xml:space="preserve">
+    <value>{0} - 简览</value>
+  </data>
+
+  <data name="Toolbar.Back" xml:space="preserve">
+    <value>后退（Alt+←）</value>
+  </data>
+  <data name="Toolbar.Forward" xml:space="preserve">
+    <value>前进（Alt+→）</value>
+  </data>
+  <data name="Toolbar.Up" xml:space="preserve">
+    <value>上级目录（Alt+↑）</value>
+  </data>
+  <data name="Toolbar.Refresh" xml:space="preserve">
+    <value>刷新（F5）</value>
+  </data>
+  <data name="Toolbar.Details" xml:space="preserve">
+    <value>详细</value>
+  </data>
+  <data name="Toolbar.Details.Tip" xml:space="preserve">
+    <value>详细信息视图（Ctrl+Shift+1）</value>
+  </data>
+  <data name="Toolbar.List" xml:space="preserve">
+    <value>列表</value>
+  </data>
+  <data name="Toolbar.List.Tip" xml:space="preserve">
+    <value>列表视图（Ctrl+Shift+2）</value>
+  </data>
+  <data name="Toolbar.Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="Toolbar.Settings.Tip" xml:space="preserve">
+    <value>打开设置（Ctrl+,）</value>
+  </data>
+  <data name="Toolbar.Split.Tip" xml:space="preserve">
+    <value>切换双窗格（F3）</value>
+  </data>
+  <data name="Toolbar.Preview.Tip" xml:space="preserve">
+    <value>显示预览窗格（Alt+P）</value>
+  </data>
+
+  <!-- 标签页（FR-2） -->
+  <data name="Tab.New.Tip" xml:space="preserve">
+    <value>新建标签页（Ctrl+T）</value>
+  </data>
+  <data name="Tab.New.FullTip" xml:space="preserve">
+    <value>已达标签页上限，请先关闭一个</value>
+  </data>
+  <data name="Tab.Close.Tip" xml:space="preserve">
+    <value>关闭标签页（Ctrl+W）</value>
+  </data>
+  <data name="Tab.Menu.Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Tab.Menu.CloseOthers" xml:space="preserve">
+    <value>关闭其他标签页</value>
+  </data>
+  <data name="Tab.Menu.CloseRight" xml:space="preserve">
+    <value>关闭右侧标签页</value>
+  </data>
+  <data name="Tab.Menu.CopyPath" xml:space="preserve">
+    <value>复制路径</value>
+  </data>
+  <data name="Tab.Menu.Pin" xml:space="preserve">
+    <value>固定标签页</value>
+  </data>
+  <data name="Tab.Menu.Unpin" xml:space="preserve">
+    <value>取消固定</value>
+  </data>
+
+  <data name="Command_ToggleSplit" xml:space="preserve">
+    <value>切换第二窗格</value>
+  </data>
+  <data name="Command_TogglePreview" xml:space="preserve">
+    <value>切换预览窗格</value>
+  </data>
+
+  <data name="Command_FocusOtherPane" xml:space="preserve">
+    <value>切换焦点窗格</value>
+  </data>
+
+  <data name="Split.Menu.Horizontal" xml:space="preserve">
+    <value>左右分屏</value>
+  </data>
+
+  <data name="Split.Menu.Vertical" xml:space="preserve">
+    <value>上下分屏</value>
+  </data>
+
+  <data name="Split.Menu.Reset" xml:space="preserve">
+    <value>恢复 50:50</value>
+  </data>
+
+  <data name="Menu.Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="Menu.Bookmark" xml:space="preserve">
+    <value>收藏</value>
+  </data>
+  <data name="Menu.NewFolder" xml:space="preserve">
+    <value>新建文件夹</value>
+  </data>
+  <data name="Menu.NewTextFile" xml:space="preserve">
+    <value>新建文本文档</value>
+  </data>
+  <data name="Menu.Rename" xml:space="preserve">
+    <value>重命名</value>
+  </data>
+  <data name="Menu.Copy" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="Menu.Cut" xml:space="preserve">
+    <value>剪切</value>
+  </data>
+  <data name="Menu.Paste" xml:space="preserve">
+    <value>粘贴</value>
+  </data>
+  <data name="Menu.Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Menu.DeletePermanent" xml:space="preserve">
+    <value>永久删除</value>
+  </data>
+  <data name="Menu.CopyPath" xml:space="preserve">
+    <value>复制完整路径</value>
+  </data>
+  <data name="Menu.Properties" xml:space="preserve">
+    <value>属性</value>
+  </data>
+  <data name="Menu.Columns.MoveLeft" xml:space="preserve">
+    <value>左移</value>
+  </data>
+  <data name="Menu.Columns.MoveRight" xml:space="preserve">
+    <value>右移</value>
+  </data>
+  <data name="Menu.Columns.Reset" xml:space="preserve">
+    <value>重置本目录类型的列</value>
+  </data>
+  <data name="Menu.Columns.Hint" xml:space="preserve">
+    <value>名称列始终显示</value>
+  </data>
+  <data name="Settings.Section.Columns" xml:space="preserve">
+    <value>列</value>
+  </data>
+  <data name="Settings.Columns.Hint" xml:space="preserve">
+    <value>对该类型的目录生效；拖动列边缘可调宽度，右键列头可调顺序。</value>
+  </data>
+  <data name="Settings.Columns.Reset" xml:space="preserve">
+    <value>重置全部列配置</value>
+  </data>
+
+  <data name="Column.Name" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="Column.DateModified" xml:space="preserve">
+    <value>修改日期</value>
+  </data>
+  <data name="Column.Type" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="Column.Size" xml:space="preserve">
+    <value>大小</value>
+  </data>
+  <data name="Sort.Ascending" xml:space="preserve">
+    <value>升序</value>
+  </data>
+  <data name="Sort.Descending" xml:space="preserve">
+    <value>降序</value>
+  </data>
+  <data name="Sort.ByName" xml:space="preserve">
+    <value>按名称排序</value>
+  </data>
+  <data name="Sort.ByDateModified" xml:space="preserve">
+    <value>按修改日期排序</value>
+  </data>
+  <data name="Sort.ByType" xml:space="preserve">
+    <value>按类型排序</value>
+  </data>
+  <data name="Sort.BySize" xml:space="preserve">
+    <value>按大小排序</value>
+  </data>
+
+  <data name="Empty.Folder" xml:space="preserve">
+    <value>此文件夹为空</value>
+  </data>
+  <data name="Empty.Inaccessible" xml:space="preserve">
+    <value>无法访问此文件夹</value>
+  </data>
+  <data name="Empty.NoMatch" xml:space="preserve">
+    <value>没有匹配的项</value>
+  </data>
+
+  <!-- 当前目录搜索（FR-6.13） -->
+  <data name="Search.Placeholder" xml:space="preserve">
+    <value>搜索</value>
+  </data>
+  <data name="Search.Clear.Tip" xml:space="preserve">
+    <value>清除搜索（Esc）</value>
+  </data>
+  <data name="Toolbar.Search.Tip" xml:space="preserve">
+    <value>在当前文件夹中搜索（Ctrl+F）</value>
+  </data>
+
+  <data name="Status.Summary" xml:space="preserve">
+    <value>{0} 项 · 枚举 {1} ms</value>
+  </data>
+  <data name="Status.SearchSummary" xml:space="preserve">
+    <value>匹配 {0} 项，共 {1} 项</value>
+  </data>
+  <data name="Status.SearchTruncated" xml:space="preserve">
+    <value>匹配 {1} 项，仅显示前 {0} 项</value>
+  </data>
+  <data name="Status.SelectedCount" xml:space="preserve">
+    <value>选中 {0} 项</value>
+  </data>
+  <data name="Status.SelectedOne" xml:space="preserve">
+    <value>选中 1 项</value>
+  </data>
+  <data name="Status.SelectedWithSize" xml:space="preserve">
+    <value>选中 {0} 项 · {1}</value>
+  </data>
+  <data name="Status.SummaryHidden" xml:space="preserve">
+    <value>{0} 项（已隐藏 {1} 项）· 枚举 {2} ms</value>
+  </data>
+  <data name="Status.Ready" xml:space="preserve">
+    <value>就绪</value>
+  </data>
+  <data name="Status.Loading" xml:space="preserve">
+    <value>读取中…</value>
+  </data>
+  <data name="Menu.MoreOptions" xml:space="preserve">
+    <value>更多选项…</value>
+  </data>
+  <data name="Menu.MoreOptions.Tip" xml:space="preserve">
+    <value>打开系统菜单（含打开方式、发送到、压缩等）；Shift+右键 同效</value>
+  </data>
+  <data name="Status.ShellMenuUnavailable" xml:space="preserve">
+    <value>系统菜单暂时打不开，已保留应用内菜单</value>
+  </data>
+  <data name="Status.OperationFailed" xml:space="preserve">
+    <value>操作失败：{0}</value>
+  </data>
+  <data name="Status.AccessTimeout" xml:space="preserve">
+    <value>无法访问该位置：3 秒内没有响应</value>
+  </data>
+  <data name="Status.OpenedInExplorer" xml:space="preserve">
+    <value>已在资源管理器中打开{0}</value>
+  </data>
+  <data name="Status.ShellOpenFailed" xml:space="preserve">
+    <value>资源管理器打不开，可能被系统策略阻止</value>
+  </data>
+  <data name="Crash.Banner.Text" xml:space="preserve">
+    <value>上次在 {0} 没有正常退出，日志已保留，可用于排查原因。</value>
+  </data>
+  <data name="Crash.Banner.TextUnknown" xml:space="preserve">
+    <value>上次没有正常退出，日志已保留，可用于排查原因。</value>
+  </data>
+  <data name="Crash.Banner.OpenLogs" xml:space="preserve">
+    <value>打开日志文件夹</value>
+  </data>
+  <data name="Crash.Banner.Dismiss" xml:space="preserve">
+    <value>关闭提示</value>
+  </data>
+
+  <data name="Nav.Desktop" xml:space="preserve">
+    <value>桌面</value>
+  </data>
+  <data name="Nav.Documents" xml:space="preserve">
+    <value>文档</value>
+  </data>
+  <data name="Nav.Downloads" xml:space="preserve">
+    <value>下载</value>
+  </data>
+  <data name="Nav.Pictures" xml:space="preserve">
+    <value>图片</value>
+  </data>
+  <data name="Nav.Music" xml:space="preserve">
+    <value>音乐</value>
+  </data>
+  <data name="Nav.Videos" xml:space="preserve">
+    <value>视频</value>
+  </data>
+  <data name="Nav.ThisPc" xml:space="preserve">
+    <value>此电脑</value>
+  </data>
+  <data name="Nav.ThisPc.Tip" xml:space="preserve">
+    <value>本机的全部驱动器</value>
+  </data>
+  <data name="Nav.ThisPc.Loading" xml:space="preserve">
+    <value>正在读取驱动器…</value>
+  </data>
+  <data name="Nav.ThisPc.Empty" xml:space="preserve">
+    <value>未检测到驱动器</value>
+  </data>
+  <data name="Nav.Drive.Fixed" xml:space="preserve">
+    <value>本地磁盘</value>
+  </data>
+  <data name="Nav.Drive.Removable" xml:space="preserve">
+    <value>可移动磁盘</value>
+  </data>
+  <data name="Nav.Drive.Network" xml:space="preserve">
+    <value>网络驱动器</value>
+  </data>
+  <data name="Nav.Drive.CdRom" xml:space="preserve">
+    <value>光盘驱动器</value>
+  </data>
+  <data name="Nav.Drive.Ram" xml:space="preserve">
+    <value>内存盘</value>
+  </data>
+  <data name="Nav.Drive.Unknown" xml:space="preserve">
+    <value>驱动器</value>
+  </data>
+  <data name="Nav.Drive.Capacity" xml:space="preserve">
+    <value>可用 {0}，共 {1}</value>
+  </data>
+  <data name="Nav.Drive.NoCapacity" xml:space="preserve">
+    <value>无法读取容量</value>
+  </data>
+
+  <data name="Error.PathNotFound" xml:space="preserve">
+    <value>找不到此位置</value>
+  </data>
+  <data name="Error.AccessDenied" xml:space="preserve">
+    <value>没有访问权限</value>
+  </data>
+  <data name="Error.DeviceNotReady" xml:space="preserve">
+    <value>设备未就绪，请检查磁盘是否插好或网络是否连通</value>
+  </data>
+  <data name="Error.Timeout" xml:space="preserve">
+    <value>网络位置没有响应</value>
+  </data>
+  <data name="Error.PathTooLong" xml:space="preserve">
+    <value>路径过长，超出系统限制</value>
+  </data>
+  <data name="Error.Unknown" xml:space="preserve">
+    <value>未知错误</value>
+  </data>
+  <data name="Error.CannotOpen" xml:space="preserve">
+    <value>无法打开：{0}</value>
+  </data>
+
+  <data name="Hint.IconViewUnavailable" xml:space="preserve">
+    <value>大图标视图尚未实现（需虚拟化面板，避免万项目录卡顿），已保持当前视图</value>
+  </data>
+
+  <data name="Settings.General" xml:space="preserve">
+    <value>通用</value>
+  </data>
+  <data name="Settings.Language" xml:space="preserve">
+    <value>界面语言</value>
+  </data>
+  <data name="Settings.Language.Auto" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="Settings.Language.Chinese" xml:space="preserve">
+    <value>简体中文</value>
+  </data>
+  <data name="Settings.Language.English" xml:space="preserve">
+    <value>English</value>
+  </data>
+
+  <!-- 文件类型与对话框 -->
+  <data name="Type.Folder" xml:space="preserve">
+    <value>文件夹</value>
+  </data>
+  <data name="Type.File" xml:space="preserve">
+    <value>文件</value>
+  </data>
+  <data name="File.NewTextFileName" xml:space="preserve">
+    <value>新建文本文档.txt</value>
+  </data>
+  <data name="Dialog.Ok" xml:space="preserve">
+    <value>确定</value>
+  </data>
+  <data name="Dialog.Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Error.NameEmpty" xml:space="preserve">
+    <value>名称不能为空</value>
+  </data>
+  <data name="Error.NameTooLong" xml:space="preserve">
+    <value>名称不能超过 {0} 个字符</value>
+  </data>
+  <data name="Error.NameInvalidChars" xml:space="preserve">
+    <value>名称不能包含 \ / : * ? " &lt; &gt; |</value>
+  </data>
+  <data name="Error.NameTrailingChar" xml:space="preserve">
+    <value>名称不能以空格或句点结尾</value>
+  </data>
+  <data name="Error.NameReserved" xml:space="preserve">
+    <value>该名称是系统保留名</value>
+  </data>
+  <data name="Error.PathUnresolved" xml:space="preserve">
+    <value>无法解析所在目录</value>
+  </data>
+  <data name="Error.ItemMissing" xml:space="preserve">
+    <value>该项已不存在</value>
+  </data>
+  <data name="Error.ItemExists" xml:space="preserve">
+    <value>该目录下已存在同名项</value>
+  </data>
+  <data name="Error.NothingToDelete" xml:space="preserve">
+    <value>没有可删除的项</value>
+  </data>
+  <data name="Error.CannotCopyIntoSelf" xml:space="preserve">
+    <value>不能把文件夹复制到它自己里面</value>
+  </data>
+  <data name="Error.CannotMoveIntoSelf" xml:space="preserve">
+    <value>不能把文件夹移动到它自己里面</value>
+  </data>
+  <data name="Error.ItemGone" xml:space="preserve">
+    <value>项已不存在：{0}</value>
+  </data>
+  <data name="Error.Cancelled" xml:space="preserve">
+    <value>操作已取消</value>
+  </data>
+
+  <!-- 文件操作与对话框 -->
+  <data name="Status.OpenItemFailed" xml:space="preserve">
+    <value>无法打开「{0}」</value>
+  </data>
+  <data name="Status.NewFolderFailed" xml:space="preserve">
+    <value>新建文件夹失败：{0}</value>
+  </data>
+  <data name="Status.TabLimit" xml:space="preserve">
+    <value>最多 {0} 个标签页，请先关闭一个</value>
+  </data>
+  <data name="Status.NewFileFailed" xml:space="preserve">
+    <value>新建文件失败：{0}</value>
+  </data>
+  <data name="Dialog.RenameTitle" xml:space="preserve">
+    <value>重命名</value>
+  </data>
+  <data name="Dialog.RenamePrompt" xml:space="preserve">
+    <value>为「{0}」输入新名称</value>
+  </data>
+  <data name="Status.RenameFailed" xml:space="preserve">
+    <value>重命名失败：{0}</value>
+  </data>
+  <data name="Status.Renamed" xml:space="preserve">
+    <value>已重命名为「{0}」</value>
+  </data>
+  <data name="Dialog.DeleteItem" xml:space="preserve">
+    <value>「{0}」</value>
+  </data>
+  <data name="Dialog.DeleteItems" xml:space="preserve">
+    <value>这 {0} 项</value>
+  </data>
+  <data name="Dialog.DeleteConfirmPermanent" xml:space="preserve">
+    <value>永久删除{0}？&#13;&#10;&#13;&#10;永久删除不进回收站，无法撤销。</value>
+  </data>
+  <data name="Dialog.DeleteConfirmRecycle" xml:space="preserve">
+    <value>将{0}移到回收站？</value>
+  </data>
+  <data name="Dialog.DeleteTitle" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Dialog.DeleteTitlePermanent" xml:space="preserve">
+    <value>永久删除</value>
+  </data>
+  <data name="Status.Deleting" xml:space="preserve">
+    <value>正在删除…</value>
+  </data>
+  <data name="Status.DeletingPermanent" xml:space="preserve">
+    <value>正在永久删除…</value>
+  </data>
+  <data name="Status.DeletedCount" xml:space="preserve">
+    <value>已删除 {0} 项</value>
+  </data>
+  <data name="Status.DeleteFailed" xml:space="preserve">
+    <value>删除失败：{0}</value>
+  </data>
+  <data name="Status.CutCount" xml:space="preserve">
+    <value>已剪切 {0} 项</value>
+  </data>
+  <data name="Status.CopiedCount" xml:space="preserve">
+    <value>已复制 {0} 项</value>
+  </data>
+  <data name="Status.Moving" xml:space="preserve">
+    <value>正在移动…</value>
+  </data>
+  <data name="Status.Copying" xml:space="preserve">
+    <value>正在复制…</value>
+  </data>
+  <data name="Status.MoveFailed" xml:space="preserve">
+    <value>移动失败：{0}</value>
+  </data>
+  <data name="Status.CopyFailed" xml:space="preserve">
+    <value>复制失败：{0}</value>
+  </data>
+  <data name="Status.PartialFailed" xml:space="preserve">
+    <value>完成 {0} 项，{1} 项失败：{2}</value>
+  </data>
+  <data name="Status.MovedCount" xml:space="preserve">
+    <value>已移动 {0} 项</value>
+  </data>
+  <data name="Status.PathsCopied" xml:space="preserve">
+    <value>已复制 {0} 个完整路径</value>
+  </data>
+  <data name="Status.FolderPathCopied" xml:space="preserve">
+    <value>已复制当前文件夹路径</value>
+  </data>
+  <data name="Status.CopyPathFailed" xml:space="preserve">
+    <value>复制路径失败</value>
+  </data>
+  <data name="Size.Computing" xml:space="preserve">
+    <value>计算中…</value>
+  </data>
+  <data name="Size.MultiTargets" xml:space="preserve">
+    <value>{0} 个文件夹</value>
+  </data>
+  <data name="Menu.CalculateSize" xml:space="preserve">
+    <value>计算大小</value>
+  </data>
+  <data name="Menu.CalculateSize.Tip" xml:space="preserve">
+    <value>递归统计文件夹内所有文件的大小；只在你点这一下时执行</value>
+  </data>
+  <data name="Status.SizeCalculating" xml:space="preserve">
+    <value>正在计算 {0}：已扫描 {1} 项 · {2}</value>
+  </data>
+  <data name="Status.SizeDone" xml:space="preserve">
+    <value>{0}：{1}（{2} 个文件，{3} 个文件夹）</value>
+  </data>
+  <data name="Status.SizePartial" xml:space="preserve">
+    <value>{0} 未算完（已扫描 {1} 项）：至少 {2}</value>
+  </data>
+  <data name="Status.SizeCanceled" xml:space="preserve">
+    <value>已取消计算大小</value>
+  </data>
+  <data name="Status.SizeNoFolder" xml:space="preserve">
+    <value>请先选中要计算大小的文件夹</value>
+  </data>
+  <data name="Common.Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Properties.Title" xml:space="preserve">
+    <value>属性</value>
+  </data>
+  <data name="Properties.MultiSummary" xml:space="preserve">
+    <value>共 {0} 项&#13;&#10;总计大小：{1}</value>
+  </data>
+  <data name="Properties.FolderSizeUnknown" xml:space="preserve">
+    <value>文件夹（大小不计）</value>
+  </data>
+  <data name="Properties.EntryDetail" xml:space="preserve">
+    <value>名称：{0}&#13;&#10;位置：{1}&#13;&#10;类型：{2}&#13;&#10;大小：{3}&#13;&#10;修改时间：{4}</value>
+  </data>
+  <data name="Hint.PathNotFound" xml:space="preserve">
+    <value>路径不存在：{0}</value>
+  </data>
+
+  <!-- 命令标题（命令面板/提示用；菜单用 Menu.* 那组） -->
+  <data name="Command.GoUp" xml:space="preserve">
+    <value>上级</value>
+  </data>
+  <data name="Command.GoBack" xml:space="preserve">
+    <value>后退</value>
+  </data>
+  <data name="Command.GoForward" xml:space="preserve">
+    <value>前进</value>
+  </data>
+  <data name="Command.Refresh" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="Command.CycleTheme" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="Command.ViewDetails" xml:space="preserve">
+    <value>详细信息视图</value>
+  </data>
+  <data name="Command.ViewList" xml:space="preserve">
+    <value>列表视图</value>
+  </data>
+  <data name="Command.OpenSettings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="Command.FocusAddress" xml:space="preserve">
+    <value>定位地址栏</value>
+  </data>
+  <data name="Command.Search" xml:space="preserve">
+    <value>在当前文件夹中搜索</value>
+  </data>
+  <data name="Command.Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="Command.NewFolder" xml:space="preserve">
+    <value>新建文件夹</value>
+  </data>
+  <data name="Command.NewFile" xml:space="preserve">
+    <value>新建文本文档</value>
+  </data>
+  <data name="Command.Rename" xml:space="preserve">
+    <value>重命名</value>
+  </data>
+  <data name="Command.Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Command.DeletePermanent" xml:space="preserve">
+    <value>永久删除</value>
+  </data>
+  <data name="Command.Copy" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="Command.Cut" xml:space="preserve">
+    <value>剪切</value>
+  </data>
+  <data name="Command.Paste" xml:space="preserve">
+    <value>粘贴</value>
+  </data>
+  <data name="Command.CopyPath" xml:space="preserve">
+    <value>复制完整路径</value>
+  </data>
+  <data name="Command.Properties" xml:space="preserve">
+    <value>属性</value>
+  </data>
+  <data name="Command.More" xml:space="preserve">
+    <value>更多操作</value>
+  </data>
+  <data name="Command.SelectAll" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="Hint.DragMoveTo" xml:space="preserve">
+    <value>移动到「{0}」</value>
+  </data>
+  <data name="Hint.DragCopyTo" xml:space="preserve">
+    <value>复制到「{0}」</value>
+  </data>
+  <data name="Settings.Tabs.NewTabPath" xml:space="preserve">
+    <value>新标签页默认目录</value>
+  </data>
+  <data name="Settings.Tabs.NewTabPath.Tip" xml:space="preserve">
+    <value>新建标签页时进入这个目录，包括 + 按钮、Ctrl+T 与中键开新标签</value>
+  </data>
+  <data name="Settings.Tabs.NewTabPath.Hint" xml:space="preserve">
+    <value>新建的标签页都进入这里；留空则用系统「下载」目录</value>
+  </data>
+  <data name="Settings.Tabs.NewTabPath.Missing" xml:space="preserve">
+    <value>该目录当前不存在，新建标签页会暂时回落到系统「下载」目录</value>
+  </data>
+  <data name="Common.Browse" xml:space="preserve">
+    <value>浏览…</value>
+  </data>
+  <data name="Settings.Section.Tabs" xml:space="preserve">
+    <value>标签页</value>
+  </data>
+  <data name="Settings.Section.Appearance" xml:space="preserve">
+    <value>外观</value>
+  </data>
+  <data name="Settings.Section.Behavior" xml:space="preserve">
+    <value>行为</value>
+  </data>
+  <data name="Settings.Section.Privacy" xml:space="preserve">
+    <value>隐私</value>
+  </data>
+  <data name="Settings.Section.About" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="Settings.Appearance.Theme" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="Settings.Theme.FollowSystem" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="Settings.Theme.Light" xml:space="preserve">
+    <value>浅色</value>
+  </data>
+  <data name="Settings.Theme.Dark" xml:space="preserve">
+    <value>深色</value>
+  </data>
+  <data name="Settings.Theme.HighContrast" xml:space="preserve">
+    <value>高对比度</value>
+  </data>
+  <data name="Settings.Theme.HighContrast.Tip" xml:space="preserve">
+    <value>始终使用高对比度配色。系统自身开启了高对比度时仍以系统为准。</value>
+  </data>
+  <data name="Settings.Appearance.Font" xml:space="preserve">
+    <value>界面字体</value>
+  </data>
+  <data name="Settings.Appearance.Font.Tip" xml:space="preserve">
+    <value>只列出系统已安装字体；程序不自带字体文件</value>
+  </data>
+  <data name="Settings.Appearance.Font.Hint" xml:space="preserve">
+    <value>仅系统已安装字体，不支持导入</value>
+  </data>
+  <data name="Settings.Appearance.Font.Default" xml:space="preserve">
+    <value>（默认字体）</value>
+  </data>
+  <data name="Settings.Appearance.Font.Fallback" xml:space="preserve">
+    <value>原字体「{0}」不可用，已回落默认字体</value>
+  </data>
+  <data name="Settings.Appearance.FontSize" xml:space="preserve">
+    <value>字号</value>
+  </data>
+  <data name="Settings.Appearance.FontSize.Decrease" xml:space="preserve">
+    <value>减小 1pt</value>
+  </data>
+  <data name="Settings.Appearance.FontSize.Increase" xml:space="preserve">
+    <value>增大 1pt</value>
+  </data>
+  <data name="Settings.Appearance.FontSize.FollowSystem" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="Settings.Appearance.FontSize.FollowSystemValue" xml:space="preserve">
+    <value>跟随系统（{0:0} pt）</value>
+  </data>
+  <data name="Settings.Appearance.Density" xml:space="preserve">
+    <value>界面密度</value>
+  </data>
+  <data name="Settings.Appearance.Density.Comfortable" xml:space="preserve">
+    <value>舒适</value>
+  </data>
+  <data name="Settings.Appearance.Density.Compact" xml:space="preserve">
+    <value>紧凑</value>
+  </data>
+  <data name="Settings.Appearance.ShowNav" xml:space="preserve">
+    <value>显示左侧导航栏</value>
+  </data>
+  <data name="Settings.Appearance.TabStrip" xml:space="preserve">
+    <value>标签栏位置</value>
+  </data>
+  <data name="Settings.Appearance.TabStrip.Top" xml:space="preserve">
+    <value>顶部</value>
+  </data>
+  <data name="Settings.Appearance.TabStrip.Bottom" xml:space="preserve">
+    <value>底部</value>
+  </data>
+  <data name="Settings.Appearance.ShowStatus" xml:space="preserve">
+    <value>显示底部状态栏</value>
+  </data>
+  <data name="Settings.Behavior.DefaultView" xml:space="preserve">
+    <value>默认视图</value>
+  </data>
+  <data name="Settings.Behavior.View.Details" xml:space="preserve">
+    <value>详细信息</value>
+  </data>
+  <data name="Settings.Behavior.View.List" xml:space="preserve">
+    <value>列表</value>
+  </data>
+  <data name="Settings.Behavior.NextLaunch" xml:space="preserve">
+    <value>下次启动时生效</value>
+  </data>
+  <data name="Settings.Behavior.DefaultSort" xml:space="preserve">
+    <value>默认排序</value>
+  </data>
+  <data name="Settings.Behavior.SortHint" xml:space="preserve">
+    <value>下次启动时生效；列头点击只在本次会话内有效</value>
+  </data>
+  <data name="Settings.Behavior.SortMode" xml:space="preserve">
+    <value>排序方式</value>
+  </data>
+  <data name="Settings.Behavior.FoldersFirst" xml:space="preserve">
+    <value>文件夹优先</value>
+  </data>
+  <data name="Settings.Behavior.ShowHidden" xml:space="preserve">
+    <value>显示隐藏文件</value>
+  </data>
+  <data name="Settings.Behavior.ShowExtensions" xml:space="preserve">
+    <value>显示文件扩展名</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmDelete" xml:space="preserve">
+    <value>删除前确认</value>
+  </data>
+  <data name="Settings.Behavior.OpenFolderInNewTab" xml:space="preserve">
+    <value>文件夹在新标签页打开</value>
+  </data>
+  <data name="Settings.Behavior.OpenFolderInNewTab.Hint" xml:space="preserve">
+    <value>双击或按回车进入文件夹时新开一个标签页，不替换当前目录；立即生效。分屏时不生效：此时进入文件夹一律在当前窗格内完成</value>
+  </data>
+  <data name="Settings.Behavior.OpenNewTabInBackground" xml:space="preserve">
+    <value>新标签页在后台打开</value>
+  </data>
+  <data name="Settings.Behavior.OpenNewTabInBackground.Hint" xml:space="preserve">
+    <value>中键或 Ctrl+点击文件夹时，新标签页留在后台不切换，方便连开多处；关闭则立即切过去</value>
+  </data>
+  <data name="Settings.Privacy.RememberPath" xml:space="preserve">
+    <value>记住上次打开的目录</value>
+  </data>
+  <data name="Settings.Privacy.RememberPath.Hint" xml:space="preserve">
+    <value>只保存在本机 settings.json，不上传；关闭后下次启动回到「文档」</value>
+  </data>
+  <data name="Settings.Privacy.ClearPath" xml:space="preserve">
+    <value>清空已记录的路径</value>
+  </data>
+  <data name="Settings.Privacy.Cleared" xml:space="preserve">
+    <value>已清空记录的路径</value>
+  </data>
+  <data name="Common.Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Settings.ResetAppearance" xml:space="preserve">
+    <value>重置外观</value>
+  </data>
+  <data name="Settings.ResetAppearance.Tip" xml:space="preserve">
+    <value>字体与字号恢复系统默认</value>
+  </data>
+  <data name="Settings.ResetAppearance.Done" xml:space="preserve">
+    <value>已恢复系统默认字体与字号</value>
+  </data>
+  <data name="Settings.OpenDataDir" xml:space="preserve">
+    <value>打开数据目录</value>
+  </data>
+  <data name="Settings.OpenDataDir.Failed" xml:space="preserve">
+    <value>无法打开数据目录：{0}</value>
+  </data>
+  <data name="Dialog.Yes" xml:space="preserve">
+    <value>是</value>
+  </data>
+  <data name="Dialog.No" xml:space="preserve">
+    <value>否</value>
+  </data>
+  <data name="Error.InUse" xml:space="preserve">
+    <value>文件正被其他程序占用</value>
+  </data>
+  <data name="Error.DiskFull" xml:space="preserve">
+    <value>目标磁盘空间不足</value>
+  </data>
+  <data name="Error.DeleteRefused" xml:space="preserve">
+    <value>无法删除该项：可能正在被使用，或没有删除权限</value>
+  </data>
+  <data name="Home.Title" xml:space="preserve">
+    <value>主页</value>
+  </data>
+  <data name="Home.NewTab" xml:space="preserve">
+    <value>新建标签</value>
+  </data>
+  <data name="Home.NewTab.Tip" xml:space="preserve">
+    <value>新开一个标签（Ctrl+T）</value>
+  </data>
+  <data name="Home.NewFolder" xml:space="preserve">
+    <value>新建文件夹</value>
+  </data>
+  <data name="Home.NewFolder.Tip" xml:space="preserve">
+    <value>在新标签页默认目录里新建文件夹</value>
+  </data>
+  <data name="Home.Section.Folders" xml:space="preserve">
+    <value>常用目录</value>
+  </data>
+  <data name="Home.Section.Drives" xml:space="preserve">
+    <value>驱动器</value>
+  </data>
+  <data name="Home.Section.Recent" xml:space="preserve">
+    <value>最近访问</value>
+  </data>
+  <data name="Home.Section.Bookmarks" xml:space="preserve">
+    <value>收藏</value>
+  </data>
+  <data name="Home.Recent.Empty" xml:space="preserve">
+    <value>还没有访问记录</value>
+  </data>
+  <data name="Home.Recent.Clear" xml:space="preserve">
+    <value>清空</value>
+  </data>
+  <data name="Home.Recent.Clear.Tip" xml:space="preserve">
+    <value>清空最近访问列表</value>
+  </data>
+  <data name="Home.Recent.Missing" xml:space="preserve">
+    <value>位置已不可用</value>
+  </data>
+  <data name="Home.Bookmarks.Empty" xml:space="preserve">
+    <value>还没有收藏</value>
+  </data>
+  <data name="Home.Bookmarks.More" xml:space="preserve">
+    <value>查看全部</value>
+  </data>
+  <data name="Home.Bookmarks.Less" xml:space="preserve">
+    <value>收起</value>
+  </data>
+  <data name="Home.Drive.Unknown" xml:space="preserve">
+    <value>—</value>
+  </data>
+  <data name="Home.Drive.Loading" xml:space="preserve">
+    <value>读取中…</value>
+  </data>
+  <data name="Home.Drive.Capacity" xml:space="preserve">
+    <value>可用 {0}，共 {1}</value>
+  </data>
+  <data name="Home.Tile.OpenInNewTab" xml:space="preserve">
+    <value>Ctrl+点击在新标签打开</value>
+  </data>
+  <data name="Nav.Home" xml:space="preserve">
+    <value>主页</value>
+  </data>
+  <data name="Nav.RecycleBin" xml:space="preserve">
+    <value>回收站</value>
+  </data>
+  <data name="Nav.RecycleBin.Tip" xml:space="preserve">
+    <value>回收站由系统管理，点击后在资源管理器中打开</value>
+  </data>
+  <data name="Nav.Network" xml:space="preserve">
+    <value>网络</value>
+  </data>
+  <data name="Nav.Network.Tip" xml:space="preserve">
+    <value>网络位置在资源管理器中打开；在地址栏输入 \\服务器\共享 可直接在此访问</value>
+  </data>
+  <data name="Nav.Width.Tip" xml:space="preserve">
+    <value>拖动调整导航栏宽度，双击恢复默认</value>
+  </data>
+  <data name="Tab.Home" xml:space="preserve">
+    <value>主页</value>
+  </data>
+  <data name="Tab.Home.Tip" xml:space="preserve">
+    <value>主页</value>
+  </data>
+  <data name="Status.HistoryCleared" xml:space="preserve">
+    <value>已清空最近访问</value>
+  </data>
+  <data name="Status.HomeNoSplit" xml:space="preserve">
+    <value>主页标签没有可分屏的第二窗格</value>
+  </data>
+  <data name="Tab.TagResults" xml:space="preserve">
+    <value>标签：{0}</value>
+  </data>
+  <data name="Tab.TagResults.Tip" xml:space="preserve">
+    <value>所有带这个颜色的条目，不论在哪个目录</value>
+  </data>
+  <data name="Tag.Results.Hint" xml:space="preserve">
+    <value>{0} 项 · 双击任一项目跳转到它所在的目录</value>
+  </data>
+  <data name="Tag.Results.Empty" xml:space="preserve">
+    <value>这个颜色下还没有标记。</value>
+  </data>
+  <data name="Status.TagResultMissing" xml:space="preserve">
+    <value>该项所在的文件夹已不存在。</value>
+  </data>
+  <data name="Status.TagResultMoved" xml:space="preserve">
+    <value>在这个位置已经找不到该项，可能已被移动或重命名。</value>
+  </data>
+  <data name="Nav.Locations" xml:space="preserve">
+    <value>位置</value>
+  </data>
+  <data name="Nav.Places.Config" xml:space="preserve">
+    <value>选择要显示的位置</value>
+  </data>
+  <data name="Nav.Places.RestoreAll" xml:space="preserve">
+    <value>恢复全部显示</value>
+  </data>
+  <data name="Nav.Places.AllHidden" xml:space="preserve">
+    <value>位置已全部隐藏，点右侧齿轮可恢复</value>
+  </data>
+  <data name="Nav.Tags" xml:space="preserve">
+    <value>标签</value>
+  </data>
+  <data name="Nav.Tags.Empty" xml:space="preserve">
+    <value>还没有标签。右键文件即可添加。</value>
+  </data>
+  <data name="Nav.Bookmarks" xml:space="preserve">
+    <value>收藏</value>
+  </data>
+  <data name="Nav.Bookmarks.Empty" xml:space="preserve">
+    <value>还没有收藏。在目录里按 Ctrl+D 收藏当前位置</value>
+  </data>
+  <data name="Nav.Bookmark.Missing" xml:space="preserve">
+    <value>位置不可用</value>
+  </data>
+  <data name="Status.BookmarkAdded" xml:space="preserve">
+    <value>已收藏：{0}</value>
+  </data>
+  <data name="Status.BookmarkExists" xml:space="preserve">
+    <value>已在收藏里：{0}</value>
+  </data>
+  <data name="Status.BookmarkRemoved" xml:space="preserve">
+    <value>已取消收藏：{0}</value>
+  </data>
+  <data name="Status.BookmarkFull" xml:space="preserve">
+    <value>收藏已达上限（{0} 条）</value>
+  </data>
+  <data name="Status.BookmarkHome" xml:space="preserve">
+    <value>当前位置不能收藏</value>
+  </data>
+  <data name="Bookmark.Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="Bookmark.OpenNewTab" xml:space="preserve">
+    <value>在新标签页打开</value>
+  </data>
+  <data name="Bookmark.Rename" xml:space="preserve">
+    <value>重命名…</value>
+  </data>
+  <data name="Bookmark.Remove" xml:space="preserve">
+    <value>取消收藏</value>
+  </data>
+  <data name="Bookmark.MoveUp" xml:space="preserve">
+    <value>上移</value>
+  </data>
+  <data name="Bookmark.MoveDown" xml:space="preserve">
+    <value>下移</value>
+  </data>
+  <data name="Bookmark.Group.New" xml:space="preserve">
+    <value>新建分组…</value>
+  </data>
+  <data name="Bookmark.Group.Rename" xml:space="preserve">
+    <value>重命名分组…</value>
+  </data>
+  <data name="Bookmark.Group.Remove" xml:space="preserve">
+    <value>删除分组</value>
+  </data>
+  <data name="Bookmark.CleanMissing" xml:space="preserve">
+    <value>清理失效项</value>
+  </data>
+  <data name="Bookmark.Tip" xml:space="preserve">
+    <value>收藏当前目录（Ctrl+D）</value>
+  </data>
+  <data name="Bookmark.Prompt.Name" xml:space="preserve">
+    <value>收藏名称</value>
+  </data>
+  <data name="Bookmark.Prompt.Rename" xml:space="preserve">
+    <value>重命名收藏</value>
+  </data>
+  <data name="Bookmark.Prompt.Group" xml:space="preserve">
+    <value>分组名称</value>
+  </data>
+  <data name="Bookmark.Prompt.NewGroup" xml:space="preserve">
+    <value>新建分组</value>
+  </data>
+  <data name="Bookmark.Prompt.GroupExists" xml:space="preserve">
+    <value>该分组已存在。</value>
+  </data>
+  <data name="Bookmark.Prompt.Empty" xml:space="preserve">
+    <value>名称不能为空。</value>
+  </data>
+  <data name="Command.Bookmark" xml:space="preserve">
+    <value>收藏当前目录</value>
+  </data>
+  <data name="Bookmark.Group.NewMenu" xml:space="preserve">
+    <value>新建分组…</value>
+  </data>
+  <data name="Bookmark.CleanNone" xml:space="preserve">
+    <value>没有失效的收藏</value>
+  </data>
+  <data name="Bookmark.CleanDone" xml:space="preserve">
+    <value>已清理 {0} 条失效收藏</value>
+  </data>
+  <data name="Bookmark.CleanConfirm" xml:space="preserve">
+    <value>要移除 {0} 条位置已不可用的收藏吗？只删除收藏记录，文件本身早已不在。</value>
+  </data>
+  <data name="Status.BookmarkDropAdded" xml:space="preserve">
+    <value>已收藏 {0} 项</value>
+  </data>
+  <data name="Bookmark.Hint.Drop" xml:space="preserve">
+    <value>放到这里即收藏</value>
+  </data>
+  <data name="Bookmark.Hint.DropToGroup" xml:space="preserve">
+    <value>放到这里，归入「{0}」</value>
+  </data>
+  <data name="Bookmark.Color" xml:space="preserve">
+    <value>颜色</value>
+  </data>
+  <data name="Bookmark.Icon" xml:space="preserve">
+    <value>图标</value>
+  </data>
+  <data name="Bookmark.Reset" xml:space="preserve">
+    <value>恢复默认</value>
+  </data>
+  <data name="Bookmark.Color.Red" xml:space="preserve">
+    <value>红</value>
+  </data>
+  <data name="Bookmark.Color.Orange" xml:space="preserve">
+    <value>橙</value>
+  </data>
+  <data name="Bookmark.Color.Green" xml:space="preserve">
+    <value>绿</value>
+  </data>
+  <data name="Bookmark.Color.Blue" xml:space="preserve">
+    <value>蓝</value>
+  </data>
+  <data name="Bookmark.Color.Purple" xml:space="preserve">
+    <value>紫</value>
+  </data>
+  <data name="Bookmark.Color.Gray" xml:space="preserve">
+    <value>灰</value>
+  </data>
+  <data name="Bookmark.Icon.Folder" xml:space="preserve">
+    <value>文件夹</value>
+  </data>
+  <data name="Bookmark.Icon.Star" xml:space="preserve">
+    <value>星标</value>
+  </data>
+  <data name="Bookmark.Icon.Home" xml:space="preserve">
+    <value>主页</value>
+  </data>
+  <data name="Bookmark.Icon.Drive" xml:space="preserve">
+    <value>驱动器</value>
+  </data>
+  <data name="Bookmark.Icon.Download" xml:space="preserve">
+    <value>下载</value>
+  </data>
+  <data name="Bookmark.Icon.Pictures" xml:space="preserve">
+    <value>图片</value>
+  </data>
+  <data name="Nav.Workspaces" xml:space="preserve">
+    <value>工作区</value>
+  </data>
+  <data name="Nav.Workspaces.Empty" xml:space="preserve">
+    <value>还没有工作区。点这个标题，选「保存当前标签…」</value>
+  </data>
+  <data name="Nav.Workspace.Tooltip" xml:space="preserve">
+    <value>共 {0} 个标签</value>
+  </data>
+  <data name="Nav.Workspace.SaveCurrent" xml:space="preserve">
+    <value>保存当前标签…</value>
+  </data>
+  <data name="Workspace.Prompt.Name" xml:space="preserve">
+    <value>工作区名称</value>
+  </data>
+  <data name="Workspace.Prompt.SaveTitle" xml:space="preserve">
+    <value>保存工作区</value>
+  </data>
+  <data name="Workspace.Prompt.RenameTitle" xml:space="preserve">
+    <value>重命名工作区</value>
+  </data>
+  <data name="Workspace.Prompt.NameExists" xml:space="preserve">
+    <value>已有同名工作区</value>
+  </data>
+  <data name="Workspace.Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="Workspace.Overwrite" xml:space="preserve">
+    <value>用当前标签覆盖</value>
+  </data>
+  <data name="Workspace.Rename" xml:space="preserve">
+    <value>重命名…</value>
+  </data>
+  <data name="Workspace.Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Workspace.SetStartup" xml:space="preserve">
+    <value>启动时自动恢复</value>
+  </data>
+  <data name="Workspace.ClearStartup" xml:space="preserve">
+    <value>取消启动时恢复</value>
+  </data>
+  <data name="Status.Workspace.Saved" xml:space="preserve">
+    <value>已保存工作区「{0}」</value>
+  </data>
+  <data name="Status.Workspace.Duplicate" xml:space="preserve">
+    <value>已有名为「{0}」的工作区</value>
+  </data>
+  <data name="Status.Workspace.Full" xml:space="preserve">
+    <value>工作区数量已达上限（{0}）</value>
+  </data>
+  <data name="Status.Workspace.NoTabs" xml:space="preserve">
+    <value>没有可保存的标签</value>
+  </data>
+  <data name="Status.Workspace.Missing" xml:space="preserve">
+    <value>工作区不存在</value>
+  </data>
+  <data name="Status.Workspace.Deleted" xml:space="preserve">
+    <value>已删除工作区「{0}」</value>
+  </data>
+  <data name="Status.Workspace.Restored" xml:space="preserve">
+    <value>已打开工作区「{0}」（{1} 个标签）</value>
+  </data>
+  <data name="Status.Workspace.StartupSet" xml:space="preserve">
+    <value>下次启动将打开「{0}」</value>
+  </data>
+  <data name="Status.Workspace.StartupCleared" xml:space="preserve">
+    <value>已取消启动时恢复工作区</value>
+  </data>
+  <data name="Dialog.Workspace.DeleteTitle" xml:space="preserve">
+    <value>删除工作区</value>
+  </data>
+  <data name="Dialog.Workspace.DeleteMessage" xml:space="preserve">
+    <value>删除工作区「{0}」？此操作无法撤销。</value>
+  </data>
+  <data name="Dialog.Workspace.ReplaceTitle" xml:space="preserve">
+    <value>打开工作区</value>
+  </data>
+  <data name="Dialog.Workspace.ReplaceMessage" xml:space="preserve">
+    <value>打开「{0}」会替换当前打开的 {1} 个标签。</value>
+  </data>
+  <data name="Dialog.Workspace.OverwriteTitle" xml:space="preserve">
+    <value>覆盖工作区</value>
+  </data>
+  <data name="Dialog.Workspace.OverwriteMessage" xml:space="preserve">
+    <value>已存在工作区「{0}」，用当前标签覆盖它？</value>
+  </data>
+  <data name="Home.Section.Workspaces" xml:space="preserve">
+    <value>工作区</value>
+  </data>
+  <data name="Status.Workspace.Skipped" xml:space="preserve">
+    <value>{0} 个标签打不开</value>
+  </data>
+  <data name="Menu.Tag" xml:space="preserve">
+    <value>标签</value>
+  </data>
+  <data name="Menu.Tag.Tip" xml:space="preserve">
+    <value>为选中项切换颜色标签（一项可以同时有多个）</value>
+  </data>
+  <data name="Menu.Tag.Remove" xml:space="preserve">
+    <value>移除标签</value>
+  </data>
+  <data name="Tag.Color.Red" xml:space="preserve">
+    <value>红</value>
+  </data>
+  <data name="Tag.Color.Orange" xml:space="preserve">
+    <value>橙</value>
+  </data>
+  <data name="Tag.Color.Yellow" xml:space="preserve">
+    <value>黄</value>
+  </data>
+  <data name="Tag.Color.Green" xml:space="preserve">
+    <value>绿</value>
+  </data>
+  <data name="Tag.Color.Blue" xml:space="preserve">
+    <value>蓝</value>
+  </data>
+  <data name="Tag.Color.Purple" xml:space="preserve">
+    <value>紫</value>
+  </data>
+  <data name="Tag.Color.Gray" xml:space="preserve">
+    <value>灰</value>
+  </data>
+  <data name="Tag.Color.Black" xml:space="preserve">
+    <value>黑</value>
+  </data>
+  <data name="Tag.Custom.DefaultName" xml:space="preserve">
+    <value>标签 {0}</value>
+  </data>
+  <data name="Status.Tag.Applied" xml:space="preserve">
+    <value>已为 {0} 项设置标签</value>
+  </data>
+  <data name="Status.Tag.Removed" xml:space="preserve">
+    <value>已移除 {0} 项的标签</value>
+  </data>
+  <data name="Status.Tag.Unsupported" xml:space="preserve">
+    <value>该位置不支持标签</value>
+  </data>
+  <data name="Status.Tag.Full" xml:space="preserve">
+    <value>标签数量已达上限（{0}）</value>
+  </data>
+  <data name="Settings.Behavior.ShowSystem" xml:space="preserve">
+    <value>显示系统文件</value>
+  </data>
+  <data name="Settings.Behavior.ShowSystem.Hint" xml:space="preserve">
+    <value>pagefile.sys、System Volume Information 这类条目。同时带隐藏与系统属性的条目要两个开关都开才显示。</value>
+  </data>
+  <data name="Settings.Behavior.OpenMode" xml:space="preserve">
+    <value>打开方式</value>
+  </data>
+  <data name="Settings.Behavior.OpenMode.Double" xml:space="preserve">
+    <value>双击</value>
+  </data>
+  <data name="Settings.Behavior.OpenMode.Single" xml:space="preserve">
+    <value>单击</value>
+  </data>
+  <data name="Settings.Behavior.OpenMode.Hint" xml:space="preserve">
+    <value>单击模式下，鼠标在行上停留 600 ms 后才显示高亮，扫过列表不会误开。</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmBatch" xml:space="preserve">
+    <value>批量操作前确认</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmBatch.Hint" xml:space="preserve">
+    <value>一次处理两项及以上时先询问。</value>
+  </data>
+  <data name="Settings.Behavior.CloseLastToHome" xml:space="preserve">
+    <value>关闭最后一个标签时回到主页</value>
+  </data>
+  <data name="Settings.Behavior.CloseLastToHome.Hint" xml:space="preserve">
+    <value>关掉这一项则改为关闭窗口。</value>
+  </data>
+  <data name="Settings.Section.Startup" xml:space="preserve">
+    <value>启动</value>
+  </data>
+  <data name="Settings.Behavior.Startup" xml:space="preserve">
+    <value>启动时</value>
+  </data>
+  <data name="Settings.Behavior.Startup.None" xml:space="preserve">
+    <value>打开默认目录</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Session" xml:space="preserve">
+    <value>恢复上次会话</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Hint" xml:space="preserve">
+    <value>恢复上次会话会把退出时开着的标签带回来。</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Workspace" xml:space="preserve">
+    <value>固定打开工作区</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Workspace.None" xml:space="preserve">
+    <value>不设置</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Workspace.Hint" xml:space="preserve">
+    <value>选定工作区后会自动关掉会话恢复——两者不能同时生效。</value>
+  </data>
+  <data name="Settings.Privacy.HistoryLimit" xml:space="preserve">
+    <value>历史条数</value>
+  </data>
+  <data name="Settings.Privacy.HistoryLimit.Hint" xml:space="preserve">
+    <value>超过上限后最早的一条被挤掉。调小会立即裁剪已有记录。</value>
+  </data>
+  <data name="Settings.Privacy.ClearHistory" xml:space="preserve">
+    <value>清空历史记录</value>
+  </data>
+  <data name="Settings.Privacy.HistoryCleared" xml:space="preserve">
+    <value>已清空 {0} 条记录</value>
+  </data>
+  <data name="Settings.Privacy.TagStore" xml:space="preserve">
+    <value>颜色标签</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Count" xml:space="preserve">
+    <value>共 {0} 条标记</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Loading" xml:space="preserve">
+    <value>正在统计…</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Empty" xml:space="preserve">
+    <value>还没有任何标记</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Pruning" xml:space="preserve">
+    <value>正在扫描…</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Pruned" xml:space="preserve">
+    <value>已清理 {0} 条失效标记</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.PruneNone" xml:space="preserve">
+    <value>没有找到失效项</value>
+  </data>
+  <data name="Settings.Privacy.TagPrune" xml:space="preserve">
+    <value>清理失效标记</value>
+  </data>
+  <data name="Settings.Privacy.TagPrune.Tip" xml:space="preserve">
+    <value>逐条核对标记指向的文件是否还在</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache" xml:space="preserve">
+    <value>缩略图缓存</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Measuring" xml:space="preserve">
+    <value>正在统计…</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Size" xml:space="preserve">
+    <value>已用 {0} · 上限 {1}</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Limit" xml:space="preserve">
+    <value>上限</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Limit.Hint" xml:space="preserve">
+    <value>缓存超过上限时按最久未用淘汰。调低上限会立即清理。</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Clear" xml:space="preserve">
+    <value>清除缓存</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Cleared" xml:space="preserve">
+    <value>已清除缓存，释放 {0}</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.ClearBlocked" xml:space="preserve">
+    <value>有 {0} 未能删除（可能正被占用），稍后再试</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.LimitApplied" xml:space="preserve">
+    <value>上限已改为 {0}，当前占用 {1}</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.ClearConfirm.Title" xml:space="preserve">
+    <value>清除缩略图缓存？</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.ClearConfirm.Body" xml:space="preserve">
+    <value>将删除 {0} 的缩略图缓存。文件本身不受影响，下次浏览时重新生成。</value>
+  </data>
+  <data name="Settings.ResetBehavior" xml:space="preserve">
+    <value>重置行为</value>
+  </data>
+  <data name="Settings.ResetBehavior.Tip" xml:space="preserve">
+    <value>回到默认视图、排序与各项开关</value>
+  </data>
+  <data name="Settings.ResetPrivacy" xml:space="preserve">
+    <value>重置隐私</value>
+  </data>
+  <data name="Settings.ResetPrivacy.Tip" xml:space="preserve">
+    <value>回到默认的历史与缓存设置，已记录的历史保留。</value>
+  </data>
+  <data name="Settings.ResetAll" xml:space="preserve">
+    <value>恢复全部默认</value>
+  </data>
+  <data name="Settings.ResetAll.Tip" xml:space="preserve">
+    <value>外观、行为、隐私全部复位。收藏、历史、标签、工作区不受影响。</value>
+  </data>
+  <data name="Settings.ResetBehavior.Done" xml:space="preserve">
+    <value>行为设置已恢复默认</value>
+  </data>
+  <data name="Settings.ResetPrivacy.Done" xml:space="preserve">
+    <value>隐私设置已恢复默认</value>
+  </data>
+  <data name="Settings.ResetAll.Done" xml:space="preserve">
+    <value>全部设置已恢复默认</value>
+  </data>
+  <data name="Settings.ResetLayout.Done" xml:space="preserve">
+    <value>列配置已恢复默认</value>
+  </data>
+  <!-- 设置页分页（v2）：左导航六个分类 -->
+  <data name="Settings.Page.General" xml:space="preserve">
+    <value>常规</value>
+  </data>
+  <data name="Settings.Page.Appearance" xml:space="preserve">
+    <value>外观</value>
+  </data>
+  <data name="Settings.Page.Files" xml:space="preserve">
+    <value>文件列表</value>
+  </data>
+  <data name="Settings.Page.Actions" xml:space="preserve">
+    <value>操作与确认</value>
+  </data>
+  <data name="Settings.Page.Privacy" xml:space="preserve">
+    <value>隐私与存储</value>
+  </data>
+  <data name="Settings.Page.About" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="Settings.Page.General.Desc" xml:space="preserve">
+    <value>界面语言，以及每次打开时落在哪里。</value>
+  </data>
+  <data name="Settings.Page.Appearance.Desc" xml:space="preserve">
+    <value>主题、字体与界面元素的显示方式。</value>
+  </data>
+  <data name="Settings.Page.Files.Desc" xml:space="preserve">
+    <value>列表里显示什么、按什么排。</value>
+  </data>
+  <data name="Settings.Page.Actions.Desc" xml:space="preserve">
+    <value>点开文件时怎么反应，危险操作前问不问。</value>
+  </data>
+  <data name="Settings.Page.Privacy.Desc" xml:space="preserve">
+    <value>本地存了什么、占多少地方、怎么清。</value>
+  </data>
+  <data name="Settings.Page.About.Desc" xml:space="preserve">
+    <value>版本、许可证与隐私声明。</value>
+  </data>
+  <data name="Settings.Group.Startup" xml:space="preserve">
+    <value>启动</value>
+  </data>
+  <data name="Settings.Group.NewTab" xml:space="preserve">
+    <value>新标签页</value>
+  </data>
+  <data name="Settings.Group.ThemeFont" xml:space="preserve">
+    <value>主题与字体</value>
+  </data>
+  <data name="Settings.Group.Layout" xml:space="preserve">
+    <value>布局显示</value>
+  </data>
+  <data name="Settings.Group.ViewSort" xml:space="preserve">
+    <value>视图与排序</value>
+  </data>
+  <data name="Settings.Group.Show" xml:space="preserve">
+    <value>显示</value>
+  </data>
+  <data name="Settings.Group.Columns" xml:space="preserve">
+    <value>列</value>
+  </data>
+  <data name="Settings.Group.Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="Settings.Group.Confirm" xml:space="preserve">
+    <value>确认与保护</value>
+  </data>
+  <data name="Settings.Group.History" xml:space="preserve">
+    <value>历史记录</value>
+  </data>
+  <data name="Settings.Group.Cache" xml:space="preserve">
+    <value>缩略图缓存</value>
+  </data>
+  <data name="Settings.Group.LocalData" xml:space="preserve">
+    <value>本地数据</value>
+  </data>
+  <data name="Settings.Group.Danger" xml:space="preserve">
+    <value>恢复默认</value>
+  </data>
+  <data name="Settings.ResetPage" xml:space="preserve">
+    <value>恢复本页默认</value>
+  </data>
+  <data name="Settings.ResetPage.Tip" xml:space="preserve">
+    <value>只恢复本页列出的项目，界面语言不受影响。</value>
+  </data>
+  <data name="Settings.ResetPage.Done" xml:space="preserve">
+    <value>本页已恢复默认</value>
+  </data>
+  <data name="Settings.ResetAll.Hint" xml:space="preserve">
+    <value>会同时改回主题、字号、视图、排序与各类确认开关；收藏、历史与标签不受影响。</value>
+  </data>
+  <data name="Settings.Behavior.SortGroup.Hint" xml:space="preserve">
+    <value>自然排序让 file2 排在 file10 之前；区分大小写只影响名称比较，不改变文件本身。</value>
+  </data>
+  <data name="Settings.Behavior.ViewSortGroup.Hint" xml:space="preserve">
+    <value>默认视图与排序在下次启动生效；点列头只在本次会话内有效。</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmGroup.Hint" xml:space="preserve">
+    <value>前三项问的是"要不要动这个文件"，最后一项问的是"要不要运行它"。</value>
+  </data>
+  <data name="Settings.Tags.ColorNames.Summary" xml:space="preserve">
+    <value>已自定义 {0} / {1} 项</value>
+  </data>
+  <data name="Settings.Tags.ColorNames.Edit" xml:space="preserve">
+    <value>编辑…</value>
+  </data>
+  <data name="Settings.Tags.ColorNames.Collapse" xml:space="preserve">
+    <value>收起</value>
+  </data>
+  <data name="Settings.Privacy.DataDir" xml:space="preserve">
+    <value>数据位置</value>
+  </data>
+  <data name="Settings.Privacy.DataDir.Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="Dialog.ResetAll.Title" xml:space="preserve">
+    <value>恢复全部默认</value>
+  </data>
+  <data name="Dialog.ResetAll.Body" xml:space="preserve">
+    <value>外观、行为、隐私三组设置将回到默认值。收藏、历史、颜色标签与工作区不会被改动。要继续吗？</value>
+  </data>
+  <data name="Dialog.TagPrune.Title" xml:space="preserve">
+    <value>清理失效标记</value>
+  </data>
+  <data name="Dialog.TagPrune.Body" xml:space="preserve">
+    <value>将逐条核对 {0} 条标记，移除文件已不存在或已指向其他文件的项。离线磁盘（拔掉的 U 盘、断开的网络盘）上的标记也会一并移除。要继续吗？</value>
+  </data>
+  <data name="Settings.Appearance.Accent" xml:space="preserve">
+    <value>强调色</value>
+  </data>
+  <data name="Settings.Appearance.Accent.System" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="Accent.Blue" xml:space="preserve">
+    <value>蓝</value>
+  </data>
+  <data name="Accent.Teal" xml:space="preserve">
+    <value>青</value>
+  </data>
+  <data name="Accent.Green" xml:space="preserve">
+    <value>绿</value>
+  </data>
+  <data name="Accent.Orange" xml:space="preserve">
+    <value>橙</value>
+  </data>
+  <data name="Accent.Purple" xml:space="preserve">
+    <value>紫</value>
+  </data>
+  <data name="Accent.Red" xml:space="preserve">
+    <value>红</value>
+  </data>
+  <data name="Settings.About.Privacy" xml:space="preserve">
+    <value>不收集遥测，不联网上传。唯一的对外动作是你手动点「检查更新」时在浏览器中打开发布页。</value>
+  </data>
+
+  <data name="Preview.Title" xml:space="preserve">
+    <value>预览</value>
+  </data>
+  <data name="Preview.Open.Tip" xml:space="preserve">
+    <value>显示预览窗格 (Alt+P)</value>
+  </data>
+  <data name="Preview.Close.Tip" xml:space="preserve">
+    <value>隐藏预览窗格 (Alt+P)</value>
+  </data>
+  <data name="Preview.Empty" xml:space="preserve">
+    <value>选择一个文件即可预览</value>
+  </data>
+  <data name="Preview.MultiTitle" xml:space="preserve">
+    <value>已选中 {0} 项</value>
+  </data>
+  <data name="Preview.MultiSize" xml:space="preserve">
+    <value>共 {0}</value>
+  </data>
+  <data name="Preview.Field.Path" xml:space="preserve">
+    <value>路径</value>
+  </data>
+  <data name="Preview.Folder" xml:space="preserve">
+    <value>文件夹没有可预览的内容。</value>
+  </data>
+  <data name="Preview.Truncated" xml:space="preserve">
+    <value>内容过长，仅显示前 {0} 个字符。</value>
+  </data>
+  <data name="Preview.Deferred" xml:space="preserve">
+    <value>网络位置与可移动设备上的文件不会自动预览。</value>
+  </data>
+  <data name="Preview.DeferredAction" xml:space="preserve">
+    <value>立即预览</value>
+  </data>
+  <data name="Preview.Degraded" xml:space="preserve">
+    <value>预览内存已达预算上限，仅显示基本信息。</value>
+  </data>
+  <data name="Preview.Note.TooLarge" xml:space="preserve">
+    <value>文件超过 {0}，不预览。</value>
+  </data>
+  <data name="Preview.Note.Binary" xml:space="preserve">
+    <value>内容不是可显示的文本。</value>
+  </data>
+  <data name="Preview.Note.Unreadable" xml:space="preserve">
+    <value>无法读取这个文件。</value>
+  </data>
+  <data name="Preview.Note.Timeout" xml:space="preserve">
+    <value>预览超时，已放弃这次渲染。</value>
+  </data>
+  <data name="Preview.Note.NoThumbnail" xml:space="preserve">
+    <value>此类型没有可用的预览。</value>
+  </data>
+  <data name="Preview.HandlerPreparing" xml:space="preserve">
+    <value>正在准备预览…</value>
+  </data>
+  <data name="Preview.Note.HandlerFallback" xml:space="preserve">
+    <value>系统预览组件不可用，这里显示的是缩略图。</value>
+  </data>
+  <data name="Settings.Appearance.ShowPreview" xml:space="preserve">
+    <value>显示预览窗格</value>
+  </data>
+  <data name="Settings.Appearance.ImmersiveTitleBar" xml:space="preserve">
+    <value>隐藏系统标题栏</value>
+  </data>
+  <data name="Settings.Appearance.ImmersiveTitleBar.Hint" xml:space="preserve">
+    <value>标签栏上移到标题栏位置，最小化、最大化、关闭改由界面绘制。更改后需重启应用。</value>
+  </data>
+  <data name="Settings.Behavior.PreviewAuto" xml:space="preserve">
+    <value>选中文件后自动预览</value>
+  </data>
+
+  <data name="Settings.Behavior.PreviewAuto.Hint" xml:space="preserve">
+    <value>仅在预览窗格显示时生效；勾选这一项会一并打开预览窗格。</value>
+  </data>
+
+  <!-- 屏幕阅读器标签（FR-10.7） -->
+  <data name="A11y.FileList" xml:space="preserve">
+    <value>文件列表</value>
+  </data>
+  <data name="A11y.Nav" xml:space="preserve">
+    <value>导航栏</value>
+  </data>
+  <data name="A11y.TabStrip" xml:space="preserve">
+    <value>标签栏</value>
+  </data>
+  <data name="A11y.RowMenu" xml:space="preserve">
+    <value>更多操作</value>
+  </data>
+  <data name="A11y.WindowMinimize" xml:space="preserve">
+    <value>最小化</value>
+  </data>
+  <data name="A11y.WindowMaximize" xml:space="preserve">
+    <value>最大化</value>
+  </data>
+  <data name="A11y.WindowRestore" xml:space="preserve">
+    <value>向下还原</value>
+  </data>
+  <data name="A11y.WindowClose" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="A11y.Address" xml:space="preserve">
+    <value>地址栏</value>
+  </data>
+  <data name="A11y.StatusBar" xml:space="preserve">
+    <value>状态栏</value>
+  </data>
+  <data name="A11y.Preview" xml:space="preserve">
+    <value>预览窗格</value>
+  </data>
+  <data name="A11y.PreviewText" xml:space="preserve">
+    <value>预览文本</value>
+  </data>
+  <data name="A11y.Toolbar" xml:space="preserve">
+    <value>工具栏</value>
+  </data>
+
+  <!-- 关于页（FR-10.8） -->
+  <data name="About.AppName" xml:space="preserve">
+    <value>Jianlan</value>
+  </data>
+  <data name="About.AppNameZh" xml:space="preserve">
+    <value>简览</value>
+  </data>
+  <data name="About.Title" xml:space="preserve">
+    <value>关于 Jianlan</value>
+  </data>
+  <data name="About.Tagline" xml:space="preserve">
+    <value>A clean file manager for Windows</value>
+  </data>
+  <data name="About.Build" xml:space="preserve">
+    <value>构建 {0}</value>
+  </data>
+  <data name="About.Section.Environment" xml:space="preserve">
+    <value>运行环境</value>
+  </data>
+  <data name="About.Env.Runtime" xml:space="preserve">
+    <value>运行时</value>
+  </data>
+  <data name="About.Env.OS" xml:space="preserve">
+    <value>系统</value>
+  </data>
+  <data name="About.Env.Arch" xml:space="preserve">
+    <value>架构</value>
+  </data>
+  <data name="About.Env.Memory" xml:space="preserve">
+    <value>内存</value>
+  </data>
+  <data name="About.Env.MemoryValue" xml:space="preserve">
+    <value>{0} MB（工作集）</value>
+  </data>
+  <data name="About.Section.License" xml:space="preserve">
+    <value>开源许可</value>
+  </data>
+  <data name="About.Section.Tools" xml:space="preserve">
+    <value>诊断与更新</value>
+  </data>
+  <data name="About.License.Name" xml:space="preserve">
+    <value>许可证</value>
+  </data>
+  <data name="About.License.View" xml:space="preserve">
+    <value>查看许可证全文</value>
+  </data>
+  <data name="About.License.Notice" xml:space="preserve">
+    <value>查看 NOTICE</value>
+  </data>
+  <data name="About.License.ThirdParty" xml:space="preserve">
+    <value>第三方依赖清单</value>
+  </data>
+  <data name="About.License.Copy" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="About.License.Copied" xml:space="preserve">
+    <value>已复制到剪贴板</value>
+  </data>
+  <data name="About.License.Missing" xml:space="preserve">
+    <value>此构建缺少许可证文件。</value>
+  </data>
+  <data name="About.Section.Paths" xml:space="preserve">
+    <value>目录</value>
+  </data>
+  <data name="About.Paths.Portable" xml:space="preserve">
+    <value>便携模式——配置与数据都在 Jianlan.exe 旁的 data 目录里。</value>
+  </data>
+  <data name="About.Paths.Config" xml:space="preserve">
+    <value>配置目录</value>
+  </data>
+  <data name="About.Paths.Logs" xml:space="preserve">
+    <value>日志目录</value>
+  </data>
+  <data name="About.Paths.Data" xml:space="preserve">
+    <value>数据目录</value>
+  </data>
+  <data name="About.Paths.Failed" xml:space="preserve">
+    <value>无法打开目录：{0}</value>
+  </data>
+  <data name="About.Diagnostics.Copy" xml:space="preserve">
+    <value>复制诊断信息</value>
+  </data>
+  <data name="About.Diagnostics.Hint" xml:space="preserve">
+    <value>版本、系统与目录路径，可直接粘贴到问题反馈里。</value>
+  </data>
+  <data name="About.Diagnostics.Copied" xml:space="preserve">
+    <value>诊断信息已复制到剪贴板。</value>
+  </data>
+  <data name="About.Diagnostics.Failed" xml:space="preserve">
+    <value>剪贴板被占用，请重试。</value>
+  </data>
+  <data name="About.Logs.Export" xml:space="preserve">
+    <value>导出日志…</value>
+  </data>
+  <data name="About.Logs.Hint" xml:space="preserve">
+    <value>把日志文件与一份诊断快照打成一个压缩包。</value>
+  </data>
+  <data name="About.Logs.SaveTitle" xml:space="preserve">
+    <value>保存日志压缩包</value>
+  </data>
+  <data name="About.Logs.Exported" xml:space="preserve">
+    <value>日志已导出：{0}</value>
+  </data>
+  <data name="About.Logs.Empty" xml:space="preserve">
+    <value>还没有可导出的日志。</value>
+  </data>
+  <data name="About.Logs.Failed" xml:space="preserve">
+    <value>日志导出失败：{0}</value>
+  </data>
+  <data name="About.Update.Check" xml:space="preserve">
+    <value>检查更新</value>
+  </data>
+  <data name="About.Update.Hint" xml:space="preserve">
+    <value>在浏览器中打开发布页。这里不会发出任何请求。</value>
+  </data>
+  <data name="About.Update.Failed" xml:space="preserve">
+    <value>无法打开浏览器。</value>
+  </data>
+  <data name="Settings.Behavior.NaturalSort" xml:space="preserve">
+    <value>自然排序</value>
+  </data>
+  <data name="Settings.Behavior.NaturalSort.Hint" xml:space="preserve">
+    <value>让 file2 排在 file10 之前。关掉后按字符逐个比较。</value>
+  </data>
+  <data name="Settings.Behavior.CaseSensitiveSort" xml:space="preserve">
+    <value>名称区分大小写</value>
+  </data>
+  <data name="Settings.Behavior.CaseSensitiveSort.Hint" xml:space="preserve">
+    <value>打开后 Readme 与 readme 分开排序；关掉与资源管理器一致。</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmOverwrite" xml:space="preserve">
+    <value>覆盖前确认</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmOverwrite.Hint" xml:space="preserve">
+    <value>打开时，目标处有同名项会先问一句；关掉后直接覆盖，不再询问。</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode" xml:space="preserve">
+    <value>新标签打开</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode.Home" xml:space="preserve">
+    <value>主页</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode.Path" xml:space="preserve">
+    <value>指定目录</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode.Last" xml:space="preserve">
+    <value>上次待的目录</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode.Hint" xml:space="preserve">
+    <value>「主页」打开起始页；「指定目录」用下面的路径，留空则用系统「下载」；「上次待的目录」接上次关闭时停的地方。</value>
+  </data>
+  <data name="Settings.Tags.ColorNames" xml:space="preserve">
+    <value>标签颜色名称</value>
+  </data>
+  <data name="Settings.Tags.ColorNames.Hint" xml:space="preserve">
+    <value>留空即用默认名称。名称会出现在标签菜单与侧栏里。</value>
+  </data>
+  <data name="Settings.Privacy.TagExport" xml:space="preserve">
+    <value>导出…</value>
+  </data>
+  <data name="Settings.Privacy.TagExport.Tip" xml:space="preserve">
+    <value>把标签库保存为 JSON 文件。</value>
+  </data>
+  <data name="Settings.Privacy.TagExport.Title" xml:space="preserve">
+    <value>导出标签库</value>
+  </data>
+  <data name="Settings.Privacy.TagExported" xml:space="preserve">
+    <value>已导出 {0} 条标签。</value>
+  </data>
+  <data name="Settings.Privacy.TagExportFailed" xml:space="preserve">
+    <value>导出失败：{0}</value>
+  </data>
+  <data name="Settings.Privacy.TagImport" xml:space="preserve">
+    <value>导入…</value>
+  </data>
+  <data name="Settings.Privacy.TagImport.Tip" xml:space="preserve">
+    <value>从 JSON 文件把标签合并进当前标签库。</value>
+  </data>
+  <data name="Settings.Privacy.TagImport.Title" xml:space="preserve">
+    <value>导入标签库</value>
+  </data>
+  <data name="Settings.Privacy.TagImported" xml:space="preserve">
+    <value>已导入 {0} 条标签：新增 {1}、更新 {2}、跳过 {3}。</value>
+  </data>
+  <data name="Settings.Privacy.TagImportFailed" xml:space="preserve">
+    <value>导入失败：{0}</value>
+  </data>
+  <data name="Dialog.OverwriteTitle" xml:space="preserve">
+    <value>覆盖</value>
+  </data>
+  <data name="Dialog.OverwriteOne" xml:space="preserve">
+    <value>目标文件夹里已有「{0}」，是否覆盖？选「否」会保留两份。</value>
+  </data>
+  <data name="Dialog.OverwriteMany" xml:space="preserve">
+    <value>目标文件夹里已有 {0} 个同名项，是否覆盖？选「否」会保留两份。</value>
+  </data>
+  <data name="Tab.Menu.OpenWindow" xml:space="preserve">
+    <value>在新窗口打开</value>
+  </data>
+  <data name="Status.NewWindowNoPath" xml:space="preserve">
+    <value>只有目录能在新窗口打开。</value>
+  </data>
+  <data name="Preview.Action.Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="Preview.Action.Open.Tip" xml:space="preserve">
+    <value>打开这一项</value>
+  </data>
+  <data name="Preview.Action.CopyPath" xml:space="preserve">
+    <value>复制路径</value>
+  </data>
+  <data name="Preview.Action.CopyPath.Tip" xml:space="preserve">
+    <value>复制完整路径到剪贴板</value>
+  </data>
+  <data name="Preview.Action.Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Preview.Action.Delete.Tip" xml:space="preserve">
+    <value>删除到回收站，可用 Ctrl+Z 撤销</value>
+  </data>
+  <data name="Settings.Behavior.WarnOnExecutable" xml:space="preserve">
+    <value>双击可执行文件时先确认</value>
+  </data>
+  <data name="Settings.Behavior.WarnOnExecutable.Hint" xml:space="preserve">
+    <value>开启后，双击 .exe / .bat / .cmd / .ps1 / .msi 这类文件会先显示文件名与完整路径，确认后才运行。默认关闭：它挡的是误双击，不是病毒，而每一次正常运行都会多一道弹窗。</value>
+  </data>
+  <data name="Dialog.ExecutableTitle" xml:space="preserve">
+    <value>打开可执行文件？</value>
+  </data>
+  <data name="Dialog.ExecutableBody" xml:space="preserve">
+    <value>即将运行下面这个文件：
+
+{0}
+{1}
+
+只在你确认这是自己想运行的程序时才继续。</value>
+  </data>
+  <data name="Command.Undo" xml:space="preserve">
+    <value>撤销</value>
+  </data>
+  <data name="Status.UndoDone" xml:space="preserve">
+    <value>已撤销最近一次操作（{0} 项）</value>
+  </data>
+  <data name="Status.UndoPartial" xml:space="preserve">
+    <value>已撤销 {0} 项，{1} 项未动：{2}</value>
+  </data>
+  <data name="Status.UndoFailed" xml:space="preserve">
+    <value>未能撤销：{0}</value>
+  </data>
+  <data name="Status.UndoNothing" xml:space="preserve">
+    <value>没有可撤销的操作</value>
+  </data>
+  <data name="Status.PermanentDeletedNoUndo" xml:space="preserve">
+    <value>已永久删除 {0} 项，此操作不可撤销</value>
+  </data>
+  <data name="Undo.Nothing" xml:space="preserve">
+    <value>没有可撤销的记录</value>
+  </data>
+  <data name="Undo.NameTaken" xml:space="preserve">
+    <value>原来的名字已被占用</value>
+  </data>
+  <data name="Undo.PlaceGone" xml:space="preserve">
+    <value>原来的位置已经不在了</value>
+  </data>
+  <data name="Undo.Modified" xml:space="preserve">
+    <value>这一项在操作之后被修改过</value>
+  </data>
+  <data name="Undo.NoRecycle" xml:space="preserve">
+    <value>这个位置没有回收站，删掉就找不回来</value>
+  </data>
+  <data name="Undo.DeleteFailed" xml:space="preserve">
+    <value>删除失败</value>
+  </data>
+  <data name="Undo.RestoreFailed" xml:space="preserve">
+    <value>有一项没能从回收站还原，仍在回收站里</value>
+  </data>
+  <data name="Undo.FailedWithReason" xml:space="preserve">
+    <value>撤销出错：{0}</value>
+  </data>
+  <data name="Settings.Page.Tags" xml:space="preserve">
+    <value>标签</value>
+  </data>
+  <data name="Settings.Page.Tags.Desc" xml:space="preserve">
+    <value>管理标签的名称与增删。</value>
+  </data>
+  <data name="Settings.Group.Tags" xml:space="preserve">
+    <value>标签列表</value>
+  </data>
+  <data name="Settings.Tags.Hint" xml:space="preserve">
+    <value>名称会同时用于侧栏、右键菜单与标签页标题。删除标签只是不再显示它：已经打在文件上的标记仍然保留，重新添加同一颜色的标签即可恢复。</value>
+  </data>
+  <data name="Settings.Tags.Add" xml:space="preserve">
+    <value>新建标签</value>
+  </data>
+  <data name="Settings.Tags.Remove" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Settings.Tags.RemoveTitle" xml:space="preserve">
+    <value>删除标签</value>
+  </data>
+  <data name="Settings.Tags.RemoveBody" xml:space="preserve">
+    <value>「{0}」下有 {1} 项标记。删除后这些标记不再显示，但记录仍保留在标签库中——重新添加同一颜色的标签即可恢复。</value>
+  </data>
+  <data name="Settings.Tags.Limit" xml:space="preserve">
+    <value>32 个标签槽位已用完。</value>
+  </data>
+  <data name="Settings.Tags.KeepOne" xml:space="preserve">
+    <value>至少要保留一个标签。</value>
+  </data>
+  <data name="Settings.Tags.RenameTip" xml:space="preserve">
+    <value>改名后按回车生效</value>
+  </data>
+</root>

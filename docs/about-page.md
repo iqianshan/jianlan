@@ -7,7 +7,7 @@
 > 下文 §二 的方案对比与 §五、§六 里的窗口尺寸，是 0.2.0 的决策记录，保留作依据；
 > 现状以实现为准——
 >
-> - 内容是 `src/Lingpane.App/Views/AboutView.xaml(.cs)`（`UserControl`），
+> - 内容是 `src/Jianlan.App/Views/AboutView.xaml(.cs)`（`UserControl`），
 >   由 `SettingsWindow` 的 `PageAbout` 直接承载；`AboutWindow` 已删除。
 > - 理由：入口本来就只有设置页那一颗按钮，点开再弹一扇 480×680 的窗，
 >   等于把同一份内容放到更远的地方，还多一次关闭。§二 里"会把设置页拉得很长"的顾虑，
@@ -15,6 +15,9 @@
 > - 三个许可全文仍然开独立的 `LicenseWindow`：11KB 法律文本内嵌进来，
 >   这一页会变成几千行，且它不该参与本地化。
 > - 版本号、运行环境、目录、诊断四段与 0.2.0 完全一致，没有删减。
+> - 品牌区由两行变三行：名称（中英并列）/ 版本号与构建号 / **Slogan**（`About.Tagline`，
+>   产品更名时定为 *A clean file manager for Windows*）。Slogan 排在名称下方而不是上方——
+>   它是"这个程序是什么"的一句话，不该跟产品名抢第一落点。
 
 ## 一、一个必须先分清的前提
 
@@ -38,7 +41,7 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 | B. **独立 `AboutWindow`（非模态，480×680）** | 长文本独立滚动；可单独截图传播；不干扰设置页布局 | 多一个窗口、多一份 XAML | 0.2.0 采用，0.2.1 移除 |
 | C. 独立进程 | 隔离 | 与 P3 单进程单窗口冲突 | ❌ |
 
-入口：设置页底部（「隐私」分节之后）一个 `关于 Lingpane` 按钮。不加新快捷键（`F1` 已是快捷键帮助，
+入口：设置页底部（「隐私」分节之后）一个 `关于 Jianlan` 按钮。不加新快捷键（`F1` 已是快捷键帮助，
 `Ctrl+,` 是设置，再占一个不值）。
 
 > 0.2.1：入口即「关于」页本身，上述按钮已删除。
@@ -47,7 +50,7 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 
 | 区块 | 内容 | 数据来源 | 说明 |
 |---|---|---|---|
-| 头部 | 应用图标、`Lingpane` / `棂窗`、一句话定位 | 资源 | 名称本身不翻译 |
+| 头部 | 应用图标、`Jianlan` / `简览`、一句话定位 | 资源 | 名称本身不翻译 |
 | 版本 | `0.1.0` + 构建标识（短 commit） | `AssemblyInformationalVersionAttribute`（`0.1.0+2d31cdc`，取 `+` 后 7 位另排小字） | 用户报 bug 时能定位到具体提交 |
 | 运行环境 | .NET 版本、OS 版本与内部版本号、架构、进程位数 | `RuntimeInformation.FrameworkDescription` / `OSDescription` / `ProcessArchitecture`、`Environment.OSVersion.Version` | 贴 issue 用 |
 | 许可 | `Apache-2.0`；「查看许可证全文」「查看 NOTICE」 | 内嵌资源 | 见 §四 |
@@ -55,7 +58,7 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 | 目录入口 | 「打开配置目录」「打开日志目录」「打开数据目录」 | `AppPaths`（已有 `LogsDir` 等） | FR-10.9 |
 | 诊断 | 「复制诊断信息」→ 剪贴板（版本 + OS + 架构 + 内存 + 三个目录路径） | 运行时拼装 | 减少来回问"你什么环境" |
 | 隐私 | 「不收集遥测、不联网（除手动检查更新跳转外）」 | 资源键，与设置页同一段 | FR-5.3.7 |
-| 更新 | 「检查更新」→ 打开 `https://github.com/lingpane/lingpane/releases` | 静态 URL | 不做网络请求（符合 §8.2 B11 与"不联网"承诺） |
+| 更新 | 「检查更新」→ 打开 `https://github.com/jianlan/jianlan/releases` | 静态 URL | 不做网络请求（符合 §8.2 B11 与"不联网"承诺） |
 
 布局：单列 `ScrollViewer`，区块之间用 `Text.SectionTitle` 分隔，与设置页视觉一致（复用现有 Token 与样式，
 不新增设计资产）。
@@ -67,7 +70,7 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 做法：
 
 ```xml
-<!-- Lingpane.App.csproj（EnableDefaultNoneItems=false，需显式声明） -->
+<!-- Jianlan.App.csproj（EnableDefaultNoneItems=false，需显式声明） -->
 <ItemGroup>
   <EmbeddedResource Include="..\..\LICENSE" LogicalName="Legal.LICENSE" />
   <EmbeddedResource Include="..\..\NOTICE"  LogicalName="Legal.NOTICE" />
@@ -98,7 +101,7 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 
 原计划的生成流程（保留作参考）：
 
-1. 读 `src/Lingpane.App/obj/project.assets.json` 的 `targets` 节点，取 `runtime` 依赖的包名 + 版本
+1. 读 `src/Jianlan.App/obj/project.assets.json` 的 `targets` 节点，取 `runtime` 依赖的包名 + 版本
    （含传递依赖）；
 2. 对每个包到 `%USERPROFILE%\.nuget\packages\<id>\<ver>\` 找 `LICENSE` / `LICENSE.txt` / `LICENSE.md`，
    读首行判定 SPDX 标识；找不到则标「见包内 LICENSE」，不猜；
@@ -108,9 +111,9 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 
 **CI 校验（实现版）**：`dotnet build` 之后跑 `tools/licenses/check-third-party.ps1`，两条判据：
 
-1. `src/Lingpane.App/obj/project.assets.json` 里 `type=package` 且有 `runtime` 段的每个包，
+1. `src/Jianlan.App/obj/project.assets.json` 里 `type=package` 且有 `runtime` 段的每个包，
    包名必须出现在 `THIRD-PARTY-NOTICES.md` 里（版本号对不上只告警，不失败——升级后先改版本很正常）；
-2. `publish/` 里每个非 `Lingpane.*` 的 `*.dll`，文件名必须出现在清单里。
+2. `publish/` 里每个非 `Jianlan.*` 的 `*.dll`，文件名必须出现在清单里。
 
 第二条是必须的：本项目真正的第三方程序集（`Microsoft.Windows.SDK.NET.dll`、`WinRT.Runtime.dll`）
 来自目标框架的隐式引用，在 `project.assets.json` 里**没有** package 条目，
@@ -126,8 +129,8 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 
 | 项 | 做法 |
 |---|---|
-| 形态 | `src/Lingpane.App/Views/AboutView.xaml(.cs)` 用户控件，挂在 `SettingsWindow` 的 `PageAbout`（第六页）里。尺寸随设置窗（760×600），不单独设宽高，长文案靠 `TextWrapping` 换行。0.2.0 时是 480×680 的独立窗口，0.2.1 删除 |
-| 品牌区 | 图标 40×40 + 右侧两行：第一行 `Lingpane`（资源键 `About.AppName`，中英同值，品牌名不翻译），第二行版本号与实际构建号（`·` 分隔）。无构建号时版本行只剩版本号，分隔点一并隐藏 |
+| 形态 | `src/Jianlan.App/Views/AboutView.xaml(.cs)` 用户控件，挂在 `SettingsWindow` 的 `PageAbout`（第六页）里。尺寸随设置窗（760×600），不单独设宽高，长文案靠 `TextWrapping` 换行。0.2.0 时是 480×680 的独立窗口，0.2.1 删除 |
+| 品牌区 | 图标 40×40 + 右侧两行：第一行 `Jianlan`（资源键 `About.AppName`，中英同值，品牌名不翻译），第二行版本号与实际构建号（`·` 分隔）。无构建号时版本行只剩版本号，分隔点一并隐藏 |
 | 版本号 | `Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion`；`+` 后为 commit，无 `+` 时只显示版本号 |
 | 打开目录 | `Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })`；路径不存在先 `Directory.CreateDirectory`（日志目录可能尚未创建）；异常 → 状态行提示，不弹原始异常 |
 | 复制诊断 | `Clipboard.SetText` 包在 try/catch（剪贴板被占用是常态），失败提示"剪贴板被占用，请重试" |

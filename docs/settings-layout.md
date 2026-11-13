@@ -213,7 +213,7 @@
 
 这一页**没有可写字段**，因此页标题栏的「恢复本页默认」在此页隐藏（`ShowPage` 里控制）。
 
-0.2.1 起不再有「关于 Lingpane」按钮与独立窗口：整块内容就是这一页本身（`AboutWindow` 已删除）。
+0.2.1 起不再有「关于 Jianlan」按钮与独立窗口：整块内容就是这一页本身（`AboutWindow` 已删除）。
 版本号取自 `AboutView` 内部的 `AppInfo.DisplayVersion`（= `InformationalVersion`，发版时由脚本写入
 `0.2.1+<短commit>`）。
 

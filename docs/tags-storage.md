@@ -135,7 +135,7 @@ FR-4.1.6（按标签筛选当前目录）是 P2，且筛选的是**当前目录*
 ### 6.1 存储格式：追加日志 + 周期性压缩
 
 ```
-%LOCALAPPDATA%\Lingpane\data\tags.jsonl
+%LOCALAPPDATA%\Jianlan\data\tags.jsonl
 ```
 
 每行一条**操作**，不是一条**状态**：

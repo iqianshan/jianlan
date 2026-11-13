@@ -21,8 +21,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-RESX_EN = ROOT / "src/Lingpane.Core/Localization/Strings.resx"
-RESX_ZH = ROOT / "src/Lingpane.Core/Localization/Strings.zh-Hans.resx"
+RESX_EN = ROOT / "src/Jianlan.Core/Localization/Strings.resx"
+RESX_ZH = ROOT / "src/Jianlan.Core/Localization/Strings.zh-Hans.resx"
 SRC = ROOT / "src"
 
 CJK = re.compile(r"[\u4e00-\u9fff]")

@@ -32,7 +32,7 @@ logs/
 
 # ---------- 生成物 ----------
 # 伪语言资源由 tools/i18n/pseudo-loc.py 生成，只用于 AC-11 走查，不随源码分发
-src/Lingpane.Core/Localization/Strings.qps-ploc.resx
+src/Jianlan.Core/Localization/Strings.qps-ploc.resx
 
 # ---------- 系统 ----------
 Thumbs.db

@@ -5,7 +5,7 @@
 
 ## 1. 实测环境
 
-- 便携版 `publish/Lingpane.exe`，主屏 1920×1080，125% 缩放。
+- 便携版 `publish/Jianlan.exe`，主屏 1920×1080，125% 缩放。
 - 窗口 `MoveWindow(260,120,1200,820)`，实际物理 `(325,150) 1500×1025`。
 - 鼠标事件用 `tools/window-drive/window_drive.py` 的 `lclick`/`rclick`（`SetInput` 真实注入），
   截图用 `capture`（抓窗口可见矩形）与 `fullshot.py`（抓整屏，含独立 Popup HWND）。

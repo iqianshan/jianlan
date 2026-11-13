@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    FR-4 的前置探针，不是产品代码，**不进 Lingpane.sln**。
+    FR-4 的前置探针，不是产品代码，**不进 Jianlan.sln**。
     用途：补测 ReFS / exFAT / 远程 SMB / 冷缓存等本次没有环境的场景。
     结论与用法见 docs/fileid-enumeration.md。
   -->
@@ -15,7 +15,7 @@
 
   <ItemGroup>
     <!-- 直接引用真实实现做基线，避免"另写一份再比"带来的实现差异 -->
-    <ProjectReference Include="../../src/Lingpane.Core/Lingpane.Core.csproj" />
+    <ProjectReference Include="../../src/Jianlan.Core/Jianlan.Core.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,13 +1,13 @@
-# Lingpane 需求规格说明书
+# Jianlan 需求规格说明书
 
 | 项 | 内容 |
 |---|---|
 | 文档版本 | **v1.1** |
 | 日期 | 2026-11-05 |
 | v1.1 修订 | ①按实际执行对齐阶段归属：主页（FR-1.1）、多标签（FR-2）、收藏（FR-7）移入 0.2.0，0.1.0 明确定义为"单窗格可用版"；②依 ADR-0005 删除图标/磁贴视图，FR-6.3、FR-5.2.1、附录 A 同步收起为两种视图；③补齐 FR-10.4 多语言与 FR-10.8 关于页的实现方案（`docs/i18n.md`、`docs/about-page.md`） |
-| 产品名称 | **Lingpane**（英文，正式名）/ **棂窗**（中文） |
-| 命名逻辑 | 棂（中式窗格）+ pane（英文窗格），中英两词同义，直指双窗格产品形态 |
-| 仓库与域名 | `github.com/lingpane`；`lingpane.com` / `.dev` / `.app` / `.io` 经查均未注册 |
+| 产品名称 | **Jianlan**（英文，正式名）/ **简览**（中文） |
+| 命名逻辑 | 简（简洁）+ 览（浏览、一眼看全）；英文名 Jianlan 取拼音，与中文同名同义。Slogan：A clean file manager for Windows |
+| 仓库与域名 | `github.com/jianlan`；域名 `jianlan.com` / `.dev` / `.app` / `.io` 的注册状态**未复核**——旧名 `lingpane.*` 的核查结论不能沿用 |
 | 目标平台 | Windows 10 1809+ / Windows 11（x64，预留 arm64） |
 | 技术栈 | **C# + .NET 9 + WPF**（已确认） |
 | 开源许可证 | **Apache-2.0** |
@@ -117,7 +117,7 @@
 | NF-03 | 打开含 10000 个项目的目录 | ≤800ms 显示首批内容，UI 线程无 >100ms 阻塞 | 构造测试目录 + 启动埋点 |
 | NF-04 | 列表滚动帧率 | ≥55fps（10000 项目录） | `CompositionTarget.Rendering` 采样 |
 | NF-05 | 常驻内存（10000 项目录，浏览 10 分钟） | **分档：** 单窗格 ≤150MB；双窗格 ≤185MB；开启预览窗格 ≤230MB。**口径：私有提交内存**（任务管理器"提交大小"列），不是含共享框架页的工作集。见 ADR-0002 | `tools/perf-fixture/Measure-List.ps1` 采集，取 GC 后稳定值 |
-| NF-05R | 相对内存增量（Lingpane 私有提交 − 纯 WPF 空窗口私有提交） | 单窗格 10000 项滚动 ≤**65MB**（2026-11-05 实测 44.8MB，原 45MB 已无余量）；双窗格 ≤90MB（估算，开工前实测标定）。**代码回归判据**，不随框架底漂移；判定顺序为先 NF-05R 后 NF-05。见 ADR-0008 | 同上，加 `-Normalize`，空窗口 >90MB 时判不可判定 |
+| NF-05R | 相对内存增量（Jianlan 私有提交 − 纯 WPF 空窗口私有提交） | 单窗格 10000 项滚动 ≤**65MB**（2026-11-05 实测 44.8MB，原 45MB 已无余量）；双窗格 ≤90MB（估算，开工前实测标定）。**代码回归判据**，不随框架底漂移；判定顺序为先 NF-05R 后 NF-05。见 ADR-0008 | 同上，加 `-Normalize`，空窗口 >90MB 时判不可判定 |
 | NF-05H | 托管堆增量（滚动结束后 `GC.GetTotalMemory(true)`） | 单窗格 10000 项 ≤**12MB**。**降级判据**：环境处于高态、NF-05R 不可用时改看它，专门盯数据层，与框架底和两态无关 | 同上，探针输出 `managedHeapMb` |
 | NF-06 | 稳定性（8 小时连续操作） | 0 崩溃、0 未处理异常；句柄增长 <10%，GDI 对象 <2000 | 脚本化压力测试 |
 | NF-07 | 安装包体积 | ≤30MB（框架依赖）；自包含 ≤80MB | 发布产物 |
@@ -269,7 +269,7 @@
 
 | ID | 需求 | 优先级 |
 |---|---|---|
-| FR-4.2.1 | 本地单文件追加日志（JSONL），路径 `%LOCALAPPDATA%\Lingpane\data\tags.jsonl`；首次访问标签时全量载入内存字典，行数超阈值时后台压缩重写 | P0 |
+| FR-4.2.1 | 本地单文件追加日志（JSONL），路径 `%LOCALAPPDATA%\Jianlan\data\tags.jsonl`；首次访问标签时全量载入内存字典，行数超阈值时后台压缩重写 | P0 |
 | FR-4.2.2 | 主键为 File ID，路径作冗余字段用于展示与失效清理 | P0 |
 | FR-4.2.3 | **延迟加载**：仅当用户首次查看/设置标签时才读取文件并建索引 | P0 |
 | FR-4.2.4 | 列表渲染时按内存字典查可视区域标签，单次导航总查询耗时 <5ms（原「禁止逐项查询」是针对数据库的约束，字典下自动满足） | P0 |
@@ -590,7 +590,7 @@
 | WPF 最小空窗口（禁 IME） | 541–665 ms |
 | WPF `HwndSource` 直建（绕过 `Application`/`Window`） | 978–1051 ms |
 | WinForms 最小空窗口 | 214–330 ms |
-| **Lingpane M0（禁 IME）** | **574–649 ms** |
+| **Jianlan M0（禁 IME）** | **574–649 ms** |
 
 结论：约 1.1 秒是 WPF 在本机的框架基线，与业务代码无关；单项最大成本为中文输入法上下文创建
 （2026-11-07 对照确认：窗口激活后创建 IME 上下文约 820 ms、74 MB，见 `performance-gate.md` §6.2；
@@ -624,14 +624,14 @@
 
 | 数据 | 存储方式 | 位置 |
 |---|---|---|
-| 设置 | JSON（原子写） | `%LOCALAPPDATA%\Lingpane\settings.json` |
+| 设置 | JSON（原子写） | `%LOCALAPPDATA%\Jianlan\settings.json` |
 | 收藏书签 | 同设置文件（FR-7） | 同上 |
-| 工作区 | JSON（按需读取） | `%LOCALAPPDATA%\Lingpane\workspaces.json` |
-| 彩色标签 | SQLite（延迟打开） | `%LOCALAPPDATA%\Lingpane\data\tags.db` |
+| 工作区 | JSON（按需读取） | `%LOCALAPPDATA%\Jianlan\workspaces.json` |
+| 彩色标签 | SQLite（延迟打开） | `%LOCALAPPDATA%\Jianlan\data\tags.db` |
 | 历史记录 | 同上库分表 | 同上 |
-| 缩略图缓存 | 磁盘文件（LRU 淘汰） | `%LOCALAPPDATA%\Lingpane\cache\thumbs\` |
+| 缩略图缓存 | 磁盘文件（LRU 淘汰） | `%LOCALAPPDATA%\Jianlan\cache\thumbs\` |
 | 图标缓存 | 纯内存 LRU，不落盘 | — |
-| 日志 | 滚动文件（≤5MB × 3） | `%LOCALAPPDATA%\Lingpane\logs\` |
+| 日志 | 滚动文件（≤5MB × 3） | `%LOCALAPPDATA%\Jianlan\logs\` |
 
 便携模式（FR-10.3）下所有路径改为 exe 同级 `data\`。
 
@@ -639,11 +639,11 @@
 
 | 项 | 内容 |
 |---|---|
-| 仓库地址 | `github.com/lingpane/lingpane` |
-| 仓库结构 | `src/Lingpane.App`（UI）、`src/Lingpane.Core`（文件系统/Shell 封装）、`tests/`、`docs/` |
+| 仓库地址 | `github.com/jianlan/jianlan` |
+| 仓库结构 | `src/Jianlan.App`（UI）、`src/Jianlan.Core`（文件系统/Shell 封装）、`tests/`、`docs/` |
 | 许可证 | Apache-2.0（含专利授权条款；须保留 `NOTICE` 文件与变更声明） |
 | CI | GitHub Actions：构建 + 单元测试 + **冷启动门禁** + 产物打包 |
-| 发布产物 | `Lingpane-x.y.z-setup.exe`（安装版）、`Lingpane-x.y.z-portable.zip`（便携版） |
+| 发布产物 | `Jianlan-x.y.z-setup.exe`（安装版）、`Jianlan-x.y.z-portable.zip`（便携版） |
 | 文档 | README（截图 + 性能对比数据，本项目核心卖点）、CHANGELOG、CONTRIBUTING、快捷键表、隐私说明 |
 | 版本 | 语义化版本，从 `0.1.0` 起步 |
 

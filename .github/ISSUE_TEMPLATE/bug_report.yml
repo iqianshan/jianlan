@@ -11,7 +11,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Lingpane 版本
+      label: Jianlan 版本
       placeholder: 0.1.0
     validations:
       required: true
@@ -54,7 +54,7 @@ body:
     attributes:
       label: 日志（可选）
       description: |
-        `%LOCALAPPDATA%\Lingpane\logs\` 下的 app.log 与 crash.log。
+        `%LOCALAPPDATA%\Jianlan\logs\` 下的 app.log 与 crash.log。
         提交前请删掉路径中的个人信息。
       render: text
     validations:

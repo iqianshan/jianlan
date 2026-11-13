@@ -28,9 +28,9 @@ AMD Ryzen 7 PRO 5850U / Windows 11 / .NET 9 Release + R2R，私有提交口径�
 | 测量对象 | 私有提交 | 说明 |
 |---|---|---|
 | 纯 WPF 空窗口 | **81.0 MB** | 框架固定成本，任何 WPF 应用都要先付 |
-| Lingpane 空目录 | 93.0 MB | +12.0 MB 为自制部分 |
-| Lingpane 10000 项（只加载） | 102.6 MB | 数据层 +9.6 MB |
-| Lingpane 10000 项（滚动 240 帧） | 110.7 MB | 项容器 + 约 8 MB |
+| Jianlan 空目录 | 93.0 MB | +12.0 MB 为自制部分 |
+| Jianlan 10000 项（只加载） | 102.6 MB | 数据层 +9.6 MB |
+| Jianlan 10000 项（滚动 240 帧） | 110.7 MB | 项容器 + 约 8 MB |
 | Windows Explorer（同机同刻） | 336.4 MB | 外部参照，见下方说明 |
 
 关于 Explorer 参照的限定：该进程同时承载桌面、任务栏与外壳服务，
@@ -56,7 +56,7 @@ AMD Ryzen 7 PRO 5850U / Windows 11 / .NET 9 Release + R2R，私有提交口径�
 绝对值会随框架底与测量环境漂移（见 performance-gate §9.6，同一 exe 存在相差 36 MB 的两态），
 因此同时引入一个**不随环境漂移**的相对判据：
 
-> **NF-05R：Lingpane 私有提交 − 纯 WPF 空窗口私有提交 ≤ 45 MB**
+> **NF-05R：Jianlan 私有提交 − 纯 WPF 空窗口私有提交 ≤ 45 MB**
 > （条件：单窗格、10000 项、滚动 240 帧）
 
 当前实测 29.7 MB。45 MB 相当于留出 15.3 MB（约 50%）增长空间。

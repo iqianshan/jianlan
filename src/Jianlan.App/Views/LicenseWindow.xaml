@@ -1,0 +1,84 @@
+﻿<Window x:Class="Jianlan.App.Views.LicenseWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:Jianlan.App.Shell"
+        xmlns:loc="clr-namespace:Jianlan.App.Localization"
+        Width="640" Height="520"
+        MinWidth="420" MinHeight="320"
+        ResizeMode="CanResize"
+        ShowInTaskbar="False"
+        Icon="pack://application:,,,/Jianlan;component/Assets/Brand/jianlan.ico"
+        WindowStartupLocation="CenterOwner"
+        shell:ImmersiveChrome.Enabled="True"
+        Background="{DynamicResource Brush.Surface.Window}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Ideal">
+
+    <!--
+        只读文本查看窗，供 LICENSE / NOTICE / 第三方依赖清单共用（FR-10.8）。
+
+        不用 Markdown 渲染：三份文本里两份是纯文本、一份是 Markdown，
+        为那一份引入渲染器要多一个依赖（与"能用 .NET 内置就不用第三方"的取向冲突），
+        而读者要看的是条款原文，不是排版。
+    -->
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+                Margin="{StaticResource Padding.Dialog}"
+                Background="{DynamicResource Brush.Surface.Content}"
+                BorderBrush="{DynamicResource Brush.Border.Hairline}"
+                BorderThickness="{DynamicResource BorderThickness.Hairline}">
+            <!-- 自动换行开着：许可证是 80 列硬换行的文本，窗口宽度够时不会重排；
+                 而依赖清单是 Markdown，段落是"一行一段"，不换行就得横向拖才能读完。 -->
+            <TextBox x:Name="Body"
+                     Padding="12"
+                     IsReadOnly="True"
+                     AcceptsReturn="True"
+                     IsTabStop="False"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     HorizontalScrollBarVisibility="Disabled"
+                     FontFamily="{DynamicResource Font.Family.Mono}"
+                     FontSize="{DynamicResource Font.Size.Caption}"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     Foreground="{DynamicResource Brush.Text.Primary}"/>
+        </Border>
+
+        <Border Grid.Row="1"
+                Padding="{StaticResource Padding.Dialog}"
+                BorderBrush="{DynamicResource Brush.Border.Hairline}"
+                BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="StatusText"
+                           Grid.Column="0"
+                           Margin="0,0,12,0"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           Style="{StaticResource Text.Caption}"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            MinWidth="88"
+                            Content="{loc:Tr Key=About.License.Copy}"
+                            Click="OnCopy"/>
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            MinWidth="72"
+                            Content="{loc:Tr Key=Common.Close}"
+                            Click="OnClose"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

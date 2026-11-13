@@ -1,0 +1,1997 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  中性资源 = 英文（源语言）。中文见 Strings.zh-Hans.resx。
+
+  为什么中性是英文而不是中文：开源项目默认语言应为英文（README、issue、外部贡献者都在这条线上），
+  且中性资源直接编进主程序集，英文用户零探测。详见 docs/i18n.md §三。
+
+  键命名 区域.控件.语义，全英文，禁止用文案本身当键。占位符统一 {0}。
+-->
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="Application.Name" xml:space="preserve">
+    <value>Jianlan</value>
+  </data>
+  <data name="Window.Title" xml:space="preserve">
+    <value>{0} - Jianlan</value>
+  </data>
+
+  <!-- 工具栏 -->
+  <data name="Toolbar.Back" xml:space="preserve">
+    <value>Back (Alt+←)</value>
+  </data>
+  <data name="Toolbar.Forward" xml:space="preserve">
+    <value>Forward (Alt+→)</value>
+  </data>
+  <data name="Toolbar.Up" xml:space="preserve">
+    <value>Up one level (Alt+↑)</value>
+  </data>
+  <data name="Toolbar.Refresh" xml:space="preserve">
+    <value>Refresh (F5)</value>
+  </data>
+  <data name="Toolbar.Details" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Toolbar.Details.Tip" xml:space="preserve">
+    <value>Details view (Ctrl+Shift+1)</value>
+  </data>
+  <data name="Toolbar.List" xml:space="preserve">
+    <value>List</value>
+  </data>
+  <data name="Toolbar.List.Tip" xml:space="preserve">
+    <value>List view (Ctrl+Shift+2)</value>
+  </data>
+  <data name="Toolbar.Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Toolbar.Settings.Tip" xml:space="preserve">
+    <value>Open settings (Ctrl+,)</value>
+  </data>
+  <data name="Toolbar.Split.Tip" xml:space="preserve">
+    <value>Toggle split view (F3)</value>
+  </data>
+  <data name="Toolbar.Preview.Tip" xml:space="preserve">
+    <value>Show preview pane (Alt+P)</value>
+  </data>
+
+  <!-- 右键菜单 -->
+  <!-- 标签页（FR-2） -->
+  <data name="Tab.New.Tip" xml:space="preserve">
+    <value>New tab (Ctrl+T)</value>
+  </data>
+  <data name="Tab.New.FullTip" xml:space="preserve">
+    <value>Tab limit reached — close one first</value>
+  </data>
+  <data name="Tab.Close.Tip" xml:space="preserve">
+    <value>Close tab (Ctrl+W)</value>
+  </data>
+  <data name="Tab.Menu.Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Tab.Menu.CloseOthers" xml:space="preserve">
+    <value>Close other tabs</value>
+  </data>
+  <data name="Tab.Menu.CloseRight" xml:space="preserve">
+    <value>Close tabs to the right</value>
+  </data>
+  <data name="Tab.Menu.CopyPath" xml:space="preserve">
+    <value>Copy path</value>
+  </data>
+  <data name="Tab.Menu.Pin" xml:space="preserve">
+    <value>Pin tab</value>
+  </data>
+  <data name="Tab.Menu.Unpin" xml:space="preserve">
+    <value>Unpin tab</value>
+  </data>
+
+  <data name="Command_ToggleSplit" xml:space="preserve">
+    <value>Toggle second pane</value>
+  </data>
+  <data name="Command_TogglePreview" xml:space="preserve">
+    <value>Toggle preview pane</value>
+  </data>
+
+  <data name="Command_FocusOtherPane" xml:space="preserve">
+    <value>Focus the other pane</value>
+  </data>
+
+  <data name="Split.Menu.Horizontal" xml:space="preserve">
+    <value>Split left / right</value>
+  </data>
+
+  <data name="Split.Menu.Vertical" xml:space="preserve">
+    <value>Split top / bottom</value>
+  </data>
+
+  <data name="Split.Menu.Reset" xml:space="preserve">
+    <value>Reset to 50:50</value>
+  </data>
+
+  <data name="Menu.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Menu.Bookmark" xml:space="preserve">
+    <value>Bookmark</value>
+  </data>
+  <data name="Menu.NewFolder" xml:space="preserve">
+    <value>New folder</value>
+  </data>
+  <data name="Menu.NewTextFile" xml:space="preserve">
+    <value>New text document</value>
+  </data>
+  <data name="Menu.Rename" xml:space="preserve">
+    <value>Rename</value>
+  </data>
+  <data name="Menu.Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Menu.Cut" xml:space="preserve">
+    <value>Cut</value>
+  </data>
+  <data name="Menu.Paste" xml:space="preserve">
+    <value>Paste</value>
+  </data>
+  <data name="Menu.Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Menu.DeletePermanent" xml:space="preserve">
+    <value>Delete permanently</value>
+  </data>
+  <data name="Menu.CopyPath" xml:space="preserve">
+    <value>Copy full path</value>
+  </data>
+  <data name="Menu.Properties" xml:space="preserve">
+    <value>Properties</value>
+  </data>
+  <data name="Menu.Columns.MoveLeft" xml:space="preserve">
+    <value>Move left</value>
+  </data>
+  <data name="Menu.Columns.MoveRight" xml:space="preserve">
+    <value>Move right</value>
+  </data>
+  <data name="Menu.Columns.Reset" xml:space="preserve">
+    <value>Reset columns for this folder type</value>
+  </data>
+  <data name="Menu.Columns.Hint" xml:space="preserve">
+    <value>The name column is always shown</value>
+  </data>
+  <data name="Settings.Section.Columns" xml:space="preserve">
+    <value>Columns</value>
+  </data>
+  <data name="Settings.Columns.Hint" xml:space="preserve">
+    <value>Applies to folders of the same type; drag a column edge to resize, right-click a header to reorder.</value>
+  </data>
+  <data name="Settings.Columns.Reset" xml:space="preserve">
+    <value>Reset all column settings</value>
+  </data>
+
+  <!-- 列表列头与排序 -->
+  <data name="Column.Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Column.DateModified" xml:space="preserve">
+    <value>Date modified</value>
+  </data>
+  <data name="Column.Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Column.Size" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="Sort.Ascending" xml:space="preserve">
+    <value>Ascending</value>
+  </data>
+  <data name="Sort.Descending" xml:space="preserve">
+    <value>Descending</value>
+  </data>
+  <data name="Sort.ByName" xml:space="preserve">
+    <value>Sort by name</value>
+  </data>
+  <data name="Sort.ByDateModified" xml:space="preserve">
+    <value>Sort by date modified</value>
+  </data>
+  <data name="Sort.ByType" xml:space="preserve">
+    <value>Sort by type</value>
+  </data>
+  <data name="Sort.BySize" xml:space="preserve">
+    <value>Sort by size</value>
+  </data>
+
+  <!-- 空态 -->
+  <data name="Empty.Folder" xml:space="preserve">
+    <value>This folder is empty</value>
+  </data>
+  <data name="Empty.Inaccessible" xml:space="preserve">
+    <value>Can't access this folder</value>
+  </data>
+  <data name="Empty.NoMatch" xml:space="preserve">
+    <value>No items match your search</value>
+  </data>
+
+  <!-- 当前目录搜索（FR-6.13） -->
+  <data name="Search.Placeholder" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Search.Clear.Tip" xml:space="preserve">
+    <value>Clear search (Esc)</value>
+  </data>
+  <data name="Toolbar.Search.Tip" xml:space="preserve">
+    <value>Search in this folder (Ctrl+F)</value>
+  </data>
+
+  <!-- 状态栏 -->
+  <data name="Status.Summary" xml:space="preserve">
+    <value>{0} items · enumerated {1} ms</value>
+  </data>
+  <data name="Status.SearchSummary" xml:space="preserve">
+    <value>{0} matches of {1} items</value>
+  </data>
+  <data name="Status.SearchTruncated" xml:space="preserve">
+    <value>Showing first {0} of {1} matches</value>
+  </data>
+  <data name="Status.SelectedCount" xml:space="preserve">
+    <value>{0} selected</value>
+  </data>
+  <data name="Status.SelectedOne" xml:space="preserve">
+    <value>1 item selected</value>
+  </data>
+  <data name="Status.SelectedWithSize" xml:space="preserve">
+    <value>{0} selected · {1}</value>
+  </data>
+  <data name="Status.SummaryHidden" xml:space="preserve">
+    <value>{0} items (hidden {1}) · enumerated {2} ms</value>
+  </data>
+  <data name="Status.Ready" xml:space="preserve">
+    <value>Ready</value>
+  </data>
+  <data name="Status.Loading" xml:space="preserve">
+    <value>Loading…</value>
+  </data>
+  <data name="Menu.MoreOptions" xml:space="preserve">
+    <value>More options…</value>
+  </data>
+  <data name="Menu.MoreOptions.Tip" xml:space="preserve">
+    <value>Opens the Windows menu (Open with, Send to, Compress…); Shift+right-click does the same</value>
+  </data>
+  <data name="Status.ShellMenuUnavailable" xml:space="preserve">
+    <value>The Windows menu could not open; in-app menu is still available</value>
+  </data>
+  <data name="Status.OperationFailed" xml:space="preserve">
+    <value>Operation failed: {0}</value>
+  </data>
+  <data name="Status.AccessTimeout" xml:space="preserve">
+    <value>Can't reach this location: no response within 3 seconds</value>
+  </data>
+  <data name="Status.OpenedInExplorer" xml:space="preserve">
+    <value>Opened {0} in File Explorer</value>
+  </data>
+  <data name="Status.ShellOpenFailed" xml:space="preserve">
+    <value>File Explorer could not be opened</value>
+  </data>
+  <data name="Crash.Banner.Text" xml:space="preserve">
+    <value>The previous session ended unexpectedly at {0}. The log has been kept for troubleshooting.</value>
+  </data>
+  <data name="Crash.Banner.TextUnknown" xml:space="preserve">
+    <value>The previous session ended unexpectedly. The log has been kept for troubleshooting.</value>
+  </data>
+  <data name="Crash.Banner.OpenLogs" xml:space="preserve">
+    <value>Open log folder</value>
+  </data>
+  <data name="Crash.Banner.Dismiss" xml:space="preserve">
+    <value>Dismiss</value>
+  </data>
+
+  <!-- 侧栏常用位置 -->
+  <data name="Nav.Desktop" xml:space="preserve">
+    <value>Desktop</value>
+  </data>
+  <data name="Nav.Documents" xml:space="preserve">
+    <value>Documents</value>
+  </data>
+  <data name="Nav.Downloads" xml:space="preserve">
+    <value>Downloads</value>
+  </data>
+  <data name="Nav.Pictures" xml:space="preserve">
+    <value>Pictures</value>
+  </data>
+  <data name="Nav.Music" xml:space="preserve">
+    <value>Music</value>
+  </data>
+  <data name="Nav.Videos" xml:space="preserve">
+    <value>Videos</value>
+  </data>
+  <data name="Nav.ThisPc" xml:space="preserve">
+    <value>This PC</value>
+  </data>
+  <data name="Nav.ThisPc.Tip" xml:space="preserve">
+    <value>All drives on this computer</value>
+  </data>
+  <data name="Nav.ThisPc.Loading" xml:space="preserve">
+    <value>Reading drives…</value>
+  </data>
+  <data name="Nav.ThisPc.Empty" xml:space="preserve">
+    <value>No drives found</value>
+  </data>
+  <data name="Nav.Drive.Fixed" xml:space="preserve">
+    <value>Local Disk</value>
+  </data>
+  <data name="Nav.Drive.Removable" xml:space="preserve">
+    <value>Removable Disk</value>
+  </data>
+  <data name="Nav.Drive.Network" xml:space="preserve">
+    <value>Network Drive</value>
+  </data>
+  <data name="Nav.Drive.CdRom" xml:space="preserve">
+    <value>Optical Drive</value>
+  </data>
+  <data name="Nav.Drive.Ram" xml:space="preserve">
+    <value>RAM Disk</value>
+  </data>
+  <data name="Nav.Drive.Unknown" xml:space="preserve">
+    <value>Drive</value>
+  </data>
+  <data name="Nav.Drive.Capacity" xml:space="preserve">
+    <value>{0} free of {1}</value>
+  </data>
+  <data name="Nav.Drive.NoCapacity" xml:space="preserve">
+    <value>Capacity unavailable</value>
+  </data>
+
+  <!-- 错误：用户只看到人话，错误码只进日志 -->
+  <data name="Error.PathNotFound" xml:space="preserve">
+    <value>Location not found</value>
+  </data>
+  <data name="Error.AccessDenied" xml:space="preserve">
+    <value>Access denied</value>
+  </data>
+  <data name="Error.DeviceNotReady" xml:space="preserve">
+    <value>Device not ready — check the disk or network connection</value>
+  </data>
+  <data name="Error.Timeout" xml:space="preserve">
+    <value>The network location is not responding</value>
+  </data>
+  <data name="Error.PathTooLong" xml:space="preserve">
+    <value>Path is longer than the system limit</value>
+  </data>
+  <data name="Error.Unknown" xml:space="preserve">
+    <value>Unknown error</value>
+  </data>
+  <data name="Error.CannotOpen" xml:space="preserve">
+    <value>Cannot open: {0}</value>
+  </data>
+
+  <!-- 一次性提示 -->
+  <data name="Hint.IconViewUnavailable" xml:space="preserve">
+    <value>Large-icons view isn't implemented yet (it needs a virtualizing panel to stay smooth in huge folders); keeping the current view</value>
+  </data>
+
+  <!-- 设置：语言 -->
+  <data name="Settings.General" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="Settings.Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Settings.Language.Auto" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="Settings.Language.Chinese" xml:space="preserve">
+    <value>简体中文</value>
+  </data>
+  <data name="Settings.Language.English" xml:space="preserve">
+    <value>English</value>
+  </data>
+
+  <!-- 文件类型与对话框 -->
+  <data name="Type.Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="Type.File" xml:space="preserve">
+    <value>File</value>
+  </data>
+  <data name="File.NewTextFileName" xml:space="preserve">
+    <value>New text document.txt</value>
+  </data>
+  <data name="Dialog.Ok" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Dialog.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Error.NameEmpty" xml:space="preserve">
+    <value>Name cannot be empty</value>
+  </data>
+  <data name="Error.NameTooLong" xml:space="preserve">
+    <value>Name cannot exceed {0} characters</value>
+  </data>
+  <data name="Error.NameInvalidChars" xml:space="preserve">
+    <value>Name cannot contain \ / : * ? " &lt; &gt; |</value>
+  </data>
+  <data name="Error.NameTrailingChar" xml:space="preserve">
+    <value>Name cannot end with a space or a period</value>
+  </data>
+  <data name="Error.NameReserved" xml:space="preserve">
+    <value>That name is reserved by the system</value>
+  </data>
+  <data name="Error.PathUnresolved" xml:space="preserve">
+    <value>Cannot resolve the containing folder</value>
+  </data>
+  <data name="Error.ItemMissing" xml:space="preserve">
+    <value>That item no longer exists</value>
+  </data>
+  <data name="Error.ItemExists" xml:space="preserve">
+    <value>An item with the same name already exists in this folder</value>
+  </data>
+  <data name="Error.NothingToDelete" xml:space="preserve">
+    <value>Nothing to delete</value>
+  </data>
+  <data name="Error.CannotCopyIntoSelf" xml:space="preserve">
+    <value>A folder cannot be copied into itself</value>
+  </data>
+  <data name="Error.CannotMoveIntoSelf" xml:space="preserve">
+    <value>A folder cannot be moved into itself</value>
+  </data>
+  <data name="Error.ItemGone" xml:space="preserve">
+    <value>Item no longer exists: {0}</value>
+  </data>
+  <data name="Error.Cancelled" xml:space="preserve">
+    <value>Operation cancelled</value>
+  </data>
+
+  <!-- 文件操作与对话框 -->
+  <data name="Status.OpenItemFailed" xml:space="preserve">
+    <value>Cannot open "{0}"</value>
+  </data>
+  <data name="Status.NewFolderFailed" xml:space="preserve">
+    <value>Could not create folder: {0}</value>
+  </data>
+  <data name="Status.TabLimit" xml:space="preserve">
+    <value>At most {0} tabs — close one first</value>
+  </data>
+  <data name="Status.NewFileFailed" xml:space="preserve">
+    <value>Could not create file: {0}</value>
+  </data>
+  <data name="Dialog.RenameTitle" xml:space="preserve">
+    <value>Rename</value>
+  </data>
+  <data name="Dialog.RenamePrompt" xml:space="preserve">
+    <value>Enter a new name for "{0}"</value>
+  </data>
+  <data name="Status.RenameFailed" xml:space="preserve">
+    <value>Rename failed: {0}</value>
+  </data>
+  <data name="Status.Renamed" xml:space="preserve">
+    <value>Renamed to "{0}"</value>
+  </data>
+  <data name="Dialog.DeleteItem" xml:space="preserve">
+    <value>"{0}"</value>
+  </data>
+  <data name="Dialog.DeleteItems" xml:space="preserve">
+    <value>these {0} items</value>
+  </data>
+  <data name="Dialog.DeleteConfirmPermanent" xml:space="preserve">
+    <value>Permanently delete {0}?&#13;&#10;&#13;&#10;Permanent deletion skips the Recycle Bin and cannot be undone.</value>
+  </data>
+  <data name="Dialog.DeleteConfirmRecycle" xml:space="preserve">
+    <value>Move {0} to the Recycle Bin?</value>
+  </data>
+  <data name="Dialog.DeleteTitle" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Dialog.DeleteTitlePermanent" xml:space="preserve">
+    <value>Delete permanently</value>
+  </data>
+  <data name="Status.Deleting" xml:space="preserve">
+    <value>Deleting…</value>
+  </data>
+  <data name="Status.DeletingPermanent" xml:space="preserve">
+    <value>Deleting permanently…</value>
+  </data>
+  <data name="Status.DeletedCount" xml:space="preserve">
+    <value>Deleted {0} items</value>
+  </data>
+  <data name="Status.DeleteFailed" xml:space="preserve">
+    <value>Delete failed: {0}</value>
+  </data>
+  <data name="Status.CutCount" xml:space="preserve">
+    <value>Cut {0} items</value>
+  </data>
+  <data name="Status.CopiedCount" xml:space="preserve">
+    <value>Copied {0} items</value>
+  </data>
+  <data name="Status.Moving" xml:space="preserve">
+    <value>Moving…</value>
+  </data>
+  <data name="Status.Copying" xml:space="preserve">
+    <value>Copying…</value>
+  </data>
+  <data name="Status.MoveFailed" xml:space="preserve">
+    <value>Move failed: {0}</value>
+  </data>
+  <data name="Status.CopyFailed" xml:space="preserve">
+    <value>Copy failed: {0}</value>
+  </data>
+  <data name="Status.PartialFailed" xml:space="preserve">
+    <value>Completed {0}, {1} failed: {2}</value>
+  </data>
+  <data name="Status.MovedCount" xml:space="preserve">
+    <value>Moved {0} items</value>
+  </data>
+  <data name="Status.PathsCopied" xml:space="preserve">
+    <value>Copied {0} full paths</value>
+  </data>
+  <data name="Status.FolderPathCopied" xml:space="preserve">
+    <value>Copied the current folder path</value>
+  </data>
+  <data name="Status.CopyPathFailed" xml:space="preserve">
+    <value>Could not copy the path</value>
+  </data>
+  <data name="Size.Computing" xml:space="preserve">
+    <value>Calculating…</value>
+  </data>
+  <data name="Size.MultiTargets" xml:space="preserve">
+    <value>{0} folders</value>
+  </data>
+  <data name="Menu.CalculateSize" xml:space="preserve">
+    <value>Calculate size</value>
+  </data>
+  <data name="Menu.CalculateSize.Tip" xml:space="preserve">
+    <value>Total size of every file under this folder; runs only when you ask</value>
+  </data>
+  <data name="Status.SizeCalculating" xml:space="preserve">
+    <value>Calculating {0}: {1} items scanned · {2}</value>
+  </data>
+  <data name="Status.SizeDone" xml:space="preserve">
+    <value>{0}: {1} ({2} files, {3} folders)</value>
+  </data>
+  <data name="Status.SizePartial" xml:space="preserve">
+    <value>{0} not finished ({1} items scanned): at least {2}</value>
+  </data>
+  <data name="Status.SizeCanceled" xml:space="preserve">
+    <value>Size calculation cancelled</value>
+  </data>
+  <data name="Status.SizeNoFolder" xml:space="preserve">
+    <value>Select a folder first</value>
+  </data>
+  <data name="Common.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Properties.Title" xml:space="preserve">
+    <value>Properties</value>
+  </data>
+  <data name="Properties.MultiSummary" xml:space="preserve">
+    <value>{0} items&#13;&#10;Total size: {1}</value>
+  </data>
+  <data name="Properties.FolderSizeUnknown" xml:space="preserve">
+    <value>Folder (size not counted)</value>
+  </data>
+  <data name="Properties.EntryDetail" xml:space="preserve">
+    <value>Name: {0}&#13;&#10;Location: {1}&#13;&#10;Type: {2}&#13;&#10;Size: {3}&#13;&#10;Modified: {4}</value>
+  </data>
+  <data name="Hint.PathNotFound" xml:space="preserve">
+    <value>Path not found: {0}</value>
+  </data>
+
+  <!-- 命令标题（命令面板/提示用；菜单用 Menu.* 那组） -->
+  <data name="Command.GoUp" xml:space="preserve">
+    <value>Up one level</value>
+  </data>
+  <data name="Command.GoBack" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Command.GoForward" xml:space="preserve">
+    <value>Forward</value>
+  </data>
+  <data name="Command.Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Command.CycleTheme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="Command.ViewDetails" xml:space="preserve">
+    <value>Details view</value>
+  </data>
+  <data name="Command.ViewList" xml:space="preserve">
+    <value>List view</value>
+  </data>
+  <data name="Command.OpenSettings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Command.FocusAddress" xml:space="preserve">
+    <value>Focus address bar</value>
+  </data>
+  <data name="Command.Search" xml:space="preserve">
+    <value>Search in this folder</value>
+  </data>
+  <data name="Command.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Command.NewFolder" xml:space="preserve">
+    <value>New folder</value>
+  </data>
+  <data name="Command.NewFile" xml:space="preserve">
+    <value>New text document</value>
+  </data>
+  <data name="Command.Rename" xml:space="preserve">
+    <value>Rename</value>
+  </data>
+  <data name="Command.Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Command.DeletePermanent" xml:space="preserve">
+    <value>Delete permanently</value>
+  </data>
+  <data name="Command.Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Command.Cut" xml:space="preserve">
+    <value>Cut</value>
+  </data>
+  <data name="Command.Paste" xml:space="preserve">
+    <value>Paste</value>
+  </data>
+  <data name="Command.CopyPath" xml:space="preserve">
+    <value>Copy full path</value>
+  </data>
+  <data name="Command.Properties" xml:space="preserve">
+    <value>Properties</value>
+  </data>
+  <data name="Command.More" xml:space="preserve">
+    <value>More actions</value>
+  </data>
+  <data name="Command.SelectAll" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="Hint.DragMoveTo" xml:space="preserve">
+    <value>Move to "{0}"</value>
+  </data>
+  <data name="Hint.DragCopyTo" xml:space="preserve">
+    <value>Copy to "{0}"</value>
+  </data>
+  <data name="Settings.Tabs.NewTabPath" xml:space="preserve">
+    <value>Default folder for new tabs</value>
+  </data>
+  <data name="Settings.Tabs.NewTabPath.Tip" xml:space="preserve">
+    <value>Folder a new tab opens in — covers the + button, Ctrl+T and middle-click</value>
+  </data>
+  <data name="Settings.Tabs.NewTabPath.Hint" xml:space="preserve">
+    <value>Every new tab opens here; leave empty to use the system Downloads folder</value>
+  </data>
+  <data name="Settings.Tabs.NewTabPath.Missing" xml:space="preserve">
+    <value>That folder does not exist right now, so new tabs fall back to the system Downloads folder</value>
+  </data>
+  <data name="Common.Browse" xml:space="preserve">
+    <value>Browse…</value>
+  </data>
+  <data name="Settings.Section.Tabs" xml:space="preserve">
+    <value>Tabs</value>
+  </data>
+  <data name="Settings.Section.Appearance" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="Settings.Section.Behavior" xml:space="preserve">
+    <value>Behavior</value>
+  </data>
+  <data name="Settings.Section.Privacy" xml:space="preserve">
+    <value>Privacy</value>
+  </data>
+  <data name="Settings.Section.About" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="Settings.Appearance.Theme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="Settings.Theme.FollowSystem" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="Settings.Theme.Light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Settings.Theme.Dark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="Settings.Theme.HighContrast" xml:space="preserve">
+    <value>High contrast</value>
+  </data>
+  <data name="Settings.Theme.HighContrast.Tip" xml:space="preserve">
+    <value>Always use the high-contrast palette. Windows' own high-contrast setting still takes precedence.</value>
+  </data>
+  <data name="Settings.Appearance.Font" xml:space="preserve">
+    <value>Interface font</value>
+  </data>
+  <data name="Settings.Appearance.Font.Tip" xml:space="preserve">
+    <value>Lists installed fonts only; no font files are bundled.</value>
+  </data>
+  <data name="Settings.Appearance.Font.Hint" xml:space="preserve">
+    <value>Installed fonts only; importing is not supported</value>
+  </data>
+  <data name="Settings.Appearance.Font.Default" xml:space="preserve">
+    <value>(Default font)</value>
+  </data>
+  <data name="Settings.Appearance.Font.Fallback" xml:space="preserve">
+    <value>Font “{0}” is unavailable; reverted to the default.</value>
+  </data>
+  <data name="Settings.Appearance.FontSize" xml:space="preserve">
+    <value>Size</value>
+  </data>
+  <data name="Settings.Appearance.FontSize.Decrease" xml:space="preserve">
+    <value>Decrease by 1 pt</value>
+  </data>
+  <data name="Settings.Appearance.FontSize.Increase" xml:space="preserve">
+    <value>Increase by 1 pt</value>
+  </data>
+  <data name="Settings.Appearance.FontSize.FollowSystem" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="Settings.Appearance.FontSize.FollowSystemValue" xml:space="preserve">
+    <value>Follow system ({0:0} pt)</value>
+  </data>
+  <data name="Settings.Appearance.Density" xml:space="preserve">
+    <value>Density</value>
+  </data>
+  <data name="Settings.Appearance.Density.Comfortable" xml:space="preserve">
+    <value>Comfortable</value>
+  </data>
+  <data name="Settings.Appearance.Density.Compact" xml:space="preserve">
+    <value>Compact</value>
+  </data>
+  <data name="Settings.Appearance.ShowNav" xml:space="preserve">
+    <value>Show left navigation pane</value>
+  </data>
+  <data name="Settings.Appearance.TabStrip" xml:space="preserve">
+    <value>Tab bar position</value>
+  </data>
+  <data name="Settings.Appearance.TabStrip.Top" xml:space="preserve">
+    <value>Top</value>
+  </data>
+  <data name="Settings.Appearance.TabStrip.Bottom" xml:space="preserve">
+    <value>Bottom</value>
+  </data>
+  <data name="Settings.Appearance.ShowStatus" xml:space="preserve">
+    <value>Show bottom status bar</value>
+  </data>
+  <data name="Settings.Behavior.DefaultView" xml:space="preserve">
+    <value>Default view</value>
+  </data>
+  <data name="Settings.Behavior.View.Details" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Settings.Behavior.View.List" xml:space="preserve">
+    <value>List</value>
+  </data>
+  <data name="Settings.Behavior.NextLaunch" xml:space="preserve">
+    <value>Takes effect on next launch</value>
+  </data>
+  <data name="Settings.Behavior.DefaultSort" xml:space="preserve">
+    <value>Default sort</value>
+  </data>
+  <data name="Settings.Behavior.SortHint" xml:space="preserve">
+    <value>Takes effect on next launch; clicking a column header applies to this session only</value>
+  </data>
+  <data name="Settings.Behavior.SortMode" xml:space="preserve">
+    <value>Sort order</value>
+  </data>
+  <data name="Settings.Behavior.FoldersFirst" xml:space="preserve">
+    <value>Folders first</value>
+  </data>
+  <data name="Settings.Behavior.ShowHidden" xml:space="preserve">
+    <value>Show hidden files</value>
+  </data>
+  <data name="Settings.Behavior.ShowExtensions" xml:space="preserve">
+    <value>Show file extensions</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmDelete" xml:space="preserve">
+    <value>Confirm before deleting</value>
+  </data>
+  <data name="Settings.Behavior.OpenFolderInNewTab" xml:space="preserve">
+    <value>Open folders in a new tab</value>
+  </data>
+  <data name="Settings.Behavior.OpenFolderInNewTab.Hint" xml:space="preserve">
+    <value>Double-click or Enter opens the folder in a new tab instead of replacing the current one; applies immediately. Ignored in split view, where opening a folder always stays in that pane</value>
+  </data>
+  <data name="Settings.Behavior.OpenNewTabInBackground" xml:space="preserve">
+    <value>Open new tabs in the background</value>
+  </data>
+  <data name="Settings.Behavior.OpenNewTabInBackground.Hint" xml:space="preserve">
+    <value>Middle-click or Ctrl+click a folder and the new tab stays in the background, so you can queue up several folders; turn off to switch to it right away</value>
+  </data>
+  <data name="Settings.Privacy.RememberPath" xml:space="preserve">
+    <value>Remember the last opened folder</value>
+  </data>
+  <data name="Settings.Privacy.RememberPath.Hint" xml:space="preserve">
+    <value>Stored only in the local settings.json and never uploaded. When off, the next launch opens Documents.</value>
+  </data>
+  <data name="Settings.Privacy.ClearPath" xml:space="preserve">
+    <value>Clear recorded paths</value>
+  </data>
+  <data name="Settings.Privacy.Cleared" xml:space="preserve">
+    <value>Recorded paths cleared</value>
+  </data>
+  <data name="Common.Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Settings.ResetAppearance" xml:space="preserve">
+    <value>Reset appearance</value>
+  </data>
+  <data name="Settings.ResetAppearance.Tip" xml:space="preserve">
+    <value>Restore the default font and size</value>
+  </data>
+  <data name="Settings.ResetAppearance.Done" xml:space="preserve">
+    <value>Default font and size restored</value>
+  </data>
+  <data name="Settings.OpenDataDir" xml:space="preserve">
+    <value>Open data folder</value>
+  </data>
+  <data name="Settings.OpenDataDir.Failed" xml:space="preserve">
+    <value>Cannot open the data folder: {0}</value>
+  </data>
+  <data name="Dialog.Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Dialog.No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Error.InUse" xml:space="preserve">
+    <value>The file is in use by another program</value>
+  </data>
+  <data name="Error.DiskFull" xml:space="preserve">
+    <value>Not enough space on the target drive</value>
+  </data>
+  <data name="Error.DeleteRefused" xml:space="preserve">
+    <value>Could not delete the item — it may be in use, or you may not have permission</value>
+  </data>
+  <data name="Home.Title" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Home.NewTab" xml:space="preserve">
+    <value>New tab</value>
+  </data>
+  <data name="Home.NewTab.Tip" xml:space="preserve">
+    <value>Open a new tab (Ctrl+T)</value>
+  </data>
+  <data name="Home.NewFolder" xml:space="preserve">
+    <value>New folder</value>
+  </data>
+  <data name="Home.NewFolder.Tip" xml:space="preserve">
+    <value>Create a folder in the new-tab folder</value>
+  </data>
+  <data name="Home.Section.Folders" xml:space="preserve">
+    <value>Common places</value>
+  </data>
+  <data name="Home.Section.Drives" xml:space="preserve">
+    <value>Drives</value>
+  </data>
+  <data name="Home.Section.Recent" xml:space="preserve">
+    <value>Recent</value>
+  </data>
+  <data name="Home.Section.Bookmarks" xml:space="preserve">
+    <value>Bookmarks</value>
+  </data>
+  <data name="Home.Recent.Empty" xml:space="preserve">
+    <value>No recent places yet</value>
+  </data>
+  <data name="Home.Recent.Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Home.Recent.Clear.Tip" xml:space="preserve">
+    <value>Clear the recent list</value>
+  </data>
+  <data name="Home.Recent.Missing" xml:space="preserve">
+    <value>No longer available</value>
+  </data>
+  <data name="Home.Bookmarks.Empty" xml:space="preserve">
+    <value>No bookmarks yet</value>
+  </data>
+  <data name="Home.Bookmarks.More" xml:space="preserve">
+    <value>See all</value>
+  </data>
+  <data name="Home.Bookmarks.Less" xml:space="preserve">
+    <value>Show less</value>
+  </data>
+  <data name="Home.Drive.Unknown" xml:space="preserve">
+    <value>—</value>
+  </data>
+  <data name="Home.Drive.Loading" xml:space="preserve">
+    <value>Reading…</value>
+  </data>
+  <data name="Home.Drive.Capacity" xml:space="preserve">
+    <value>{0} free of {1}</value>
+  </data>
+  <data name="Home.Tile.OpenInNewTab" xml:space="preserve">
+    <value>Ctrl+click to open in a new tab</value>
+  </data>
+  <data name="Nav.Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Nav.RecycleBin" xml:space="preserve">
+    <value>Recycle Bin</value>
+  </data>
+  <data name="Nav.RecycleBin.Tip" xml:space="preserve">
+    <value>Recycle Bin — managed by Windows, opens in File Explorer</value>
+  </data>
+  <data name="Nav.Network" xml:space="preserve">
+    <value>Network</value>
+  </data>
+  <data name="Nav.Network.Tip" xml:space="preserve">
+    <value>Network locations — opens in File Explorer; type \\server\share in the address bar to open one here</value>
+  </data>
+  <data name="Nav.Width.Tip" xml:space="preserve">
+    <value>Drag to resize the navigation pane; double-click to reset</value>
+  </data>
+  <data name="Tab.Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Tab.Home.Tip" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Status.HistoryCleared" xml:space="preserve">
+    <value>Recent list cleared</value>
+  </data>
+  <data name="Status.HomeNoSplit" xml:space="preserve">
+    <value>The home tab has no second pane to split</value>
+  </data>
+  <data name="Tab.TagResults" xml:space="preserve">
+    <value>Tags: {0}</value>
+  </data>
+  <data name="Tab.TagResults.Tip" xml:space="preserve">
+    <value>Every item carrying this color, wherever it lives</value>
+  </data>
+  <data name="Tag.Results.Hint" xml:space="preserve">
+    <value>{0} items · double-click one to jump to its folder</value>
+  </data>
+  <data name="Tag.Results.Empty" xml:space="preserve">
+    <value>Nothing has this color yet.</value>
+  </data>
+  <data name="Status.TagResultMissing" xml:space="preserve">
+    <value>That item's folder no longer exists.</value>
+  </data>
+  <data name="Status.TagResultMoved" xml:space="preserve">
+    <value>That item is no longer at this path; it may have been moved or renamed.</value>
+  </data>
+  <data name="Nav.Locations" xml:space="preserve">
+    <value>Locations</value>
+  </data>
+  <data name="Nav.Places.Config" xml:space="preserve">
+    <value>Choose which locations to show</value>
+  </data>
+  <data name="Nav.Places.RestoreAll" xml:space="preserve">
+    <value>Show all locations</value>
+  </data>
+  <data name="Nav.Places.AllHidden" xml:space="preserve">
+    <value>All locations are hidden. Use the gear icon to bring them back.</value>
+  </data>
+  <data name="Nav.Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Nav.Tags.Empty" xml:space="preserve">
+    <value>No tags yet. Right-click a file to add one.</value>
+  </data>
+  <data name="Nav.Bookmarks" xml:space="preserve">
+    <value>Bookmarks</value>
+  </data>
+  <data name="Nav.Bookmarks.Empty" xml:space="preserve">
+    <value>No bookmarks yet. Press Ctrl+D in a folder to add one.</value>
+  </data>
+  <data name="Nav.Bookmark.Missing" xml:space="preserve">
+    <value>Location unavailable</value>
+  </data>
+  <data name="Status.BookmarkAdded" xml:space="preserve">
+    <value>Bookmarked: {0}</value>
+  </data>
+  <data name="Status.BookmarkExists" xml:space="preserve">
+    <value>Already bookmarked: {0}</value>
+  </data>
+  <data name="Status.BookmarkRemoved" xml:space="preserve">
+    <value>Bookmark removed: {0}</value>
+  </data>
+  <data name="Status.BookmarkFull" xml:space="preserve">
+    <value>Bookmark limit reached ({0})</value>
+  </data>
+  <data name="Status.BookmarkHome" xml:space="preserve">
+    <value>Nothing to bookmark here</value>
+  </data>
+  <data name="Bookmark.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Bookmark.OpenNewTab" xml:space="preserve">
+    <value>Open in new tab</value>
+  </data>
+  <data name="Bookmark.Rename" xml:space="preserve">
+    <value>Rename…</value>
+  </data>
+  <data name="Bookmark.Remove" xml:space="preserve">
+    <value>Remove bookmark</value>
+  </data>
+  <data name="Bookmark.MoveUp" xml:space="preserve">
+    <value>Move up</value>
+  </data>
+  <data name="Bookmark.MoveDown" xml:space="preserve">
+    <value>Move down</value>
+  </data>
+  <data name="Bookmark.Group.New" xml:space="preserve">
+    <value>New group…</value>
+  </data>
+  <data name="Bookmark.Group.Rename" xml:space="preserve">
+    <value>Rename group…</value>
+  </data>
+  <data name="Bookmark.Group.Remove" xml:space="preserve">
+    <value>Delete group</value>
+  </data>
+  <data name="Bookmark.CleanMissing" xml:space="preserve">
+    <value>Remove unavailable bookmarks</value>
+  </data>
+  <data name="Bookmark.Tip" xml:space="preserve">
+    <value>Bookmark the current folder (Ctrl+D)</value>
+  </data>
+  <data name="Bookmark.Prompt.Name" xml:space="preserve">
+    <value>Bookmark name</value>
+  </data>
+  <data name="Bookmark.Prompt.Rename" xml:space="preserve">
+    <value>Rename bookmark</value>
+  </data>
+  <data name="Bookmark.Prompt.Group" xml:space="preserve">
+    <value>Group name</value>
+  </data>
+  <data name="Bookmark.Prompt.NewGroup" xml:space="preserve">
+    <value>New group</value>
+  </data>
+  <data name="Bookmark.Prompt.GroupExists" xml:space="preserve">
+    <value>A group with this name already exists.</value>
+  </data>
+  <data name="Bookmark.Prompt.Empty" xml:space="preserve">
+    <value>Name cannot be empty.</value>
+  </data>
+  <data name="Command.Bookmark" xml:space="preserve">
+    <value>Bookmark this folder</value>
+  </data>
+  <data name="Bookmark.Group.NewMenu" xml:space="preserve">
+    <value>New group…</value>
+  </data>
+  <data name="Bookmark.CleanNone" xml:space="preserve">
+    <value>No unavailable bookmarks</value>
+  </data>
+  <data name="Bookmark.CleanDone" xml:space="preserve">
+    <value>Removed {0} unavailable bookmarks</value>
+  </data>
+  <data name="Bookmark.CleanConfirm" xml:space="preserve">
+    <value>Remove {0} bookmarks whose location is unavailable? Only the bookmark entries are deleted.</value>
+  </data>
+  <data name="Status.BookmarkDropAdded" xml:space="preserve">
+    <value>Bookmarked {0} item(s)</value>
+  </data>
+  <data name="Bookmark.Hint.Drop" xml:space="preserve">
+    <value>Drop to bookmark</value>
+  </data>
+  <data name="Bookmark.Hint.DropToGroup" xml:space="preserve">
+    <value>Drop to bookmark into “{0}”</value>
+  </data>
+  <data name="Bookmark.Color" xml:space="preserve">
+    <value>Colour</value>
+  </data>
+  <data name="Bookmark.Icon" xml:space="preserve">
+    <value>Icon</value>
+  </data>
+  <data name="Bookmark.Reset" xml:space="preserve">
+    <value>Use default</value>
+  </data>
+  <data name="Bookmark.Color.Red" xml:space="preserve">
+    <value>Red</value>
+  </data>
+  <data name="Bookmark.Color.Orange" xml:space="preserve">
+    <value>Orange</value>
+  </data>
+  <data name="Bookmark.Color.Green" xml:space="preserve">
+    <value>Green</value>
+  </data>
+  <data name="Bookmark.Color.Blue" xml:space="preserve">
+    <value>Blue</value>
+  </data>
+  <data name="Bookmark.Color.Purple" xml:space="preserve">
+    <value>Purple</value>
+  </data>
+  <data name="Bookmark.Color.Gray" xml:space="preserve">
+    <value>Grey</value>
+  </data>
+  <data name="Bookmark.Icon.Folder" xml:space="preserve">
+    <value>Folder</value>
+  </data>
+  <data name="Bookmark.Icon.Star" xml:space="preserve">
+    <value>Star</value>
+  </data>
+  <data name="Bookmark.Icon.Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Bookmark.Icon.Drive" xml:space="preserve">
+    <value>Drive</value>
+  </data>
+  <data name="Bookmark.Icon.Download" xml:space="preserve">
+    <value>Downloads</value>
+  </data>
+  <data name="Bookmark.Icon.Pictures" xml:space="preserve">
+    <value>Pictures</value>
+  </data>
+  <data name="Nav.Workspaces" xml:space="preserve">
+    <value>Workspaces</value>
+  </data>
+  <data name="Nav.Workspaces.Empty" xml:space="preserve">
+    <value>No workspaces yet. Click this title, then choose "Save current tabs…"</value>
+  </data>
+  <data name="Nav.Workspace.Tooltip" xml:space="preserve">
+    <value>{0} tab(s)</value>
+  </data>
+  <data name="Nav.Workspace.SaveCurrent" xml:space="preserve">
+    <value>Save current tabs…</value>
+  </data>
+  <data name="Workspace.Prompt.Name" xml:space="preserve">
+    <value>Workspace name</value>
+  </data>
+  <data name="Workspace.Prompt.SaveTitle" xml:space="preserve">
+    <value>Save Workspace</value>
+  </data>
+  <data name="Workspace.Prompt.RenameTitle" xml:space="preserve">
+    <value>Rename Workspace</value>
+  </data>
+  <data name="Workspace.Prompt.NameExists" xml:space="preserve">
+    <value>A workspace with this name already exists</value>
+  </data>
+  <data name="Workspace.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Workspace.Overwrite" xml:space="preserve">
+    <value>Overwrite with current tabs</value>
+  </data>
+  <data name="Workspace.Rename" xml:space="preserve">
+    <value>Rename…</value>
+  </data>
+  <data name="Workspace.Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Workspace.SetStartup" xml:space="preserve">
+    <value>Restore at startup</value>
+  </data>
+  <data name="Workspace.ClearStartup" xml:space="preserve">
+    <value>Don't restore at startup</value>
+  </data>
+  <data name="Status.Workspace.Saved" xml:space="preserve">
+    <value>Saved workspace "{0}"</value>
+  </data>
+  <data name="Status.Workspace.Duplicate" xml:space="preserve">
+    <value>A workspace named "{0}" already exists</value>
+  </data>
+  <data name="Status.Workspace.Full" xml:space="preserve">
+    <value>Workspace limit reached ({0})</value>
+  </data>
+  <data name="Status.Workspace.NoTabs" xml:space="preserve">
+    <value>Nothing to save</value>
+  </data>
+  <data name="Status.Workspace.Missing" xml:space="preserve">
+    <value>Workspace not found</value>
+  </data>
+  <data name="Status.Workspace.Deleted" xml:space="preserve">
+    <value>Deleted workspace "{0}"</value>
+  </data>
+  <data name="Status.Workspace.Restored" xml:space="preserve">
+    <value>Opened workspace "{0}" ({1} tabs)</value>
+  </data>
+  <data name="Status.Workspace.StartupSet" xml:space="preserve">
+    <value>Will open "{0}" at startup</value>
+  </data>
+  <data name="Status.Workspace.StartupCleared" xml:space="preserve">
+    <value>Workspace restore at startup is off</value>
+  </data>
+  <data name="Dialog.Workspace.DeleteTitle" xml:space="preserve">
+    <value>Delete Workspace</value>
+  </data>
+  <data name="Dialog.Workspace.DeleteMessage" xml:space="preserve">
+    <value>Delete workspace "{0}"? This cannot be undone.</value>
+  </data>
+  <data name="Dialog.Workspace.ReplaceTitle" xml:space="preserve">
+    <value>Open Workspace</value>
+  </data>
+  <data name="Dialog.Workspace.ReplaceMessage" xml:space="preserve">
+    <value>Opening "{0}" replaces the {1} tab(s) currently open.</value>
+  </data>
+  <data name="Dialog.Workspace.OverwriteTitle" xml:space="preserve">
+    <value>Overwrite Workspace</value>
+  </data>
+  <data name="Dialog.Workspace.OverwriteMessage" xml:space="preserve">
+    <value>Workspace "{0}" already exists. Overwrite it with the current tabs?</value>
+  </data>
+  <data name="Home.Section.Workspaces" xml:space="preserve">
+    <value>Workspaces</value>
+  </data>
+  <data name="Status.Workspace.Skipped" xml:space="preserve">
+    <value>{0} tab(s) could not be opened</value>
+  </data>
+  <data name="Menu.Tag" xml:space="preserve">
+    <value>Tag</value>
+  </data>
+  <data name="Menu.Tag.Tip" xml:space="preserve">
+    <value>Toggle colour tags on the selected items (an item can have several)</value>
+  </data>
+  <data name="Menu.Tag.Remove" xml:space="preserve">
+    <value>Remove Tag</value>
+  </data>
+  <data name="Tag.Color.Red" xml:space="preserve">
+    <value>Red</value>
+  </data>
+  <data name="Tag.Color.Orange" xml:space="preserve">
+    <value>Orange</value>
+  </data>
+  <data name="Tag.Color.Yellow" xml:space="preserve">
+    <value>Yellow</value>
+  </data>
+  <data name="Tag.Color.Green" xml:space="preserve">
+    <value>Green</value>
+  </data>
+  <data name="Tag.Color.Blue" xml:space="preserve">
+    <value>Blue</value>
+  </data>
+  <data name="Tag.Color.Purple" xml:space="preserve">
+    <value>Purple</value>
+  </data>
+  <data name="Tag.Color.Gray" xml:space="preserve">
+    <value>Gray</value>
+  </data>
+  <data name="Tag.Color.Black" xml:space="preserve">
+    <value>Black</value>
+  </data>
+  <data name="Tag.Custom.DefaultName" xml:space="preserve">
+    <value>Tag {0}</value>
+  </data>
+  <data name="Status.Tag.Applied" xml:space="preserve">
+    <value>Tagged {0} item(s)</value>
+  </data>
+  <data name="Status.Tag.Removed" xml:space="preserve">
+    <value>Removed tags from {0} item(s)</value>
+  </data>
+  <data name="Status.Tag.Unsupported" xml:space="preserve">
+    <value>This location does not support tags</value>
+  </data>
+  <data name="Status.Tag.Full" xml:space="preserve">
+    <value>Tag limit reached ({0})</value>
+  </data>
+  <data name="Settings.Behavior.ShowSystem" xml:space="preserve">
+    <value>Show system files</value>
+  </data>
+  <data name="Settings.Behavior.ShowSystem.Hint" xml:space="preserve">
+    <value>Items like pagefile.sys and System Volume Information. An item marked both hidden and system needs both switches on.</value>
+  </data>
+  <data name="Settings.Behavior.OpenMode" xml:space="preserve">
+    <value>Open items with</value>
+  </data>
+  <data name="Settings.Behavior.OpenMode.Double" xml:space="preserve">
+    <value>Double-click</value>
+  </data>
+  <data name="Settings.Behavior.OpenMode.Single" xml:space="preserve">
+    <value>Single click</value>
+  </data>
+  <data name="Settings.Behavior.OpenMode.Hint" xml:space="preserve">
+    <value>In single-click mode a row only highlights after the pointer rests on it for 600 ms, so sweeping across the list opens nothing.</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmBatch" xml:space="preserve">
+    <value>Confirm batch operations</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmBatch.Hint" xml:space="preserve">
+    <value>Asks before acting on two or more items at once.</value>
+  </data>
+  <data name="Settings.Behavior.CloseLastToHome" xml:space="preserve">
+    <value>Closing the last tab goes back to Home</value>
+  </data>
+  <data name="Settings.Behavior.CloseLastToHome.Hint" xml:space="preserve">
+    <value>Turn this off to close the window instead.</value>
+  </data>
+  <data name="Settings.Section.Startup" xml:space="preserve">
+    <value>Startup</value>
+  </data>
+  <data name="Settings.Behavior.Startup" xml:space="preserve">
+    <value>On launch</value>
+  </data>
+  <data name="Settings.Behavior.Startup.None" xml:space="preserve">
+    <value>Open the default folder</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Session" xml:space="preserve">
+    <value>Restore the last session</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Hint" xml:space="preserve">
+    <value>Restoring the last session brings back the tabs that were open when you quit.</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Workspace" xml:space="preserve">
+    <value>Always open workspace</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Workspace.None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Settings.Behavior.Startup.Workspace.Hint" xml:space="preserve">
+    <value>Picking a workspace turns session restore off — the two cannot run at once.</value>
+  </data>
+  <data name="Settings.Privacy.HistoryLimit" xml:space="preserve">
+    <value>History entries</value>
+  </data>
+  <data name="Settings.Privacy.HistoryLimit.Hint" xml:space="preserve">
+    <value>Older entries are dropped once the limit is reached. Lowering it also trims what is already recorded.</value>
+  </data>
+  <data name="Settings.Privacy.ClearHistory" xml:space="preserve">
+    <value>Clear history</value>
+  </data>
+  <data name="Settings.Privacy.HistoryCleared" xml:space="preserve">
+    <value>Cleared {0} entries</value>
+  </data>
+  <data name="Settings.Privacy.TagStore" xml:space="preserve">
+    <value>Colour tags</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Count" xml:space="preserve">
+    <value>{0} tagged items</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Loading" xml:space="preserve">
+    <value>Counting…</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Empty" xml:space="preserve">
+    <value>No tags yet</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Pruning" xml:space="preserve">
+    <value>Scanning…</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.Pruned" xml:space="preserve">
+    <value>Removed {0} stale tags</value>
+  </data>
+  <data name="Settings.Privacy.TagStore.PruneNone" xml:space="preserve">
+    <value>Nothing stale found</value>
+  </data>
+  <data name="Settings.Privacy.TagPrune" xml:space="preserve">
+    <value>Remove stale tags</value>
+  </data>
+  <data name="Settings.Privacy.TagPrune.Tip" xml:space="preserve">
+    <value>Checks every tag against the file it points to</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache" xml:space="preserve">
+    <value>Thumbnail cache</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Measuring" xml:space="preserve">
+    <value>Measuring…</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Size" xml:space="preserve">
+    <value>{0} used · limit {1}</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Limit" xml:space="preserve">
+    <value>Limit</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Limit.Hint" xml:space="preserve">
+    <value>When the cache exceeds its limit, the oldest thumbnails are evicted first. Lowering the limit cleans up immediately.</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Clear" xml:space="preserve">
+    <value>Clear cache</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.Cleared" xml:space="preserve">
+    <value>Cache cleared, {0} freed</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.ClearBlocked" xml:space="preserve">
+    <value>{0} could not be deleted (likely in use). Try again later.</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.LimitApplied" xml:space="preserve">
+    <value>Limit set to {0} · cache is now {1}</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.ClearConfirm.Title" xml:space="preserve">
+    <value>Clear the thumbnail cache?</value>
+  </data>
+  <data name="Settings.Privacy.ThumbCache.ClearConfirm.Body" xml:space="preserve">
+    <value>This deletes {0} of thumbnails. Your files are not touched; thumbnails are generated again the next time you browse them.</value>
+  </data>
+  <data name="Settings.ResetBehavior" xml:space="preserve">
+    <value>Reset behaviour</value>
+  </data>
+  <data name="Settings.ResetBehavior.Tip" xml:space="preserve">
+    <value>Back to the default view, sort order and switches</value>
+  </data>
+  <data name="Settings.ResetPrivacy" xml:space="preserve">
+    <value>Reset privacy</value>
+  </data>
+  <data name="Settings.ResetPrivacy.Tip" xml:space="preserve">
+    <value>Back to default history and cache settings. Recorded history is kept.</value>
+  </data>
+  <data name="Settings.ResetAll" xml:space="preserve">
+    <value>Reset all settings</value>
+  </data>
+  <data name="Settings.ResetAll.Tip" xml:space="preserve">
+    <value>Appearance, behaviour and privacy. Bookmarks, history, tags and workspaces are kept.</value>
+  </data>
+  <data name="Settings.ResetBehavior.Done" xml:space="preserve">
+    <value>Behaviour settings are back to default</value>
+  </data>
+  <data name="Settings.ResetPrivacy.Done" xml:space="preserve">
+    <value>Privacy settings are back to default</value>
+  </data>
+  <data name="Settings.ResetAll.Done" xml:space="preserve">
+    <value>All settings are back to default</value>
+  </data>
+  <data name="Settings.ResetLayout.Done" xml:space="preserve">
+    <value>Column settings are back to default</value>
+  </data>
+  <!-- 设置页分页（v2）：左导航六个分类 -->
+  <data name="Settings.Page.General" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="Settings.Page.Appearance" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="Settings.Page.Files" xml:space="preserve">
+    <value>File list</value>
+  </data>
+  <data name="Settings.Page.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Settings.Page.Privacy" xml:space="preserve">
+    <value>Privacy and storage</value>
+  </data>
+  <data name="Settings.Page.About" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="Settings.Page.General.Desc" xml:space="preserve">
+    <value>Interface language, and where the window lands on each launch.</value>
+  </data>
+  <data name="Settings.Page.Appearance.Desc" xml:space="preserve">
+    <value>Theme, fonts, and which interface elements are shown.</value>
+  </data>
+  <data name="Settings.Page.Files.Desc" xml:space="preserve">
+    <value>What the list shows, and how it sorts.</value>
+  </data>
+  <data name="Settings.Page.Actions.Desc" xml:space="preserve">
+    <value>How clicks behave, and which actions ask first.</value>
+  </data>
+  <data name="Settings.Page.Privacy.Desc" xml:space="preserve">
+    <value>What is stored locally, how much space it takes, and how to clear it.</value>
+  </data>
+  <data name="Settings.Page.About.Desc" xml:space="preserve">
+    <value>Version, licences, and the privacy statement.</value>
+  </data>
+  <data name="Settings.Group.Startup" xml:space="preserve">
+    <value>Startup</value>
+  </data>
+  <data name="Settings.Group.NewTab" xml:space="preserve">
+    <value>New tab</value>
+  </data>
+  <data name="Settings.Group.ThemeFont" xml:space="preserve">
+    <value>Theme and fonts</value>
+  </data>
+  <data name="Settings.Group.Layout" xml:space="preserve">
+    <value>Layout</value>
+  </data>
+  <data name="Settings.Group.ViewSort" xml:space="preserve">
+    <value>View and sorting</value>
+  </data>
+  <data name="Settings.Group.Show" xml:space="preserve">
+    <value>Display</value>
+  </data>
+  <data name="Settings.Group.Columns" xml:space="preserve">
+    <value>Columns</value>
+  </data>
+  <data name="Settings.Group.Open" xml:space="preserve">
+    <value>Opening</value>
+  </data>
+  <data name="Settings.Group.Confirm" xml:space="preserve">
+    <value>Confirmation</value>
+  </data>
+  <data name="Settings.Group.History" xml:space="preserve">
+    <value>History</value>
+  </data>
+  <data name="Settings.Group.Cache" xml:space="preserve">
+    <value>Thumbnail cache</value>
+  </data>
+  <data name="Settings.Group.LocalData" xml:space="preserve">
+    <value>Local data</value>
+  </data>
+  <data name="Settings.Group.Danger" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="Settings.ResetPage" xml:space="preserve">
+    <value>Reset this page</value>
+  </data>
+  <data name="Settings.ResetPage.Tip" xml:space="preserve">
+    <value>Resets only the items on this page. Interface language is not affected.</value>
+  </data>
+  <data name="Settings.ResetPage.Done" xml:space="preserve">
+    <value>This page is back to default</value>
+  </data>
+  <data name="Settings.ResetAll.Hint" xml:space="preserve">
+    <value>Theme, font size, view, sorting and every confirmation switch go back together. Bookmarks, history and tags are kept.</value>
+  </data>
+  <data name="Settings.Behavior.SortGroup.Hint" xml:space="preserve">
+    <value>Natural sort puts file2 before file10. Case sensitivity changes how names are compared, never the files themselves.</value>
+  </data>
+  <data name="Settings.Behavior.ViewSortGroup.Hint" xml:space="preserve">
+    <value>The default view and sorting apply from the next launch; clicking a column header only affects this session.</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmGroup.Hint" xml:space="preserve">
+    <value>The first three ask before touching a file; the last one asks before running it.</value>
+  </data>
+  <data name="Settings.Tags.ColorNames.Summary" xml:space="preserve">
+    <value>{0} of {1} customised</value>
+  </data>
+  <data name="Settings.Tags.ColorNames.Edit" xml:space="preserve">
+    <value>Edit…</value>
+  </data>
+  <data name="Settings.Tags.ColorNames.Collapse" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="Settings.Privacy.DataDir" xml:space="preserve">
+    <value>Data location</value>
+  </data>
+  <data name="Settings.Privacy.DataDir.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Dialog.ResetAll.Title" xml:space="preserve">
+    <value>Reset all settings</value>
+  </data>
+  <data name="Dialog.ResetAll.Body" xml:space="preserve">
+    <value>Appearance, behaviour and privacy settings go back to default. Bookmarks, history, colour tags and workspaces are not touched. Continue?</value>
+  </data>
+  <data name="Dialog.TagPrune.Title" xml:space="preserve">
+    <value>Remove stale tags</value>
+  </data>
+  <data name="Dialog.TagPrune.Body" xml:space="preserve">
+    <value>Checks all {0} tags and removes those whose file is gone or now points somewhere else. Tags on offline drives (unplugged USB, disconnected network shares) go too. Continue?</value>
+  </data>
+  <data name="Settings.Appearance.Accent" xml:space="preserve">
+    <value>Accent colour</value>
+  </data>
+  <data name="Settings.Appearance.Accent.System" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="Accent.Blue" xml:space="preserve">
+    <value>Blue</value>
+  </data>
+  <data name="Accent.Teal" xml:space="preserve">
+    <value>Teal</value>
+  </data>
+  <data name="Accent.Green" xml:space="preserve">
+    <value>Green</value>
+  </data>
+  <data name="Accent.Orange" xml:space="preserve">
+    <value>Orange</value>
+  </data>
+  <data name="Accent.Purple" xml:space="preserve">
+    <value>Purple</value>
+  </data>
+  <data name="Accent.Red" xml:space="preserve">
+    <value>Red</value>
+  </data>
+  <data name="Settings.About.Privacy" xml:space="preserve">
+    <value>No telemetry, no uploads. The only outbound action is opening the releases page in your browser when you choose Check for updates.</value>
+  </data>
+
+  <data name="Preview.Title" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="Preview.Open.Tip" xml:space="preserve">
+    <value>Show preview pane (Alt+P)</value>
+  </data>
+  <data name="Preview.Close.Tip" xml:space="preserve">
+    <value>Hide preview pane (Alt+P)</value>
+  </data>
+  <data name="Preview.Empty" xml:space="preserve">
+    <value>Select a file to preview it</value>
+  </data>
+  <data name="Preview.MultiTitle" xml:space="preserve">
+    <value>{0} items selected</value>
+  </data>
+  <data name="Preview.MultiSize" xml:space="preserve">
+    <value>{0} in total</value>
+  </data>
+  <data name="Preview.Field.Path" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="Preview.Folder" xml:space="preserve">
+    <value>Folders have no preview.</value>
+  </data>
+  <data name="Preview.Truncated" xml:space="preserve">
+    <value>Showing the first {0} characters only.</value>
+  </data>
+  <data name="Preview.Deferred" xml:space="preserve">
+    <value>Files on network locations and removable drives are not previewed automatically.</value>
+  </data>
+  <data name="Preview.DeferredAction" xml:space="preserve">
+    <value>Preview now</value>
+  </data>
+  <data name="Preview.Degraded" xml:space="preserve">
+    <value>Preview memory budget reached — showing basic information only.</value>
+  </data>
+  <data name="Preview.Note.TooLarge" xml:space="preserve">
+    <value>Larger than {0} — not previewed.</value>
+  </data>
+  <data name="Preview.Note.Binary" xml:space="preserve">
+    <value>This file does not contain displayable text.</value>
+  </data>
+  <data name="Preview.Note.Unreadable" xml:space="preserve">
+    <value>This file could not be read.</value>
+  </data>
+  <data name="Preview.Note.Timeout" xml:space="preserve">
+    <value>Preview timed out.</value>
+  </data>
+  <data name="Preview.Note.NoThumbnail" xml:space="preserve">
+    <value>No preview available for this type.</value>
+  </data>
+  <data name="Preview.HandlerPreparing" xml:space="preserve">
+    <value>Preparing preview…</value>
+  </data>
+  <data name="Preview.Note.HandlerFallback" xml:space="preserve">
+    <value>The system preview handler is unavailable, so this is a thumbnail.</value>
+  </data>
+  <data name="Settings.Appearance.ShowPreview" xml:space="preserve">
+    <value>Show preview pane</value>
+  </data>
+  <data name="Settings.Appearance.ImmersiveTitleBar" xml:space="preserve">
+    <value>Hide the system title bar</value>
+  </data>
+  <data name="Settings.Appearance.ImmersiveTitleBar.Hint" xml:space="preserve">
+    <value>The tab strip moves into the title bar and the minimize, maximize and close buttons are drawn by the app. Takes effect after a restart.</value>
+  </data>
+  <data name="Settings.Behavior.PreviewAuto" xml:space="preserve">
+    <value>Preview automatically when a file is selected</value>
+  </data>
+
+  <data name="Settings.Behavior.PreviewAuto.Hint" xml:space="preserve">
+    <value>Only applies while the preview pane is shown. Turning this on also opens the preview pane.</value>
+  </data>
+
+  <!-- 屏幕阅读器标签（FR-10.7）。给"自己不说话"的容器一个名字：
+       列表、导航栏、标签栏、地址栏、状态栏。可见文字已经能读出内容的控件不再重复给。 -->
+  <data name="A11y.FileList" xml:space="preserve">
+    <value>File list</value>
+  </data>
+  <data name="A11y.Nav" xml:space="preserve">
+    <value>Navigation pane</value>
+  </data>
+  <data name="A11y.TabStrip" xml:space="preserve">
+    <value>Tabs</value>
+  </data>
+  <data name="A11y.RowMenu" xml:space="preserve">
+    <value>More actions</value>
+  </data>
+  <data name="A11y.WindowMinimize" xml:space="preserve">
+    <value>Minimize</value>
+  </data>
+  <data name="A11y.WindowMaximize" xml:space="preserve">
+    <value>Maximize</value>
+  </data>
+  <data name="A11y.WindowRestore" xml:space="preserve">
+    <value>Restore down</value>
+  </data>
+  <data name="A11y.WindowClose" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="A11y.Address" xml:space="preserve">
+    <value>Address bar</value>
+  </data>
+  <data name="A11y.StatusBar" xml:space="preserve">
+    <value>Status bar</value>
+  </data>
+  <data name="A11y.Preview" xml:space="preserve">
+    <value>Preview pane</value>
+  </data>
+  <data name="A11y.PreviewText" xml:space="preserve">
+    <value>Preview text</value>
+  </data>
+  <data name="A11y.Toolbar" xml:space="preserve">
+    <value>Toolbar</value>
+  </data>
+
+  <!-- 关于页（FR-10.8）。许可证与依赖清单的正文不在这里：法律文本以原文为准，不翻译。 -->
+  <data name="About.AppName" xml:space="preserve">
+    <value>Jianlan</value>
+  </data>
+  <data name="About.AppNameZh" xml:space="preserve">
+    <value>简览</value>
+  </data>
+  <data name="About.Title" xml:space="preserve">
+    <value>About Jianlan</value>
+  </data>
+  <data name="About.Tagline" xml:space="preserve">
+    <value>A clean file manager for Windows</value>
+  </data>
+  <data name="About.Build" xml:space="preserve">
+    <value>build {0}</value>
+  </data>
+  <data name="About.Section.Environment" xml:space="preserve">
+    <value>Environment</value>
+  </data>
+  <data name="About.Env.Runtime" xml:space="preserve">
+    <value>Runtime</value>
+  </data>
+  <data name="About.Env.OS" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="About.Env.Arch" xml:space="preserve">
+    <value>Architecture</value>
+  </data>
+  <data name="About.Env.Memory" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="About.Env.MemoryValue" xml:space="preserve">
+    <value>{0} MB (working set)</value>
+  </data>
+  <data name="About.Section.License" xml:space="preserve">
+    <value>License</value>
+  </data>
+  <data name="About.Section.Tools" xml:space="preserve">
+    <value>Diagnostics &amp; updates</value>
+  </data>
+  <data name="About.License.Name" xml:space="preserve">
+    <value>License</value>
+  </data>
+  <data name="About.License.View" xml:space="preserve">
+    <value>Full license text</value>
+  </data>
+  <data name="About.License.Notice" xml:space="preserve">
+    <value>NOTICE</value>
+  </data>
+  <data name="About.License.ThirdParty" xml:space="preserve">
+    <value>Third-party notices</value>
+  </data>
+  <data name="About.License.Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="About.License.Copied" xml:space="preserve">
+    <value>Copied to the clipboard</value>
+  </data>
+  <data name="About.License.Missing" xml:space="preserve">
+    <value>The license file is missing from this build.</value>
+  </data>
+  <data name="About.Section.Paths" xml:space="preserve">
+    <value>Folders</value>
+  </data>
+  <data name="About.Paths.Portable" xml:space="preserve">
+    <value>Portable mode — settings and data live in the "data" folder next to Jianlan.exe.</value>
+  </data>
+  <data name="About.Paths.Config" xml:space="preserve">
+    <value>Settings folder</value>
+  </data>
+  <data name="About.Paths.Logs" xml:space="preserve">
+    <value>Log folder</value>
+  </data>
+  <data name="About.Paths.Data" xml:space="preserve">
+    <value>Data folder</value>
+  </data>
+  <data name="About.Paths.Failed" xml:space="preserve">
+    <value>Can't open the folder: {0}</value>
+  </data>
+  <data name="About.Diagnostics.Copy" xml:space="preserve">
+    <value>Copy diagnostics</value>
+  </data>
+  <data name="About.Diagnostics.Hint" xml:space="preserve">
+    <value>Version, system and folder paths, ready to paste into a bug report.</value>
+  </data>
+  <data name="About.Diagnostics.Copied" xml:space="preserve">
+    <value>Diagnostics copied to the clipboard.</value>
+  </data>
+  <data name="About.Diagnostics.Failed" xml:space="preserve">
+    <value>The clipboard is in use, please try again.</value>
+  </data>
+  <data name="About.Logs.Export" xml:space="preserve">
+    <value>Export logs…</value>
+  </data>
+  <data name="About.Logs.Hint" xml:space="preserve">
+    <value>Pack the log files and a diagnostic snapshot into a single zip.</value>
+  </data>
+  <data name="About.Logs.SaveTitle" xml:space="preserve">
+    <value>Save log archive</value>
+  </data>
+  <data name="About.Logs.Exported" xml:space="preserve">
+    <value>Logs exported: {0}</value>
+  </data>
+  <data name="About.Logs.Empty" xml:space="preserve">
+    <value>There are no logs to export yet.</value>
+  </data>
+  <data name="About.Logs.Failed" xml:space="preserve">
+    <value>Could not export the logs: {0}</value>
+  </data>
+  <data name="About.Update.Check" xml:space="preserve">
+    <value>Check for updates</value>
+  </data>
+  <data name="About.Update.Hint" xml:space="preserve">
+    <value>Opens the releases page in your browser. Nothing is sent from here.</value>
+  </data>
+  <data name="About.Update.Failed" xml:space="preserve">
+    <value>Can't open the browser.</value>
+  </data>
+  <data name="Settings.Behavior.NaturalSort" xml:space="preserve">
+    <value>Natural sort</value>
+  </data>
+  <data name="Settings.Behavior.NaturalSort.Hint" xml:space="preserve">
+    <value>Sorts file2 before file10. Turn off for strict character-by-character order.</value>
+  </data>
+  <data name="Settings.Behavior.CaseSensitiveSort" xml:space="preserve">
+    <value>Case-sensitive names</value>
+  </data>
+  <data name="Settings.Behavior.CaseSensitiveSort.Hint" xml:space="preserve">
+    <value>On: Readme and readme are sorted apart. Off matches Explorer.</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmOverwrite" xml:space="preserve">
+    <value>Confirm before overwriting</value>
+  </data>
+  <data name="Settings.Behavior.ConfirmOverwrite.Hint" xml:space="preserve">
+    <value>On: asks before replacing a same-named item. Off: replaces it without asking.</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode" xml:space="preserve">
+    <value>New tab opens</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode.Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode.Path" xml:space="preserve">
+    <value>A specified folder</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode.Last" xml:space="preserve">
+    <value>The last folder I was in</value>
+  </data>
+  <data name="Settings.Tabs.NewTabMode.Hint" xml:space="preserve">
+    <value>Home opens the start page. "A specified folder" uses the path below; leave it empty to use Downloads. "The last folder I was in" picks up where you left off.</value>
+  </data>
+  <data name="Settings.Tags.ColorNames" xml:space="preserve">
+    <value>Tag colour names</value>
+  </data>
+  <data name="Settings.Tags.ColorNames.Hint" xml:space="preserve">
+    <value>Leave a box empty to keep the default name. Names show up in the tag menu and the sidebar.</value>
+  </data>
+  <data name="Settings.Privacy.TagExport" xml:space="preserve">
+    <value>Export…</value>
+  </data>
+  <data name="Settings.Privacy.TagExport.Tip" xml:space="preserve">
+    <value>Save the tag library as a JSON file.</value>
+  </data>
+  <data name="Settings.Privacy.TagExport.Title" xml:space="preserve">
+    <value>Export tag library</value>
+  </data>
+  <data name="Settings.Privacy.TagExported" xml:space="preserve">
+    <value>Exported {0} tags.</value>
+  </data>
+  <data name="Settings.Privacy.TagExportFailed" xml:space="preserve">
+    <value>Export failed: {0}</value>
+  </data>
+  <data name="Settings.Privacy.TagImport" xml:space="preserve">
+    <value>Import…</value>
+  </data>
+  <data name="Settings.Privacy.TagImport.Tip" xml:space="preserve">
+    <value>Merge tags from a JSON file into this library.</value>
+  </data>
+  <data name="Settings.Privacy.TagImport.Title" xml:space="preserve">
+    <value>Import tag library</value>
+  </data>
+  <data name="Settings.Privacy.TagImported" xml:space="preserve">
+    <value>Imported {0} tags: {1} added, {2} updated, {3} skipped.</value>
+  </data>
+  <data name="Settings.Privacy.TagImportFailed" xml:space="preserve">
+    <value>Import failed: {0}</value>
+  </data>
+  <data name="Dialog.OverwriteTitle" xml:space="preserve">
+    <value>Overwrite</value>
+  </data>
+  <data name="Dialog.OverwriteOne" xml:space="preserve">
+    <value>"{0}" already exists in the target folder. Overwrite it? Choose "No" to keep both copies.</value>
+  </data>
+  <data name="Dialog.OverwriteMany" xml:space="preserve">
+    <value>{0} items already exist in the target folder. Overwrite them? Choose "No" to keep both copies.</value>
+  </data>
+  <data name="Tab.Menu.OpenWindow" xml:space="preserve">
+    <value>Open in new window</value>
+  </data>
+  <data name="Status.NewWindowNoPath" xml:space="preserve">
+    <value>Only folders can open in a new window.</value>
+  </data>
+  <data name="Preview.Action.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Preview.Action.Open.Tip" xml:space="preserve">
+    <value>Open this item</value>
+  </data>
+  <data name="Preview.Action.CopyPath" xml:space="preserve">
+    <value>Copy path</value>
+  </data>
+  <data name="Preview.Action.CopyPath.Tip" xml:space="preserve">
+    <value>Copy the full path to the clipboard</value>
+  </data>
+  <data name="Preview.Action.Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Preview.Action.Delete.Tip" xml:space="preserve">
+    <value>Move to the Recycle Bin; Ctrl+Z undoes it</value>
+  </data>
+  <data name="Settings.Behavior.WarnOnExecutable" xml:space="preserve">
+    <value>Ask before opening executable files</value>
+  </data>
+  <data name="Settings.Behavior.WarnOnExecutable.Hint" xml:space="preserve">
+    <value>When on, double-clicking an .exe / .bat / .cmd / .ps1 / .msi file shows its name and full path before it runs. Off by default: this guards against accidental double-clicks, not malware, and it costs a dialog on every normal launch.</value>
+  </data>
+  <data name="Dialog.ExecutableTitle" xml:space="preserve">
+    <value>Open this executable?</value>
+  </data>
+  <data name="Dialog.ExecutableBody" xml:space="preserve">
+    <value>This file is about to run:/n/n{0}/n{1}/n/nContinue only if you meant to run it.</value>
+  </data>
+  <data name="Command.Undo" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="Status.UndoDone" xml:space="preserve">
+    <value>Undid the last operation ({0} items)</value>
+  </data>
+  <data name="Status.UndoPartial" xml:space="preserve">
+    <value>Undid {0} items; {1} left alone: {2}</value>
+  </data>
+  <data name="Status.UndoFailed" xml:space="preserve">
+    <value>Could not undo: {0}</value>
+  </data>
+  <data name="Status.UndoNothing" xml:space="preserve">
+    <value>Nothing to undo</value>
+  </data>
+  <data name="Status.PermanentDeletedNoUndo" xml:space="preserve">
+    <value>Permanently deleted {0} items. This cannot be undone.</value>
+  </data>
+  <data name="Undo.Nothing" xml:space="preserve">
+    <value>Nothing recorded to undo</value>
+  </data>
+  <data name="Undo.NameTaken" xml:space="preserve">
+    <value>the original name is taken now</value>
+  </data>
+  <data name="Undo.PlaceGone" xml:space="preserve">
+    <value>the original folder is gone</value>
+  </data>
+  <data name="Undo.Modified" xml:space="preserve">
+    <value>it was modified after the operation</value>
+  </data>
+  <data name="Undo.NoRecycle" xml:space="preserve">
+    <value>there is no Recycle Bin here, so deleting would be permanent</value>
+  </data>
+  <data name="Undo.DeleteFailed" xml:space="preserve">
+    <value>deleting failed</value>
+  </data>
+  <data name="Undo.RestoreFailed" xml:space="preserve">
+    <value>one item could not be restored and is still in the Recycle Bin</value>
+  </data>
+  <data name="Undo.FailedWithReason" xml:space="preserve">
+    <value>Undo failed: {0}</value>
+  </data>
+  <data name="Settings.Page.Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Settings.Page.Tags.Desc" xml:space="preserve">
+    <value>Name your tags, add or remove them.</value>
+  </data>
+  <data name="Settings.Group.Tags" xml:space="preserve">
+    <value>Tag list</value>
+  </data>
+  <data name="Settings.Tags.Hint" xml:space="preserve">
+    <value>Names show up in the sidebar, the context menu and tag pages. Removing a tag only hides it — marks already applied stay on the files and come back if you add the same colour again.</value>
+  </data>
+  <data name="Settings.Tags.Add" xml:space="preserve">
+    <value>Add tag</value>
+  </data>
+  <data name="Settings.Tags.Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Settings.Tags.RemoveTitle" xml:space="preserve">
+    <value>Remove tag</value>
+  </data>
+  <data name="Settings.Tags.RemoveBody" xml:space="preserve">
+    <value>“{0}” has {1} marked item(s). They will no longer show up, but the records stay in the tag library — add a tag with the same colour and they come back.</value>
+  </data>
+  <data name="Settings.Tags.Limit" xml:space="preserve">
+    <value>All 32 colour slots are in use.</value>
+  </data>
+  <data name="Settings.Tags.KeepOne" xml:space="preserve">
+    <value>Keep at least one tag.</value>
+  </data>
+  <data name="Settings.Tags.RenameTip" xml:space="preserve">
+    <value>Press Enter to apply the new name</value>
+  </data>
+</root>

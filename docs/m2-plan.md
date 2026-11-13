@@ -32,7 +32,7 @@ P1 是全局瓶颈：不做拆分，后面每项功能都要在 962 行的 `Main
 
 ## 一、进度快照
 
-> **0.1.0 已打包（2026-11-08）**：`Lingpane-0.1.0-portable-win-x64.zip`，版本 `0.1.0+05d6b04`，
+> **0.1.0 已打包（2026-11-08）**：`Jianlan-0.1.0-portable-win-x64.zip`，版本 `0.1.0+05d6b04`，
 > 69.7 MB，SHA256 `3b73f1ae…6a6d`。产物与发布说明在 `outputs/release-0.1.0/`。
 > A / B 两类全部闭合，C 类六项按计划留白并逐条写进 `CHANGELOG.md`「0.1.0 已知限制」。
 > 发版前的机验项（编译、176 单测、i18n 三项、包内容、解压启动、系统目录零写入、中英界面）
@@ -71,18 +71,18 @@ M0（技术验证与基线）与 M1（FR-6 收尾 + 0.1.0 发版）的**未闭�
 - [x] **AC-10 第三方依赖许可清单缺失** —— 仓库只有 `LICENSE` / `NOTICE`，`THIRD-PARTY-NOTICES.md` 不存在。
       验收原文是"含 LICENSE、NOTICE、第三方依赖许可清单"，缺一份即不达标。
       **已补**：`THIRD-PARTY-NOTICES.md`（分两类登记：随包分发 / 只依赖不分发），
-      三份文件同时复制进 `publish/`（`Lingpane.App.csproj` 的 `None` 项，链接而非副本）。
+      三份文件同时复制进 `publish/`（`Jianlan.App.csproj` 的 `None` 项，链接而非副本）。
 - [x] **FR-10.3 便携标记口径不符** —— 需求写的是"exe 同级存在 `data` 目录或 `portable.flag`"，
       代码只认 `portable.marker`。照需求文档放标记的用户会得到非便携模式，数据仍写 `%LOCALAPPDATA%`。
       **已修**：`AppPaths.IsPortableDirectory` 三种口径等价，`portable.marker` 保留兼容；
       7 条单测 + 两次端到端走查（`D:\ac05\s9_portable.py`：`portable.flag` 与"仅 `data` 目录"各一次，
-      `%LOCALAPPDATA%\Lingpane\settings.json` 的 mtime 全程不变）。
-- [x] **AC-09 便携包不存在** —— 没有 `publish.ps1`（或等价脚本）产出 `Lingpane-x.y.z-portable.zip`，
+      `%LOCALAPPDATA%\Jianlan\settings.json` 的 mtime 全程不变）。
+- [x] **AC-09 便携包不存在** —— 没有 `publish.ps1`（或等价脚本）产出 `Jianlan-x.y.z-portable.zip`，
       "解压即用"这条从未被验证过。
       **已补**：`tools/release/publish.ps1` —— publish → 校验（exe / 三份许可 / hostfxr / 版本串）
       → 写 `portable.flag` → zip → SHA256。默认 self-contained（框架依赖包不算"解压即用"）。
       走查 `D://ac05//s11_pkg.py`：解压到干净目录启动，`data\logs\app.log` 里
-      `version=0.1.0+6c80b4a portable=True`，`%LOCALAPPDATA%\Lingpane` 的 settings 与 log 全程未变。
+      `version=0.1.0+6c80b4a portable=True`，`%LOCALAPPDATA%\Jianlan` 的 settings 与 log 全程未变。
 - [x] **`AssemblyInformationalVersion` 未设置** —— 程序集版本停在 `0.1.0.0`，与 CHANGELOG 无对应关系；
       FR-10.8 关于页要显示版本号，现在无处可读。
       **已补**：发版脚本写入 `0.1.0+<短commit>`（`Directory.Build.props` 关掉了 SDK 的自动追加，
@@ -416,7 +416,7 @@ NF-05R 只剩 20 MB 余量，而 SQLite 一口气要 12 MB 且不退——在"�
 | 点 | 做法 |
 |---|---|
 | FileId 枚举 | `GetFileInformationByHandleEx(FileIdBothDirectoryInfo)`，处理 `FILE_ID_BOTH_DIR_INFO` 结构、缓冲区不足重启、长路径、UNC。**落地时改了口径**：不再是"只在有标签的目录才走"，而是"标签库非空就整条走它"——理由见下面的落地口径第 1 条 |
-| 存储 | `%LOCALAPPDATA%\Lingpane\data\tags.jsonl`，每行一条 `set`/`del` 操作；`Flush(true)` 落盘；行数 > 存活数×3 且 > 2000 时后台压缩 |
+| 存储 | `%LOCALAPPDATA%\Jianlan\data\tags.jsonl`，每行一条 `set`/`del` 操作；`Flush(true)` 落盘；行数 > 存活数×3 且 > 2000 时后台压缩 |
 | 延迟加载 | 首次"设置标签"或"显示带标签目录"才读文件建索引；启动路径不碰（否则冷启动 +几十 ms） |
 | 查询 | 内存字典 `Dictionary<(uint,ulong),TagRecord>`，可视区查询直接哈希，无批量/逐项之分 |
 | 渲染 | 圆点放进**本来就有**的 12px 标签槽位（`Size.Tag.Gutter`），行模板元素数不变；无标签时整颗隐藏 |
@@ -549,7 +549,7 @@ NF-05R 只剩 20 MB 余量，而 SQLite 一口气要 12 MB 且不退——在"�
 | 大目录 | 条目数 >5000 一律只显示图标（T-03） | 由窗格按自己的条目集合计，不影响另一个窗格 |
 | 网络路径 | 不出缩略图 | 1000 项共享目录 = 1000 次跨网往返；图标是本地生成的 |
 | 缓存键 | 路径 + 大小 + 修改时间 + 目标像素 | 覆盖过的文件必须失效，否则显示的是已经不存在的画面 |
-| 磁盘缓存 | `%LOCALAPPDATA%\Lingpane\cache\thumbs`，500MB，按写入时间淘汰到九成 | 用"最后访问时间"做 LRU 在 Windows 上不可靠（默认关闭更新），会得到一堆同样时间戳 |
+| 磁盘缓存 | `%LOCALAPPDATA%\Jianlan\cache\thumbs`，500MB，按写入时间淘汰到九成 | 用"最后访问时间"做 LRU 在 Windows 上不可靠（默认关闭更新），会得到一堆同样时间戳 |
 | 写盘方式 | 先写 `.tmp` 再改名 | 进程在写一半时退出会留下损坏的半张图 |
 | 内存层 | 512 张（约 18MB），LRU | 同一目录来回滚动是最高频动作，不该重复读盘 |
 
@@ -640,7 +640,7 @@ NF-05R 只剩 20 MB 余量，而 SQLite 一口气要 12 MB 且不退——在"�
 
 | 点 | 做法 | 理由 |
 |---|---|---|
-| 主页的表示 | `TabHostViewModel.HomeMarker = "lingpane:home"` 哨兵写进 `session.tabs` | 空串在会话里表示"这一项无效"，混用会让主页被当坏数据丢掉 |
+| 主页的表示 | `TabHostViewModel.HomeMarker = "jianlan:home"` 哨兵写进 `session.tabs` | 空串在会话里表示"这一项无效"，混用会让主页被当坏数据丢掉 |
 | 主页切换 | 不调 `PreparePendingPath`；`PaneViewModel.DetachToHome()` 丢路径但**保留历史栈** | 否则 `HasPendingContent` 被置真，会拿空路径去读盘；历史栈要留给 Alt+← |
 | 已知文件夹 | 七个 FOLDERID 走 `SHGetKnownFolderPath`，结果整份缓存进 `general.knownFolderPaths` | `Environment.SpecialFolder` 没有 Downloads，且用户重定向/OneDrive 接管后给的是旧路径 |
 | 缓存校验 | 命中（路径仍存在）就不碰 shell32；首帧之后 `ApplicationIdle` 后台校验，变化才刷 UI + 落盘 | 不占首帧 |
@@ -676,7 +676,7 @@ NF-05R 只剩 20 MB 余量，而 SQLite 一口气要 12 MB 且不退——在"�
    这类需要人判断的段落（Windows SDK 投影走的是 SDK 条款，不是 MIT）。脚本整篇重写
    等于把判断覆盖成机器猜的许可证名，比漏登记更糟。`tools/licenses/check-third-party.ps1`
    给两条判据：`project.assets.json` 里 `type=package` 且有 `runtime` 段的包、
-   `publish/*.dll` 里非 `Lingpane.*` 的程序集；任一没在清单里出现即失败。
+   `publish/*.dll` 里非 `Jianlan.*` 的程序集；任一没在清单里出现即失败。
    第二条是必须的——本项目真正的第三方程序集来自目标框架的隐式引用，
    在 assets 里没有 package 条目。
 4. **诊断信息不进资源文件、键名保持英文。** 那段文字是贴进 issue 的，

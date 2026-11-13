@@ -34,8 +34,8 @@ import threading
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-EXE = ROOT / "publish" / "Lingpane.exe"
-LOGS = pathlib.Path(os.environ["LOCALAPPDATA"]) / "Lingpane" / "logs"
+EXE = ROOT / "publish" / "Jianlan.exe"
+LOGS = pathlib.Path(os.environ["LOCALAPPDATA"]) / "Jianlan" / "logs"
 PROBE_JSON = LOGS / "perf-probe.json"
 CRASH_LOG = LOGS / "crash.log"
 BASE = pathlib.Path(r"D:\ac05")
@@ -261,7 +261,7 @@ def preflight():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--only", help="逗号分隔的场景号，如 S1,S3")
-    parser.add_argument("--exe", help="被测可执行文件，默认 publish/Lingpane.exe")
+    parser.add_argument("--exe", help="被测可执行文件，默认 publish/Jianlan.exe")
     parser.add_argument("--out", default=str(ROOT / "tools" / "ac05" / "results"))
     args = parser.parse_args()
 

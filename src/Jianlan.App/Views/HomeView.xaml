@@ -1,0 +1,518 @@
+<UserControl x:Class="Jianlan.App.Views.HomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Jianlan.App.Localization"
+             Background="{DynamicResource Brush.Surface.Content}"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Ideal"
+             TextOptions.TextRenderingMode="ClearType"
+             TextOptions.TextHintingMode="Fixed">
+
+    <!--
+        主页（FR-1.1）。它是标签页的一种形态（TabKind.Home），不是独立窗口，
+        因此这里没有地址栏、没有列头、也没有状态栏——那些属于"某个目录"，
+        而主页本身不位于任何目录。
+
+        布局刻意用纵向 StackPanel + WrapPanel 而不是 Grid 定格：
+        窗口最小 720×480 时卡片要能换行，英文界面下 "Documents / Downloads"
+        比中文长得多（AC-06 走查的同一类问题）。
+    -->
+
+    <UserControl.Resources>
+        <!-- WPF 自带的布尔→可见性转换器，false 折叠（不是隐藏） -->
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
+        <!--
+            入口卡片。用 Button 而不是 Border+MouseDown：键盘用户要能用 Tab 走到、
+            回车打开，这是 FR-10.7 的最低要求，而 Border 默认不参与焦点链。
+
+            模板里不用 ContentPresenter 的默认对齐：卡片是"图标在上、文字在下"的两行，
+            居中排版在文字换行时才不会左边参差。
+        -->
+        <Style x:Key="Home.Card" TargetType="Button">
+            <Setter Property="Width" Value="168"/>
+            <Setter Property="Height" Value="60"/>
+            <Setter Property="Margin" Value="0,0,8,8"/>
+            <Setter Property="Padding" Value="12,0,12,0"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface.Window}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Hairline}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Ring}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{StaticResource CornerRadius.Control}">
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Surface.Hover}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Brush.Border.Strong}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Surface.Pressed}"/>
+                            </Trigger>
+                            <!-- 失效项（目录已被删/盘已拔）：整卡降透明度，仍可点（盘插回来就能进） -->
+                            <DataTrigger Binding="{Binding IsMissing}" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.55"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 区块标题：15pt 加粗 + 与上一区块拉开 24px -->
+        <Style x:Key="Home.Section" TargetType="TextBlock" BasedOn="{StaticResource Text.Subtitle}">
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+
+        <!-- 最近访问的一行：整行可点，高度与列表行一致（32），图标 + 名称 + 父目录 -->
+        <Style x:Key="Home.Row" TargetType="Button">
+            <Setter Property="Height" Value="{DynamicResource Size.Row.Comfortable}"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
+            <Setter Property="Padding" Value="8,0,8,0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Inset}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="{StaticResource CornerRadius.Control}">
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Brush.Surface.Hover}"/>
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsMissing}" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.55"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 容量条。自定义模板只为把高度压到 4px：系统默认 12px，在 60px 高的卡片里太抢眼 -->
+        <Style x:Key="Home.DriveBar" TargetType="ProgressBar">
+            <Setter Property="Height" Value="4"/>
+            <Setter Property="Minimum" Value="0"/>
+            <Setter Property="Maximum" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Grid x:Name="PART_Track">
+                            <Border Background="{DynamicResource Brush.Surface.Interactive}"
+                                    CornerRadius="2"/>
+                            <Border x:Name="PART_Indicator"
+                                    HorizontalAlignment="Left"
+                                    Background="{DynamicResource Brush.Accent.Default}"
+                                    CornerRadius="2"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="28,24,28,28"
+                    MaxWidth="1080"
+                    HorizontalAlignment="Left">
+
+            <!-- 标题与快捷入口（FR-1.1.4） -->
+            <Grid Margin="0,0,0,24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Style="{StaticResource Text.Title}"
+                           Text="{loc:Tr Key=Home.Title}"
+                           VerticalAlignment="Center"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            Height="{DynamicResource Size.Row.Comfortable}"
+                            Padding="10,0,10,0"
+                            ToolTip="{loc:Tr Key=Home.NewFolder.Tip}"
+                            Click="OnNewFolderClick"
+                            Margin="0,0,4,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Text.Glyph}"
+                                       Text="&#xE8F4;"
+                                       Margin="0,0,6,0"/>
+                            <TextBlock Style="{StaticResource Text.Base}"
+                                       Text="{loc:Tr Key=Home.NewFolder}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource Button.Toolbar}"
+                            Height="{DynamicResource Size.Row.Comfortable}"
+                            Padding="10,0,10,0"
+                            ToolTip="{loc:Tr Key=Home.NewTab.Tip}"
+                            Click="OnNewTabClick">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Text.Glyph}"
+                                       Text="&#xE710;"
+                                       Margin="0,0,6,0"/>
+                            <TextBlock Style="{StaticResource Text.Base}"
+                                       Text="{loc:Tr Key=Home.NewTab}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- 常用目录（FR-1.1.1）。缺失的目录在视图模型里就被剔掉了，这里不再判断 -->
+            <StackPanel Visibility="{Binding HasFolders, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Style="{StaticResource Home.Section}"
+                           Text="{loc:Tr Key=Home.Section.Folders}"/>
+                <ItemsControl ItemsSource="{Binding Folders}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource Home.Card}"
+                                    ToolTip="{Binding Path}"
+                                    Click="OnEntryClick"
+                                    PreviewMouseDown="OnEntryMouseDown">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Style="{StaticResource Text.Glyph}"
+                                               FontSize="{DynamicResource Size.Icon.Large}"
+                                               Foreground="{DynamicResource Brush.Accent.Default}"
+                                               Text="{Binding Glyph}"
+                                               Margin="0,0,10,0"/>
+                                    <TextBlock Grid.Column="1"
+                                               Style="{StaticResource Text.Base}"
+                                               Text="{Binding Name}"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- 驱动器（FR-1.1.3）。容量是异步填的，没填上就是"读取中…"或"—" -->
+            <StackPanel Margin="0,20,0,0"
+                        Visibility="{Binding HasDrives, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Style="{StaticResource Home.Section}"
+                           Text="{loc:Tr Key=Home.Section.Drives}"/>
+                <ItemsControl ItemsSource="{Binding Drives}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource Home.Card}"
+                                    Width="228"
+                                    Height="76"
+                                    ToolTip="{Binding Path}"
+                                    Click="OnEntryClick"
+                                    PreviewMouseDown="OnEntryMouseDown">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Column="0" Grid.RowSpan="3"
+                                               Style="{StaticResource Text.Glyph}"
+                                               FontSize="{DynamicResource Size.Icon.Large}"
+                                               Text="{Binding Glyph}"
+                                               Margin="0,0,10,0"/>
+
+                                    <TextBlock Grid.Column="1" Grid.Row="0"
+                                               Style="{StaticResource Text.Base}"
+                                               Text="{Binding Name}"
+                                               TextTrimming="CharacterEllipsis"/>
+
+                                    <TextBlock Grid.Column="1" Grid.Row="1"
+                                               Style="{StaticResource Text.Caption}"
+                                               Text="{Binding CapacityText}"
+                                               TextTrimming="CharacterEllipsis"
+                                               Margin="0,2,0,0"/>
+
+                                    <!-- 已用比例。容量没读出来时隐藏整条，不留一根空槽 -->
+                                    <ProgressBar Grid.Column="1" Grid.Row="2"
+                                                 Style="{StaticResource Home.DriveBar}"
+                                                 Value="{Binding UsedRatio, Mode=OneWay}"
+                                                 Margin="0,6,0,0"
+                                                 Visibility="{Binding HasCapacity, Converter={StaticResource BoolToVisibility}}"/>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- 最近访问（FR-1.1.2）。最多 12 条，按访问时间倒序 -->
+            <StackPanel Margin="0,20,0,0">
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Style="{StaticResource Text.Subtitle}"
+                               Text="{loc:Tr Key=Home.Section.Recent}"
+                               VerticalAlignment="Center"/>
+                    <Button Grid.Column="1"
+                            Style="{StaticResource Button.Link}"
+                            Content="{loc:Tr Key=Home.Recent.Clear}"
+                            ToolTip="{loc:Tr Key=Home.Recent.Clear.Tip}"
+                            Visibility="{Binding HasRecent, Converter={StaticResource BoolToVisibility}}"
+                            Click="OnClearRecentClick"/>
+                </Grid>
+
+                <TextBlock Text="{loc:Tr Key=Home.Recent.Empty}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Caption}">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Tertiary}"/>
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasRecent}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <ItemsControl ItemsSource="{Binding Recent}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource Home.Row}"
+                                    ToolTip="{Binding Tooltip}"
+                                    Click="OnEntryClick"
+                                    PreviewMouseDown="OnEntryMouseDown">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Style="{StaticResource Text.Glyph}"
+                                               Text="{Binding Glyph}"
+                                               Margin="0,0,8,0"/>
+                                    <TextBlock Grid.Column="1"
+                                               Style="{StaticResource Text.Base}"
+                                               Text="{Binding Name}"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2"
+                                               Style="{StaticResource Text.Caption}"
+                                               Foreground="{DynamicResource Brush.Text.Tertiary}"
+                                               Text="{Binding Parent}"
+                                               TextTrimming="CharacterEllipsis"
+                                               MaxWidth="380"
+                                               Margin="12,0,0,0"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- 收藏（FR-1.1.5）。与 FR-7 同源；超过 8 项时给"查看全部"，就地展开 -->
+            <StackPanel Margin="0,20,0,0">
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Style="{StaticResource Text.Subtitle}"
+                               Text="{loc:Tr Key=Home.Section.Bookmarks}"
+                               VerticalAlignment="Center"/>
+                    <Button Grid.Column="1"
+                            Style="{StaticResource Button.Link}"
+                            Content="{Binding BookmarksToggleText}"
+                            Visibility="{Binding HasMoreBookmarks, Converter={StaticResource BoolToVisibility}}"
+                            Click="OnToggleBookmarksClick"/>
+                </Grid>
+
+                <TextBlock Text="{loc:Tr Key=Home.Bookmarks.Empty}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Caption}">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Tertiary}"/>
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasBookmarks}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <ItemsControl ItemsSource="{Binding Bookmarks}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource Home.Card}"
+                                    ToolTip="{Binding Path}"
+                                    Click="OnEntryClick"
+                                    PreviewMouseDown="OnEntryMouseDown">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Style="{StaticResource Text.Glyph}"
+                                               FontSize="{DynamicResource Size.Icon.Medium}"
+                                               Text="{Binding Glyph}"
+                                               Margin="0,0,10,0"/>
+                                    <TextBlock Grid.Column="1"
+                                               Style="{StaticResource Text.Base}"
+                                               Text="{Binding Name}"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- 工作区（FR-8.6）。排在最下面：它是"整套标签"的入口，用得比收藏少，
+                 但一旦用到就是一次批量动作，放底部反而好找（其它区块的高度是稳定的）。 -->
+            <StackPanel Margin="0,20,0,0">
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Style="{StaticResource Text.Subtitle}"
+                               Text="{loc:Tr Key=Home.Section.Workspaces}"
+                               VerticalAlignment="Center"/>
+                    <Button Grid.Column="1"
+                            Style="{StaticResource Button.Link}"
+                            Content="{loc:Tr Key=Nav.Workspace.SaveCurrent}"
+                            Click="OnSaveWorkspaceClick"/>
+                </Grid>
+
+                <TextBlock Text="{loc:Tr Key=Nav.Workspaces.Empty}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Caption}">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Tertiary}"/>
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasWorkspaces}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <ItemsControl ItemsSource="{Binding Workspaces}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource Home.Card}"
+                                    ToolTip="{Binding Tooltip}"
+                                    Click="OnWorkspaceClick">
+                                <!-- 与侧栏工作区行同一份菜单（FR-8.3）。卡片是宽大的入口，
+                                     没有行尾「⋯」的位置，右键是它唯一的第二入口 ——
+                                     在此之前，主页上连右键都打不开任何东西。 -->
+                                <Button.ContextMenu>
+                                    <ContextMenu Style="{StaticResource ContextMenu.Default}">
+                                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                                  Tag="Open"
+                                                  Header="{loc:Tr Key=Workspace.Open}"
+                                                  Click="OnWorkspaceMenuCommand"/>
+                                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                                  Tag="Overwrite"
+                                                  Header="{loc:Tr Key=Workspace.Overwrite}"
+                                                  Click="OnWorkspaceMenuCommand"/>
+                                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                                  Tag="Rename"
+                                                  Header="{loc:Tr Key=Workspace.Rename}"
+                                                  Click="OnWorkspaceMenuCommand"/>
+                                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                                  Tag="ToggleStartup"
+                                                  Header="{Binding StartupMenuText}"
+                                                  Click="OnWorkspaceMenuCommand"/>
+                                        <Separator Style="{StaticResource Menu.Separator}"/>
+                                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                                  Tag="Delete"
+                                                  Header="{loc:Tr Key=Workspace.Delete}"
+                                                  Click="OnWorkspaceMenuCommand"/>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Style="{StaticResource Text.Glyph}"
+                                               FontSize="{DynamicResource Size.Icon.Medium}"
+                                               Text="{Binding Glyph}"
+                                               Margin="0,0,10,0"/>
+                                    <TextBlock Grid.Column="1"
+                                               Style="{StaticResource Text.Base}"
+                                               Text="{Binding Title}"
+                                               TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

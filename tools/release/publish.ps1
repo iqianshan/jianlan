@@ -1,7 +1,7 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-    产出 Lingpane 便携发布包（AC-09 / FR-10.3）。
+    产出 Jianlan 便携发布包（AC-09 / FR-10.3）。
 
 .DESCRIPTION
     流程：dotnet publish → 校验产物 → 放便携标记 → 打 zip → 算 SHA256。
@@ -57,7 +57,7 @@ Set-StrictMode -Version Latest
 $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 
 $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$proj = Join-Path $root 'src/Lingpane.App/Lingpane.App.csproj'
+$proj = Join-Path $root 'src/Jianlan.App/Jianlan.App.csproj'
 
 function Write-Step([string]$Text) { Write-Host "==> $Text" -ForegroundColor Cyan }
 function Write-Note([string]$Text) { Write-Host "    $Text" -ForegroundColor DarkGray }
@@ -118,7 +118,7 @@ catch {
 
 $informational = "$Version+$Commit"
 $kind = if ($FrameworkDependent) { 'fdd' } else { 'portable' }
-$pkgName = "Lingpane-$Version-$kind-$Runtime"
+$pkgName = "Jianlan-$Version-$kind-$Runtime"
 $distDir = if ([System.IO.Path]::IsPathRooted($Dist)) { $Dist } else { Join-Path $root $Dist }
 $stage = Join-Path $distDir $pkgName
 $zip = Join-Path $distDir "$pkgName.zip"
@@ -190,7 +190,7 @@ function Assert-Item([string]$Path, [string]$What) {
     if (-not (Test-Path -LiteralPath $Path)) { throw "发布包缺少$What：$Path" }
 }
 
-$exe = Join-Path $stage 'Lingpane.exe'
+$exe = Join-Path $stage 'Jianlan.exe'
 Assert-Item $exe '主程序'
 foreach ($f in @('LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES.md', 'CHANGELOG.md', 'README.md')) {
     $p = Join-Path $stage $f
@@ -222,10 +222,10 @@ Write-Note "产物版本 $productVersion"
 # 一个来路不明的空文件，不知道删掉会怎样
 $flag = Join-Path $stage 'portable.flag'
 @(
-    'Lingpane 便携模式标记。',
+    'Jianlan 便携模式标记。',
     '',
     '本文件存在时，设置与日志都保存在同级的 data\ 目录里，不写入系统目录。',
-    '删掉它就会退回常规模式（数据落在 %LOCALAPPDATA%\Lingpane）。',
+    '删掉它就会退回常规模式（数据落在 %LOCALAPPDATA%\Jianlan）。',
     '',
     '更多说明见 data\ 下的 app.log 与随包文档。'
 ) | Set-Content -LiteralPath $flag -Encoding UTF8
@@ -268,4 +268,4 @@ Write-Host "体积     $zipMb MB（展开 $sizeMb MB）"
 Write-Host "SHA256   $hash"
 Write-Host "位置     $zip"
 Write-Host ''
-Write-Host '下一步：解压到任意可写目录，双击 Lingpane.exe。设置与日志应出现在解压目录的 data\ 里。' -ForegroundColor DarkGray
+Write-Host '下一步：解压到任意可写目录，双击 Jianlan.exe。设置与日志应出现在解压目录的 data\ 里。' -ForegroundColor DarkGray

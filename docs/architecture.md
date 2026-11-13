@@ -3,23 +3,23 @@
 ## 1. 分层
 
 ```
-Lingpane.App (WPF)          ← UI、视图模型、Shell 互操作封装
+Jianlan.App (WPF)          ← UI、视图模型、Shell 互操作封装
       │  单向依赖
       ▼
-Lingpane.Core               ← 文件系统、设置、标签存储、诊断
+Jianlan.Core               ← 文件系统、设置、标签存储、诊断
 ```
 
-**依赖方向不可逆。** `Lingpane.Core` 不得引用 `PresentationFramework` / `PresentationCore` /
+**依赖方向不可逆。** `Jianlan.Core` 不得引用 `PresentationFramework` / `PresentationCore` /
 `WindowsBase`，违反即为设计错误——它决定了 Core 能否被无 UI 单测覆盖。
 
 | 项目 | 允许依赖 | 禁止 |
 |---|---|---|
-| `Lingpane.Core` | BCL、`System.IO.Enumeration` | 任何 WPF 程序集、任何 `System.Windows.*` |
-| `Lingpane.App` | Core、WPF、Win32 P/Invoke | 直接操作磁盘/数据库（必须经 Core） |
+| `Jianlan.Core` | BCL、`System.IO.Enumeration` | 任何 WPF 程序集、任何 `System.Windows.*` |
+| `Jianlan.App` | Core、WPF、Win32 P/Invoke | 直接操作磁盘/数据库（必须经 Core） |
 
 ## 2. 目录职责
 
-### Lingpane.Core
+### Jianlan.Core
 
 | 目录 | 职责 | 关键类型 |
 |---|---|---|
@@ -29,7 +29,7 @@ Lingpane.Core               ← 文件系统、设置、标签存储、诊断
 | `Tagging/` | 彩色标签的存储与查询（M2） | `TagStore` |
 | `Diagnostics/` | 路径解析、启动埋点、日志 | `AppPaths`、`StartupTrace` |
 
-### Lingpane.App
+### Jianlan.App
 
 | 目录 | 职责 |
 |---|---|

@@ -1,6 +1,6 @@
 # 文件系统与图标
 
-> 对应 FR-6。本文件规定 `Lingpane.Core/FileSystem` 与 `Lingpane.App/Shell` 的实现边界，
+> 对应 FR-6。本文件规定 `Jianlan.Core/FileSystem` 与 `Jianlan.App/Shell` 的实现边界，
 > 目的是让"目录浏览"这条主路径在任何目录规模下都不阻塞 UI。
 
 ## 1. 目录枚举
@@ -40,7 +40,7 @@ new EnumerationOptions {
 
 用 `List.Sort(Comparison<T>)` 原地排序，不走 LINQ `OrderBy`（多一次分配与迭代器）。
 
-后续版本的排序项（日期 / 大小 / 类型）沿用同一比较器结构，在 `Lingpane.Core` 内实现，
+后续版本的排序项（日期 / 大小 / 类型）沿用同一比较器结构，在 `Jianlan.Core` 内实现，
 不放到 ViewModel。
 
 ## 3. 长路径
@@ -49,7 +49,7 @@ new EnumerationOptions {
 `>260` 字符路径可直接枚举与访问。
 
 **注意**：跨 `\\?\` 前缀与普通路径的字符串比较会不一致，路径归一化集中在
-`Lingpane.Core/FileSystem/PathNormalizer.cs`（M1 落地）。
+`Jianlan.Core/FileSystem/PathNormalizer.cs`（M1 落地）。
 
 ## 4. 图标提取
 

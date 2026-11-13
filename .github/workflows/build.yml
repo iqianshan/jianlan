@@ -48,12 +48,12 @@ jobs:
           dotnet-version: '9.0.x'
 
       - name: Publish (Release + ReadyToRun)
-        run: dotnet publish src/Lingpane.App -c Release -r win-x64 --self-contained false -o publish
+        run: dotnet publish src/Jianlan.App -c Release -r win-x64 --self-contained false -o publish
 
       - name: Startup gate
         shell: pwsh
         run: |
-          $exe = "publish\Lingpane.exe"
+          $exe = "publish\Jianlan.exe"
           if (-not (Test-Path $exe)) { throw "未找到构建产物：$exe" }
 
           & pwsh -NoProfile -File ./tools/startup-bench/Measure-Startup.ps1 -Exe $exe -Runs 3 -BaselinePath baseline.json -ToleranceFactor 2.5

@@ -32,7 +32,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-LOCALIZATION = ROOT / "src" / "Lingpane.Core" / "Localization"
+LOCALIZATION = ROOT / "src" / "Jianlan.Core" / "Localization"
 SOURCE = LOCALIZATION / "Strings.resx"
 TARGET = LOCALIZATION / "Strings.qps-ploc.resx"
 

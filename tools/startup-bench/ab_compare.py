@@ -16,7 +16,7 @@ import subprocess
 import sys
 import time
 
-LOG = os.path.join(os.environ["LOCALAPPDATA"], "Lingpane", "logs", "startup.log")
+LOG = os.path.join(os.environ["LOCALAPPDATA"], "Jianlan", "logs", "startup.log")
 
 
 def _line_count():

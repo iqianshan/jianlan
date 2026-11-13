@@ -1,0 +1,29 @@
+<Application x:Class="Jianlan.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        合并顺序（界面规则 §1）：
+        DesignTokens → 焦点视觉 → 控件样式 → Typography → 行模板 → 滚动条
+        主题字典位于 DesignTokens 的 MergedDictionaries 内，切换时按键 Theme.Name 查找。
+        RowTemplates 必须排在 Typography 之后：它用 StaticResource 引用文本样式，
+        被引用者先合并才查得到。
+    -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Design/DesignTokens.xaml"/>
+                <!-- FocusVisual 必须排在控件样式之前：后者用 StaticResource 引用焦点环 -->
+                <ResourceDictionary Source="Design/Styles/FocusVisual.xaml"/>
+                <ResourceDictionary Source="Design/Styles/Controls.List.xaml"/>
+                <ResourceDictionary Source="Design/Styles/Controls.Button.xaml"/>
+                <ResourceDictionary Source="Design/Styles/Typography.xaml"/>
+                <ResourceDictionary Source="Design/Styles/Controls.Input.xaml"/>
+                <ResourceDictionary Source="Design/Styles/RowTemplates.xaml"/>
+                <ResourceDictionary Source="Design/Styles/Controls.Menu.xaml"/>
+                <!-- 滚动条必须排在最后：它是隐式样式（无 x:Key），会覆盖此前所有容器
+                     里的系统默认滚动条。放前面也能生效，但"最后合并 = 优先级最高"更好读。 -->
+                <ResourceDictionary Source="Design/Styles/Controls.ScrollBar.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

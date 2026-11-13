@@ -9,8 +9,8 @@ namespace WpfBaseline;
 /// <summary>
 /// 最小 WPF 空窗口基线。
 ///
-/// 用途：判断"启动变慢"是 Lingpane 的代码回归，还是整台机器/系统状态的问题。
-/// 这个程序不含任何业务代码——只有一个空窗口，做了与 Lingpane 相同的 IME 关闭处理。
+/// 用途：判断"启动变慢"是 Jianlan 的代码回归，还是整台机器/系统状态的问题。
+/// 这个程序不含任何业务代码——只有一个空窗口，做了与 Jianlan 相同的 IME 关闭处理。
 /// 若它的启动耗时也同步上涨，说明环境变了，任何性能数字都不可信。
 ///
 /// 输出：每次启动写到 %TEMP%\wpf-baseline.log，一行一个毫秒数（到 Loaded）。
@@ -37,7 +37,7 @@ internal static class Program
             WindowStartupLocation = WindowStartupLocation.CenterScreen,
         };
 
-        // 与 Lingpane 一致：启动期关闭 IME，排除输入法上下文创建的干扰
+        // 与 Jianlan 一致：启动期关闭 IME，排除输入法上下文创建的干扰
         InputMethod.SetIsInputMethodEnabled(window, false);
 
         window.Loaded += (_, _) =>
@@ -53,7 +53,7 @@ internal static class Program
             }
 
             // 稳定后再退出，顺便采一次内存。
-            // 口径与 Lingpane 的 NF-05 一致：私有提交（任务管理器"提交大小"）为主，工作集为辅。
+            // 口径与 Jianlan 的 NF-05 一致：私有提交（任务管理器"提交大小"）为主，工作集为辅。
             var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
             timer.Tick += (_, _) =>
             {

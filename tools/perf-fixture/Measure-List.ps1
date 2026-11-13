@@ -3,8 +3,8 @@
     测量列表性能：枚举、首屏、滚动帧率、内存与句柄（NF-03 / NF-04 / NF-05 / NF-05R）。
 
 .DESCRIPTION
-    调用 Lingpane.exe 的 --perf-probe 诊断模式。程序启动后加载指定目录，
-    采集指标并写入 %LOCALAPPDATA%\Lingpane\logs\perf-probe.json，随后自行退出。
+    调用 Jianlan.exe 的 --perf-probe 诊断模式。程序启动后加载指定目录，
+    采集指标并写入 %LOCALAPPDATA%\Jianlan\logs\perf-probe.json，随后自行退出。
 
     内存口径（重要）：
       PrivateMb    —— 私有提交内存，对应任务管理器"提交大小"列。NF-05 以此判定。
@@ -13,10 +13,10 @@
     本脚本只负责读结果与判定，不参与测量，避免引入自身开销。
 
 .EXAMPLE
-    .\Measure-List.ps1 -Exe ..\..\publish\Lingpane.exe -Path D:\perf-10k
+    .\Measure-List.ps1 -Exe ..\..\publish\Jianlan.exe -Path D:\perf-10k
 
 .EXAMPLE
-    .\Measure-List.ps1 -Exe ..\..\publish\Lingpane.exe -Path D:\perf-10k -Runs 3 -Frames 0
+    .\Measure-List.ps1 -Exe ..\..\publish\Jianlan.exe -Path D:\perf-10k -Runs 3 -Frames 0
 #>
 param(
     [Parameter(Mandatory = $true)]
@@ -41,12 +41,12 @@ param(
     # NF-05 单窗格档。原 120MB 已于 ADR-0002 上调为 150（双窗格 185 / 预览窗格 230）。
     [int]$MaxPrivateMb = 150,
 
-    # 归一化：每轮先跑一次空窗口对照，用"Lingpane 减去空窗口"的增量判定。
+    # 归一化：每轮先跑一次空窗口对照，用"Jianlan 减去空窗口"的增量判定。
     # 绝对私有提交在同一台机器上能漂移 30MB 以上（实测空窗口 76~114MB），
     # 不归一化时同一个 exe 会时而通过时而超标。NF-08 已改用相对基线，NF-05 同理。
     [switch]$Normalize,
 
-    # NF-05R：归一化口径下的增量上限（MB），即"Lingpane − 纯 WPF 空窗口"。
+    # NF-05R：归一化口径下的增量上限（MB），即"Jianlan − 纯 WPF 空窗口"。
     # 2026-11-03 实测 29.7 时定为 45；2026-11-05 复测 43.2~46.4 已踩线，
     # 按 ADR-0008 重新标定为 65（实测均值 44.8 + M2 预估增量 15 + 余量）。
     # 这是代码回归判据，判定时先于 NF-05。
@@ -54,7 +54,7 @@ param(
 
     # 空窗口对照的上限（MB）。超过说明系统处于高态，整批内存数据作废。
     # 比 GDI > 80 更直接：高态下空窗口稳定在 118，而 GDI 偶尔是 118 偶尔是 120，
-    # 且 Lingpane 自身的私有提交会在 121~161 之间摆动，Normalize 相减也救不回来（见 ADR-0008）。
+    # 且 Jianlan 自身的私有提交会在 121~161 之间摆动，Normalize 相减也救不回来（见 ADR-0008）。
     [double]$MaxBlankMb = 90,
 
     # NF-05H：托管堆上限（MB）。降级判据——只受数据层影响，与环境两态无关，
@@ -80,7 +80,7 @@ if ($splitMode) {
 if (-not (Test-Path $Exe)) { throw "找不到可执行文件：$Exe" }
 if (-not (Test-Path $Path)) { throw "找不到测试目录：$Path（先用 tools/perf-fixture 生成）" }
 
-$resultPath = Join-Path $env:LOCALAPPDATA 'Lingpane\logs\perf-probe.json'
+$resultPath = Join-Path $env:LOCALAPPDATA 'Jianlan\logs\perf-probe.json'
 $results = @()
 
 # 归一化用的空窗口对照（与 tools/env-check 共用同一个程序）
@@ -237,7 +237,7 @@ if ($envBad) {
     Write-Host ''
     if ($blankHigh) {
         Write-Host ("注意：空窗口对照 {0:N1} MB 超过 {1} MB，当前处于高态。" -f $blankMed, $MaxBlankMb) -ForegroundColor Yellow
-        Write-Host '      高态下 Lingpane 自身的私有提交会在 121~161MB 之间摆动，' -ForegroundColor Yellow
+        Write-Host '      高态下 Jianlan 自身的私有提交会在 121~161MB 之间摆动，' -ForegroundColor Yellow
         Write-Host '      Normalize 相减也救不回来（ADR-0008），NF-05R 判定无效。' -ForegroundColor Yellow
     }
     else {

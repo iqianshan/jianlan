@@ -1,6 +1,6 @@
 ﻿# 第三方依赖清单校验（AC-10 / docs/about-page.md §五）
 #
-# 干什么：把 src/Lingpane.App/obj/project.assets.json 里"真的会进产物"的包，
+# 干什么：把 src/Jianlan.App/obj/project.assets.json 里"真的会进产物"的包，
 #        逐个到 THIRD-PARTY-NOTICES.md 里找出处；找不到就失败。
 #
 # 为什么是"校验"而不是"生成"：清单里除了包名与版本，还有"这个包为什么能再分发"
@@ -24,7 +24,7 @@ if (-not $RepoRoot) {
     $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 }
 
-$assets = Join-Path $RepoRoot 'src\Lingpane.App\obj\project.assets.json'
+$assets = Join-Path $RepoRoot 'src\Jianlan.App\obj\project.assets.json'
 $notices = Join-Path $RepoRoot 'THIRD-PARTY-NOTICES.md'
 
 foreach ($required in @($assets, $notices,
@@ -93,7 +93,7 @@ $publish = Join-Path $RepoRoot 'publish'
 
 if (Test-Path $publish) {
     $foreign = Get-ChildItem -Path $publish -Filter *.dll -File |
-        Where-Object { $_.BaseName -notlike 'Lingpane*' } |
+        Where-Object { $_.BaseName -notlike 'Jianlan*' } |
         Where-Object { $text -notmatch [regex]::Escape($_.Name) } |
         ForEach-Object { $_.Name }
 

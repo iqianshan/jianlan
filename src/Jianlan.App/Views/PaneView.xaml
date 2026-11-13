@@ -1,0 +1,961 @@
+<UserControl x:Class="Jianlan.App.Views.PaneView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:Jianlan.App.Converters"
+             xmlns:loc="clr-namespace:Jianlan.App.Localization"
+             xmlns:local="clr-namespace:Jianlan.App.Views"
+             xmlns:shell="clr-namespace:Jianlan.App.Shell"
+             xmlns:vm="clr-namespace:Jianlan.App.ViewModels"
+             Background="{DynamicResource Brush.Surface.Window}"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Ideal"
+             TextOptions.TextRenderingMode="ClearType"
+             TextOptions.TextHintingMode="Fixed">
+
+    <!--
+        浏览区：一个窗格就是一个 PaneView。
+        多标签（FR-2）与双窗格（FR-3）上线后，窗口里会同时存在一到两个实例，
+        每个实例自带工具栏、列头、列表与状态栏——因为两个窗格的路径、选中、项数
+        都是独立的，共用一套界面必然要在代码里到处判"这是哪个窗格"。
+    -->
+
+    <UserControl.Resources>
+        <!--
+            导航按钮里的字形。
+
+            以前四个按钮直接用 Unicode 字符（← / → / ↑ / ⟳）当 Content，字号取 Font.Size.Body。
+            问题出在字形不占满字身：U+2190 这类箭头横向铺满、看着还行，而 ⟳（U+27F3）的圆圈
+            在字符框里天然缩一圈，12px 字号下视觉高度只剩 8px 左右，于是"刷新看着比箭头小"。
+
+            改成 MDL2 字形后字号可以直接控制视觉高度（14 对应约 14px 字形），
+            而且与侧栏、标签页用的是同一批码位——`IconGlyphs` 里 Refresh 早有登记，只是这里一直没用。
+
+            Foreground 绑到 Button 而不是继承：按钮禁用时模板换的是 Button.Foreground，
+            文本不主动跟随就还是亮色，禁用态等于没生效。
+        -->
+        <Style x:Key="Nav.Glyph" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Family.Icon}"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <!-- 字形用 Display：Ideal 会把 14px 的箭头放到亚像素上，ClearType 就带出彩边
+                 （规则见 Typography.xaml 的 Text.Glyph） -->
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            <Setter Property="Foreground"
+                    Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"/>
+        </Style>
+
+        <!-- 导航按钮（←/→/↑/⟳）。默认就是 Button.Toolbar；窗格窄到压缩态时收紧内边距，
+             四个按钮一共能省下约 32px，全部让给地址栏（见 PaneView.ApplySearchBoxWidth）。 -->
+        <Style x:Key="Nav.Command" TargetType="Button" BasedOn="{StaticResource Button.Toolbar}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsCompactPane,
+                                               RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="MinWidth" Value="26"/>
+                    <Setter Property="Padding" Value="2,0,2,0"/>
+                    <Setter Property="Margin" Value="0,0,2,0"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 视图切换按钮：选中项用选中底色区分，不做边框加粗，避免工具栏跳动 -->
+        <Style x:Key="ViewButton.Details" TargetType="Button" BasedOn="{StaticResource Button.Toolbar}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsDetailsView}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Selected}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnSelected}"/>
+                </DataTrigger>
+                <!-- 压缩态：文字两侧的留白从 8 收到 4。两个字的按钮省 8px，两颗省 16px -->
+                <DataTrigger Binding="{Binding IsCompactPane,
+                                               RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="Padding" Value="4,0,4,0"/>
+                    <Setter Property="Margin" Value="0,0,2,0"/>
+                </DataTrigger>
+                <!-- 极窄档收起：两颗文字按钮合计约 72px，是工具栏上唯一"可以让位"的部分。
+                     视图切换仍在 Ctrl+Shift+1/2 与列表右键菜单里。 -->
+                <DataTrigger Binding="{Binding IsTightPane,
+                                               RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ViewButton.List" TargetType="Button" BasedOn="{StaticResource Button.Toolbar}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsListView}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Selected}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnSelected}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsCompactPane,
+                                               RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="Padding" Value="4,0,4,0"/>
+                    <Setter Property="Margin" Value="0,0,2,0"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsTightPane,
+                                               RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 分屏开关：激活态与"详细/列表"同一套选中视觉，让人一眼看出"这个状态是开着的"。
+             状态读的是 PaneView 自己的依赖属性而不是视图模型：分屏是窗口形态，
+             不随标签/路径变，挂在 PaneViewModel 上会让每个标签各存一份假状态。 -->
+        <Style x:Key="ViewButton.Split" TargetType="Button" BasedOn="{StaticResource Button.Toolbar}">
+            <Setter Property="Width" Value="{DynamicResource Size.Row.Comfortable}"/>
+            <Setter Property="Padding" Value="0"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSplitActive, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Selected}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnSelected}"/>
+                </DataTrigger>
+                <!-- 压缩态与导航按钮同宽：分屏与预览成对出现，两颗都停在 32 时
+                     极窄窗格会被挤掉半个按钮（见 PaneView.IsTightPane 的注释）。 -->
+                <DataTrigger Binding="{Binding IsCompactPane,
+                                               RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="Width" Value="26"/>
+                    <Setter Property="MinWidth" Value="26"/>
+                    <Setter Property="Margin" Value="0,0,2,0"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!--
+            预览窗格开关：与分屏按钮并排，同一套选中视觉。
+
+            选中态读 IsPreviewActive 而不是"预览栏是否可见"：非文件标签下预览栏会收起，
+            但开关本身是开着的。读可见性的话，用户切到主页就会看到按钮自己弹起来，
+            以为预览被关掉了。
+
+            压缩态收窄到 26 与导航按钮同宽（分屏按钮不参与这一档：
+            它常驻 32，因为再窄图标就贴边了。预览按钮的图标留白更多，26 放得下）。
+        -->
+        <Style x:Key="ViewButton.Preview" TargetType="Button" BasedOn="{StaticResource Button.Toolbar}">
+            <Setter Property="Width" Value="{DynamicResource Size.Row.Comfortable}"/>
+            <Setter Property="Padding" Value="0"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsPreviewActive, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Selected}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnSelected}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsCompactPane,
+                                               RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="Width" Value="26"/>
+                    <Setter Property="MinWidth" Value="26"/>
+                    <Setter Property="Margin" Value="0,0,2,0"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 标签颜色子菜单的条目（FR-4.1.1 / 4.1.2）。用 EventSetter 挂同一个处理器：
+             子项由预设表生成，逐条写 Click 既重复又容易漏。
+             IsCheckable 打开多色的"已打上"提示：一项可以同时是红和蓝，菜单要能显示这个状态。
+             MinWidth 压到 120：主菜单项 200 宽是为了放键位提示，色块行不需要那么宽。 -->
+        <Style x:Key="Menu.TagItem" TargetType="MenuItem" BasedOn="{StaticResource MenuItem.Default}">
+            <Setter Property="MinWidth" Value="120"/>
+            <Setter Property="IsCheckable" Value="True"/>
+            <EventSetter Event="Click" Handler="OnTagColorPicked"/>
+        </Style>
+
+        <!-- 面包屑段之间的分隔符：第一段前不显示（PreviousData 为 null 即首项） -->        <Style x:Key="Breadcrumb.Separator" TargetType="TextBlock" BasedOn="{StaticResource Text.Secondary}">
+            <Setter Property="Text" Value="›"/>
+            <Setter Property="Margin" Value="2,0,2,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource PreviousData}}" Value="{x:Null}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <!-- 焦点包边（FR-3.5）。只在分屏时由宿主打开：单窗格包个框除了多一条线没有别的信息。
+         BorderThickness 由 PaneView.SetActive 切换，颜色是 1px Brush.Border.Strong（ui-guidelines 规则 10.2）。 -->
+    <Border x:Name="OutlineHost"
+            BorderThickness="0"
+            BorderBrush="{DynamicResource Brush.Border.Strong}">
+        <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 工具栏：导航 + 地址栏 + 视图切换 -->
+        <Border Grid.Row="0"
+                Height="{DynamicResource Size.Toolbar.Height}"
+                Background="{DynamicResource Brush.Surface.Window}"
+                BorderBrush="{DynamicResource Brush.Border.Hairline}"
+                BorderThickness="0,0,0,1">
+            <!-- 内边距在压缩态从 12 收到 8：两侧各让 4px 给地址栏 -->
+            <Grid>
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Margin" Value="{StaticResource Padding.Toolbar}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsCompactPane,
+                                                           RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                                         Value="True">
+                                <Setter Property="Margin" Value="8,0,8,0"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 导航命令：与快捷键共用同一批命令对象，禁用状态由 CanExecute 决定 -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource Nav.Command}"
+                            Command="{Binding BackCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                            ToolTip="{loc:Tr Key=Toolbar.Back}"
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Back}">
+                        <TextBlock Style="{StaticResource Nav.Glyph}" Text="{x:Static shell:IconGlyphs.Back}"/>
+                    </Button>
+                    <Button Style="{StaticResource Nav.Command}"
+                            Command="{Binding ForwardCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                            ToolTip="{loc:Tr Key=Toolbar.Forward}"
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Forward}">
+                        <TextBlock Style="{StaticResource Nav.Glyph}" Text="{x:Static shell:IconGlyphs.Forward}"/>
+                    </Button>
+                    <Button Style="{StaticResource Nav.Command}"
+                            Command="{Binding UpCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                            ToolTip="{loc:Tr Key=Toolbar.Up}"
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Up}">
+                        <TextBlock Style="{StaticResource Nav.Glyph}" Text="{x:Static shell:IconGlyphs.Up}"/>
+                    </Button>
+                    <Button Style="{StaticResource Nav.Command}"
+                            Command="{Binding RefreshCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                            ToolTip="{loc:Tr Key=Toolbar.Refresh}"
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Refresh}">
+                        <TextBlock Style="{StaticResource Nav.Glyph}" Text="{x:Static shell:IconGlyphs.Refresh}"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- 地址栏：面包屑 ↔ 可编辑完整路径（Ctrl+L 或点击空白处切换） -->
+                <Grid Grid.Column="1" Margin="8,0,8,0" VerticalAlignment="Center">
+                    <ItemsControl x:Name="BreadcrumbHost"
+                                  ItemsSource="{Binding Breadcrumbs}"
+                                  Focusable="False"
+                                  IsTabStop="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Breadcrumb.Separator}"/>
+                                    <!-- 每段左右留 10（Button.Link 默认是 6）：
+                                         路径短的时候各段挤成一串，看不出"这是几个可以点的段"。
+                                         只加内边距不动分隔符间距，段与段的视觉间隔不变。 -->
+                                    <Button Style="{StaticResource Button.Link}"
+                                            Padding="10,0,10,0"
+                                            Content="{Binding Label}"
+                                            Tag="{Binding FullPath}"
+                                            Click="OnBreadcrumbClick"
+                                            ToolTip="{Binding FullPath}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                        <ItemsControl.Style>
+                            <Style TargetType="ItemsControl">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsAddressEditing}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ItemsControl.Style>
+                    </ItemsControl>
+
+                    <TextBox x:Name="AddressBox"
+                             Text="{Binding AddressText, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="{loc:Tr Key=A11y.Address}"
+                             PreviewKeyDown="OnAddressKeyDown"
+                             TextChanged="OnAddressTextChanged"
+                             LostKeyboardFocus="OnAddressLostFocus">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox" BasedOn="{StaticResource TextBox.Address}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsAddressEditing}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+
+                    <!-- 地址栏补全候选（FR-6.1）。
+                         用 Popup 而不是 ComboBox：ComboBox 自带 TextBox 与下拉之间的焦点争夺，
+                         "边打字边跳"的场景下会把焦点抢走，补全一开就输不进去了。
+                         Focusable=False 是刻意为之——候选区一拿到焦点，地址栏就失焦退出编辑态，
+                         候选还没点完就被收走。 -->
+                    <Popup x:Name="CompletionPopup"
+                           PlacementTarget="{Binding ElementName=AddressBox}"
+                           Placement="Bottom"
+                           StaysOpen="True"
+                           AllowsTransparency="True"
+                           Focusable="False"
+                           MaxHeight="248">
+                        <Border Margin="0,2,0,0"
+                                MinWidth="{Binding ActualWidth, ElementName=AddressBox}"
+                                Background="{DynamicResource Brush.Surface.Floating}"
+                                BorderBrush="{DynamicResource Brush.Border.Hairline}"
+                                BorderThickness="1">
+                            <ListBox x:Name="CompletionList"
+                                     MaxHeight="240"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     Focusable="False"
+                                     ItemContainerStyle="{StaticResource Row.Item}"
+                                     PreviewMouseLeftButtonUp="OnCompletionItemClick"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Height="26">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <!-- 图标与列表行同一套键、同一个转换器，避免"补全里是一种图标、
+                                                 列表里是另一种"；只看图标分不清同名目录与文件，
+                                                 所以右侧另给「文件夹/文件」文字 -->
+                                            <Image Grid.Column="0"
+                                                   Width="{DynamicResource Size.Icon.List}"
+                                                   Height="{DynamicResource Size.Icon.List}"
+                                                   Margin="10,0,8,0"
+                                                   VerticalAlignment="Center"
+                                                   Source="{Binding IconToken,
+                                                            Converter={x:Static conv:IconKeyToImageConverter.Instance}}"/>
+                                            <TextBlock Grid.Column="1"
+                                                       VerticalAlignment="Center"
+                                                       Style="{StaticResource Text.Row}"
+                                                       Text="{Binding Name}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="2"
+                                                       Margin="12,0,10,0"
+                                                       VerticalAlignment="Center"
+                                                       Style="{StaticResource Text.Secondary}"
+                                                       Text="{Binding KindText}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Border>
+                    </Popup>
+                </Grid>
+
+                <!-- 视图切换 + 分屏开关。
+                     分屏是窗口级状态（FR-3.3），但开关放在主窗格工具栏上：
+                     用户点"详细/列表"的地方就是他觉得"这块区域长什么样"的地方，
+                     分屏同理。第二窗格不显示这颗按钮（见 PaneView.ShowSplitButton），
+                     否则分屏时会冒出两颗一模一样的开关。 -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!--
+                        当前目录搜索（FR-6.13）。放在视图切换左侧而不是塞进地址栏：
+                        它过滤的是"这一份列表"，与"列表长什么样"同属这块区域，
+                        用户找"在这个目录里找东西"时会先看这里。
+                        分屏时每个窗格各有一个，各自过滤各自的目录，互不影响。
+                    -->
+                    <Grid x:Name="SearchHost"
+                          Width="{DynamicResource Size.Search.Width}"
+                          Margin="0,0,8,0"
+                          VerticalAlignment="Center">
+                        <TextBox x:Name="SearchBox"
+                                 Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                                 PreviewKeyDown="OnSearchKeyDown"
+                                 GotKeyboardFocus="OnSearchBoxGotFocus"
+                                 LostKeyboardFocus="OnSearchBoxLostFocus"
+                                 ToolTip="{loc:Tr Key=Toolbar.Search.Tip}"
+                                 AutomationProperties.Name="{loc:Tr Key=Toolbar.Search.Tip}">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox" BasedOn="{StaticResource TextBox.Search}">
+                                    <Style.Triggers>
+                                        <!-- 压缩态（40px）只放放大镜：左边留出 22px 给它，
+                                             右边不留"清除"按钮的位置（那颗按钮在压缩态也是收起的）。
+                                             聚焦时这个框会临时展开到 150，同一份留白继续够用。 -->
+                                        <DataTrigger Binding="{Binding IsCompactPane,
+                                                                       RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                                                     Value="True">
+                                            <Setter Property="Padding" Value="22,0,6,0"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <!-- 放大镜：不吃鼠标，点它等于点输入框 -->
+                        <TextBlock Margin="8,0,0,0"
+                                   HorizontalAlignment="Left"
+                                   VerticalAlignment="Center"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="12"
+                                   TextOptions.TextFormattingMode="Display"
+                                   Foreground="{DynamicResource Brush.Text.Tertiary}"
+                                   IsHitTestVisible="False"
+                                   Text="&#xE721;">
+                        </TextBlock>
+
+                        <!-- 水印：TextBox 没有 Placeholder，叠一层。只在没有查询词时出现 -->
+                        <TextBlock VerticalAlignment="Center"
+                                   IsHitTestVisible="False"
+                                   Text="{loc:Tr Key=Search.Placeholder}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Secondary}">
+                                    <Setter Property="Margin" Value="26,0,0,0"/>
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSearching}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsCompactPane,
+                                                                       RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                                                     Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <Button x:Name="SearchClearButton"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Click="OnClearSearchClick"
+                                ToolTip="{loc:Tr Key=Search.Clear.Tip}"
+                                AutomationProperties.Name="{loc:Tr Key=Search.Clear.Tip}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource Button.SearchClear}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <!-- 窄窗格没有位置放这颗按钮：Esc 一样能清空，不损失功能 -->
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsSearching}" Value="True"/>
+                                                <Condition Binding="{Binding IsCompactPane,
+                                                                              RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                                                           Value="False"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <TextBlock FontFamily="Segoe MDL2 Assets"
+                                       FontSize="9"
+                                       TextOptions.TextFormattingMode="Display"
+                                       Text="&#xE711;"/>
+                        </Button>
+                    </Grid>
+
+                    <Button x:Name="DetailsButton"
+                            Style="{StaticResource ViewButton.Details}"
+                            Command="{Binding DetailsCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                            Content="{loc:Tr Key=Toolbar.Details}"
+                            ToolTip="{loc:Tr Key=Toolbar.Details.Tip}"
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Details.Tip}"/>
+                    <Button x:Name="ListButton"
+                            Style="{StaticResource ViewButton.List}"
+                            Command="{Binding ListViewCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                            Content="{loc:Tr Key=Toolbar.List}"
+                            ToolTip="{loc:Tr Key=Toolbar.List.Tip}"
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.List.Tip}"/>
+
+                    <Border x:Name="SplitDivider"
+                            Width="1"
+                            Margin="4,8,8,8"
+                            Background="{DynamicResource Brush.Border.Hairline}"/>
+
+                    <Button x:Name="SplitButton"
+                            Style="{StaticResource ViewButton.Split}"
+                            Command="{Binding ToggleSplitCommand, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                            ToolTip="{loc:Tr Key=Toolbar.Split.Tip}"
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Split.Tip}">
+                        <!-- 图标自绘：Segoe MDL2 没有语义明确的"左右分栏"字形，
+                             用方框 + 中线比借一个"平铺/窗口"字形更不容易被误解。
+
+                             尺寸从 15 提到 18：原来 12×8 的框在 32px 按钮里只剩约 10px 高，
+                             比同一行的文字按钮（"详细""列表"）轻一档，看着像没对齐。
+                             描边同步 1.3→1.4，放大后线才不至于变细。 -->
+                        <Viewbox Width="18" Height="18">
+                            <Canvas Width="18" Height="18">
+                                <Rectangle Canvas.Left="2" Canvas.Top="4"
+                                           Width="14" Height="10"
+                                           RadiusX="1.4" RadiusY="1.4"
+                                           Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                                           StrokeThickness="1.4"/>
+                                <Line X1="9" Y1="4" X2="9" Y2="14"
+                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                                      StrokeThickness="1.4"/>
+                            </Canvas>
+                        </Viewbox>
+                    </Button>
+
+                    <!-- 预览窗格开关（FR-9.1.1）。图标与分屏按钮同一套画法，只改竖线位置：
+                         分屏是"对半分"（竖线在正中 x=9），预览是"右边一窄栏"（x=11）。
+                         右栏再加一层 22% 前景色的淡填充——只靠 2px 的竖线位置差，
+                         这两个方框图标在 18px 下几乎分不出来。
+                         IsEnabled 直接绑宿主的判断：非文件标签下置灰，不改变设置。 -->
+                    <Button x:Name="PreviewButton"
+                            Style="{StaticResource ViewButton.Preview}"
+                            Click="OnPreviewButtonClick"
+                            IsEnabled="{Binding IsPreviewToggleEnabled, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                            ToolTip="{loc:Tr Key=Toolbar.Preview.Tip}"
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Preview.Tip}">
+                        <Viewbox Width="18" Height="18">
+                            <Canvas Width="18" Height="18">
+                                <!-- 填充先画：后画的描边压在它上面，边缘才不冒出直角。
+                                     0.32 是实测值：0.22 在深色主题下几乎看不出右栏存在，
+                                     两个方框就只剩"竖线差 2px"这一条区别了。 -->
+                                <Rectangle Canvas.Left="11.7" Canvas.Top="5.4"
+                                           Width="3.1" Height="7.2"
+                                           Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                                           Opacity="0.32"/>
+                                <Rectangle Canvas.Left="2" Canvas.Top="4"
+                                           Width="14" Height="10"
+                                           RadiusX="1.4" RadiusY="1.4"
+                                           Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                                           StrokeThickness="1.4"/>
+                                <Line X1="11" Y1="4.7" X2="11" Y2="13.3"
+                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                                      StrokeThickness="1.4"/>
+                            </Canvas>
+                        </Viewbox>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- 列头：只在详细信息视图显示，列宽与行模板保持一致 -->
+            <Border Grid.Row="0"
+                    Height="{DynamicResource Size.Row.Header}"
+                    Background="{DynamicResource Brush.Surface.Window}"
+                    BorderBrush="{DynamicResource Brush.Border.Hairline}"
+                    BorderThickness="0,0,0,1"
+                    PreviewMouseRightButtonDown="OnColumnHeaderRightDown">
+                <!-- 列配置入口（FR-6.4）。右键列头比放进设置页更贴近操作位置：
+                     调整列的人此刻正盯着列头，让他先去设置里找一遍是多余的。
+                     菜单项在打开时按当前档位刷新勾选与可用状态。 -->
+                <Border.ContextMenu>
+                    <ContextMenu Style="{StaticResource ContextMenu.Default}"
+                                 Opened="OnColumnMenuOpened">
+                        <MenuItem x:Name="ColumnNameItem"
+                                  Style="{StaticResource MenuItem.Default}"
+                                  IsCheckable="True"
+                                  IsChecked="True"
+                                  IsEnabled="False"
+                                  Header="{loc:Tr Key=Column.Name}"/>
+                        <MenuItem x:Name="ColumnDateItem"
+                                  Style="{StaticResource MenuItem.Default}"
+                                  IsCheckable="True"
+                                  Tag="Date"
+                                  Header="{loc:Tr Key=Column.DateModified}"
+                                  Click="OnToggleColumn"/>
+                        <MenuItem x:Name="ColumnTypeItem"
+                                  Style="{StaticResource MenuItem.Default}"
+                                  IsCheckable="True"
+                                  Tag="Type"
+                                  Header="{loc:Tr Key=Column.Type}"
+                                  Click="OnToggleColumn"/>
+                        <MenuItem x:Name="ColumnSizeItem"
+                                  Style="{StaticResource MenuItem.Default}"
+                                  IsCheckable="True"
+                                  Tag="Size"
+                                  Header="{loc:Tr Key=Column.Size}"
+                                  Click="OnToggleColumn"/>
+                        <Separator Style="{StaticResource Menu.Separator}"/>
+                        <MenuItem x:Name="ColumnMoveLeftItem"
+                                  Style="{StaticResource MenuItem.Default}"
+                                  Tag="-1"
+                                  Header="{loc:Tr Key=Menu.Columns.MoveLeft}"
+                                  Click="OnMoveColumn"/>
+                        <MenuItem x:Name="ColumnMoveRightItem"
+                                  Style="{StaticResource MenuItem.Default}"
+                                  Tag="1"
+                                  Header="{loc:Tr Key=Menu.Columns.MoveRight}"
+                                  Click="OnMoveColumn"/>
+                        <Separator Style="{StaticResource Menu.Separator}"/>
+                        <MenuItem Style="{StaticResource MenuItem.Default}"
+                                  IsEnabled="False"
+                                  Header="{loc:Tr Key=Menu.Columns.Hint}"/>
+                        <MenuItem x:Name="ColumnResetItem"
+                                  Style="{StaticResource MenuItem.Default}"
+                                  Header="{loc:Tr Key=Menu.Columns.Reset}"
+                                  Click="OnResetColumns"/>
+                    </ContextMenu>
+                </Border.ContextMenu>
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsDetailsView}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
+                <Grid x:Name="HeaderGrid" Margin="{StaticResource Padding.Row}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Width="{DynamicResource Size.Tag.Gutter}"/>
+                    <!-- 与行里的缩略图槽位同宽（FR-6.6），否则列头与内容会错开 8px -->
+                    <Border Grid.Column="1" Width="{DynamicResource Size.Icon.Thumb}"/>
+
+                    <Button Grid.Column="2"
+                            x:Name="NameHeaderButton"
+                            Style="{StaticResource Button.Header}"
+                            Content="{Binding NameHeader}"
+                            Tag="Name"
+                            Click="OnSortClick"
+                            ToolTip="{loc:Tr Key=Sort.ByName}"/>
+                    <!-- 三个数据列的槽位、宽度、显隐都由 PaneView.Columns.cs 写入本窗格的资源。
+                         用 DynamicResource 而不是绑定：列配置变一次要同时改列头与每一行，
+                         而每行各持一份 Grid 列定义，靠绑定同步就意味着上万行各挂一条通知。 -->
+                    <Button Grid.Column="{DynamicResource Column.Date.Slot}"
+                            x:Name="DateHeaderButton"
+                            Style="{StaticResource Button.Header}"
+                            Width="{DynamicResource Column.Date.Width}"
+                            Visibility="{DynamicResource Column.Date.Visible}"
+                            Content="{Binding DateHeader}"
+                            Tag="Date"
+                            Click="OnSortClick"
+                            ToolTip="{loc:Tr Key=Sort.ByDateModified}"/>
+                    <Thumb Grid.Column="{DynamicResource Column.Date.Slot}"
+                           Style="{StaticResource Thumb.ColumnResize}"
+                           Visibility="{DynamicResource Column.Date.Visible}"
+                           Tag="Date"
+                           DragDelta="OnColumnResize"
+                           DragCompleted="OnColumnResizeDone"/>
+                    <Button Grid.Column="{DynamicResource Column.Type.Slot}"
+                            x:Name="TypeHeaderButton"
+                            Style="{StaticResource Button.Header}"
+                            Width="{DynamicResource Column.Type.Width}"
+                            Visibility="{DynamicResource Column.Type.Visible}"
+                            Content="{Binding TypeHeader}"
+                            Tag="Type"
+                            Click="OnSortClick"
+                            ToolTip="{loc:Tr Key=Sort.ByType}"/>
+                    <Thumb Grid.Column="{DynamicResource Column.Type.Slot}"
+                           Style="{StaticResource Thumb.ColumnResize}"
+                           Visibility="{DynamicResource Column.Type.Visible}"
+                           Tag="Type"
+                           DragDelta="OnColumnResize"
+                           DragCompleted="OnColumnResizeDone"/>
+                    <Button Grid.Column="{DynamicResource Column.Size.Slot}"
+                            x:Name="SizeHeaderButton"
+                            Style="{StaticResource Button.Header}"
+                            Width="{DynamicResource Column.Size.Width}"
+                            Visibility="{DynamicResource Column.Size.Visible}"
+                            Content="{Binding SizeHeader}"
+                            Tag="Size"
+                            Click="OnSortClick"
+                            HorizontalContentAlignment="Right"
+                            ToolTip="{loc:Tr Key=Sort.BySize}"/>
+                    <Thumb Grid.Column="{DynamicResource Column.Size.Slot}"
+                           Style="{StaticResource Thumb.ColumnResize}"
+                           Visibility="{DynamicResource Column.Size.Visible}"
+                           Tag="Size"
+                           DragDelta="OnColumnResize"
+                           DragCompleted="OnColumnResizeDone"/>
+                </Grid>
+            </Border>
+
+            <!-- 文件列表：虚拟化三件套在 List.Surface 中统一开启（R-01） -->
+            <Grid Grid.Row="1">
+                <ListBox x:Name="FileList"
+                         ItemsSource="{Binding Entries}"
+                         AutomationProperties.Name="{loc:Tr Key=A11y.FileList}"
+                         SelectionMode="Extended"
+                         AllowDrop="True"
+                         SelectionChanged="OnFileSelectionChanged"
+                         PreviewMouseRightButtonDown="OnFileRightButtonDown"
+                         ContextMenuOpening="OnFileContextMenuOpening"
+                         PreviewMouseLeftButtonDown="OnFileDragStart"
+                         PreviewMouseLeftButtonUp="OnFileLeftButtonUp"
+                         PreviewMouseDown="OnFileMouseDown"
+                         PreviewMouseMove="OnFileDragMove"
+                         DragOver="OnFileDragOver"
+                         DragLeave="OnFileDragLeave"
+                         Drop="OnFileDrop"
+                         MouseDoubleClick="OnFileDoubleClick"
+                         ScrollViewer.ScrollChanged="OnFileListScroll"
+                         PreviewKeyDown="OnFileListKeyDown"
+                         GotKeyboardFocus="OnFileListGotFocus"
+                         Tag="{Binding RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}">
+                    <!--
+                        右键菜单。ContextMenu 不在可视树里，拿不到窗口的 DataContext，
+                        因此用 PlacementTarget（= 本 ListBox）的 Tag 把窗口传进去，
+                        Command 绑定到窗口上的命令属性。键位提示由代码按快捷键表填入。
+                    -->
+                    <ListBox.ContextMenu>
+                        <ContextMenu Style="{StaticResource ContextMenu.Default}"
+                                     Opened="OnContextMenuOpened"
+                                     DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.Open}"
+                                      Tag="ItemScope"
+                                      Command="{Binding OpenItemCommand}"/>
+                            <!-- 收藏（FR-7.1）。与 Ctrl+D 同一条命令：有选中项就收藏选中的那些，
+                                 没选中就收藏当前目录；文件与文件夹都收，重复收藏由命令自己报"已存在"。
+                                 命令由窗口注入（BookmarkCommand），因为收藏要一起刷导航栏与主页。 -->
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.Bookmark}"
+                                      Command="{Binding BookmarkCommand}"/>
+                            <Separator Style="{StaticResource Menu.Separator}"/>
+                            <!-- 彩色标签（FR-4.1.1）。子项由预设表驱动：MenuItem 容器只被塞进
+                                 Header/HeaderTemplate，**不设 DataContext**，所以处理器读 Header 取预设，
+                                 父菜单的 DataContext 才是本窗格（见 FR-7 那次踩坑）。 -->
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.Tag}"
+                                      Tag="TagMenu ItemScope"
+                                      ToolTip="{loc:Tr Key=Menu.Tag.Tip}"
+                                      ItemsSource="{Binding Source={x:Static vm:TagPresets.Colors}}"
+                                      ItemContainerStyle="{StaticResource Menu.TagItem}"
+                                      SubmenuOpened="OnTagMenuOpened">
+                                <MenuItem.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <!-- 色块带一圈描边：纯"黑"在深色面板上几乎看不见，
+                                                 没有描边会像一个空槽位 -->
+                                            <Border Width="12" Height="12"
+                                                    CornerRadius="6"
+                                                    Margin="0,0,8,0"
+                                                    VerticalAlignment="Center"
+                                                    Background="{Binding Hex}"
+                                                    BorderBrush="{DynamicResource Brush.Border.Strong}"
+                                                    BorderThickness="0.5"/>
+                                            <TextBlock Style="{StaticResource Text.Base}" Text="{Binding Name}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </MenuItem.ItemTemplate>
+                            </MenuItem>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.Tag.Remove}"
+                                      Tag="ItemScope"
+                                      Command="{Binding TagRemoveCommand}"/>
+                            <Separator Style="{StaticResource Menu.Separator}"/>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.NewFolder}"
+                                      Command="{Binding NewFolderCommand}"/>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.NewTextFile}"
+                                      Command="{Binding NewFileCommand}"/>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.Rename}"
+                                      Tag="ItemScope"
+                                      Command="{Binding RenameCommand}"/>
+                            <Separator Style="{StaticResource Menu.Separator}"/>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.Copy}"
+                                      Tag="ItemScope"
+                                      Command="{Binding CopyItemsCommand}"/>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.Cut}"
+                                      Tag="ItemScope"
+                                      Command="{Binding CutItemsCommand}"/>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.Paste}"
+                                      Command="{Binding PasteCommand}"/>
+                            <Separator Style="{StaticResource Menu.Separator}"/>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.Delete}"
+                                      Tag="ItemScope"
+                                      Command="{Binding DeleteCommand}"/>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.DeletePermanent}"
+                                      Tag="ItemScope"
+                                      Command="{Binding DeletePermanentCommand}"/>
+                            <Separator Style="{StaticResource Menu.Separator}"/>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.CopyPath}"
+                                      Command="{Binding CopyPathCommand}"/>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.CalculateSize}"
+                                      Tag="ItemScope"
+                                      ToolTip="{loc:Tr Key=Menu.CalculateSize.Tip}"
+                                      Command="{Binding CalculateSizeCommand}"/>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.Properties}"
+                                      Tag="ItemScope"
+                                      Command="{Binding PropertiesCommand}"/>
+                            <Separator Style="{StaticResource Menu.Separator}"/>
+                            <!-- FR-6.9：系统菜单只在用户显式要"更多选项"时加载。
+                                 日常操作走上面这些自建项，快且不受第三方 Shell 扩展拖累。 -->
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.MoreOptions}"
+                                      ToolTip="{loc:Tr Key=Menu.MoreOptions.Tip}"
+                                      Command="{Binding MoreOptionsCommand}"/>
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+                    <ListBox.Style>
+                        <Style TargetType="ListBox" BasedOn="{StaticResource List.Surface}">
+                            <Setter Property="ItemTemplate" Value="{StaticResource Row.Details}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsListView}" Value="True">
+                                    <Setter Property="ItemTemplate" Value="{StaticResource Row.List}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ListBox.Style>
+                </ListBox>
+
+                <!-- 框选矩形（FR-6.7）。压在列表之上、不吃鼠标：它的位置由代码按
+                     鼠标坐标设置，用户看得见一条随手指拉出来的选框，但点不到它本身。
+                     填充用强调色 + 透明度而不是单独一个色值：深浅两个主题下都自动合适。 -->
+                <Canvas x:Name="RubberBandLayer"
+                        ClipToBounds="True"
+                        IsHitTestVisible="False">
+                    <Border x:Name="RubberBand"
+                            Visibility="Collapsed"
+                            BorderBrush="{DynamicResource Brush.Accent.Default}"
+                            BorderThickness="1">
+                        <Border Background="{DynamicResource Brush.Accent.Default}"
+                                Opacity="0.18"/>
+                    </Border>
+                </Canvas>
+
+                <!-- 空目录提示：只在加载完成且无条目时出现，且不吃鼠标事件。
+                     打不开的目录同样是 0 项，此时必须换成"无法访问"，否则会和状态栏互相矛盾。 -->
+                <TextBlock HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           IsHitTestVisible="False">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Secondary}">
+                            <Setter Property="Text" Value="{loc:Tr Key=Empty.Folder}"/>
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <!-- 加载完成且无条目 → 显示；后面的触发器优先级更高，用它挡住启动瞬间 -->
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding Entries.Count}" Value="0"/>
+                                        <Condition Binding="{Binding IsLoading}" Value="False"/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </MultiDataTrigger>
+                                <!-- 搜索无结果时说"没有匹配的项"，而不是"这个文件夹是空的"——
+                                     后者会让用户以为目录真的空了。放在"无法访问"之前：
+                                     打不开的目录里搜索同样为空，那种情况要说清是打不开。 -->
+                                <DataTrigger Binding="{Binding IsSearching}" Value="True">
+                                    <Setter Property="Text" Value="{loc:Tr Key=Empty.NoMatch}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding HasNavigationError}" Value="True">
+                                    <Setter Property="Text" Value="{loc:Tr Key=Empty.Inaccessible}"/>
+                                </DataTrigger>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding Entries.Count}" Value="0"/>
+                                        <Condition Binding="{Binding CurrentPath}" Value=""/>
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+        </Grid>
+
+        <!-- 状态栏：左侧数量与耗时，右侧选中统计，中间提示 -->
+        <Border x:Name="StatusBarHost"
+                Grid.Row="2"
+                AutomationProperties.Name="{loc:Tr Key=A11y.StatusBar}"
+                Height="{DynamicResource Size.StatusBar.Height}"
+                Background="{DynamicResource Brush.Surface.Window}"
+                BorderBrush="{DynamicResource Brush.Border.Hairline}"
+                BorderThickness="0,1,0,0">
+            <Grid Margin="{StaticResource Padding.StatusBar}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource Text.Caption}"
+                           Text="{Binding StatusText}"/>
+
+                <TextBlock Grid.Column="1"
+                           Margin="12,0,12,0"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource Text.Caption}"
+                           TextTrimming="CharacterEllipsis"
+                           Text="{Binding HintText}"/>
+
+                <!-- 计算文件夹大小期间的进度与取消（FR-6.16）。
+                     放在选中统计的位置而不是另起一行：状态栏只有 28px 高，
+                     多一行会把两块内容一起挤扁。计算中让位给进度，结束后自动换回。 -->
+                <StackPanel Grid.Column="2"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCalculatingSize}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock MaxWidth="360"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource Text.Caption}"
+                               TextTrimming="CharacterEllipsis"
+                               Text="{Binding SizeProgressText}"/>
+                    <Button Margin="10,0,0,0"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource Button.Link}"
+                            Content="{loc:Tr Key=Common.Cancel}"
+                            Click="OnCancelFolderSize"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="3"
+                           VerticalAlignment="Center"
+                           Text="{Binding SelectionText}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Caption}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCalculatingSize}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+        </Border>
+        </Grid>
+    </Border>
+</UserControl>

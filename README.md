@@ -1,8 +1,14 @@
-# Lingpane · 棂窗
+# Jianlan · 简览
 
-轻量、原生、启动即用的 Windows 文件管理器。双窗格、多标签、彩色标签，基于 .NET 9 + WPF。
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-on-dark.png">
+  <img src="docs/assets/logo.png" alt="简览 Jianlan — A clean file manager for Windows" width="420">
+</picture>
 
-> 棂（窗棂，中式窗格）＋ pane（英文窗格）——两个语言里指的是同一个东西。
+轻量、原生、启动即用的 Windows 文件管理器 —— *A clean file manager for Windows*。
+双窗格、多标签、彩色标签，基于 .NET 9 + WPF。
+
+> 简览：简（简洁）＋ 览（浏览，一眼看全）。英文名 Jianlan 取拼音，中英同指一个产品。
 
 **当前状态：0.2.0（功能完整版）已于 2026-11-10 发布。** 单窗格浏览、多标签、双窗格、
 彩色标签、收藏、工作区、预览窗格、主页与关于页均已落地。阶段划分见
@@ -23,8 +29,8 @@
 
 | 方案 | 冷启动 P50 | 备注 |
 |---|---|---|
-| **Lingpane（当前）** | **694–769 ms（用户感知）** | P95 776–883 ms；含进程创建与运行时初始化 |
-| Lingpane 应用内 | 511–569 ms | P95 540–619 ms；`App` 构造 → 窗口可交互，用于回归比对 |
+| **Jianlan（当前）** | **694–769 ms（用户感知）** | P95 776–883 ms；含进程创建与运行时初始化 |
+| Jianlan 应用内 | 511–569 ms | P95 540–619 ms；`App` 构造 → 窗口可交互，用于回归比对 |
 | WPF 最小空窗口 | ~1100 ms | 同环境对照，说明 1.1s 是框架基线而非业务代码 |
 | WinForms 最小空窗口 | ~250 ms | 同环境对照 |
 | Files（社区版） | 1.5–3 s | 官方 issue 与实测反馈 |
@@ -88,7 +94,7 @@ M0 阶段测得"关闭 IME 上下文创建"约省 500 ms，据此在启动阶段
 - 快捷方式显示目标程序图标 + 箭头（`.lnk`/`.url` 按真实路径解析，同样在空闲期后台做；ADR-0007）
 - 左侧常用目录、隐藏文件开关、扩展名显示开关
 - 单实例：再次启动转交参数到已有窗口，不新开进程
-- 支持 `Lingpane.exe <目录>` 直接打开指定位置
+- 支持 `Jianlan.exe <目录>` 直接打开指定位置
 
 **文件操作**
 
@@ -106,7 +112,7 @@ M0 阶段测得"关闭 IME 上下文创建"约省 500 ms，据此在启动阶段
 - 导航栏与状态栏开关、记住上次目录、清空历史
 
 **快捷键**：见 [`docs/shortcuts.md`](docs/shortcuts.md)，键位表集中在
-`src/Lingpane.App/Input/KeyBindings.cs`，窗口消息（物理键码）为主入口、`PreviewKeyDown` 兜底。
+`src/Jianlan.App/Input/KeyBindings.cs`，窗口消息（物理键码）为主入口、`PreviewKeyDown` 兜底。
 
 ## 已完成（0.1.0 收尾）
 
@@ -184,25 +190,25 @@ M0 阶段测得"关闭 IME 上下文创建"约省 500 ms，据此在启动阶段
 dotnet build
 
 # 本地调试用发布（框架依赖，体积小，需本机已装 .NET 9 桌面运行时）
-dotnet publish src/Lingpane.App -c Release -r win-x64 --self-contained false -o publish
+dotnet publish src/Jianlan.App -c Release -r win-x64 --self-contained false -o publish
 
 # 出正式发布的便携包（AC-09）：自包含运行时 + portable.flag + zip + SHA256
 pwsh tools/release/publish.ps1
 
 # 测启动
-pwsh tools/startup-bench/Measure-Startup.ps1 -Exe publish/Lingpane.exe -Runs 20
+pwsh tools/startup-bench/Measure-Startup.ps1 -Exe publish/Jianlan.exe -Runs 20
 
 # 测列表：先生成 10000 项测试目录，再测量
 pwsh tools/perf-fixture/New-TestDirectory.ps1 -Path D:\perf-10k -Count 10000
-pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Lingpane.exe -Path D:\perf-10k
+pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Jianlan.exe -Path D:\perf-10k
 ```
 
-`tools/release/publish.ps1` 的产物在 `dist/`：`Lingpane-<版本>-portable-win-x64.zip`
+`tools/release/publish.ps1` 的产物在 `dist/`：`Jianlan-<版本>-portable-win-x64.zip`
 （约 70 MB，解压后即用，不写 `%LOCALAPPDATA%`）与配套的 `.sha256`。
 包内的 `portable.flag` 让程序进入便携模式，设置与日志落在解压目录的 `data\` 里。
 
 > **便携版的任务栏图标**：Windows 11 的任务栏按「应用身份」取图标，而这个身份要靠开始菜单里的
-> 快捷方式建立。直接双击 `Lingpane.exe` 运行时系统里没有这条记录，任务栏会退回一张系统默认图
+> 快捷方式建立。直接双击 `Jianlan.exe` 运行时系统里没有这条记录，任务栏会退回一张系统默认图
 > （白底卡片），即使 exe 自己带着图标、窗口标题栏也显示正常。
 > 把 exe 固定到任务栏，或为它建一个开始菜单快捷方式，图标即刻正常——之后再直接双击也不会复发。
 > 安装包会自动建快捷方式；便携包需要手动做一次。

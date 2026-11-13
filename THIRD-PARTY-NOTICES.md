@@ -2,7 +2,7 @@
 
 本文件对应 `docs/requirements.md` 的 **AC-10 开源合规**：发布产物须包含 LICENSE、NOTICE 与第三方依赖许可清单。
 
-Lingpane 本体以 **Apache License 2.0** 发布，全文见 [`LICENSE`](LICENSE)，署名与变更声明见 [`NOTICE`](NOTICE)。
+Jianlan 本体以 **Apache License 2.0** 发布，全文见 [`LICENSE`](LICENSE)，署名与变更声明见 [`NOTICE`](NOTICE)。
 本文件只登记"不是我们自己写的"那部分代码，以及它们的许可条件。
 
 更新规则：新增/升级任何 `PackageReference`、把项目改成 self-contained 发布、或引入第三方图标/字体/示例代码时，
@@ -34,7 +34,7 @@ Lingpane 本体以 **Apache License 2.0** 发布，全文见 [`LICENSE`](LICENSE
 
 ## 二、运行环境依赖（不随包分发）
 
-当前发布形态为**框架依赖**（`publish/Lingpane.runtimeconfig.json` 声明 `Microsoft.NETCore.App` 9.0 与
+当前发布形态为**框架依赖**（`publish/Jianlan.runtimeconfig.json` 声明 `Microsoft.NETCore.App` 9.0 与
 `Microsoft.WindowsDesktop.App` 9.0），运行时由用户机器上的 .NET 9 Desktop Runtime 提供，不复制进安装包。
 
 | 组件 | 版本要求 | 许可 | 版权 |
@@ -66,7 +66,7 @@ MIT 全文见本文件末尾附录。
 **不打包、不嵌入、不再分发**字体文件，因此不构成字体许可的再分发。
 
 项目内没有第三方图标库、没有图标字体文件、没有从其他项目复制的图形资源。
-`src/Lingpane.App/Assets/` 目前为空目录，留作后续自有资源位置。
+`src/Jianlan.App/Assets/` 目前为空目录，留作后续自有资源位置。
 
 ---
 

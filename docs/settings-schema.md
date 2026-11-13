@@ -6,10 +6,10 @@
 
 | 模式 | 路径 |
 |---|---|
-| 安装版 | `%LOCALAPPDATA%\Lingpane\settings.json` |
+| 安装版 | `%LOCALAPPDATA%\Jianlan\settings.json` |
 | 便携版（exe 同级有 `portable.marker`） | `<exe目录>\data\settings.json` |
 
-路径解析集中在 `src/Lingpane.Core/Diagnostics/AppPaths.cs`，界面与 ViewModel 不得自行拼接。
+路径解析集中在 `src/Jianlan.Core/Diagnostics/AppPaths.cs`，界面与 ViewModel 不得自行拼接。
 
 ## 2. 结构（schemaVersion = 1）
 
@@ -229,7 +229,7 @@
 规则：
 
 - 只做**向前迁移**（旧 → 新），不写反向迁移
-- 迁移函数必须独立可测，位于 `Lingpane.Core/Settings/SettingsMigrations.cs`
+- 迁移函数必须独立可测，位于 `Jianlan.Core/Settings/SettingsMigrations.cs`
 - 无法识别的高版本 `schemaVersion` → 只读模式，禁止覆盖，提示用户升级程序
 
 ## 6. 与 Token 的关系

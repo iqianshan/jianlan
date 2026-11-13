@@ -1,6 +1,6 @@
 ﻿<#
 .SYNOPSIS
-    测量 Lingpane 冷启动耗时，输出 P50 / P95，并给出是否通过 NF-01 门禁的判定。
+    测量 Jianlan 冷启动耗时，输出 P50 / P95，并给出是否通过 NF-01 门禁的判定。
 
 .DESCRIPTION
     两个指标同时采集：
@@ -26,10 +26,10 @@
     首次运行（真正的冷盘）请单独跑一次并记录。
 
 .EXAMPLE
-    .\Measure-Startup.ps1 -Exe ..\..\publish\Lingpane.exe -Runs 20
+    .\Measure-Startup.ps1 -Exe ..\..\publish\Jianlan.exe -Runs 20
 
 .EXAMPLE
-    .\Measure-Startup.ps1 -Exe ..\..\publish\Lingpane.exe -Runs 20 -BaselinePath ..\..\baseline.json
+    .\Measure-Startup.ps1 -Exe ..\..\publish\Jianlan.exe -Runs 20 -BaselinePath ..\..\baseline.json
 
 .EXAMPLE
     # CI：宽松阈值，只拦数量级退化
@@ -148,11 +148,11 @@ if ($BaselinePath) {
     $mode = "相对基线（$([System.IO.Path]::GetFileName($BaselinePath)) x $factor）"
 }
 
-$logPath = Join-Path $env:LOCALAPPDATA 'Lingpane\logs\startup.log'
+$logPath = Join-Path $env:LOCALAPPDATA 'Jianlan\logs\startup.log'
 # 用 .NET API 而非 Remove-Item：某些环境对 cmdlet 的删除有安全钩子拦截
 if (Test-Path $logPath) { [System.IO.File]::Delete($logPath) }
 
-# 会话标记的位置跟应用自己的解析规则走：便携包在 exe\data\，否则在 %LOCALAPPDATA%\Lingpane\。
+# 会话标记的位置跟应用自己的解析规则走：便携包在 exe\data\，否则在 %LOCALAPPDATA%\Jianlan\。
 # 不按 $logPath 反推，是因为日志位置在便携包里本来就不对（脚本只读 LOCALAPPDATA）。
 $sessionMark = Join-Path (Split-Path (Split-Path $logPath)) 'session.json'
 $exeDir = Split-Path -Parent $Exe

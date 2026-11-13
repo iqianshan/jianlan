@@ -39,7 +39,7 @@ T-render 只用于定位问题，不作为验收依据。
 
 ## 3. 埋点实现
 
-`src/Lingpane.Core/Diagnostics/StartupTrace.cs`。各阶段含义：
+`src/Jianlan.Core/Diagnostics/StartupTrace.cs`。各阶段含义：
 
 | 标记 | 位置 | 已包含 |
 |---|---|---|
@@ -52,15 +52,15 @@ T-render 只用于定位问题，不作为验收依据。
 | `show` | `Show()` 返回 | — |
 | `firstcontent` | 首次目录枚举完成 | 磁盘枚举 + 列表绑定 |
 
-日志落盘位置：`%LOCALAPPDATA%\Lingpane\logs\startup.log`，一行一次启动。
+日志落盘位置：`%LOCALAPPDATA%\Jianlan\logs\startup.log`，一行一次启动。
 
 **约束**：`Mark` 路径上不得有磁盘 IO。`Flush` 只在首帧之后调用一次。
 
 ## 4. 测量方法
 
 ```powershell
-dotnet publish src/Lingpane.App -c Release -r win-x64 --self-contained false -o publish
-pwsh tools/startup-bench/Measure-Startup.ps1 -Exe publish/Lingpane.exe -Runs 20
+dotnet publish src/Jianlan.App -c Release -r win-x64 --self-contained false -o publish
+pwsh tools/startup-bench/Measure-Startup.ps1 -Exe publish/Jianlan.exe -Runs 20
 ```
 
 脚本采集两个值：
@@ -139,7 +139,7 @@ CPU 上限取 60 而非 50：Windows 空闲机器也常在 30–50% 波动，50 
 | WPF 最小空窗口（默认） | 1030–1120 ms | **框架基线** |
 | WPF 最小空窗口（禁 IME） | 541–665 ms | 差异来自输入法上下文 |
 | WPF HwndSource 直建（绕过 Application/Window） | 978–1051 ms | 证明慢在渲染管线初始化，不在窗口类本身 |
-| **Lingpane M0（禁 IME）** | **574–649 ms（20 次：P50 578 / P95 639，min 542 / max 727）** | 业务代码增量约 0–60 ms |
+| **Jianlan M0（禁 IME）** | **574–649 ms（20 次：P50 578 / P95 639，min 542 / max 727）** | 业务代码增量约 0–60 ms |
 
 结论：
 
@@ -180,7 +180,7 @@ CPU 上限取 60 而非 50：Windows 空闲机器也常在 30–50% 波动，50 
 对外沟通（README、release note）**必须用外部口径**——那才是用户按下图标到看见窗口的
 实际等待；埋点口径只用于定位优化点与门禁比对。
 
-> 同一日下午还出现过一次**整机 WPF 全面变慢**（Lingpane 1102 ms、空窗口 1095 ms），
+> 同一日下午还出现过一次**整机 WPF 全面变慢**（Jianlan 1102 ms、空窗口 1095 ms），
 > 与代码无关，约 20 分钟后自行恢复。诊断方法见 §11——这是本项目最容易误判为
 > "代码回归"的情况。
 
@@ -190,7 +190,7 @@ CPU 上限取 60 而非 50：Windows 空闲机器也常在 30–50% 波动，50 
 |---|---|---|
 | 启动期关闭 IME | **−820 ms（`activated` → `loaded`）、−74 MB 峰值工作集**；外部口径（到窗口句柄出现）无差异，见 §6.2 | `App.OnStartup` |
 | 设置读取改用源生成序列化 | **−36 ms（−5.6%，交替对照）** | `SettingsStore` / `SettingsJsonContext` |
-| ReadyToRun 发布 | −16 ms（与未 R2R 版本交替对照） | `Lingpane.App.csproj` |
+| ReadyToRun 发布 | −16 ms（与未 R2R 版本交替对照） | `Jianlan.App.csproj` |
 | `SatelliteResourceLanguages=en` | 减少附属程序集探测 | `Directory.Build.props` |
 | 图标按扩展名而非按文件查询 | 滚动零磁盘 IO | `ShellIconProvider` |
 | 列表用 `IReadOnlyList` 整体替换 | 避免 N 次 `CollectionChanged` | `MainViewModel` |
@@ -359,7 +359,7 @@ CPU 上限取 60 而非 50：Windows 空闲机器也常在 30–50% 波动，50 
 发布前由负责人执行：
 
 ```powershell
-pwsh tools/startup-bench/Measure-Startup.ps1 -Exe publish/Lingpane.exe -Runs 20 `
+pwsh tools/startup-bench/Measure-Startup.ps1 -Exe publish/Jianlan.exe -Runs 20 `
      -BaselinePath baseline.json
 ```
 
@@ -387,11 +387,11 @@ pwsh tools/startup-bench/Measure-Startup.ps1 -Exe publish/Lingpane.exe -Runs 20 
 pwsh tools/perf-fixture/New-TestDirectory.ps1 -Path D:\perf-10k -Count 10000 -Force
 
 # 2. 测量（5 次取中位，带空窗口归一化）
-pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Lingpane.exe -Path D:\perf-10k -Runs 5 -Normalize
+pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Jianlan.exe -Path D:\perf-10k -Runs 5 -Normalize
 ```
 
 `-Normalize` 会在每轮测量前先跑一次 `tools/env-check/WpfBaseline`（纯空窗口），
-用"Lingpane 减去空窗口"的增量判定。归一化只能消除同一状态内的漂移，
+用"Jianlan 减去空窗口"的增量判定。归一化只能消除同一状态内的漂移，
 **跨状态无效**——先确认 GDI 对象在 80 以下（见 9.6），否则数字作废。
 
 实现方式：应用带 `--perf-probe <目录>` 参数启动后，加载目标目录、等待首屏、
@@ -541,8 +541,8 @@ pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Lingpane.exe -Path D:\perf
   高态时输出"不可判定"并返回退出码 3，不给出通过/未通过的结论。
 - **空窗口对照超过 90 MB 同样判为高态**（2026-11-05 补，见 ADR-0008）。这条比 GDI 更可靠：
   高态下空窗口稳定在 118，而 GDI 在 118–120 之间跳。更关键的是，高态下 **`-Normalize` 会失效**——
-  实测第 2–3 轮 Lingpane 私有提交 159.1 / 160.7 MB、空窗口 118.0 MB，相减得 41.1 / 42.7 MB
-  看起来"正常"，但同一批里 Lingpane 自身在 121.8–160.7 之间摆了 39 MB。
+  实测第 2–3 轮 Jianlan 私有提交 159.1 / 160.7 MB、空窗口 118.0 MB，相减得 41.1 / 42.7 MB
+  看起来"正常"，但同一批里 Jianlan 自身在 121.8–160.7 之间摆了 39 MB。
   两态模型不够细：高态内部还有一层与进程启动时机相关的抖动，相减消不掉。
 - **跨态的数字不能相减。** 本轮曾把"优化前 109 MB、优化后 143 MB"归因为某一行
   XAML 绑定，交替测量 12 次后证明两版本完全一致，真实原因是测量期间系统从正常态切到了高态。
@@ -561,9 +561,9 @@ pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Lingpane.exe -Path D:\perf
 
 | 门禁 | 定义 | 阈值 | 当前实测 | 超标含义 |
 |---|---|---|---|---|
-| **NF-05R**（相对，先看） | Lingpane 私有提交 − 纯 WPF 空窗口私有提交（单窗格、10000 项、滚动 240 帧） | ≤ 65 MB（2026-11-05 由 45 上调） | 44.8 MB | 代码回归，查数据层与视图层 |
+| **NF-05R**（相对，先看） | Jianlan 私有提交 − 纯 WPF 空窗口私有提交（单窗格、10000 项、滚动 240 帧） | ≤ 65 MB（2026-11-05 由 45 上调） | 44.8 MB | 代码回归，查数据层与视图层 |
 | **NF-05H**（托管堆，降级判据） | 滚动结束后的 `GC.GetTotalMemory(true)`（单窗格、10000 项） | ≤ 12 MB | **5.8 MB**（2026-11-06 首次实测） | 数据层回归，与框架底和环境两态无关 |
-| **NF-05**（绝对，后看） | Lingpane 私有提交总量 | 单窗格 150 / 双窗格 185 / 预览窗格 230 MB | 124.8 MB | 功能预算超支，砍功能或优化 |
+| **NF-05**（绝对，后看） | Jianlan 私有提交总量 | 单窗格 150 / 双窗格 185 / 预览窗格 230 MB | 124.8 MB | 功能预算超支，砍功能或优化 |
 
 NF-05R 的双窗格档为 90 MB（ADR-0008 新增）。**90 是估算值，双窗格开工前必须单独实测一次。**
 → 已实测（2026-11-06）：同态下双窗格相对增量 39.2 MB，距 90 有 2.3 倍余量，阈值不调整。详见 §9.8。
@@ -595,9 +595,9 @@ NF-05R 的双窗格档为 90 MB（ADR-0008 新增）。**90 是估算值，双�
 
 ```powershell
 # 单窗格
-pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Lingpane.exe -Path D:\perf-10k -Runs 5 -Normalize
+pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Jianlan.exe -Path D:\perf-10k -Runs 5 -Normalize
 # 双窗格（第二窗格给另一个万项目录，两个大目录同时常驻才是要测的场景）
-pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Lingpane.exe -Path D:\perf-10k `
+pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Jianlan.exe -Path D:\perf-10k `
     -SplitPath D:\perf-10k-b -Runs 5 -Normalize
 ```
 
@@ -701,7 +701,7 @@ AC-01 要求"在低态复测一次"。**这一轮没拿到低态**：三次独�
 超基线 154.7%，按 §8.3 本应判"未通过"。
 
 但先按 §11.1 第 2 步跑最小对照：**空窗口 10 轮 P50 1088 ms、P95 1150**，远超 800 ms 判据。
-这台机器现在跑任何 WPF 程序都慢，Lingpane 的启动数字不可信 → 判**环境异常**，不动代码、不改 baseline。
+这台机器现在跑任何 WPF 程序都慢，Jianlan 的启动数字不可信 → 判**环境异常**，不动代码、不改 baseline。
 
 再按 §11.4 用 `git worktree` 检出上一提交（`9c2524b`）编译，与当前版交替测两轮：
 
@@ -735,15 +735,15 @@ IME 相关组件（`TextInputHost` 等）常驻，窗口级关闭只挡住了 WP
 
 1. **看离散度**。大于 1.5 说明测量期间系统负载在变化，静置或重启后重测，不要看结论。
 2. **跑最小 WPF 空窗口对照**（`tools/env-check`）。若空窗口 P50 也超过 800 ms，
-   说明这台机器当前跑任何 WPF 程序都慢，Lingpane 的数字不可信，不要动代码。
-3. **空窗口正常而 Lingpane 超标**，才是代码问题。查启动路径的同步 IO、资源加载、
+   说明这台机器当前跑任何 WPF 程序都慢，Jianlan 的数字不可信，不要动代码。
+3. **空窗口正常而 Jianlan 超标**，才是代码问题。查启动路径的同步 IO、资源加载、
    启动期初始化，见 §8。
 
 ### 11.2 2026-11-03 的实例
 
 同一天下午，同一份二进制（未做任何代码改动）连续测出相差一倍的数字：
 
-| 时间 | Lingpane P50 | 空窗口 P50 | 离散度 | CPU | 可用内存 |
+| 时间 | Jianlan P50 | 空窗口 P50 | 离散度 | CPU | 可用内存 |
 |---|---|---|---|---|---|
 | 15:47 | **511 ms** | 516 ms（485–571） | 1.10 | 29% | 51% |
 | 16:05 | **1 102 ms** | 1 150 ms（1 095–1 191） | 1.13 | 32% | 48% |
@@ -765,7 +765,7 @@ IME 相关组件（`TextInputHost` 等）常驻，窗口级关闭只挡住了 WP
 pwsh tools/env-check/Measure-Baseline.ps1 -Runs 10
 ```
 
-编译一个最小 WPF 空窗口（同样关闭 IME，与 Lingpane 一致），测 P50。判据：P50 ≤ 800 ms
+编译一个最小 WPF 空窗口（同样关闭 IME，与 Jianlan 一致），测 P50。判据：P50 ≤ 800 ms
 为环境正常（本机正常值 485–665 ms，留余量）；超过则环境异常。
 
 ### 11.4 判断"这次改动是否引入回归"的正确做法
@@ -783,10 +783,10 @@ pwsh tools/env-check/Measure-Baseline.ps1 -Runs 10
 因此判定回归只有一种可靠方式：**用 `git worktree` 检出上一提交、单独编译，与当前版本交替测量**。
 
 ```bash
-git worktree add /d/tmp/lingpane-head <上一提交>
-dotnet publish /d/tmp/lingpane-head/src/Lingpane.App -c Release -r win-x64 -o /d/tmp/lingpane-head/out
+git worktree add /d/tmp/jianlan-head <上一提交>
+dotnet publish /d/tmp/jianlan-head/src/Jianlan.App -c Release -r win-x64 -o /d/tmp/jianlan-head/out
 # 然后对两个 exe 交替跑 Measure-Startup，比对 P50
-git worktree remove /d/tmp/lingpane-head --force
+git worktree remove /d/tmp/jianlan-head --force
 ```
 
 判据：两版 P50 差在 ±10% 内即视为无回归，绝对值超标交给 §11.1 的对照程序处理。

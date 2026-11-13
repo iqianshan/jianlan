@@ -18,7 +18,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Lingpane.App\Lingpane.App.csproj" />
+    <ProjectReference Include="..\..\src\Jianlan.App\Jianlan.App.csproj" />
   </ItemGroup>
 
 </Project>

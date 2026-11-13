@@ -1,0 +1,234 @@
+<UserControl x:Class="Jianlan.App.Views.AboutView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:Jianlan.App.Localization"
+             UseLayoutRounding="True"
+             SnapsToDevicePixels="True"
+             TextOptions.TextFormattingMode="Ideal">
+
+    <!--
+        关于内容（FR-10.8 / FR-10.9）。原来是一扇独立窗口，设置页只留一句摘要加一颗按钮；
+        现在整块嵌进设置页的「关于」分区，不再弹窗——用户点「关于」想看的就是这些，
+        多开一扇窗只是多一次关闭。
+
+        不再带自己的页头和关闭按钮：外层是设置窗口，标题条、页标题、底栏都已经有了。
+        唯一保留的"状态位"在末尾，就近显示复制诊断、导出日志的结果——
+        设置窗底栏离按钮太远，反馈落在那里等于让用户去别处找。
+    -->
+
+    <UserControl.Resources>
+        <!-- 左列标签定宽，右侧值左边缘对齐；宽度随字号缩放，24pt 下不会被截 -->
+        <Style x:Key="About.Label" TargetType="TextBlock" BasedOn="{StaticResource Text.Secondary}">
+            <Setter Property="Width" Value="{DynamicResource Size.FieldLabel.Width}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="About.Value" TargetType="TextBlock" BasedOn="{StaticResource Text.Base}">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- 路径这类"很长但必须能看全"的值：省略号 + 悬停看全文，
+             换行会让三个目录占掉半屏 -->
+        <Style x:Key="About.Path" TargetType="TextBlock" BasedOn="{StaticResource About.Value}">
+            <Setter Property="FontFamily" Value="{DynamicResource Font.Family.Mono}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
+            <Setter Property="FontSize" Value="{DynamicResource Font.Size.Caption}"/>
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <!-- ══ 品牌与版本 ══
+             图标 + 右侧三行：产品名（中英并列）、版本号与构建号、品牌 Slogan。
+             原来这里只排了一个版本号，页面顶部看不出这是哪个程序的关于页——
+             设置窗的标题条写着"设置"、页标题写着"关于"，唯独缺了产品名。 -->
+        <Grid Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!--
+                品牌图形（简览 · 折叠视窗）。用 DynamicResource 而不是写死路径：
+                深浅两套主题各指一份图形（见 Themes/Theme.*.xaml 的 Image.Brand.Mark）。
+            -->
+            <Image Width="40" Height="40"
+                   Source="{DynamicResource Image.Brand.Mark}"
+                   Stretch="Uniform"
+                   RenderOptions.BitmapScalingMode="HighQuality"/>
+
+            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                <!-- 中英文名并列：窗口标题用的是中文名（"产品工作 - 简览"），
+                     关于页只写 Jianlan 会对不上号。中文名用次级色，主次分明但不分家。 -->
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource Text.Subtitle}"
+                               FontWeight="{StaticResource Font.Weight.Emphasis}"
+                               Text="{loc:Tr Key=About.AppName}"/>
+                    <TextBlock Margin="8,0,0,0"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource Text.Subtitle}"
+                               Foreground="{DynamicResource Brush.Text.Secondary}"
+                               Text="{loc:Tr Key=About.AppNameZh}"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <TextBlock x:Name="VersionText"
+                               Style="{StaticResource Text.Caption}"
+                               Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                    <!-- 分隔点跟着构建号一起显隐：没有 commit 时不留下一个孤零零的间隔号 -->
+                    <TextBlock x:Name="BuildSeparator"
+                               Margin="5,0,5,0"
+                               Style="{StaticResource Text.Caption}"
+                               Foreground="{DynamicResource Brush.Text.Secondary}"
+                               Text="·"/>
+                    <TextBlock x:Name="BuildTagText"
+                               Style="{StaticResource Text.Caption}"
+                               Foreground="{DynamicResource Brush.Text.Secondary}"/>
+                </StackPanel>
+
+                <!-- 品牌 Slogan。放在版本号下面而不是上面：它是"这个程序是什么"的一句话，
+                     不是识别信息；叠在名称下方会跟中文名抢视线的第一落点。 -->
+                <TextBlock Margin="0,4,0,0"
+                           Style="{StaticResource Text.Caption}"
+                           Foreground="{DynamicResource Brush.Text.Secondary}"
+                           TextTrimming="CharacterEllipsis"
+                           Text="{loc:Tr Key=About.Tagline}"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- ══ 运行环境 ══
+             四行而不是 2×2：系统版本串本身就占满一整行
+             （"Microsoft Windows 10.0.26300 (10.0.26300.0)"），
+             挤进半宽只会全部变成省略号。行距压到 4，四行只比两行高一点。 -->
+        <Border Style="{StaticResource Heading.Group}">
+            <TextBlock Style="{StaticResource Text.GroupTitle}"
+                       Text="{loc:Tr Key=About.Section.Environment}"/>
+        </Border>
+        <Grid Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Grid.Column="0"
+                       Style="{StaticResource About.Label}"
+                       Text="{loc:Tr Key=About.Env.Runtime}"/>
+            <TextBlock Grid.Row="0" Grid.Column="1"
+                       x:Name="RuntimeText"
+                       Style="{StaticResource About.Value}"/>
+
+            <TextBlock Grid.Row="1" Grid.Column="0"
+                       Margin="0,4,0,0"
+                       Style="{StaticResource About.Label}"
+                       Text="{loc:Tr Key=About.Env.OS}"/>
+            <TextBlock Grid.Row="1" Grid.Column="1"
+                       x:Name="OsText"
+                       Margin="0,4,0,0"
+                       Style="{StaticResource About.Value}"/>
+
+            <TextBlock Grid.Row="2" Grid.Column="0"
+                       Margin="0,4,0,0"
+                       Style="{StaticResource About.Label}"
+                       Text="{loc:Tr Key=About.Env.Arch}"/>
+            <TextBlock Grid.Row="2" Grid.Column="1"
+                       x:Name="ArchText"
+                       Margin="0,4,0,0"
+                       Style="{StaticResource About.Value}"/>
+
+            <TextBlock Grid.Row="3" Grid.Column="0"
+                       Margin="0,4,0,0"
+                       Style="{StaticResource About.Label}"
+                       Text="{loc:Tr Key=About.Env.Memory}"/>
+            <TextBlock Grid.Row="3" Grid.Column="1"
+                       x:Name="MemoryText"
+                       Margin="0,4,0,0"
+                       Style="{StaticResource About.Value}"/>
+        </Grid>
+
+        <!-- ══ 许可 ══ -->
+        <Border Style="{StaticResource Heading.Group}">
+            <TextBlock Style="{StaticResource Text.GroupTitle}"
+                       Text="{loc:Tr Key=About.Section.License}"/>
+        </Border>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+            <TextBlock Style="{StaticResource About.Label}" Text="{loc:Tr Key=About.License.Name}"/>
+            <TextBlock Style="{StaticResource Text.Base}" Text="Apache-2.0"/>
+        </StackPanel>
+        <!-- 三份文本不进 XAML：11KB 的许可证进了 BAML 就是白白多一份加载成本，
+             且法律文本不该参与本地化。见 Services/LegalResources.cs。
+             全文仍然开窗显示——这一段内嵌进来，这一页就是几千行。 -->
+        <WrapPanel>
+            <Button Style="{StaticResource Button.Toolbar}"
+                    Content="{loc:Tr Key=About.License.View}"
+                    Click="OnViewLicense"/>
+            <Button Style="{StaticResource Button.Toolbar}"
+                    Content="{loc:Tr Key=About.License.Notice}"
+                    Click="OnViewNotice"/>
+            <Button Style="{StaticResource Button.Toolbar}"
+                    Content="{loc:Tr Key=About.License.ThirdParty}"
+                    Click="OnViewThirdParty"/>
+        </WrapPanel>
+
+        <!-- ══ 目录（FR-10.9）══ -->
+        <Border Style="{StaticResource Heading.Group}">
+            <TextBlock Style="{StaticResource Text.GroupTitle}"
+                       Text="{loc:Tr Key=About.Section.Paths}"/>
+        </Border>
+        <!-- 路径与"便携模式"说明合并在同一行：拆成两行只是为了多占 20px -->
+        <TextBlock x:Name="RootPathText"
+                   Margin="0,0,0,6"
+                   Style="{StaticResource About.Path}"/>
+        <WrapPanel>
+            <Button Style="{StaticResource Button.Toolbar}"
+                    Content="{loc:Tr Key=About.Paths.Config}"
+                    Click="OnOpenConfigDir"/>
+            <Button Style="{StaticResource Button.Toolbar}"
+                    Content="{loc:Tr Key=About.Paths.Logs}"
+                    Click="OnOpenLogsDir"/>
+            <Button Style="{StaticResource Button.Toolbar}"
+                    Content="{loc:Tr Key=About.Paths.Data}"
+                    Click="OnOpenDataDir"/>
+        </WrapPanel>
+
+        <!-- ══ 诊断与更新 ══
+             两个动作各一颗按钮，说明放进 ToolTip：这一段本来就只有两句话，
+             摊成"标题 + 按钮 + 说明"三行会把整个页面撑出滚动条。 -->
+        <Border Style="{StaticResource Heading.Group}">
+            <TextBlock Style="{StaticResource Text.GroupTitle}"
+                       Text="{loc:Tr Key=About.Section.Tools}"/>
+        </Border>
+        <WrapPanel>
+            <Button Style="{StaticResource Button.Toolbar}"
+                    Content="{loc:Tr Key=About.Logs.Export}"
+                    ToolTip="{loc:Tr Key=About.Logs.Hint}"
+                    Click="OnExportLogs"/>
+            <Button Style="{StaticResource Button.Toolbar}"
+                    Content="{loc:Tr Key=About.Diagnostics.Copy}"
+                    ToolTip="{loc:Tr Key=About.Diagnostics.Hint}"
+                    Click="OnCopyDiagnostics"/>
+            <Button Style="{StaticResource Button.Toolbar}"
+                    Content="{loc:Tr Key=About.Update.Check}"
+                    ToolTip="{loc:Tr Key=About.Update.Hint}"
+                    Click="OnCheckUpdates"/>
+        </WrapPanel>
+
+        <!-- 隐私（FR-5.3.7）：与设置页同一段文案，两处说法必须一致。
+             不加小节标题——它是对上面那颗「检查更新」的说明，不是独立一栏。 -->
+        <TextBlock Margin="0,10,0,0"
+                   Style="{StaticResource Text.Caption.Wrap}"
+                   Text="{loc:Tr Key=Settings.About.Privacy}"/>
+
+        <!-- 操作结果就近显示。不预留高度：消息只在点了按钮之后出现，
+             而这时用户的目光正好停在这一段，页面末尾塌一行不会被察觉。 -->
+        <TextBlock x:Name="StatusText"
+                   Margin="0,8,0,0"
+                   TextTrimming="CharacterEllipsis"
+                   Style="{StaticResource Text.Caption}"/>
+    </StackPanel>
+</UserControl>

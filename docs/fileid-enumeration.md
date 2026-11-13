@@ -3,7 +3,7 @@
 - 结论：**可行，且成本低于预期。** `GetFileInformationByHandleEx(FileIdBothDirectoryInfo)` 一次调用
   同时给出名称、大小、修改时间、属性、FileId，不需要"先枚举再逐个查 FileId"。
 - 测量日期：2026-11-08
-- 探针：`tools/spike-fileid`（引用 `Lingpane.Core`，用真实 `DirectoryEnumerator` 做基线；不进 `Lingpane.sln`）
+- 探针：`tools/spike-fileid`（引用 `Jianlan.Core`，用真实 `DirectoryEnumerator` 做基线；不进 `Jianlan.sln`）
 - 环境：Windows 10.0.26300 · .NET 9.0 · D: 卷 NTFS 本地盘
 
 ---

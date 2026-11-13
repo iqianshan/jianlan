@@ -31,7 +31,7 @@
 
 **(1) 补全逻辑单独成类，放 Core，纯函数可测**
 
-`src/Lingpane.Core/Navigation/PathCompletion.cs`
+`src/Jianlan.Core/Navigation/PathCompletion.cs`
 
 ```
 输入文本 → 拆成 (目录部分, 词干)
@@ -105,7 +105,7 @@ UNC 与网络盘必然触发这条降级——宁可无候选，不可让地址�
 
 **(1) Core 加一个方法，与建文件夹同构**
 
-`src/Lingpane.Core/FileSystem/FileOperations.cs`
+`src/Jianlan.Core/FileSystem/FileOperations.cs`
 
 ```
 TryCreateFile(directory, name, out path, out error)
@@ -167,7 +167,7 @@ TryCreateFile(directory, name, out path, out error)
 
 **(1) 计算器**
 
-`src/Lingpane.Core/FileSystem/FolderSizeCalculator.cs`
+`src/Jianlan.Core/FileSystem/FolderSizeCalculator.cs`
 
 ```
 CountAsync(path, ct, progress)
@@ -299,7 +299,7 @@ CountAsync(path, ct, progress)
 
 **(2) COM 封装**
 
-`src/Lingpane.App/Shell/ShellContextMenu.cs`
+`src/Jianlan.App/Shell/ShellContextMenu.cs`
 
 ```
 SHParseDisplayName(path) → pidl

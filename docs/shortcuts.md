@@ -11,7 +11,7 @@
 > `Ctrl+Shift+Tab`、`Ctrl+1…8`、`Ctrl+9`）已可用，全部走**窗口表**（标签集合属于窗口，
 > 不属于某个窗格，见 `docs/pane-refactor.md` §7）。
 >
-> **实现方式**：键位表在 `Lingpane.App/Input/KeyBindings.cs`，采用**三入口**：
+> **实现方式**：键位表在 `Jianlan.App/Input/KeyBindings.cs`，采用**三入口**：
 >
 > 1. `Ctrl + ,` 单独走**系统热键**：窗口激活时 `RegisterHotKey`，失活立即注销，
 >    命中时收到 `WM_HOTKEY` 打开设置。验证过程见下方"为什么 Ctrl+, 要特殊处理"。
@@ -32,7 +32,7 @@
 > 因此不再猜：改用系统热键通道，由系统在分发按键之前处理，输入法与 WPF 的 Key 归一化全被绕过。
 > 代价是热键是系统级的，所以只在窗口激活期间持有，绝不长期占用。
 >
-> 排查工具：`Lingpane.exe --keydebug` 会把每条按键消息写进 `%LOCALAPPDATA%\Lingpane\logs\keydebug.log`
+> 排查工具：`Jianlan.exe --keydebug` 会把每条按键消息写进 `%LOCALAPPDATA%\Jianlan\logs\keydebug.log`
 > （物理键码、修饰键、焦点元素、命中的命令），默认关闭，不写盘。
 
 ## 1. 标签页
@@ -292,7 +292,7 @@ Tab 的实测顺序（单窗格、打开预览、选中一个文本文件）：
 
 实现要求：
 
-- 键位集中定义在 `Lingpane.App/Input/KeyBindings.cs`，禁止在 XAML 的 `InputBindings` 里散写
+- 键位集中定义在 `Jianlan.App/Input/KeyBindings.cs`，禁止在 XAML 的 `InputBindings` 里散写
 - 快捷键表与 `docs/shortcuts.md` 必须同源，改一处即改两处
 - 所有快捷键动作必须同时存在于右键菜单或工具栏，不做"只有快捷键才知道"的功能
 - **新键位必须进 `KeyBindings`**：设计上的主入口是 `WM_KEYDOWN` 钩子（避开输入法改写 Key），

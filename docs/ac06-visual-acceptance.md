@@ -28,7 +28,7 @@
 | 尺寸 | 主窗口 1400×900（物理像素），设置页 880×720 DIP（12pt 基准，随字号放大） |
 | 截图 | `tools/window-drive/window_drive.py`，`PrintWindow` 抓整窗 + 按 `visible=` 裁剪 |
 | 高对比度 | `SystemParametersInfo(SPI_SETHIGHCONTRAST)` 切系统开关，方案 `High Contrast Black` |
-| 字号 | 改 `%LOCALAPPDATA%\Lingpane\settings.json` 的 `appearance.fontSizePt`，每档冷启动一次 |
+| 字号 | 改 `%LOCALAPPDATA%\Jianlan\settings.json` 的 `appearance.fontSizePt`，每档冷启动一次 |
 | 脚本 | `D:\ac05\ac06.py`（主题 × 字号矩阵）、`ac06_font.py`（字体族）、`hc.ps1`（高对比度开关） |
 | 截图存档 | `D:\ac05\ac06\*.bmp` |
 
@@ -169,7 +169,7 @@ XamlParseException: 无法从文本"{x:Static SystemColors.WindowColor}"创建 C
 
 ```powershell
 # 1. 出产物（注意必须是 publish，不是 build——XAML 只在 publish 时重新打进资源）
-dotnet publish src/Lingpane.App/Lingpane.App.csproj -c Release -o publish
+dotnet publish src/Jianlan.App/Jianlan.App.csproj -c Release -o publish
 
 # 2. 普通主题 × 三档字号
 python D:\ac05\ac06.py light light
@@ -299,7 +299,7 @@ FR-10.11 把系统标题栏换成自绘：标签栏上移到标题栏位置，�
 |---|---|
 | 深色 · 常规页 | 内容恰好一屏，无滚动条；「启动」「新标签页」两组各有 hairline 切段 |
 | 深色 · 外观页 | 需滚动（控件最多的一页，640 高下比 720 时多滚约 1/3 屏） |
-| 深色 · 关于页 | 品牌图 32px + 版本、运行环境四行、许可三键、目录三键、诊断三键、隐私声明全部内嵌，无「关于 Lingpane」按钮 |
+| 深色 · 关于页 | 品牌图 32px + 版本、运行环境四行、许可三键、目录三键、诊断三键、隐私声明全部内嵌，无「关于 Jianlan」按钮 |
 | 浅色 · 外观页 | 分组 hairline 清晰（`#EFEFF2` on `#F7F7F9`），分组边界一眼可分 |
 | 24pt · 外观页 | 窗口按行高比放大后夹进工作区；导航文字不截断；内容可滚动 |
 | 对话框（确认框） | 440×150（描边 +2），标题条只有最小化与关闭，四周 1px `Brush.Border.Strong` 描边可见 |
@@ -320,7 +320,7 @@ FR-10.11 把系统标题栏换成自绘：标签栏上移到标题栏位置，�
 | 设置窗 | 800×640 | 760×600 | XAML `Width/Height` 与 `FitToFontScale` 基线同改 |
 | 页内边距 | `20,16,20,20` | `20,14,20,16` | 6 页统一；为抵掉 40px 的高度损失 |
 | 分组标题与线 | 线在标题上方 | 线在标题下方 | `Heading.Group` 改下边线，间距 上 14 / 线下 8 / 下 10 |
-| 关于页品牌区 | 图标 32 + 版本号 | 图标 40 + `Lingpane` + 版本/构建 | 名称走 `About.AppName`，无构建号时整行隐藏分隔点 |
+| 关于页品牌区 | 图标 32 + 版本号 | 图标 40 + `Jianlan` + 版本/构建 | 名称走 `About.AppName`，无构建号时整行隐藏分隔点 |
 | 地址栏段内边距 | 6,0,6,0 | 10,0,10,0 | 每段宽 +8px，段间分隔符间距不变 |
 | 框选后点空白 | 选中项保留 | 选中项清空 | 见下方实测 |
 
@@ -346,7 +346,7 @@ FR-10.11 把系统标题栏换成自绘：标签栏上移到标题栏位置，�
 | 深色 · 常规页 | 底部"新标签页默认目录"输入框完整可见，不再被底栏压住 |
 | 深色 · 外观页 | 仍需滚动（控件最多的一页），分组线在标题下方，两组之间的切段清晰 |
 | 浅色 · 外观页 | 线 `#EFEFF2` 落在 `#F7F7F9` 上仍可辨 |
-| 关于页 | `Lingpane` 与 `0.2.1` 两行；构建号在离屏环境（无 `InformationalVersion`）正确地连分隔点一起消失 |
+| 关于页 | `Jianlan` 与 `0.2.1` 两行；构建号在离屏环境（无 `InformationalVersion`）正确地连分隔点一起消失 |
 | 24pt | 窗口按行高比放大后夹进工作区，导航不截断，分组线位置不随字号漂移 |
 | 地址栏 | `C: › Users › 何彦征` 三段各留 10px 内边距，短路径下不再挤成一串 |
 
@@ -425,7 +425,7 @@ token 只是首帧初值。改这类尺寸必须改计算源，改 token 等于�
 
 ### 13.3 关于页
 
-品牌区第一行 `Lingpane 棂窗`，第二行 `0.2.1`。新增资源键 `About.AppNameZh`（中英两份 resx
+品牌区第一行 `Jianlan 简览`，第二行 `0.2.1`。新增资源键 `About.AppNameZh`（中英两份 resx
 同值，中文名是品牌的一部分，不随界面语言变）。
 
 ### 13.4 位置配置按钮
@@ -438,7 +438,7 @@ token 只是首帧初值。改这类尺寸必须改计算源，改 token 等于�
 代码修复：`Execute` 从 `ApplyTagAsync(TagColors.None)`（内部走 `ToggleTagAsync`，
 `mask ^ None` 恒等于原值）改为 `ClearTagsAsync()`，直设 `None` → `RemoveMany`。
 
-**已在发布版上真机点通**（`publish\Lingpane.exe`，提交 `2b323b6`）：
+**已在发布版上真机点通**（`publish\Jianlan.exe`，提交 `2b323b6`）：
 
 | 观察点 | 点击前 | 点击后 |
 |---|---|---|

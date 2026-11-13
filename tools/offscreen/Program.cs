@@ -11,11 +11,11 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using Lingpane.App;
-using Lingpane.App.ViewModels;
-using Lingpane.App.Views;
-using Lingpane.Core.FileSystem;
-using Lingpane.Core.Tagging;
+using Jianlan.App;
+using Jianlan.App.ViewModels;
+using Jianlan.App.Views;
+using Jianlan.Core.FileSystem;
+using Jianlan.Core.Tagging;
 
 namespace OffscreenShot;
 
@@ -595,8 +595,8 @@ internal static class Program
             {
                 if (navPath is not null)
                 {
-                    Console.WriteLine($"nav.slow={Lingpane.Core.FileSystem.SlowLocations.NeedsTimeout(navPath)} " +
-                                      $"unc={Lingpane.Core.FileSystem.SlowLocations.IsUnc(navPath)} path={navPath}");
+                    Console.WriteLine($"nav.slow={Jianlan.Core.FileSystem.SlowLocations.NeedsTimeout(navPath)} " +
+                                      $"unc={Jianlan.Core.FileSystem.SlowLocations.IsUnc(navPath)} path={navPath}");
                     var clock = System.Diagnostics.Stopwatch.StartNew();
                     await GetPane(window).ViewModel!.NavigateAsync(navPath);
                     Console.WriteLine($"nav.elapsed={clock.ElapsedMilliseconds}ms");
@@ -868,8 +868,8 @@ internal static class Program
                 {
                     if (fontSizePt > 0)
                     {
-                        Lingpane.App.App.Settings.Appearance.FontSizePt = fontSizePt;
-                        Lingpane.App.Typography.FontScaleService.Apply(fontSizePt, compact: false);
+                        Jianlan.App.App.Settings.Appearance.FontSizePt = fontSizePt;
+                        Jianlan.App.Typography.FontScaleService.Apply(fontSizePt, compact: false);
                         await Task.Delay(300);
                     }
 
@@ -953,7 +953,7 @@ internal static class Program
                     await Task.Delay(600);
 
                     if (typeof(MainWindow).GetField("_tabs", BindingFlags.NonPublic | BindingFlags.Instance)
-                            ?.GetValue(window) is Lingpane.App.ViewModels.TabHostViewModel tabs)
+                            ?.GetValue(window) is Jianlan.App.ViewModels.TabHostViewModel tabs)
                     {
                         tabs.ActivateAt(tabs.Tabs.Count - 1);
                         await tabs.Tabs[^1].ActivePane.NavigateAsync(extraTabPath);
@@ -967,7 +967,7 @@ internal static class Program
                     FieldInfo? tabsField = typeof(MainWindow).GetField("_tabs",
                         BindingFlags.NonPublic | BindingFlags.Instance);
 
-                    if (tabsField?.GetValue(window) is Lingpane.App.ViewModels.TabHostViewModel host)
+                    if (tabsField?.GetValue(window) is Jianlan.App.ViewModels.TabHostViewModel host)
                     {
                         host.ActivateAt(Math.Clamp(activeTabIndex, 0, Math.Max(0, host.Tabs.Count - 1)));
                         await Task.Delay(500);
@@ -1291,16 +1291,16 @@ internal static class Program
 
     private static void ApplyTheme(string name)
     {
-        Lingpane.Core.Settings.ThemeKind kind = name.ToLowerInvariant() switch
+        Jianlan.Core.Settings.ThemeKind kind = name.ToLowerInvariant() switch
         {
-            "light" => Lingpane.Core.Settings.ThemeKind.Light,
-            "dark" => Lingpane.Core.Settings.ThemeKind.Dark,
-            "highcontrast" => Lingpane.Core.Settings.ThemeKind.HighContrast,
-            _ => Lingpane.Core.Settings.ThemeKind.System,
+            "light" => Jianlan.Core.Settings.ThemeKind.Light,
+            "dark" => Jianlan.Core.Settings.ThemeKind.Dark,
+            "highcontrast" => Jianlan.Core.Settings.ThemeKind.HighContrast,
+            _ => Jianlan.Core.Settings.ThemeKind.System,
         };
 
         App.Settings.Appearance.Theme = kind;
-        Lingpane.App.Design.ThemeService.Apply(kind);
+        Jianlan.App.Design.ThemeService.Apply(kind);
     }
 
     private static Window OpenSettings(Window owner)
@@ -1457,7 +1457,7 @@ internal static class Program
     /// <summary>ico 里到底有几档。窗口只用其中一帧，数不到的档等于白做。</summary>
     private static void PrintIcoFrames()
     {
-        var uri = new Uri("pack://application:,,,/Lingpane;component/Assets/Brand/lingpane.ico");
+        var uri = new Uri("pack://application:,,,/Jianlan;component/Assets/Brand/jianlan.ico");
         var decoder = new IconBitmapDecoder(uri, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
 
         Console.WriteLine($"icon.ico.frames={decoder.Frames.Count} " +
@@ -1691,7 +1691,7 @@ internal static class Program
     private static async Task ExerciseTabDrop(Window window, List<string> paths, int targetIndex)
     {
         FieldInfo? tabsField = typeof(MainWindow).GetField("_tabs", BindingFlags.NonPublic | BindingFlags.Instance);
-        var host = tabsField?.GetValue(window) as Lingpane.App.ViewModels.TabHostViewModel;
+        var host = tabsField?.GetValue(window) as Jianlan.App.ViewModels.TabHostViewModel;
 
         object? target = null;
         if (host is not null && targetIndex >= 0 && targetIndex < host.Tabs.Count)
@@ -1717,7 +1717,7 @@ internal static class Program
     {
         FieldInfo? field = typeof(MainWindow).GetField("_tabs", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        if (field?.GetValue(window) is not Lingpane.App.ViewModels.TabHostViewModel host)
+        if (field?.GetValue(window) is not Jianlan.App.ViewModels.TabHostViewModel host)
         {
             Console.WriteLine($"tabs.{when}=(读不到 _tabs)");
             return;
@@ -1740,7 +1740,7 @@ internal static class Program
         FieldInfo? field = typeof(MainWindow).GetField("_tabs", BindingFlags.NonPublic | BindingFlags.Instance);
         object? tabs = field?.GetValue(window);
 
-        if (tabs is Lingpane.App.ViewModels.TabHostViewModel host)
+        if (tabs is Jianlan.App.ViewModels.TabHostViewModel host)
         {
             Console.WriteLine($"tabs.{when}=index:{host.ActiveIndex} count:{host.Tabs.Count}");
             return;
@@ -1952,7 +1952,7 @@ internal static class Program
 
         if (surface == IntPtr.Zero)
         {
-            Console.Error.WriteLine("没找到处理器窗口（LingpanePreviewSurface）");
+            Console.Error.WriteLine("没找到处理器窗口（JianlanPreviewSurface）");
             return;
         }
 
@@ -2224,7 +2224,7 @@ internal static class Program
             var name = new StringBuilder(64);
             Native.GetClassName(hwnd, name, name.Capacity);
 
-            if (!string.Equals(name.ToString(), "LingpanePreviewSurface", StringComparison.Ordinal)) return true;
+            if (!string.Equals(name.ToString(), "JianlanPreviewSurface", StringComparison.Ordinal)) return true;
 
             found = hwnd;
             return false;
@@ -2281,7 +2281,7 @@ internal static class Program
         if (confirm)
         {
             // 这条路要弹确认窗；离屏没有人能点，只报出问句本身
-            Console.WriteLine($"paste.question={Lingpane.Core.Localization.Strings.Dialog_OverwriteOne}");
+            Console.WriteLine($"paste.question={Jianlan.Core.Localization.Strings.Dialog_OverwriteOne}");
             return;
         }
 
@@ -2292,7 +2292,7 @@ internal static class Program
         await Task.Delay(400);
 
         // 剪贴板是应用自己的那份（不是系统的），内部类型，只能反射
-        Type clip = typeof(MainWindow).Assembly.GetType("Lingpane.App.Services.FileClipboard")
+        Type clip = typeof(MainWindow).Assembly.GetType("Jianlan.App.Services.FileClipboard")
             ?? throw new MissingMemberException("FileClipboard");
 
         MethodInfo? set = clip.GetMethod("Set", BindingFlags.Public | BindingFlags.Static);
@@ -2343,7 +2343,7 @@ internal static class Program
 
         if (sortField is not null)
         {
-            if (!Enum.TryParse<Lingpane.Core.Settings.SortFieldKind>(sortField, ignoreCase: true, out var field))
+            if (!Enum.TryParse<Jianlan.Core.Settings.SortFieldKind>(sortField, ignoreCase: true, out var field))
             {
                 throw new ArgumentException($"未知排序字段：{sortField}");
             }
@@ -2353,7 +2353,7 @@ internal static class Program
 
         if (viewName is null) return;
 
-        if (!Enum.TryParse<Lingpane.Core.Settings.DefaultViewKind>(viewName, ignoreCase: true, out var kind))
+        if (!Enum.TryParse<Jianlan.Core.Settings.DefaultViewKind>(viewName, ignoreCase: true, out var kind))
         {
             throw new ArgumentException($"未知视图：{viewName}");
         }
@@ -2375,7 +2375,7 @@ internal static class Program
     /// </summary>
     private static async Task ExerciseNewTabMode(MainWindow window, string mode)
     {
-        if (!Enum.TryParse<Lingpane.Core.Settings.NewTabModeKind>(mode, ignoreCase: true, out var kind))
+        if (!Enum.TryParse<Jianlan.Core.Settings.NewTabModeKind>(mode, ignoreCase: true, out var kind))
         {
             throw new ArgumentException($"未知的新标签模式：{mode}（可选 home / path / last）");
         }
@@ -2391,8 +2391,8 @@ internal static class Program
         newTab.Invoke(window, null);
         await Task.Delay(700);
 
-        Lingpane.App.ViewModels.TabHostViewModel host = GetTabs(window);
-        Lingpane.App.ViewModels.TabViewModel tab = host.Active ?? throw new MissingMemberException("TabHostViewModel.Active");
+        Jianlan.App.ViewModels.TabHostViewModel host = GetTabs(window);
+        Jianlan.App.ViewModels.TabViewModel tab = host.Active ?? throw new MissingMemberException("TabHostViewModel.Active");
 
         Console.WriteLine($"newtab.mode={kind}");
         Console.WriteLine($"newtab.tabs={host.Tabs.Count} index={host.ActiveIndex}");
@@ -2412,7 +2412,7 @@ internal static class Program
 
         foreach (string name in colors)
         {
-            if (!Enum.TryParse<Lingpane.Core.Tagging.TagColors>(name, ignoreCase: true, out var color))
+            if (!Enum.TryParse<Jianlan.Core.Tagging.TagColors>(name, ignoreCase: true, out var color))
             {
                 throw new ArgumentException($"未知颜色：{name}");
             }
@@ -2422,9 +2422,9 @@ internal static class Program
             Console.WriteLine($"tag.toggle={color} mask={pane.SelectionTagMask}");
         }
 
-        Console.WriteLine($"tag.selected={pane.SelectedEntries.Count} dotsMax={Lingpane.Core.Tagging.TagPalette.MaxDots}");
+        Console.WriteLine($"tag.selected={pane.SelectedEntries.Count} dotsMax={Jianlan.Core.Tagging.TagPalette.MaxDots}");
 
-        foreach (Lingpane.Core.FileSystem.FileEntry entry in pane.SelectedEntries)
+        foreach (Jianlan.Core.FileSystem.FileEntry entry in pane.SelectedEntries)
         {
             Console.WriteLine(
                 $"tag.entry={entry.Name} tags={entry.Tags} " +
@@ -2462,7 +2462,7 @@ internal static class Program
     /// </summary>
     private static MainWindow? ExerciseNewWindow(MainWindow window, int tabIndex)
     {
-        Lingpane.App.ViewModels.TabHostViewModel host = GetTabs(window);
+        Jianlan.App.ViewModels.TabHostViewModel host = GetTabs(window);
 
         int before = Application.Current.Windows.OfType<MainWindow>().Count();
         int index = tabIndex >= 0 ? Math.Clamp(tabIndex, 0, host.Tabs.Count - 1) : host.ActiveIndex;
@@ -2505,7 +2505,7 @@ internal static class Program
 
         for (int i = 0; i < windows.Length; i++)
         {
-            Lingpane.App.ViewModels.TabHostViewModel each = GetTabs(windows[i]);
+            Jianlan.App.ViewModels.TabHostViewModel each = GetTabs(windows[i]);
             Console.WriteLine(
                 $"newwin.window.{i}=tabs:{each.Tabs.Count} index:{each.ActiveIndex} " +
                 $"path:{each.Active?.Primary.CurrentPath}");
@@ -2523,7 +2523,7 @@ internal static class Program
     {
         App.Tags.EnsureLoaded();
 
-        int written = Lingpane.Core.Tagging.TagArchive.Write(App.Tags.Snapshot(), path);
+        int written = Jianlan.Core.Tagging.TagArchive.Write(App.Tags.Snapshot(), path);
         Console.WriteLine($"tag.export={path} written={written} store={App.Tags.Count}");
     }
 
@@ -2533,10 +2533,10 @@ internal static class Program
     /// </summary>
     private static void PrintTagImport(string path)
     {
-        Lingpane.Core.Tagging.TagArchiveDocument document = Lingpane.Core.Tagging.TagArchive.Read(path);
-        List<Lingpane.Core.Tagging.TagRecord> records = Lingpane.Core.Tagging.TagArchive.ToRecords(document);
+        Jianlan.Core.Tagging.TagArchiveDocument document = Jianlan.Core.Tagging.TagArchive.Read(path);
+        List<Jianlan.Core.Tagging.TagRecord> records = Jianlan.Core.Tagging.TagArchive.ToRecords(document);
 
-        Lingpane.Core.Tagging.TagImportResult result = App.Tags.Import(records);
+        Jianlan.Core.Tagging.TagImportResult result = App.Tags.Import(records);
 
         Console.WriteLine(
             $"tag.import={path} kind={document.Kind} version={document.Version} records={records.Count}");
@@ -2581,7 +2581,7 @@ internal static class Program
 
             foreach (object item in row.Children)
             {
-                if (item is System.Windows.Controls.TextBox { Tag: Lingpane.Core.Tagging.TagColors color } box)
+                if (item is System.Windows.Controls.TextBox { Tag: Jianlan.Core.Tagging.TagColors color } box)
                 {
                     Console.WriteLine($"settings.tagColorName.{color}={box.Text}");
                 }
@@ -2589,11 +2589,11 @@ internal static class Program
         }
     }
 
-    private static Lingpane.App.ViewModels.TabHostViewModel GetTabs(MainWindow window)
+    private static Jianlan.App.ViewModels.TabHostViewModel GetTabs(MainWindow window)
     {
         FieldInfo? field = typeof(MainWindow).GetField("_tabs", BindingFlags.NonPublic | BindingFlags.Instance);
 
-        return field?.GetValue(window) as Lingpane.App.ViewModels.TabHostViewModel
+        return field?.GetValue(window) as Jianlan.App.ViewModels.TabHostViewModel
             ?? throw new MissingMemberException("MainWindow._tabs");
     }
 
@@ -2732,7 +2732,7 @@ internal static class Program
 
     private static void SetFileClipboard(string[] paths)
     {
-        Type type = typeof(MainWindow).Assembly.GetType("Lingpane.App.Services.FileClipboard")
+        Type type = typeof(MainWindow).Assembly.GetType("Jianlan.App.Services.FileClipboard")
             ?? throw new MissingMemberException("FileClipboard");
 
         MethodInfo? set = type.GetMethod("Set", BindingFlags.Public | BindingFlags.Static);
@@ -3410,7 +3410,7 @@ internal static class Program
         var link = (IShellLinkW)new ShellLink();
         link.SetPath(target);
         link.SetWorkingDirectory(Path.GetDirectoryName(target) ?? string.Empty);
-        link.SetDescription("棂窗");
+        link.SetDescription("简览");
         link.SetIconLocation(target, 0);
 
         ((IPersistFile)link).Save(linkPath, true);
