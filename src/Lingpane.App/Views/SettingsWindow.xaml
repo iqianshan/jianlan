@@ -14,7 +14,7 @@
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         PreviewKeyDown="OnWindowPreviewKeyDown"
-        TextOptions.TextFormattingMode="Display">
+        TextOptions.TextFormattingMode="Ideal">
 
     <!--
         设置窗口 v2：左侧分类导航 + 右侧单页（docs/settings-layout.md）。

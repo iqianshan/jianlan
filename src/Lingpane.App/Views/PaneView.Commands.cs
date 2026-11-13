@@ -53,6 +53,13 @@ public partial class PaneView
     /// <summary>请求开关第二窗格。分屏是窗口形态，窗格只把意图告诉宿主（FR-3.3）。</summary>
     public event Action? SplitToggleRequested;
 
+    /// <summary>
+    /// 请求开关预览窗格（FR-9.1.1 的工具栏入口）。
+    /// 与分屏按钮同理：预览是窗口级的一栏，宽度、开关、分隔条都归宿主，
+    /// 窗格只把"用户按了这颗按钮"告诉它，出口仍是同一个 <c>TogglePreview</c>。
+    /// </summary>
+    public event Action? PreviewToggleRequested;
+
     internal CommandRegistry Commands => _commands;
 
     /// <summary>按 Id 执行本窗格的命令。快捷键派发用。</summary>

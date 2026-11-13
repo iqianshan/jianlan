@@ -305,6 +305,42 @@ public partial class PaneView : UserControl
     }
 
     /// <summary>
+    /// 预览窗格是否开着。与 <see cref="IsSplitActive"/> 同源：开关在宿主，
+    /// 窗格只负责把状态画成按钮的选中底色。
+    ///
+    /// 与"此刻是否真的看得见"刻意分开：主页与标签结果页没有可预览的选中项，
+    /// 那两种形态下预览栏一律收起，但开关本身仍然是开着的——切回目录标签要自动回来。
+    /// 按钮的选中态读这个字段，会让用户在主页也看得出"预览整体是开着的"。
+    /// </summary>
+    public static readonly DependencyProperty IsPreviewActiveProperty =
+        DependencyProperty.Register(
+            nameof(IsPreviewActive), typeof(bool), typeof(PaneView), new PropertyMetadata(false));
+
+    public bool IsPreviewActive
+    {
+        get => (bool)GetValue(IsPreviewActiveProperty);
+        set => SetValue(IsPreviewActiveProperty, value);
+    }
+
+    /// <summary>
+    /// 预览按钮此刻能不能点。非文件标签（主页 / 标签结果 / 工作区详情）下宿主置 false：
+    /// 那些形态里预览栏无处安放，按钮点下去什么也不会发生。
+    ///
+    /// 这里选择"禁用"而不是"点了没反应"：一颗亮着的按钮没反馈，用户只会以为功能坏了；
+    /// 而让它照常改写 <c>AppSettings.Appearance.ShowPreview</c> 更糟——用户在主页顺手点两下，
+    /// 设置页的勾选就被改掉了，前后状态对不上，且他并不知道自己改过。
+    /// </summary>
+    public static readonly DependencyProperty IsPreviewToggleEnabledProperty =
+        DependencyProperty.Register(
+            nameof(IsPreviewToggleEnabled), typeof(bool), typeof(PaneView), new PropertyMetadata(true));
+
+    public bool IsPreviewToggleEnabled
+    {
+        get => (bool)GetValue(IsPreviewToggleEnabledProperty);
+        set => SetValue(IsPreviewToggleEnabledProperty, value);
+    }
+
+    /// <summary>
     /// 是否显示工具栏上的分屏按钮。只有主窗格显示：
     /// 开关本身是窗口级的，两颗按钮同时出现会让人以为两个窗格能各分各的。
     /// </summary>
@@ -318,6 +354,25 @@ public partial class PaneView : UserControl
             SplitDivider.Visibility = visibility;
         }
     }
+
+    /// <summary>
+    /// 是否显示工具栏上的预览按钮。理由同 <see cref="ShowSplitButton"/>：
+    /// 预览是窗口级的一栏，分屏时两颗按钮会让人误以为两栏各有一个预览。
+    /// 与分屏按钮不同的是，它不跟着 <c>SplitDivider</c> 走——
+    /// 隐藏分屏按钮时那条分隔线要一起收，预览按钮自己不带线。
+    /// </summary>
+    public bool ShowPreviewButton
+    {
+        get => PreviewButton.Visibility == Visibility.Visible;
+        set => PreviewButton.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// 预览按钮点击。走 Click 而不是 Command：这颗按钮没有可执行性判断要做
+    /// （能不能点由宿主写的 <see cref="IsPreviewToggleEnabled"/> 决定，直接绑 IsEnabled），
+    /// 再包一层 <c>CommandAdapter</c> 只会让"为什么点不动"多一个排查入口。
+    /// </summary>
+    private void OnPreviewButtonClick(object sender, RoutedEventArgs e) => PreviewToggleRequested?.Invoke();
 
     /// <summary>宿主是否要求画焦点包边（只在分屏时）。</summary>
     private bool _outline;
@@ -413,6 +468,30 @@ public partial class PaneView : UserControl
         private set => SetValue(IsCompactPaneProperty, value);
     }
 
+    public static readonly DependencyProperty IsTightPaneProperty = DependencyProperty.Register(
+        nameof(IsTightPane),
+        typeof(bool),
+        typeof(PaneView),
+        new PropertyMetadata(false));
+
+    /// <summary>
+    /// 窗格窄到工具栏上所有按钮都摆不下。
+    ///
+    /// 与 <see cref="IsCompactPane"/> 的分工：压缩档只是把按钮的留白收紧，功能一个不少；
+    /// 极窄档则要**真的拿掉一些东西**，否则整条右列会被 Grid 裁掉半颗按钮——
+    /// 实测 1280 宽的窗口、预览拖到 475 宽时窗格只剩 310，右列固定部分约 329，
+    /// 最后那颗预览图标被切掉一大半，看着像渲染坏了。
+    ///
+    /// 这一档收起「详细」「列表」两个文字按钮：它们是"视图偏好"，不是"当下要完成的动作"，
+    /// 且快捷键（Ctrl+Shift+1 / 2）与列表右键菜单里都还有入口，功能没有真正丢失。
+    /// 导航、搜索、分屏、预览这些"动作型"按钮一律保留。
+    /// </summary>
+    public bool IsTightPane
+    {
+        get => (bool)GetValue(IsTightPaneProperty);
+        private set => SetValue(IsTightPaneProperty, value);
+    }
+
     /// <summary>
     /// 搜索框宽度分三档（FR-6.13）。分屏后每个窗格只有半个窗口，工具栏上还挤着
     /// 四个导航按钮、地址栏与三个视图按钮；搜索框固定 150 会把地址栏压到只剩几个像素，
@@ -427,14 +506,20 @@ public partial class PaneView : UserControl
     /// </summary>
     private void ApplySearchBoxWidth(double paneWidth, bool force = false)
     {
+        // 档位阈值 760/620 而不是 720/520：
+        // 工具栏右列在预览按钮之后固定占掉约 485（四个导航 144 + 搜索 128 + 详细列表 104
+        // + 分隔 13 + 分屏 36 + 预览 36 + 内边距 24），地址栏至少还要留 120 才看得见
+        // 一两段面包屑。620 以下的窗格继续用非压缩档会直接把预览按钮裁掉半颗——
+        // 实测 1024 宽的窗口开预览后窗格约 536，正好落在那个夹缝里。
         string key = paneWidth switch
         {
-            >= 720 => "Size.Search.Width",
-            >= 520 => "Size.Search.Width.Narrow",
+            >= 760 => "Size.Search.Width",
+            >= 620 => "Size.Search.Width.Narrow",
             _ => "Size.Search.Width.Compact",
         };
 
         IsCompactPane = key == "Size.Search.Width.Compact";
+        IsTightPane = paneWidth < 430;
 
         // 正在输入时不要把它缩回去：窗口被拖动/分屏切换都可能触发这里，
         // 缩到 40 会让用户看着自己的输入一半不见

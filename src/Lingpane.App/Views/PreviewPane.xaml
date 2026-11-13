@@ -5,7 +5,7 @@
              AutomationProperties.Name="{loc:Tr Key=A11y.Preview}"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True"
-             TextOptions.TextFormattingMode="Display"
+             TextOptions.TextFormattingMode="Ideal"
              TextOptions.TextRenderingMode="ClearType"
              TextOptions.TextHintingMode="Fixed">
 
@@ -85,7 +85,9 @@
                             ToolTip="{loc:Tr Key=Preview.Close.Tip}"
                             AutomationProperties.Name="{loc:Tr Key=Preview.Close.Tip}"
                             Click="OnCloseClick">
-                        <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="10" Text="&#xE711;"/>
+                        <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                   TextOptions.TextFormattingMode="Display"
+                                   Text="&#xE711;"/>
                     </Button>
                 </Grid>
 

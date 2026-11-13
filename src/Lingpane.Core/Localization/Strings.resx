@@ -62,6 +62,9 @@
   <data name="Toolbar.Split.Tip" xml:space="preserve">
     <value>Toggle split view (F3)</value>
   </data>
+  <data name="Toolbar.Preview.Tip" xml:space="preserve">
+    <value>Show preview pane (Alt+P)</value>
+  </data>
 
   <!-- 右键菜单 -->
   <!-- 标签页（FR-2） -->

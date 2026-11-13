@@ -58,6 +58,7 @@
                                        VerticalAlignment="Center"
                                        FontFamily="{StaticResource Font.Family.Icon}"
                                        FontSize="{DynamicResource Font.Size.Caption}"
+                                       TextOptions.TextFormattingMode="Display"
                                        Text="&#xE73E;"
                                        Visibility="Collapsed"/>
                             <ContentPresenter x:Name="HeaderHost"
@@ -80,6 +81,7 @@
                                        VerticalAlignment="Center"
                                        FontFamily="{StaticResource Font.Family.Icon}"
                                        FontSize="{DynamicResource Font.Size.Caption}"
+                                       TextOptions.TextFormattingMode="Display"
                                        Text="&#xE76C;"
                                        Visibility="Collapsed"/>
 

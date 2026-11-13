@@ -13,7 +13,7 @@
         Background="{DynamicResource Brush.Surface.Window}"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
-        TextOptions.TextFormattingMode="Display">
+        TextOptions.TextFormattingMode="Ideal">
 
     <!--
         只读文本查看窗，供 LICENSE / NOTICE / 第三方依赖清单共用（FR-10.8）。

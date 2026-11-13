@@ -57,6 +57,9 @@
   <data name="Toolbar.Split.Tip" xml:space="preserve">
     <value>切换双窗格（F3）</value>
   </data>
+  <data name="Toolbar.Preview.Tip" xml:space="preserve">
+    <value>显示预览窗格（Alt+P）</value>
+  </data>
 
   <!-- 标签页（FR-2） -->
   <data name="Tab.New.Tip" xml:space="preserve">

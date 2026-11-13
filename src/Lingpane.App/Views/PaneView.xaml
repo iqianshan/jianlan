@@ -9,7 +9,7 @@
              Background="{DynamicResource Brush.Surface.Window}"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True"
-             TextOptions.TextFormattingMode="Display"
+             TextOptions.TextFormattingMode="Ideal"
              TextOptions.TextRenderingMode="ClearType"
              TextOptions.TextHintingMode="Fixed">
 
@@ -39,6 +39,9 @@
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
+            <!-- 字形用 Display：Ideal 会把 14px 的箭头放到亚像素上，ClearType 就带出彩边
+                 （规则见 Typography.xaml 的 Text.Glyph） -->
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
             <Setter Property="Foreground"
                     Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"/>
         </Style>
@@ -71,6 +74,13 @@
                     <Setter Property="Padding" Value="4,0,4,0"/>
                     <Setter Property="Margin" Value="0,0,2,0"/>
                 </DataTrigger>
+                <!-- 极窄档收起：两颗文字按钮合计约 72px，是工具栏上唯一"可以让位"的部分。
+                     视图切换仍在 Ctrl+Shift+1/2 与列表右键菜单里。 -->
+                <DataTrigger Binding="{Binding IsTightPane,
+                                               RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
             </Style.Triggers>
         </Style>
 
@@ -86,6 +96,11 @@
                     <Setter Property="Padding" Value="4,0,4,0"/>
                     <Setter Property="Margin" Value="0,0,2,0"/>
                 </DataTrigger>
+                <DataTrigger Binding="{Binding IsTightPane,
+                                               RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
             </Style.Triggers>
         </Style>
 
@@ -100,6 +115,44 @@
                              Value="True">
                     <Setter Property="Background" Value="{DynamicResource Brush.Surface.Selected}"/>
                     <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnSelected}"/>
+                </DataTrigger>
+                <!-- 压缩态与导航按钮同宽：分屏与预览成对出现，两颗都停在 32 时
+                     极窄窗格会被挤掉半个按钮（见 PaneView.IsTightPane 的注释）。 -->
+                <DataTrigger Binding="{Binding IsCompactPane,
+                                               RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="Width" Value="26"/>
+                    <Setter Property="MinWidth" Value="26"/>
+                    <Setter Property="Margin" Value="0,0,2,0"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!--
+            预览窗格开关：与分屏按钮并排，同一套选中视觉。
+
+            选中态读 IsPreviewActive 而不是"预览栏是否可见"：非文件标签下预览栏会收起，
+            但开关本身是开着的。读可见性的话，用户切到主页就会看到按钮自己弹起来，
+            以为预览被关掉了。
+
+            压缩态收窄到 26 与导航按钮同宽（分屏按钮不参与这一档：
+            它常驻 32，因为再窄图标就贴边了。预览按钮的图标留白更多，26 放得下）。
+        -->
+        <Style x:Key="ViewButton.Preview" TargetType="Button" BasedOn="{StaticResource Button.Toolbar}">
+            <Setter Property="Width" Value="{DynamicResource Size.Row.Comfortable}"/>
+            <Setter Property="Padding" Value="0"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsPreviewActive, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Surface.Selected}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnSelected}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsCompactPane,
+                                               RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                             Value="True">
+                    <Setter Property="Width" Value="26"/>
+                    <Setter Property="MinWidth" Value="26"/>
+                    <Setter Property="Margin" Value="0,0,2,0"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -354,6 +407,7 @@
                                    VerticalAlignment="Center"
                                    FontFamily="Segoe MDL2 Assets"
                                    FontSize="12"
+                                   TextOptions.TextFormattingMode="Display"
                                    Foreground="{DynamicResource Brush.Text.Tertiary}"
                                    IsHitTestVisible="False"
                                    Text="&#xE721;">
@@ -406,6 +460,7 @@
                             </Button.Style>
                             <TextBlock FontFamily="Segoe MDL2 Assets"
                                        FontSize="9"
+                                       TextOptions.TextFormattingMode="Display"
                                        Text="&#xE711;"/>
                         </Button>
                     </Grid>
@@ -447,6 +502,38 @@
                                            Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                            StrokeThickness="1.4"/>
                                 <Line X1="9" Y1="4" X2="9" Y2="14"
+                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                                      StrokeThickness="1.4"/>
+                            </Canvas>
+                        </Viewbox>
+                    </Button>
+
+                    <!-- 预览窗格开关（FR-9.1.1）。图标与分屏按钮同一套画法，只改竖线位置：
+                         分屏是"对半分"（竖线在正中 x=9），预览是"右边一窄栏"（x=11）。
+                         右栏再加一层 22% 前景色的淡填充——只靠 2px 的竖线位置差，
+                         这两个方框图标在 18px 下几乎分不出来。
+                         IsEnabled 直接绑宿主的判断：非文件标签下置灰，不改变设置。 -->
+                    <Button x:Name="PreviewButton"
+                            Style="{StaticResource ViewButton.Preview}"
+                            Click="OnPreviewButtonClick"
+                            IsEnabled="{Binding IsPreviewToggleEnabled, RelativeSource={RelativeSource AncestorType={x:Type local:PaneView}}}"
+                            ToolTip="{loc:Tr Key=Toolbar.Preview.Tip}"
+                            AutomationProperties.Name="{loc:Tr Key=Toolbar.Preview.Tip}">
+                        <Viewbox Width="18" Height="18">
+                            <Canvas Width="18" Height="18">
+                                <!-- 填充先画：后画的描边压在它上面，边缘才不冒出直角。
+                                     0.32 是实测值：0.22 在深色主题下几乎看不出右栏存在，
+                                     两个方框就只剩"竖线差 2px"这一条区别了。 -->
+                                <Rectangle Canvas.Left="11.7" Canvas.Top="5.4"
+                                           Width="3.1" Height="7.2"
+                                           Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                                           Opacity="0.32"/>
+                                <Rectangle Canvas.Left="2" Canvas.Top="4"
+                                           Width="14" Height="10"
+                                           RadiusX="1.4" RadiusY="1.4"
+                                           Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
+                                           StrokeThickness="1.4"/>
+                                <Line X1="11" Y1="4.7" X2="11" Y2="13.3"
                                       Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"
                                       StrokeThickness="1.4"/>
                             </Canvas>

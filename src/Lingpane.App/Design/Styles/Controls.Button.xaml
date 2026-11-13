@@ -213,7 +213,10 @@
         <Setter Property="Padding" Value="0"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
         <Setter Property="FontFamily" Value="{DynamicResource Font.Family.Icon}"/>
-        <Setter Property="FontSize" Value="{DynamicResource Font.Size.WindowControl}"/>
+        <Setter Property="FontSize" Value="{DynamicResource Size.WindowControl}"/>
+        <!-- 字形用 Display：见 Typography.xaml 的 Text.Glyph。
+             窗口控制按钮是 10px 的细线，Ideal 下彩边最明显。 -->
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
         <Setter Property="Cursor" Value="Arrow"/>
         <Setter Property="SnapsToDevicePixels" Value="True"/>
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Inset}"/>

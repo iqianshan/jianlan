@@ -10,6 +10,22 @@
         禁止在界面里直接写 FontSize / FontFamily / LineHeight，一律套用下列样式。
     -->
 
+    <!--
+        文字渲染：Ideal 而不是 Display。
+
+        这行原来是 Display + Fixed + ClearType——那是"小字号锐利"的经典配方，
+        代价在 125% 这类非整倍 DPI 上立刻显形：Display 把字形对齐到**逻辑像素**网格，
+        而一个逻辑像素 = 1.25 个物理像素，对齐后的笔画边缘必然落在整数物理像素之外，
+        每条边都多一层灰阶过渡；Fixed 又把字形强行拟合回网格，
+        同一个字里横画可能 1px、竖画 2px，粗细分家。字号越大笔画越密，落网外的边越多，
+        于是"13pt 往上越来越粗糙"。浅色主题对比度高，这些灰边比深色主题刺眼得多。
+
+        Ideal 按字体轮廓出字形、位置允许亚像素，125% 下反而更干净：
+        13pt（21.7 物理像素）的笔画连续均匀，没有 Display 那种硬台阶（实测见 docs/ac06 §16）。
+
+        HintingMode 在 Ideal 下不参与计算，保留 Fixed 只是为了换回 Display 时不用再调一次；
+        图标字形（Text.Glyph）本来就是这个组合，全局统一后不再有例外。
+    -->
     <Style x:Key="Text.Base" TargetType="{x:Type TextBlock}">
         <Setter Property="FontFamily" Value="{DynamicResource Font.Family.UI}"/>
         <Setter Property="FontSize" Value="{DynamicResource Font.Size.Row}"/>
@@ -17,7 +33,7 @@
         <Setter Property="TextWrapping" Value="NoWrap"/>
         <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
-        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
         <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
         <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
     </Style>
@@ -127,13 +143,24 @@
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}"/>
     </Style>
 
-    <!-- 字体图标 -->
+    <!--
+        字体图标。
+
+        这里刻意用 Display，与正文的 Ideal 相反：MDL2 的字形是纯几何线条，
+        整像素网格才是它们该待的地方。Ideal 会把线条放到亚像素位置，
+        ClearType 随即把红/绿/蓝三色子像素暴露出来——实测最小化/最大化/关闭
+        三颗按钮的 × 与方框上出现一圈彩边，看着像渲染坏了。
+        字号也小（9~16px），Display 的锐利正是这种尺寸需要的。
+
+        规则收敛为一句：**正文用 Ideal，字形用 Display**。
+        凡是 FontFamily 指向 Font.Family.Icon 的样式，都要带上这一条。
+    -->
     <Style x:Key="Text.Glyph" TargetType="{x:Type TextBlock}">
         <Setter Property="FontFamily" Value="{DynamicResource Font.Family.Icon}"/>
         <Setter Property="FontSize" Value="{DynamicResource Size.Icon.Small}"/>
         <Setter Property="Foreground" Value="{DynamicResource Brush.Icon.Primary}"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
-        <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
     </Style>
 
 </ResourceDictionary>

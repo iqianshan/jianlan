@@ -51,6 +51,9 @@ public static class Strings
     /// <summary>Toggle split view (F3)</summary>
     public static string Toolbar_Split_Tip => LocalizationService.Instance.Get("Toolbar.Split.Tip");
 
+    /// <summary>Show preview pane (Alt+P)</summary>
+    public static string Toolbar_Preview_Tip => LocalizationService.Instance.Get("Toolbar.Preview.Tip");
+
     /// <summary>New tab (Ctrl+T)</summary>
     public static string Tab_New_Tip => LocalizationService.Instance.Get("Tab.New.Tip");
 

@@ -24,6 +24,7 @@
     T:<标题> <动作...>        这一步按标题找窗口（设置窗、对话框）
     set:VAR=VALUE             之后的步骤都带这个环境变量
     uia:<行序号>              按行序号选侧栏（AutomationId=QuickAccessList）
+    auiclick:<AutomationId>   按 AutomationId 调用按钮（WPF 的 x:Name 即 AutomationId）
     sleep:<秒>
 
 踩过的坑写在 docs/ac06-visual-acceptance.md 与 docs/ui-guidelines.md 规则 7.16 / 7.17。
@@ -38,6 +39,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 WD = os.path.join(HERE, "window_drive.py")
 SHOT = os.path.join(HERE, "fullshot.py")
 UIA = os.path.join(HERE, "uia_select.ps1")
+UIA_CLICK = os.path.join(HERE, "uia_click.ps1")
 
 
 def call_wd(pid, args, env):
@@ -103,6 +105,17 @@ def main() -> int:
                 args += ["-ListId", parts[1]]
             r = subprocess.run(args, capture_output=True, text=True, errors="replace", env=env)
             print(f"[uia {parts[0]}] {(r.stdout or '').strip()} {(r.stderr or '').strip()[:200]}")
+            time.sleep(1.2)
+            continue
+
+        if step.startswith("auiclick:"):
+            target = step[9:].strip()
+            r = subprocess.run(
+                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                 "-File", UIA_CLICK, "-TargetPid", str(proc.pid), "-AutomationId", target],
+                capture_output=True, text=True, errors="replace", env=env,
+            )
+            print(f"[auiclick {target}] {(r.stdout or '').strip()} {(r.stderr or '').strip()[:200]}")
             time.sleep(1.2)
             continue
 

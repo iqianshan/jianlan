@@ -4,7 +4,7 @@
              xmlns:loc="clr-namespace:Lingpane.App.Localization"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True"
-             TextOptions.TextFormattingMode="Display">
+             TextOptions.TextFormattingMode="Ideal">
 
     <!--
         关于内容（FR-10.8 / FR-10.9）。原来是一扇独立窗口，设置页只留一句摘要加一颗按钮；

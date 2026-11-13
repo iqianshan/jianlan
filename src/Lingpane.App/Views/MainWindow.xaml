@@ -12,7 +12,7 @@
         Background="{DynamicResource Brush.Surface.Window}"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
-        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextFormattingMode="Ideal"
         TextOptions.TextRenderingMode="ClearType"
         TextOptions.TextHintingMode="Fixed">
 
@@ -122,6 +122,7 @@
                              齿轮会让人以为要进设置页，实际只是勾选这一列显示哪几项。 -->
                         <TextBlock FontFamily="{DynamicResource Font.Family.Icon}"
                                    FontSize="{DynamicResource Font.Size.Caption}"
+                                   TextOptions.TextFormattingMode="Display"
                                    Text="{Binding MoreGlyph}"
                                    VerticalAlignment="Center"/>
                         <Button.ContextMenu>
@@ -351,6 +352,7 @@
                         AutomationProperties.Name="{loc:Tr Key=A11y.RowMenu}">
                     <TextBlock FontFamily="{DynamicResource Font.Family.Icon}"
                                FontSize="{DynamicResource Font.Size.Caption}"
+                               TextOptions.TextFormattingMode="Display"
                                Text="{Binding MoreGlyph}"
                                VerticalAlignment="Center"/>
                 </Button>
@@ -477,6 +479,7 @@
                         AutomationProperties.Name="{loc:Tr Key=A11y.RowMenu}">
                     <TextBlock FontFamily="{DynamicResource Font.Family.Icon}"
                                FontSize="{DynamicResource Font.Size.Caption}"
+                               TextOptions.TextFormattingMode="Display"
                                Text="{Binding MoreGlyph}"
                                VerticalAlignment="Center"/>
                 </Button>

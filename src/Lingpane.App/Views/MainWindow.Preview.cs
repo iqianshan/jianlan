@@ -33,6 +33,11 @@ public partial class MainWindow
         _preview.AutoPreview = App.Settings.Behavior.PreviewAutoOpen;
         Preview.Attach(_preview);
 
+        // 工具栏入口（FR-9.1.1）。预览是窗口级的一栏，所以只在主窗格放一颗按钮：
+        // 分屏时两颗会让人以为两个窗格能各开各的预览。
+        Pane.PreviewToggleRequested += TogglePreview;
+        Pane2.ShowPreviewButton = false;
+
         // 选中变化由窗格自己发（含"清空"与"恢复上次选中"两种来源），窗口只负责转交。
         // 不在窗口里挂每个 PaneViewModel 的属性通知：窗格会随标签被换掉，
         // 那份订阅要在四处解绑，漏一处就是"切标签后预览不更新"。
@@ -44,6 +49,10 @@ public partial class MainWindow
         // 预览这边再加一套就会变成两处行为逐渐不一致。
         Preview.ActionRequested += OnPreviewAction;
         Preview.CloseRequested += ClosePreview;
+
+        // 首帧之前就把按钮点亮：工具栏在构造期已建好，等 ApplyPreviewLayout 再同步
+        // 会让"上次关着预览"的窗口先闪一下选中态（或反过来）。
+        SyncPreviewButton();
     }
 
     private void OnPreviewAction(FileEntry entry, PreviewAction action)
@@ -95,6 +104,9 @@ public partial class MainWindow
     /// </summary>
     private void ApplyPreviewLayout()
     {
+        // 先同步按钮：置灰与否取决于当前标签形态，而这个方法正好在每次形态变化时被调
+        SyncPreviewButton();
+
         bool visible = _previewOpen && Tab.Kind == TabKind.Files;
 
         if (!visible)
@@ -119,8 +131,45 @@ public partial class MainWindow
         Preview.Visibility = Visibility.Visible;
     }
 
+    /// <summary>
+    /// 工具栏预览按钮的选中态与可用态（FR-9.1.1）。
+    ///
+    /// 选中态读"用户意图"（<see cref="_previewOpen"/>），不读预览栏是否可见：
+    /// 切到主页时预览栏会收起，两者混成一个字段的话，按钮会自己弹起来，
+    /// 用户会以为预览被关掉了，回到目录又莫名其妙地出现。
+    ///
+    /// 可用态只在目录标签下为 true。主页与标签结果页没有路径，也没有可预览的选中项，
+    /// 预览栏在那里无处安放——此时若还让按钮可点，它只会改写
+    /// <c>AppSettings.Appearance.ShowPreview</c> 而对界面毫无影响，
+    /// 用户既看不到变化，也不知道自己改过设置，下次打开设置页才发现勾被动了。
+    /// 置灰是这里唯一诚实的选择：不能做的操作，就别让它看起来能做。
+    /// </summary>
+    private void SyncPreviewButton()
+    {
+        bool canToggle = Tab.Kind == TabKind.Files;
+
+        Pane.IsPreviewActive = _previewOpen;
+        Pane.IsPreviewToggleEnabled = canToggle;
+
+        // 副窗格的按钮是 Collapsed，这里的同步只为状态一致：
+        // 以后若允许两侧各显示一颗，不会出现"切过分屏才正确"的错位。
+        Pane2.IsPreviewActive = _previewOpen;
+        Pane2.IsPreviewToggleEnabled = canToggle;
+    }
+
     /// <summary>Alt+P / Ctrl+Shift+P：开关预览（FR-9.1.1）。</summary>
-    private void TogglePreview() => SetPreviewOpen(!_previewOpen);
+    private void TogglePreview()
+    {
+        // 非目录标签下快捷键与按钮一样不作数：不弹提示、不改设置。
+        // 命令的 CanExecute 已经拦过一次，这里再挡一次是因为 Alt+P 走的是
+        // KeyBindings 的显式派发表，不经过命令表。
+        if (!CanTogglePreview()) return;
+
+        SetPreviewOpen(!_previewOpen);
+    }
+
+    /// <summary>当前标签是否允许开合预览。按钮的 IsEnabled 与命令的可执行性共用这一条判断。</summary>
+    private bool CanTogglePreview() => Tab.Kind == TabKind.Files;
 
     /// <summary>
     /// 把预览窗格设成开或关，并让"设置页那颗勾选框"跟上（FR-9.1.5 的同步要求）。
@@ -195,6 +244,9 @@ public partial class MainWindow
             TitleFactory = () => Strings.Command_TogglePreview,
             Gesture = "Alt+P",
             Execute = TogglePreview,
+            // 非目录标签下这条命令不可执行：命令面板/菜单里它会灰着，
+            // 而不是点下去悄悄改掉设置里那个勾。
+            CanExecute = CanTogglePreview,
         });
     }
 }

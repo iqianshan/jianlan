@@ -12,7 +12,7 @@
         Background="{DynamicResource Brush.Surface.Window}"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
-        TextOptions.TextFormattingMode="Display">
+        TextOptions.TextFormattingMode="Ideal">
 
     <!--
         为什么不直接用 MessageBox：MessageBox 的按钮文字由 Windows 系统语言决定，

@@ -13,7 +13,7 @@
         Background="{DynamicResource Brush.Surface.Window}"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
-        TextOptions.TextFormattingMode="Display">
+        TextOptions.TextFormattingMode="Ideal">
 
     <!--
         通用文本输入框（新建文件夹 / 重命名）。
