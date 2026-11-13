@@ -65,6 +65,49 @@ public static class PathRules
         return path[0] == '\\' && path[1] == '\\';
     }
 
+    /// <summary>
+    /// 把外部给的路径整理成唯一写法：分隔符统一、去掉重复分隔符与 <c>.</c> / <c>..</c> 段、
+    /// 去掉结尾分隔符（盘根与 UNC 根除外），并去掉首尾空白与包裹的引号。
+    ///
+    /// 为什么必须有这一步：地址栏允许手输，<c>D:/work</c>、<c>D:\\work\\</c>、
+    /// <c>D:\work\.\sub</c> 都能打开，但会以原样写进当前路径，于是面包屑、后退栈、
+    /// 最近访问、标签、复制出来的路径各留一份写法不同的"同一个目录"。
+    /// 路径比较虽然忽略大小写，但不会忽略 <c>//</c> 与结尾斜杠——去重与"是不是同一个目录"
+    /// 的判定会在这些写法上出错。
+    ///
+    /// 只做字符串运算，不访问磁盘：<see cref="Path.GetFullPath(string)"/> 自 .NET Core
+    /// 起是纯计算，网络路径也不会因为它而阻塞。非法字符（<c>?</c> <c>|</c> 等）与
+    /// 孤立 UNC 前缀（<c>\\server</c>）会抛异常，此时退回"只统一分隔符"的结果——
+    /// 让真正打开目录那一步去报错，而不是在这里把用户输入改成别的东西。
+    /// </summary>
+    public static string Normalize(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return string.Empty;
+
+        // 从资源管理器"复制路径"粘过来常带引号，地址栏里出现过就一并去掉
+        string value = path.Trim().Trim('"');
+        if (value.Length == 0) return string.Empty;
+
+        // 先统一分隔符：GetFullPath 抛异常时回落的结果也要是规范形态
+        value = value.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
+        // 裸盘符 "D:" 是"该盘当前目录"的相对写法，用户想的是盘根
+        if (value.Length == 2 && value[1] == ':' && char.IsAsciiLetter(value[0]))
+            return value + Path.DirectorySeparatorChar;
+
+        try
+        {
+            return TrimSeparators(Path.GetFullPath(value));
+        }
+        catch (Exception ex) when (ex is ArgumentException
+                                    or NotSupportedException
+                                    or PathTooLongException
+                                    or System.Security.SecurityException)
+        {
+            return TrimSeparators(value);
+        }
+    }
+
     /// <summary>去掉结尾的分隔符，但保留根路径本身的 <c>C:\</c> 形态。</summary>
     public static string TrimSeparators(string value)    {
         string trimmed = value.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);

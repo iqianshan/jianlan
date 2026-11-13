@@ -280,9 +280,14 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     /// <summary>只设置路径与标题，不读盘。激活这个标签时才会真正枚举。</summary>
     public void PreparePendingPath(string path)
     {
-        CurrentPath = path;
-        AddressText = path;
-        Breadcrumbs = Breadcrumb.Build(path);
+        // 会话文件里可能是旧版本写下的写法（D:/x）：这里先规范一次，
+        // 标签标题与悬浮提示才不会和激活后导航到的路径各写一种。
+        string normalized = PathRules.Normalize(path);
+        if (normalized.Length == 0) return;
+
+        CurrentPath = normalized;
+        AddressText = normalized;
+        Breadcrumbs = Breadcrumb.Build(normalized);
         HasPendingContent = true;
     }
 
@@ -433,7 +438,13 @@ public sealed class PaneViewModel : INotifyPropertyChanged
     {
         if (string.IsNullOrWhiteSpace(path)) return;
 
-        string target = path.Trim().Trim('"');
+        // 入口统一规范化：地址栏手输的 D:/work、D:\\work\\、D:\work\.\sub 都能打开，
+        // 但写进当前路径后会被面包屑、后退栈、最近访问、标签、复制路径各自带走一份。
+        // 放在这里而不是地址栏，是为了让所有入口（侧栏、双击、拖放、命令行、会话恢复）
+        // 共用同一条规则，不依赖每个调用方自己记得整理。
+        string target = PathRules.Normalize(path);
+        if (target.Length == 0) return;
+
         int token = ++_navigationToken;
 
         // 换目录时搜索失效：搜索的范围是"这个目录里的这些条目"，换个目录还留着词

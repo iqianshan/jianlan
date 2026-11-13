@@ -770,9 +770,19 @@ public partial class PaneView : UserControl
         switch (e.Key)
         {
             case Key.Enter:
-                string target = AddressBox.Text;
+                // 先规范化再查存在性：Directory.Exists 认 D://work 这种写法，
+                // 但提示与后续导航都该用规范形态，否则用户看到的和他输进去的不一致
+                string target = PathRules.Normalize(AddressBox.Text);
                 EndAddressEdit();
-                if (!string.IsNullOrWhiteSpace(target) && !Directory.Exists(target))
+
+                // 空输入等同取消，不导航也不报错
+                if (target.Length == 0)
+                {
+                    e.Handled = true;
+                    break;
+                }
+
+                if (!Directory.Exists(target))
                 {
                     _viewModel.SetHint(string.Format(Strings.Hint_PathNotFound, target));
                     return;

@@ -62,4 +62,48 @@ public class PathRulesTests
     [InlineData(@"", false)]
     public void IsLocalDrivePath_只认本地盘绝对路径(string path, bool expected)
         => Assert.Equal(expected, PathRules.IsLocalDrivePath(path));
+
+    // ── Normalize ──────────────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData(@"D:/work", @"D:\work")]              // 正斜杠
+    [InlineData(@"D:\\work", @"D:\work")]             // 重复分隔符
+    [InlineData(@"D:\work\", @"D:\work")]             // 结尾分隔符
+    [InlineData(@"D:\work\.", @"D:\work")]            // 当前目录段
+    [InlineData(@"D:\work\sub\..", @"D:\work")]       // 上级目录段
+    [InlineData(@"  D:\work  ", @"D:\work")]          // 首尾空白
+    [InlineData("\"D:\\work\"", @"D:\work")]          // 从"复制路径"粘来的引号
+    [InlineData(@"D:", @"D:\")]                       // 裸盘符是盘根，不是"该盘当前目录"
+    [InlineData(@"D:\", @"D:\")]                      // 盘根保留分隔符
+    public void Normalize_整理成唯一写法(string input, string expected)
+        => Assert.Equal(expected, PathRules.Normalize(input));
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\"\"")]
+    public void Normalize_空输入返回空串(string input)
+        => Assert.Equal(string.Empty, PathRules.Normalize(input));
+
+    [Fact]
+    public void Normalize_幂等()
+    {
+        string once = PathRules.Normalize(@"D:/work/./sub/");
+        Assert.Equal(once, PathRules.Normalize(once));
+    }
+
+    [Fact]
+    public void Normalize_UNC路径去掉结尾分隔符且不联网()
+    {
+        // GetFullPath 只做字符串处理：对方离线也不会阻塞，这条用例在断网机器上同样成立
+        Assert.Equal(@"\\srv\share\dir", PathRules.Normalize(@"\\srv\share\dir\"));
+        Assert.Equal(@"\\srv\share", PathRules.Normalize(@"\\srv\share"));
+    }
+
+    [Fact]
+    public void Normalize_非法字符不抛异常只保留原样()
+    {
+        // 打不开的路径交给 Directory.Exists 报错，规范化这一步不该提前炸掉
+        Assert.Equal(@"D:\a|b", PathRules.Normalize(@"D:/a|b"));
+    }
 }
