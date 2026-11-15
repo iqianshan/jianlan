@@ -28,11 +28,21 @@ import json
 import os
 import random
 import shutil
+import signal
 import sys
 import time
 from ctypes import wintypes
 from datetime import datetime, timedelta
 from pathlib import Path
+
+# 驱动自己会发 Ctrl+C（"复制粘贴"动作）。焦点没抢到时，这个按键落在跑本脚本的
+# 控制台窗口上，会把压测本体一起带走——现场表现为进程无汇总地消失，
+# 计划任务 LastTaskResult = 0xC000013A（STATUS_CONTROL_C_EXIT）。
+# 压测期间一律忽略 Ctrl+C，只能从外部结束进程。
+try:
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+except Exception:
+    pass
 
 ROOT = Path(__file__).resolve().parents[2]
 
