@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using Jianlan.App.Shell;
 using Jianlan.Core.Localization;
 
 namespace Jianlan.App.Views;
@@ -25,6 +26,11 @@ public partial class ConfirmWindow : Window
         // 而崩溃前最后一个动作就是弹出本窗口（属性/F2 提示）。关掉它，
         // 这条链上就少一次无谓的焦点切换。主窗口早已按同一理由关掉（App.xaml.cs）。
         InputMethod.SetIsInputMethodEnabled(this, false);
+
+        // 关窗前主动摘掉 IMM 关联。该窗只有文本和按钮，没有任何输入需求，
+        // 却每次属性面板/提示都要新建一个 HWND；不松手就销毁，输入法的界面元素
+        // 会留在已失效的输入上下文上（见 Shell/ImeFocusRelease.cs）。
+        ImeFocusRelease.Attach(this);
     }
 
     /// <summary>

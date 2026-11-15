@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using Jianlan.App.Shell;
 
 namespace Jianlan.App.Views;
 
@@ -21,6 +22,11 @@ public partial class TextPromptWindow : Window
         // 而 TSF 的焦点通知正是 DirectUI 崩溃栈的入口（详见 ConfirmWindow 注释）。
         InputMethod.SetIsInputMethodEnabled(this, false);
         InputMethod.SetIsInputMethodEnabled(Input, true);
+
+        // 关窗前主动摘掉 IMM 关联：窗口每次都是新 HWND、关即销毁，而输入法会把
+        // 自己的界面元素挂在那个输入上下文上。不松手就销毁，元素留在链表里，
+        // 下一次按键在 CtfImeToAsciiEx 里写到已摘除的节点（AC-03 原生 AV）。
+        ImeFocusRelease.Attach(this);
     }
 
     public string Value => Input.Text.Trim();
