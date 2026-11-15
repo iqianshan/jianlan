@@ -1,0 +1,923 @@
+r"""AC-03 / NF-06 八小时稳定性压测。
+
+判定口径（docs/requirements.md §12 AC-03 + NF-06）：
+    0 崩溃、0 未处理异常；句柄增长 < 10%；GDI 对象 < 2000。
+
+设计要点：
+1. **独立数据目录**。被测 exe 复制到 `--work\app\`，旁边放 `portable.flag`，
+   于是设置/收藏/标签/会话全落在 `--work\app\data\`。压测会反复收藏、改主题、
+   新建文件，绝不能把这些写进用户真实的 %LOCALAPPDATA%。
+2. **只动沙箱目录**。所有文件操作发生在 `--work\sandbox\`，被测应用每轮被
+   `Ctrl+L` 拉回这里；删除类动作后面紧跟 `Ctrl+Z`，回收站不会越堆越大。
+3. **键盘驱动**。全部走键位表（docs/shortcuts.md），不依赖像素坐标——窗口一改大小
+   或换字号，按坐标点的动作就漂了，压测会变成"测鼠标"。
+4. **边跑边采样**。每 `--sample` 秒记一次私有提交、工作集、句柄、GDI、USER 对象、线程数；
+   进程消失或有未处理异常即停，现场落盘。
+
+用法：
+    python tools/ac03/run_ac03.py --hours 8
+    python tools/ac03/run_ac03.py --hours 0.05          # 冒烟（3 分钟）
+    python tools/ac03/run_ac03.py --hours 8 --exe publish/Jianlan.exe --work D:\\ac03
+"""
+
+from __future__ import annotations
+
+import argparse
+import ctypes
+import json
+import os
+import random
+import shutil
+import sys
+import time
+from ctypes import wintypes
+from datetime import datetime, timedelta
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+
+user32 = ctypes.WinDLL("user32", use_last_error=True)
+kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+psapi = ctypes.WinDLL("psapi", use_last_error=True)
+
+# ── 常量 ────────────────────────────────────────────────────────────────────
+INPUT_KEYBOARD = 1
+KEYEVENTF_KEYUP = 0x0002
+KEYEVENTF_UNICODE = 0x0004
+SMTO_ABORTIFHUNG = 0x0002
+WM_NULL = 0x0000
+WM_CLOSE = 0x0010
+PROCESS_QUERY_INFORMATION = 0x0400
+PROCESS_VM_READ = 0x0010
+ES_CONTINUOUS = 0x80000000
+ES_SYSTEM_REQUIRED = 0x00000001
+
+VK = {
+    "back": 0x08, "tab": 0x09, "enter": 0x0D, "esc": 0x1B,
+    "left": 0x25, "up": 0x26, "right": 0x27, "down": 0x28,
+    "delete": 0x2E, "f2": 0x71, "f3": 0x72, "f5": 0x74,
+    "ctrl": 0x11, "alt": 0x12, "shift": 0x10,
+    "l": 0x4C, "c": 0x43, "v": 0x56, "x": 0x58, "a": 0x41,
+    "f": 0x46, "d": 0x44, "t": 0x54, "w": 0x57, "n": 0x4E,
+    "m": 0x4D, "z": 0x5A, "p": 0x50, "app": 0x5D,
+    "1": 0x31, "2": 0x32,
+}
+
+
+# ── SendInput ───────────────────────────────────────────────────────────────
+class KEYBDINPUT(ctypes.Structure):
+    _fields_ = [
+        ("wVk", wintypes.WORD), ("wScan", wintypes.WORD), ("dwFlags", wintypes.DWORD),
+        ("time", wintypes.DWORD), ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
+    ]
+
+
+class MOUSEINPUT(ctypes.Structure):
+    _fields_ = [
+        ("dx", wintypes.LONG), ("dy", wintypes.LONG), ("mouseData", wintypes.DWORD),
+        ("dwFlags", wintypes.DWORD), ("time", wintypes.DWORD),
+        ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
+    ]
+
+
+class HARDWAREINPUT(ctypes.Structure):
+    _fields_ = [("uMsg", wintypes.DWORD), ("wParamL", wintypes.WORD), ("wParamH", wintypes.WORD)]
+
+
+class _INPUTUNION(ctypes.Union):
+    _fields_ = [("ki", KEYBDINPUT), ("mi", MOUSEINPUT), ("hi", HARDWAREINPUT)]
+
+
+class INPUT(ctypes.Structure):
+    _fields_ = [("type", wintypes.DWORD), ("u", _INPUTUNION)]
+
+
+def _key_event(vk: int, up: bool, unicode: bool = False, scan: int = 0) -> INPUT:
+    inp = INPUT(type=INPUT_KEYBOARD)
+    flags = KEYEVENTF_KEYUP if up else 0
+    if unicode:
+        flags |= KEYEVENTF_UNICODE
+        inp.u.ki = KEYBDINPUT(0, scan, flags, 0, None)
+    else:
+        inp.u.ki = KEYBDINPUT(vk, 0, flags, 0, None)
+    return inp
+
+
+def _send(*inputs: INPUT) -> None:
+    arr = (INPUT * len(inputs))(*inputs)
+    user32.SendInput(len(inputs), arr, ctypes.sizeof(INPUT))
+
+
+def key(name: str, ctrl: bool = False, alt: bool = False, shift: bool = False) -> None:
+    vk = VK[name]
+    mods = [VK["ctrl"]] if ctrl else []
+    mods += [VK["alt"]] if alt else []
+    mods += [VK["shift"]] if shift else []
+    seq = [_key_event(m, False) for m in mods]
+    seq.append(_key_event(vk, False))
+    seq.append(_key_event(vk, True))
+    seq += [_key_event(m, True) for m in reversed(mods)]
+    _send(*seq)
+
+
+def chord(*names: str) -> None:
+    """chord("ctrl", "shift", "n") —— 最后一个键是主键。"""
+    main = names[-1]
+    mods = set(names[:-1])
+    key(main, ctrl="ctrl" in mods, alt="alt" in mods, shift="shift" in mods)
+
+
+def type_text(text: str) -> None:
+    seq = []
+    for ch in text:
+        seq.append(_key_event(0, False, unicode=True, scan=ord(ch)))
+        seq.append(_key_event(0, True, unicode=True, scan=ord(ch)))
+    _send(*seq)
+
+
+# ── 窗口与进程 ──────────────────────────────────────────────────────────────
+WNDENUMPROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+
+def _visible_rect(hwnd: int):
+    r = wintypes.RECT()
+    user32.GetWindowRect(hwnd, ctypes.byref(r))
+    return r.left, r.top, r.right - r.left, r.bottom - r.top
+
+
+def main_window(pid: int, min_width: int = 400) -> int:
+    found = []
+
+    def cb(hwnd, _):
+        if not user32.IsWindowVisible(hwnd):
+            return True
+        p = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(p))
+        if p.value != pid:
+            return True
+        cls = ctypes.create_unicode_buffer(256)
+        user32.GetClassNameW(hwnd, cls, 256)
+        if "HwndWrapper" not in cls.value:
+            return True
+        l, t, w, h = _visible_rect(hwnd)
+        if w >= min_width and h >= 300:
+            found.append((w * h, hwnd))
+        return True
+
+    user32.EnumWindows(WNDENUMPROC(cb), 0)
+    return max(found)[1] if found else 0
+
+
+def list_windows(pid: int) -> list:
+    """列出该进程全部顶层窗口（含隐藏），崩溃取证用。
+
+    崩溃栈落在 `DirectUI::HWNDElement::OnInput`，而 DirectUI 不是 WPF 的窗口类——
+    它只可能来自进程内托管的 shell 属性表或输入法候选窗。把崩溃前一刻进程里到底
+    挂着哪些 DirectUI 窗口记下来，才能确定那个被摘除的元素属于谁。
+    """
+    found = []
+
+    def cb(hwnd, _):
+        p = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(p))
+        if p.value != pid:
+            return True
+        cls = ctypes.create_unicode_buffer(256)
+        user32.GetClassNameW(hwnd, cls, 256)
+        title = ctypes.create_unicode_buffer(256)
+        user32.GetWindowTextW(hwnd, title, 256)
+        found.append({
+            "hwnd": hwnd,
+            "cls": cls.value,
+            "title": title.value,
+            "visible": bool(user32.IsWindowVisible(hwnd)),
+        })
+        return True
+
+    user32.EnumWindows(WNDENUMPROC(cb), 0)
+    return found
+
+
+def focus(hwnd: int) -> bool:
+    """把窗口抢到前台。
+
+    `SetForegroundWindow` 对"非子进程"会被前台锁直接拒绝，按键就静默发给了别的窗口——
+    冒烟时表现为"动作全都跑了，沙箱里一个文件都没多"。必须先把输入队列挂到目标线程
+    与当前前台窗口的线程上再抢，失败再退回 `SwitchToThisWindow`。
+    """
+    target_thread = user32.GetWindowThreadProcessId(hwnd, None)
+    current_thread = kernel32.GetCurrentThreadId()
+    fg = user32.GetForegroundWindow()
+    fg_thread = user32.GetWindowThreadProcessId(fg, None) if fg else 0
+
+    attach = [t for t in {fg_thread, target_thread} if t]
+    for t in attach:
+        user32.AttachThreadInput(current_thread, t, True)
+    try:
+        user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+        user32.BringWindowToTop(hwnd)
+        user32.SetForegroundWindow(hwnd)
+        user32.SetFocus(hwnd)
+        time.sleep(0.2)
+        if user32.GetForegroundWindow() != hwnd:
+            user32.SwitchToThisWindow(hwnd, True)
+            time.sleep(0.3)
+    finally:
+        for t in attach:
+            user32.AttachThreadInput(current_thread, t, False)
+    return user32.GetForegroundWindow() == hwnd
+
+
+def window_title(hwnd: int) -> str:
+    buf = ctypes.create_unicode_buffer(512)
+    user32.GetWindowTextW(hwnd, buf, 512)
+    return buf.value
+
+
+def responsive(hwnd: int) -> bool:
+    """WM_NULL 有回音即意味着消息泵没卡死（1 秒超时）。"""
+    res = ctypes.c_size_t(0)
+    ret = user32.SendMessageTimeoutW(
+        hwnd, WM_NULL, 0, 0, SMTO_ABORTIFHUNG, 1000, ctypes.byref(res))
+    return bool(ret)
+
+
+WM_INPUTLANGCHANGEREQUEST = 0x0050
+KLF_ACTIVATE = 0x0001
+
+
+def window_lang(hwnd: int) -> str:
+    """窗口所在线程当前的键盘布局，用于确认输入语言真的换了。"""
+    tid = user32.GetWindowThreadProcessId(hwnd, None)
+    hkl = user32.GetKeyboardLayout(tid)
+    return f"{(hkl or 0) & 0xFFFF:04x}"
+
+
+def force_input_language(hwnd: int, tag: str) -> tuple[bool, str]:
+    """把被测窗口的输入语言钉到指定布局，返回 (是否生效, 生效后的布局)。
+
+    存在的理由：这台机器默认输入法是搜狗，它把 TSF 文本服务连同皮肤组件
+    （systembeautify / PicFace 等）一起塞进被测进程。压测靠注入按键打字，
+    命中输入法皮肤方向的可能崩在别人的 DLL 里——那就不是本产品的稳定性。
+    把语言切成 en-US 后，同一套动作仍走 TSF，但不触发中文候选窗，可用作对照。
+    """
+    hkl = user32.LoadKeyboardLayoutW(tag, KLF_ACTIVATE)
+    if not hkl:
+        return False, window_lang(hwnd)
+    user32.PostMessageW(hwnd, WM_INPUTLANGCHANGEREQUEST, 0, hkl)
+    time.sleep(0.5)
+    got = window_lang(hwnd)
+    return got.lower() == tag[-4:].lower(), got
+
+
+class PROCESS_MEMORY_COUNTERS_EX(ctypes.Structure):
+    _fields_ = [
+        ("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
+        ("PeakWorkingSetSize", ctypes.c_size_t), ("WorkingSetSize", ctypes.c_size_t),
+        ("QuotaPeakPagedPoolUsage", ctypes.c_size_t), ("QuotaPagedPoolUsage", ctypes.c_size_t),
+        ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t), ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+        ("PagefileUsage", ctypes.c_size_t), ("PeakPagefileUsage", ctypes.c_size_t),
+        ("PrivateUsage", ctypes.c_size_t),
+    ]
+
+
+def sample(pid: int) -> dict | None:
+    h = kernel32.OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, False, pid)
+    if not h:
+        return None
+    try:
+        counters = PROCESS_MEMORY_COUNTERS_EX()
+        counters.cb = ctypes.sizeof(counters)
+        if not psapi.GetProcessMemoryInfo(h, ctypes.byref(counters), counters.cb):
+            return None
+        handles = wintypes.DWORD(0)
+        kernel32.GetProcessHandleCount(h, ctypes.byref(handles))
+        gdi = user32.GetGuiResources(h, 0)
+        usr = user32.GetGuiResources(h, 1)
+        return {
+            "commitMb": round(counters.PrivateUsage / 1048576, 1),
+            "workingMb": round(counters.WorkingSetSize / 1048576, 1),
+            "handles": handles.value,
+            "gdi": gdi,
+            "user": usr,
+        }
+    finally:
+        kernel32.CloseHandle(h)
+
+
+# ── 沙箱与夹具 ──────────────────────────────────────────────────────────────
+def prepare_work(work: Path, exe: Path) -> Path:
+    app_dir = work / "app"
+    sandbox = work / "sandbox"
+    app_dir.mkdir(parents=True, exist_ok=True)
+    sandbox.mkdir(parents=True, exist_ok=True)
+
+    # 便携标记：设置与日志落 app\data\，不碰 %LOCALAPPDATA%
+    (app_dir / "portable.flag").write_text("ac03 soak\n", encoding="utf-8")
+
+    target = app_dir / exe.name
+    if not target.exists() or target.stat().st_mtime < exe.stat().st_mtime:
+        for item in exe.parent.iterdir():
+            if item.is_file():
+                shutil.copy2(item, app_dir / item.name)
+        # 压测不该带便携包里的 data\（如果有）
+        stale = app_dir / "data"
+        if stale.exists():
+            shutil.rmtree(stale, ignore_errors=True)
+
+    seed_sandbox(sandbox, force=not any(sandbox.iterdir()))
+
+    # 预置设置：新标签直接落在沙箱目录。压测不能依赖"启动后在主页按 Ctrl+L"——
+    # 主页上没有文件标签，`Ctrl+L` 不响应，动作会全部落空（冒烟时踩过）。
+    # 语言固定中文，避免英文界面的确认按钮文案影响后续动作判定。
+    settings = app_dir / "data" / "settings.json"
+    if not settings.exists():
+        settings.parent.mkdir(parents=True, exist_ok=True)
+        settings.write_text(json.dumps({
+            "schemaVersion": 1,
+            "general": {"language": "zh-Hans", "newTabMode": "path",
+                        "newTabPath": str(sandbox), "confirmDelete": False},
+            "appearance": {"theme": "light", "fontSizePt": 11},
+        }, ensure_ascii=False, indent=1), encoding="utf-8")
+
+    return target
+
+
+def seed_sandbox(sandbox: Path, force: bool = False) -> None:
+    if force:
+        for child in sandbox.iterdir():
+            if child.is_dir():
+                shutil.rmtree(child, ignore_errors=True)
+            else:
+                child.unlink(missing_ok=True)
+        for i in range(4):
+            sub = sandbox / f"sub{i:02d}"
+            sub.mkdir(exist_ok=True)
+            for j in range(20):
+                (sub / f"inner_{i:02d}_{j:03d}.txt").write_text("x", encoding="utf-8")
+        for i in range(120):
+            (sandbox / f"item_{i:03d}.txt").write_text("ac03\n", encoding="utf-8")
+
+
+def count_files(sandbox: Path) -> int:
+    try:
+        return sum(1 for p in sandbox.iterdir() if p.is_file())
+    except OSError:
+        return -1
+
+
+def top_up(sandbox: Path) -> int:
+    """补齐被永久删除吃掉的文件，保证每轮都有东西可点。"""
+    files = [p for p in sandbox.iterdir() if p.is_file()]
+    # 兜底：撤销失手会让副本/新建文件越堆越多，超过 900 个就清掉自己造的那些。
+    # 不碰 item_*/sub*，沙箱的骨架始终在。
+    if len(files) > 900:
+        for p in files:
+            if "- 副本" in p.name or p.stem.startswith(("soak", "soakd", "ren")):
+                try:
+                    p.unlink(missing_ok=True)
+                except OSError:
+                    pass   # 正被预览打开时删不掉，下一轮再来
+        files = [p for p in sandbox.iterdir() if p.is_file()]
+    count = len(files)
+    added = 0
+    while count + added < 100:
+        (sandbox / f"refill_{int(time.time()*1000) % 10**8}_{added}.txt").write_text("x", encoding="utf-8")
+        added += 1
+    return added
+
+
+# ── 20 条高频路径 ───────────────────────────────────────────────────────────
+def act_nav_enter(hwnd, ctx):
+    chord("ctrl", "a")
+    key("down")
+    key("enter")
+
+
+def act_nav_up(hwnd, ctx):
+    key("back")
+
+
+def act_nav_back(hwnd, ctx):
+    key("left", alt=True)
+
+
+def act_nav_fwd(hwnd, ctx):
+    key("right", alt=True)
+
+
+def act_addr_jump(hwnd, ctx):
+    chord("ctrl", "l")
+    time.sleep(0.2)
+    type_text(str(ctx["sandbox"]))
+    time.sleep(0.2)
+    key("enter")
+    time.sleep(0.5)
+
+
+def act_view_toggle(hwnd, ctx):
+    ctx["view"] = not ctx.get("view", True)
+    chord("ctrl", "shift", "1" if ctx["view"] else "2")
+
+
+def act_search(hwnd, ctx):
+    chord("ctrl", "f")
+    type_text("item")
+    time.sleep(0.3)
+    key("esc")
+    # 第一下 Esc 只收起搜索框，键盘焦点没回到文件列表——之后 Delete / Ctrl+Shift+M
+    # 全部打空（probe_focus 实测：120→120）。补第二下 Esc 才重新落到列表上。
+    time.sleep(0.2)
+    key("esc")
+
+
+def act_select_all(hwnd, ctx):
+    chord("ctrl", "a")
+
+
+def act_copy_paste(hwnd, ctx):
+    # 只复制首个条目。全选复制一次是 120 个副本，撤销万一失效，8 小时能堆出几万个文件，
+    # 压测就变成在测磁盘而不是测应用；单文件复制照样走完 读源→写目标→刷新 的整条链路。
+    key("down")
+    chord("ctrl", "c")
+    time.sleep(0.3)
+    chord("ctrl", "v")
+    time.sleep(0.8)
+    chord("ctrl", "z")   # 撤销副本，沙箱不膨胀
+
+
+def _seq_name(ctx, tag):
+    """给每次新建/改名发一个轮转的名字。
+
+    固定名字在撤销失手时会撞名，弹"已存在"确认框——那个框会接管键盘，后续动作全部
+    打空，压测跑完只有"没崩"，看不出应用是否真在干活。轮转 1000 个名字足够 8 小时不重。
+    """
+    n = ctx.get(tag, 0)
+    ctx[tag] = n + 1
+    return f"{tag}{n % 1000:03d}"
+
+
+def act_new_folder(hwnd, ctx):
+    chord("ctrl", "shift", "n")
+    time.sleep(0.4)
+    type_text(_seq_name(ctx, "soakd"))
+    key("enter")
+    time.sleep(0.3)
+    chord("ctrl", "z")
+
+
+def act_new_text(hwnd, ctx):
+    chord("ctrl", "shift", "m")
+    time.sleep(0.4)
+    type_text(_seq_name(ctx, "soak"))
+    key("enter")
+    time.sleep(0.3)
+    chord("ctrl", "z")
+
+
+def act_rename(hwnd, ctx):
+    chord("ctrl", "a")
+    key("down")
+    key("f2")
+    time.sleep(0.3)
+    type_text(_seq_name(ctx, "ren"))
+    key("enter")
+    time.sleep(0.3)
+    chord("ctrl", "z")
+
+
+def act_delete(hwnd, ctx):
+    key("down")
+    key("delete")
+    time.sleep(0.5)
+    chord("ctrl", "z")   # 从回收站还原，回收站不累积
+
+
+def act_undo(hwnd, ctx):
+    chord("ctrl", "z")
+
+
+def act_props(hwnd, ctx):
+    key("down")
+    chord("alt", "enter")
+    time.sleep(0.6)
+    key("esc")
+    time.sleep(0.2)
+
+
+def act_copy_path(hwnd, ctx):
+    key("down")
+    chord("ctrl", "shift", "c")
+
+
+def act_bookmark(hwnd, ctx):
+    chord("ctrl", "d")
+    time.sleep(0.3)
+    key("esc")   # 重复收藏时会有提示，Esc 收掉
+
+
+def act_tabs(hwnd, ctx):
+    chord("ctrl", "t")
+    time.sleep(0.6)
+    chord("ctrl", "tab")
+    time.sleep(0.2)
+    chord("ctrl", "w")
+    time.sleep(0.3)
+
+
+def act_split(hwnd, ctx):
+    ctx["split"] = not ctx.get("split", False)
+    key("f3")
+    time.sleep(0.4)
+
+
+def act_preview(hwnd, ctx):
+    ctx["preview"] = not ctx.get("preview", False)
+    chord("alt", "p")
+    time.sleep(0.4)
+
+
+ACTIONS = [
+    ("进入子目录", act_nav_enter),
+    ("返回上级", act_nav_up),
+    ("后退", act_nav_back),
+    ("前进", act_nav_fwd),
+    ("地址栏跳转", act_addr_jump),
+    ("视图切换", act_view_toggle),
+    ("搜索当前目录", act_search),
+    ("全选", act_select_all),
+    ("复制粘贴", act_copy_paste),
+    ("新建文件夹", act_new_folder),
+    ("新建文本文档", act_new_text),
+    ("重命名", act_rename),
+    ("删除到回收站", act_delete),
+    ("撤销", act_undo),
+    ("属性对话框", act_props),
+    ("复制完整路径", act_copy_path),
+    ("收藏", act_bookmark),
+    ("新建/切换/关闭标签", act_tabs),
+    ("双窗格开关", act_split),
+    ("预览窗格开关", act_preview),
+]
+
+HOUSEKEEPING = [("刷新", lambda hwnd, ctx: key("f5"))]
+
+
+# ── 主循环 ──────────────────────────────────────────────────────────────────
+def log(msg: str, out=None) -> None:
+    line = f"[{datetime.now():%H:%M:%S}] {msg}"
+    print(line, flush=True)
+    if out:
+        out.write(line + "\n")
+        out.flush()
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="AC-03 / NF-06 稳定性压测")
+    ap.add_argument("--exe", default=str(ROOT / "publish" / "Jianlan.exe"))
+    ap.add_argument("--work", default=r"D:\ac03")
+    ap.add_argument("--hours", type=float, default=8.0)
+    ap.add_argument("--cycle", type=float, default=45.0, help="每轮间隔秒数")
+    ap.add_argument("--sample", type=float, default=60.0, help="采样间隔秒数")
+    ap.add_argument("--out", default=str(ROOT / "tools" / "ac03" / "results"))
+    ap.add_argument("--seed", type=int, default=20261114)
+    ap.add_argument("--input", default="", help="把被测窗口的输入语言钉到这个布局（如 00000409=en-US）；默认不动")
+    ap.add_argument("--fast-batches", type=int, default=0,
+                    help="前 N 轮用 --fast-cycle 的快节奏跑完，之后恢复 --cycle。"
+                         "用于在几十分钟内把动作序列推到指定批次的时序条件上，"
+                         "同时保留崩溃点前后那几轮的真实空闲时长")
+    ap.add_argument("--fast-cycle", type=float, default=6.0, help="快节奏段的轮间隔秒数")
+    ap.add_argument("--probe-windows", action="store_true",
+                    help="每轮记录进程内全部顶层窗口（类名/标题），用于崩溃取证")
+    args = ap.parse_args()
+
+    random.seed(args.seed)
+    exe = Path(args.exe).resolve()
+    if not exe.exists():
+        print(f"找不到 {exe}", file=sys.stderr)
+        return 2
+    work = Path(args.work)
+    out_dir = Path(args.out)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    jsonl_path = out_dir / f"ac03-{stamp}.jsonl"
+    win_path = out_dir / f"ac03-{stamp}.win.jsonl"
+    summary_path = out_dir / f"ac03-{stamp}.json"
+    log_path = out_dir / f"ac03-{stamp}.log"
+
+    target = prepare_work(work, exe)
+    sandbox = work / "sandbox"
+    crash_log = work / "app" / "data" / "logs" / "crash.log"
+    crash_base = crash_log.stat().st_size if crash_log.exists() else 0
+
+    # 8 小时不许睡眠：只对本进程生效，不改系统电源方案
+    kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
+
+    started = datetime.now()
+    deadline = started + timedelta(hours=args.hours)
+
+    with open(log_path, "w", encoding="utf-8") as logf:
+        log(f"被测 {target}", logf)
+        log(f"沙箱 {sandbox}；时长 {args.hours} h；轮间隔 {args.cycle}s；采样 {args.sample}s", logf)
+        proc = None
+
+        def launch():
+            """起一个被测进程并等主窗口。"""
+            p = __import__("subprocess").Popen([str(target)], cwd=str(target.parent))
+            h = 0
+            for _ in range(60):
+                time.sleep(0.5)
+                h = main_window(p.pid)
+                if h:
+                    break
+            return p, h
+
+        def drop_to_sandbox(h) -> bool:
+            """把窗口拉到沙箱目录，并留一个备用标签。
+
+            备用标签是刚需：只剩一个标签时 `Ctrl+W` 就是关窗口（正常行为），
+            8 小时里只要有一次 `Ctrl+T` 被吃掉，应用就被自己人关掉了。
+            跑第一版 8 小时时 9 分钟就撞上了——exit=0、crash.log 没增，纯自退。
+            """
+            if not focus(h):
+                return False
+            time.sleep(1.0)
+            if sandbox.name.lower() not in window_title(h).lower():
+                # 首次启动恒开主页（FR-1.1），而主页上没有文件标签，Ctrl+L 不响应。
+                # 走"Ctrl+T 开新标签（按 newTabMode=path 落到沙箱）→ Ctrl+1 回主页
+                # → Ctrl+W 关掉主页"，全程只有键位，不依赖坐标。
+                chord("ctrl", "t")
+                time.sleep(2.0)
+                if sandbox.name.lower() not in window_title(h).lower():
+                    chord("ctrl", "l")
+                    type_text(str(sandbox))
+                    key("enter")
+                    time.sleep(1.5)
+                chord("ctrl", "1")
+                time.sleep(0.4)
+                chord("ctrl", "w")
+                time.sleep(1.2)
+            chord("ctrl", "t")   # 备用标签
+            time.sleep(1.5)
+            return True
+
+        proc, hwnd = launch()
+        try:
+            if not hwnd:
+                log("窗口没起来，终止", logf)
+                summary = {"verdict": "FAIL", "reason": "no-window", "samples": []}
+                summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=1), encoding="utf-8")
+                return 2
+
+            if not drop_to_sandbox(hwnd):
+                log("抢前台失败，终止", logf)
+                summary_path.write_text(json.dumps({"verdict": "FAIL", "reason": "no-foreground"}, ensure_ascii=False), encoding="utf-8")
+                return 2
+            log(f"起始窗口标题：{window_title(hwnd)}", logf)
+            if args.input:
+                ok, got = force_input_language(hwnd, args.input)
+                log(f"输入语言 → {args.input}：{'已生效' if ok else '未生效'}（当前 {got}）", logf)
+
+            samples, failures, actions_done = [], [], 0
+            focus_fails = 0
+            resets = 0
+            app_exits = 0
+            actions_since_sample = 0
+            ctx = {"sandbox": sandbox, "view": True, "split": False, "preview": False}
+            next_sample = time.monotonic()
+            order = list(range(len(ACTIONS)))
+            batches = 0
+
+            while datetime.now() < deadline:
+                # 采点
+                now = time.monotonic()
+                if now >= next_sample:
+                    s = sample(proc.pid)
+                    # 进程死掉的那一刻，OpenProcess 仍可能成功、计数器全为 0
+                    # （第一次 8 小时压测就是这么被记成"消息泵无响应"的）。
+                    # 句柄与 GDI 同时为 0 一律按"进程没了"处理，再按退出码分流。
+                    dead = s is None or (s["handles"] == 0 and s["gdi"] == 0)
+                    if s is not None and not dead:
+                        s["responsive"] = responsive(hwnd)
+                        dead = not s["responsive"]
+                        if dead:
+                            s["mark"] = "unresponsive"
+                    if dead:
+                        code = proc.poll()
+                        crash_bytes = crash_log.stat().st_size if crash_log.exists() else 0
+                        if code not in (0, None) or crash_bytes > crash_base:
+                            # 非 0 退出或 crash.log 有新行 = 真崩溃，留现场停跑
+                            failures.append({"at": datetime.now().isoformat(),
+                                             "kind": "crash", "exitCode": code,
+                                             "note": (s or {}).get("mark", "gone"),
+                                             "crashLogNewBytes": crash_bytes - crash_base})
+                            log(f"进程异常退出 exit={code}（0x{(code or 0) & 0xFFFFFFFF:08X}），"
+                                f"crash.log 新增 {crash_bytes - crash_base} 字节", logf)
+                            break
+                        # exit=0 且无崩溃记录：应用是被"关掉最后一个标签"这类正常操作带走的。
+                        # 这不算崩溃，重启接上，把这件事单独记一笔。
+                        app_exits += 1
+                        log(f"应用自退（exit=0，无崩溃记录），第 {app_exits} 次重启", logf)
+                        if app_exits > 30:
+                            failures.append({"at": datetime.now().isoformat(), "kind": "too-many-exits"})
+                            log("自退次数超限，停跑", logf)
+                            break
+                        proc, hwnd = launch()
+                        if not hwnd or not drop_to_sandbox(hwnd):
+                            failures.append({"at": datetime.now().isoformat(), "kind": "restart-failed"})
+                            log("重启失败，停跑", logf)
+                            break
+                        if args.input:
+                            force_input_language(hwnd, args.input)
+                        actions_since_sample = 0
+                        next_sample = time.monotonic() + args.sample
+                        continue
+                    s["at"] = datetime.now().isoformat()
+                    s["elapsedMin"] = round((datetime.now() - started).total_seconds() / 60, 1)
+                    s["crashLogBytes"] = crash_log.stat().st_size if crash_log.exists() else 0
+                    # 动作生效性证据：沙箱目录的 mtime。新建/删除/改名/粘贴都会改它，
+                    # 而脚本自己这一侧只在文件少于 100 个时才补 refill（正常不会触发），
+                    # 所以 mtime 在动 = 按键真的打在被测窗口上并且落地写盘了。
+                    s["sandboxFiles"] = count_files(sandbox)
+                    s["sandboxMtime"] = sandbox.stat().st_mtime_ns
+                    s["inSandbox"] = sandbox.name.lower() in window_title(hwnd).lower()
+                    s["focusFails"] = focus_fails
+                    # 自愈：上一个采样点到这一个点之间发过动作、沙箱却一次写都没发生，
+                    # 说明键盘焦点又飘了（Esc/模态/拖选都可能）。按 Esc+方向键把焦点
+                    # 拽回列表再继续——不然 8 小时跑下来的只是"窗口还活着"。
+                    if (samples and s["sandboxMtime"] == samples[-1]["sandboxMtime"]
+                            and actions_since_sample > 0):
+                        focus(hwnd)
+                        key("esc")
+                        time.sleep(0.2)
+                        key("down")
+                        resets += 1
+                        log(f"本段没有写入，焦点已复位（第 {resets} 次）", logf)
+                    actions_since_sample = 0
+                    samples.append(s)
+                    # 逐点落盘。8 小时跑完才写文件的话，中途被打断（关机、手动中止、
+                    # 蓝屏）就一个数都留不下——冒烟被打断两次，只捞到 .log 里的几行。
+                    with open(jsonl_path, "a", encoding="utf-8") as jf:
+                        jf.write(json.dumps(s, ensure_ascii=False) + "\n")
+                    log(f"#{len(samples):>3} {s['elapsedMin']:>6.1f}min 提交 {s['commitMb']:>6.1f}MB "
+                        f"句柄 {s['handles']:>5} GDI {s['gdi']:>4} USER {s['user']:>4}", logf)
+                    next_sample = now + args.sample
+
+                # 一轮动作
+                if not order:
+                    order = list(range(len(ACTIONS)))
+                    random.shuffle(order)
+                batch = [order.pop() for _ in range(min(7, len(order)))]
+                if not focus(hwnd):
+                    focus_fails += 1
+                    log(f"抢前台失败（累计 {focus_fails} 次），本轮动作跳过", logf)
+                    time.sleep(1.0)
+                    continue
+                # "返回上级"按设计就会走出沙箱，走完不拉回来的话，后面几个新建动作
+                # 会落到 D:\ac03 根上，沙箱计数就成了假数据。每轮起步先归位。
+                if sandbox.name.lower() not in window_title(hwnd).lower():
+                    chord("ctrl", "l")
+                    type_text(str(sandbox))
+                    key("enter")
+                    time.sleep(0.8)
+                for idx in batch:
+                    name, fn = ACTIONS[idx]
+                    try:
+                        fn(hwnd, ctx)
+                    except Exception as exc:  # 动作失败不该中止压测
+                        log(f"动作 {name} 抛错：{exc}", logf)
+                    actions_done += 1
+                    actions_since_sample += 1
+                    time.sleep(0.25)
+
+                top_up(sandbox)
+                for _, fn in HOUSEKEEPING:
+                    fn(hwnd, ctx)
+
+                batches += 1
+                # 窗口快照必须取在"收掉游离窗口"之前：崩溃很可能就发生在收窗的那一下，
+                # 事后补记就看不到那个 DirectUI 窗口了。
+                if args.probe_windows:
+                    snap = {
+                        "at": datetime.now().isoformat(),
+                        "batch": batches,
+                        "actions": actions_done,
+                        "elapsedMin": round((datetime.now() - started).total_seconds() / 60, 1),
+                        "windows": list_windows(proc.pid),
+                    }
+                    with open(win_path, "a", encoding="utf-8") as wf:
+                        wf.write(json.dumps(snap, ensure_ascii=False) + "\n")
+                    dui = [w for w in snap["windows"] if "DirectUI" in w["cls"]]
+                    if dui:
+                        log(f"批 {batches} 发现 DirectUI 窗口：" +
+                            "；".join(f"{w['cls']}/{w['title'][:20]}" for w in dui), logf)
+
+                # 有额外窗口（属性/确认）没收掉的话，补一次 Esc
+                extra = main_window(proc.pid, min_width=200)
+                if extra and extra != hwnd:
+                    # 确认框/属性框这类模态窗口会吃掉后续所有按键，必须收掉
+                    focus(extra)
+                    key("esc")
+                    time.sleep(0.3)
+                    if user32.IsWindow(extra):
+                        user32.PostMessageW(extra, WM_CLOSE, 0, 0)
+                    focus(hwnd)
+                    log("收掉一个游离窗口", logf)
+
+                cycle = args.fast_cycle if batches <= args.fast_batches else args.cycle
+                time.sleep(max(1.0, cycle - 2.2))
+
+            alive = proc.poll() is None
+            exit_code = proc.poll()
+            if alive:
+                hwnd2 = main_window(proc.pid)
+                if hwnd2:
+                    user32.PostMessageW(hwnd2, WM_CLOSE, 0, 0)
+                for _ in range(20):
+                    if proc.poll() is not None:
+                        break
+                    time.sleep(0.5)
+                if proc.poll() is None:
+                    proc.kill()
+                exit_code = proc.poll()
+
+            crash_now = crash_log.stat().st_size if crash_log.exists() else 0
+            first, last = (samples[0], samples[-1]) if samples else (None, None)
+            max_gdi = max((s["gdi"] for s in samples), default=0)
+            max_handles = max((s["handles"] for s in samples), default=0)
+            # 基线取"热身之后"的点。刚启动那几分钟句柄还在爬（XAML 资源、图标缓存、
+            # 字体回退都是按需加载），拿第一分钟的点当基线，8 小时跑完必然报 15% 以上
+            # 的假泄漏——冒烟就是这样被判 FAIL 的（1324 → 1541，之后一直平在 1541）。
+            total_min = args.hours * 60
+            warmup_min = min(10.0, max(0.5, total_min * 0.05))
+            base = next((s for s in samples if s["elapsedMin"] >= warmup_min), first)
+            growth = ((last["handles"] - base["handles"]) / base["handles"] * 100) if base and last and base["handles"] else 0.0
+
+            ok = (
+                not failures
+                and crash_now == crash_base
+                and growth < 10
+                and max_gdi < 2000
+            )
+            # 动作生效性：沙箱目录 mtime 变过几次。撤销做对了的话文件数会回到原样，
+            # 单看数量会被判成"没干活"；目录 mtime 记录的是"发生过写操作"这件事本身。
+            mtimes = [s.get("sandboxMtime") for s in samples if s.get("sandboxMtime")]
+            mtime_changes = sum(1 for a, b in zip(mtimes, mtimes[1:]) if a != b)
+            effective = mtime_changes >= max(2, len(samples) // 10)
+            file_span = ((max(s["sandboxFiles"] for s in samples)
+                          - min(s["sandboxFiles"] for s in samples)) if samples else 0)
+            summary = {
+                "verdict": "PASS" if (ok and effective) else "FAIL",
+                "checks": {
+                    "crashes": 0 if not failures else len(failures),
+                    "crashLogNewBytes": crash_now - crash_base,
+                    "handleGrowthPct": round(growth, 2),
+                    "handleGrowthLimitPct": 10,
+                    "baselineHandles": base["handles"] if base else None,
+                    "baselineAtMin": base["elapsedMin"] if base else None,
+                    "warmupMin": round(warmup_min, 2),
+                    "maxHandles": max_handles,
+                    "maxGdi": max_gdi,
+                    "gdiLimit": 2000,
+                    "actionsEffective": effective,
+                    "sandboxMtimeChanges": mtime_changes,
+                    "sandboxFileSpan": file_span,
+                    "focusFails": focus_fails,
+                    "focusResets": resets,
+                    "appSelfExits": app_exits,
+                },
+                "run": {
+                    "exe": str(target),
+                    "startedAt": started.isoformat(),
+                    "finishedAt": datetime.now().isoformat(),
+                    "hours": args.hours,
+                    "cycleSeconds": args.cycle,
+                    "sampleSeconds": args.sample,
+                    "inputLanguage": args.input or "keep",
+                    "samples": len(samples),
+                    "actions": actions_done,
+                    "appExitCode": exit_code,
+                },
+                "failures": failures,
+                "first": first,
+                "last": last,
+            }
+            summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=1), encoding="utf-8")
+
+            log("", logf)
+            log(f"判定 {summary['verdict']}：崩溃 {summary['checks']['crashes']} 次、"
+                f"句柄增长 {growth:.2f}%（上限 10%）、GDI 峰值 {max_gdi}（上限 2000）、"
+                f"crash.log 新增 {crash_now - crash_base} 字节", logf)
+            log(f"动作 {actions_done} 次；沙箱目录 mtime 变化 {mtime_changes} 次（<2 说明动作没落地）；"
+                f"文件数波动 {file_span}；抢前台失败 {focus_fails} 次", logf)
+            log(f"采样 {jsonl_path}", logf)
+            log(f"汇总 {summary_path}", logf)
+            return 0 if ok else 2
+        finally:
+            kernel32.SetThreadExecutionState(ES_CONTINUOUS)
+            if proc.poll() is None:
+                proc.kill()
+
+
+if __name__ == "__main__":
+    sys.exit(main())

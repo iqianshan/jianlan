@@ -54,7 +54,9 @@ internal static class CrashLogger
 
             var sb = new StringBuilder(1024);
             sb.AppendLine($"===== {DateTimeOffset.Now:yyyy-MM-ddTHH:mm:ss.fffzzz} {kind} =====");
-            sb.AppendLine($"版本   0.1.0 · OS {Environment.OSVersion.Version} · .NET {Environment.Version} · 进程 {Environment.ProcessId}");
+            // 版本号曾经写死成 0.1.0，压测到 0.2.1 时 crash.log 仍自称 0.1.0——
+            // 崩溃记录里最该可信的一行反而不可信，改用 AppInfo 的唯一出口。
+            sb.AppendLine($"版本   {AppInfo.Version} · OS {Environment.OSVersion.Version} · .NET {Environment.Version} · 进程 {Environment.ProcessId}");
 
             if (Application.Current?.MainWindow is Views.MainWindow)
             {

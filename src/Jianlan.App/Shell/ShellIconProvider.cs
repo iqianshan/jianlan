@@ -184,12 +184,6 @@ public static class ShellIconProvider
         return info.iIcon;
     }
 
-    /// <summary>
-    /// 后台解析前必须先初始化 COM：SHParseDisplayName 依赖 shell 命名空间。
-    /// MTA 即可满足，返回 false 表示本线程已有其它模型（不影响后续调用）。
-    /// </summary>
-    public static void EnsureComInitialized() => CoInitializeEx(IntPtr.Zero, CoInitMultithreaded);
-
     /// <summary>通用文件夹图标的序号，用来判断"这个目录没有自定义图标"。</summary>
     public static int ResolveGenericFolderIndex()
     {
@@ -296,11 +290,6 @@ public static class ShellIconProvider
 
     [DllImport("ole32.dll")]
     private static extern void CoTaskMemFree(IntPtr ptr);
-
-    private const int CoInitMultithreaded = 0x0;
-
-    [DllImport("ole32.dll", EntryPoint = "CoInitializeEx")]
-    private static extern int CoInitializeEx(IntPtr pvReserved, int dwCoInit);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool DestroyIcon(IntPtr hIcon);

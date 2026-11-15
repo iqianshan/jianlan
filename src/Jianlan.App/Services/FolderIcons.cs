@@ -45,9 +45,9 @@ internal static class FolderIcons
     {
         var updates = new List<(FileEntry, string)>(16);
 
-        // shell 命名空间解析需要 COM，线程池线程上第一次进来时要初始化
-        ShellIconProvider.EnsureComInitialized();
-
+        // 本方法只允许在 ShellWorker 那条常驻 STA 线程上跑（COM 已由该线程初始化）。
+        // 之前在这里 CoInitializeEx(MTA) 让线程池线程去摸 Shell 命名空间，与 UI 线程、
+        // 缩略图的 STA 线程并发进入 Shell 的 DirectUI 组件，压测里崩在 DUI70 布局函数上。
         int genericFolder = GenericFolderIndex;
         int resolved = 0;
 

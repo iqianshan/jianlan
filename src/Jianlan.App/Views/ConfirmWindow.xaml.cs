@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Input;
 using Jianlan.Core.Localization;
 
 namespace Jianlan.App.Views;
@@ -15,6 +16,15 @@ public partial class ConfirmWindow : Window
     private ConfirmWindow()
     {
         InitializeComponent();
+
+        // 本窗口只有一段文本和按钮，没有任何输入需求，但独立窗口默认会注册
+        // TSF 输入法客户端：每次打开、关闭都要创建和销毁一次 IME 上下文，
+        // 进而触发 TSF 的 InputFocusChanged。稳定压测的原生崩溃栈正是
+        // msctf!CtfImeToAsciiEx → textinputframework!InputFocusChanged →
+        // DirectUI::HWNDElement::OnInput（DUI70+0x65642，摘除链表时前驱为 NULL），
+        // 而崩溃前最后一个动作就是弹出本窗口（属性/F2 提示）。关掉它，
+        // 这条链上就少一次无谓的焦点切换。主窗口早已按同一理由关掉（App.xaml.cs）。
+        InputMethod.SetIsInputMethodEnabled(this, false);
     }
 
     /// <summary>

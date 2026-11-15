@@ -14,6 +14,13 @@ public partial class TextPromptWindow : Window
     private TextPromptWindow()
     {
         InitializeComponent();
+
+        // 与主窗口同一策略（App.xaml.cs 的 SetIsInputMethodEnabled）：窗口级不开
+        // IME 客户端，改由输入框在获得焦点时按需创建上下文。本窗口每次 F2/新建
+        // 都要新建并销毁，窗口级注册会让 TSF 在"打开→关闭"之间各做一次上下文切换，
+        // 而 TSF 的焦点通知正是 DirectUI 崩溃栈的入口（详见 ConfirmWindow 注释）。
+        InputMethod.SetIsInputMethodEnabled(this, false);
+        InputMethod.SetIsInputMethodEnabled(Input, true);
     }
 
     public string Value => Input.Text.Trim();

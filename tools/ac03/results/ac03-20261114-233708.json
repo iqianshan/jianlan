@@ -1,0 +1,68 @@
+{
+ "verdict": "FAIL",
+ "checks": {
+  "crashes": 1,
+  "crashLogNewBytes": 0,
+  "handleGrowthPct": -100.0,
+  "handleGrowthLimitPct": 10,
+  "baselineHandles": 1525,
+  "baselineAtMin": 11.2,
+  "warmupMin": 10.0,
+  "maxHandles": 1528,
+  "maxGdi": 198,
+  "gdiLimit": 2000,
+  "actionsEffective": true,
+  "sandboxMtimeChanges": 9,
+  "sandboxFileSpan": 0,
+  "focusFails": 7,
+  "focusResets": 1,
+  "appSelfExits": 0
+ },
+ "run": {
+  "exe": "D:\\ac03\\app\\Jianlan.exe",
+  "startedAt": "2026-11-14T23:37:08.051257",
+  "finishedAt": "2026-11-14T23:52:29.821127",
+  "hours": 8.0,
+  "cycleSeconds": 45.0,
+  "sampleSeconds": 60.0,
+  "samples": 11,
+  "actions": 127,
+  "appExitCode": 3221225477
+ },
+ "failures": [
+  {
+   "at": "2026-11-14T23:52:29.816845",
+   "kind": "unresponsive"
+  }
+ ],
+ "first": {
+  "commitMb": 139.6,
+  "workingMb": 215.6,
+  "handles": 1354,
+  "gdi": 154,
+  "user": 90,
+  "at": "2026-11-14T23:37:12.925440",
+  "elapsedMin": 0.1,
+  "responsive": true,
+  "crashLogBytes": 0,
+  "sandboxFiles": 120,
+  "sandboxMtime": 1794670607824655900,
+  "inSandbox": true,
+  "focusFails": 0
+ },
+ "last": {
+  "commitMb": 0.6,
+  "workingMb": 0.5,
+  "handles": 0,
+  "gdi": 0,
+  "user": 0,
+  "at": "2026-11-14T23:52:29.816845",
+  "elapsedMin": 15.4,
+  "responsive": false,
+  "crashLogBytes": 0,
+  "sandboxFiles": 120,
+  "sandboxMtime": 1794671490667397800,
+  "inSandbox": false,
+  "focusFails": 7
+ }
+}

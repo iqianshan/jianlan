@@ -1,5 +1,6 @@
 using System.Windows.Threading;
 using Jianlan.App.Services;
+using Jianlan.App.Shell;
 using Jianlan.Core.FileSystem;
 
 namespace Jianlan.App.Views;
@@ -28,14 +29,34 @@ public partial class PaneView
     {
         if (generation != _iconGeneration) return;
 
-        // 快照必须在 UI 线程取：Entries 会被过滤/刷新整体替换
-        FileEntry[] snapshot = Vm.Entries.ToArray();
+        // 快照必须在 UI 线程取：Entries 会被过滤/刷新整体替换。
+        //
+        // 这里不能用非空访问器 Vm：本方法是 async void，异常没有调用方可接，
+        // 只会落到 DispatcherUnhandledException 上（AC-03 压测里就是这样把一次
+        // "关分屏 + 图标补充"的时序撞成了进程级未处理异常）。`Release()` 会把
+        // 视图模型置空，而本方法的排队回调可能晚于它——图标是视觉细节，宿主换绑
+        // 或收走窗格时应当静默退出，不能把进程带走。
+        if (ViewModel is not { } vm) return;
+
+        FileEntry[] snapshot;
+        try
+        {
+            snapshot = vm.Entries.ToArray();
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.AppLog.Warn("icons.snapshot", "E2002", ex.Message);
+            return;
+        }
+
         if (snapshot.Length == 0) return;
 
         List<(FileEntry Entry, string Token)> updates;
         try
         {
-            updates = await Task.Run(() => FolderIcons.Resolve(snapshot)).ConfigureAwait(true);
+            // Shell 命名空间（SHParseDisplayName / IShellFolder）必须单线程 STA 访问，
+            // 见 ShellWorker：并发 + 跨套间会让 Shell 里的 DirectUI 组件崩在布局上。
+            updates = await ShellWorker.RunAsync(() => FolderIcons.Resolve(snapshot)).ConfigureAwait(true);
         }
         catch (Exception ex)
         {
