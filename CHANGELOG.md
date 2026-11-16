@@ -6,6 +6,28 @@
 
 ### 修复
 
+- **8 小时压测崩溃（`0xC0000005` @ `dui70.dll`）**。六份转储落在同一帧：`dui70+0x65642`
+  的 `mov [rdx], rax` 且 `rdx = 0`，栈上自内向外 `dui70 → duser → msctf → shell32 →
+  textinputframework`——TSF 文本输入界面元素在 DirectUI 上被摘除时前驱为空。
+
+  触发面是"模态窗反复打开关闭"这个动作本身，而不是某个具体操作：TSF 会为每个拿到键盘
+  焦点的 HWND 建一份默认文本存储与对应的 DirectUI 元素，而 `ConfirmWindow` 与
+  `TextPromptWindow` 此前每次都是新 HWND、关即销毁。压测 69 分钟里这种建/毁上百次，
+  HWND 没了绑定还在，下一次按键（`CtfImeToAsciiEx`）就写到了已摘除的节点。
+
+  改法不是"销毁前多做一步"（先试过 `ImmAssociateContext(hwnd, NULL)`，只把崩溃时刻
+  从 15.4 分钟推迟到 69 分钟），而是让这两扇窗**在进程内常驻复用**：新建
+  `Views/ModalSession.cs` 承担手动模态（禁父窗 → `Show()` → `Dispatcher.PushFrame` →
+  `Hide()`），HWND 活到进程结束，链路上不再有反复的建/毁。`Ask` / `Notify` /
+  `TextPromptWindow.Ask` 的签名与同步语义不变，XAML 未改。
+
+  顺带修掉两处：`ShowDialog` 关闭时由框架把焦点还给父窗，手动模态改为还给"弹出之前那个
+  元素"（此前会落在窗口壳上，后续按键全部打空——压测里表现为 15% 的批次一次写入都没有）；
+  窗口常驻后 `Loaded` 只触发一次，输入框的抢焦点与选中初值改到每次显示后执行。
+
+- **显式写死 `ShutdownMode="OnMainWindowClose"`**。默认的 `OnLastWindowClose` 会把常驻
+  隐藏的模态窗也算作窗口，主窗关掉后进程被两扇看不见的窗吊着，用户点关闭没有任何反应。
+
 - **地址栏手输的路径现在会规范化**。`D:/work`、`D:\\work\\`、`D:\work\.\sub`、带引号的
   `"D:\work"` 都能打开，但此前一律**原样**写进当前路径：面包屑、后退栈、最近访问、标签、
   复制出来的路径各存一份写法不同的"同一个目录"。路径比较忽略大小写，却不忽略 `//` 与结尾

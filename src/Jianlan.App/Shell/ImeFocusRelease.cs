@@ -18,8 +18,13 @@ namespace Jianlan.App.Shell;
 /// 关闭即销毁；输入法把界面元素挂在那个 HWND 的输入上下文上，HWND 没了但绑定还在，
 /// 下一次按键就写到了已摘除的元素上。
 ///
-/// 这里做的只是"关窗前主动松手"：取消未完成的组字、解除 IMM 关联。
-/// 不改窗口生命周期、不改模态语义，出问题可以直接摘掉这一个订阅。
+/// 这里做两件事：
+/// · <see cref="CancelComposition"/>  隐藏前撤掉未提交的组字，但**保留** IMM 关联；
+/// · <see cref="Attach"/>             窗口真正销毁（进程退出）时才解除关联。
+///
+/// 2026-11-16 更正：只做"关窗前松手"没能压住崩溃，8 小时压测跑到 69 分钟仍崩在同一帧，
+/// 说明病症不在"松手不够彻底"，而在"窗口反复新建/销毁"这个动作本身。模态窗改为常驻复用
+/// （Views/ModalSession.cs）后，每次隐藏就只剩撤组字这一件事；解关联挪到真正的销毁路径上。
 /// </summary>
 internal static class ImeFocusRelease
 {
@@ -29,6 +34,22 @@ internal static class ImeFocusRelease
     /// <summary>把 <paramref name="window"/> 的关窗时机挂上"先松手再销毁"。</summary>
     public static void Attach(Window window) => window.Closing += (_, _) => Release(window);
 
+    /// <summary>
+    /// 只撤掉未提交的组字，不动 IMM 关联。给"常驻窗口 Hide 之前"用：
+    /// 关联留着，下一次显示就不用重建输入上下文，不会退回反复建毁的老路。
+    /// </summary>
+    public static void CancelComposition(Window window)
+    {
+        IntPtr hwnd = new WindowInteropHelper(window).Handle;
+        if (hwnd == IntPtr.Zero) return;
+
+        IntPtr himc = ImmGetContext(hwnd);
+        if (himc == IntPtr.Zero) return;
+
+        ImmNotifyIME(himc, NI_COMPOSITIONSTR, CPS_CANCEL, 0);
+        ImmReleaseContext(hwnd, himc);
+    }
+
     private static void Release(Window window)
     {
         IntPtr hwnd = new WindowInteropHelper(window).Handle;
@@ -36,12 +57,7 @@ internal static class ImeFocusRelease
 
         // 先撤掉未完成的组字：窗口销毁时还挂着未提交的组字串，输入法会在销毁回调里
         // 再走一遍组字结束流程，正是这条路径上的危险动作。
-        IntPtr himc = ImmGetContext(hwnd);
-        if (himc != IntPtr.Zero)
-        {
-            ImmNotifyIME(himc, NI_COMPOSITIONSTR, CPS_CANCEL, 0);
-            ImmReleaseContext(hwnd, himc);
-        }
+        CancelComposition(window);
 
         // 解除关联：此后 IMM32 不再把这个 HWND 当作输入目标，输入法也就没有
         // "这个窗口还在"的依据，不需要在销毁后继续持有它的界面元素。

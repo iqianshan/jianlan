@@ -47,3 +47,7 @@ desktop.ini
 
 # 压测用的第三方工具（Sysinternals，不入库）
 tools/ac03/procdump*.exe
+
+# Python（tools/ac03 的脚本会被 import，解释器会留下字节码）
+__pycache__/
+*.pyc

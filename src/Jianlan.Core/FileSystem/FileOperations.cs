@@ -584,6 +584,7 @@ public static class FileOperations
     private const ushort FOF_NOCONFIRMATION = 0x0010;
     private const ushort FOF_ALLOWUNDO = 0x0040;
     private const ushort FOF_NOERRORUI = 0x0400;
+    private const ushort FOF_SILENT = 0x0004;
 
     private static FileOpResult DeleteCore(string[] paths, bool permanent)
     {
@@ -602,7 +603,20 @@ public static class FileOperations
                 wFunc = FO_DELETE,
                 pFrom = from,
                 pTo = IntPtr.Zero,
-                fFlags = (ushort)(FOF_NOCONFIRMATION | FOF_NOERRORUI | (permanent ? 0 : FOF_ALLOWUNDO)),
+                // FOF_SILENT：不要 Shell 自己的进度窗口。
+                //
+                // 不只为了好看。不加它时，删除一批文件（全选删除可达上百个）会让 Shell 在
+                // **本进程里**起一个 DirectUI 进度界面，且跑在它自己的线程上；TSF 会给这个
+                // 新窗口挂输入上下文，两者在窗口建毁时互相踩。压测留下的五份全内存转储
+                // 全部崩在同一帧：`dui70+0x65642`（`mov [rdx], rax`，`rdx = 0`），
+                // 栈上自内向外 `dui70 → duser → msctf → shell32 → textinputframework`，
+                // 崩溃线程不是 UI 线程——正是 Shell 进度界面那条线。
+                // 同一时刻 GDI 从 196 跳到 641，也来自这扇窗口。
+                //
+                // 代价：批量删除时没有进度条。删除是瞬时操作，且界面本来就有"正在删除"状态，
+                // 不需要 Shell 那扇窗；换来的是不再往进程里塞第二个 UI 线程。
+                fFlags = (ushort)(FOF_SILENT | FOF_NOCONFIRMATION | FOF_NOERRORUI
+                                  | (permanent ? 0 : FOF_ALLOWUNDO)),
             };
 
             int code = SHFileOperationW(ref op);

@@ -178,6 +178,65 @@ def main_window(pid: int, min_width: int = 400) -> int:
     return max(found)[1] if found else 0
 
 
+def stray_windows(pid: int, main: int) -> list[int]:
+    """除主窗以外、当前**可见**的 WPF 顶层窗口——也就是卡住的模态框。
+
+    不能复用 `main_window()` 来找：它带 `h >= 300` 的尺寸门槛（用来排除提示气泡），
+    而"要覆盖吗"这类确认框只有 440×150，永远过不了门槛。压测里一旦它留在屏幕上，
+    主窗被 `IsEnabled=false` 禁掉，`focus()` 必然失败、键又打不进模态框，
+    整轮空转直到超时（2026-11-16 10:55 轮就是这么连续 9 次抢前台失败后崩掉的）。
+    """
+    found = []
+
+    def cb(hwnd, _):
+        if hwnd == main or not user32.IsWindowVisible(hwnd):
+            return True
+        p = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(p))
+        if p.value != pid:
+            return True
+        cls = ctypes.create_unicode_buffer(256)
+        user32.GetClassNameW(hwnd, cls, 256)
+        # #32770 是系统对话框（Shell 的"这将取消所有正在进行的传输"就是它），
+        # 不是 WPF 窗口，但同样会挡住主窗、吃掉按键。
+        if "HwndWrapper" not in cls.value and cls.value != "#32770":
+            return True
+        found.append(hwnd)
+        return True
+
+    user32.EnumWindows(WNDENUMPROC(cb), 0)
+    return found
+
+
+def dismiss_strays(pid: int, main: int, out=None) -> int:
+    """把卡住的模态框收掉。返回收掉的个数。
+
+    顺序是有讲究的：先 `Esc`（对话框的取消路径），再 `Enter`（默认按钮通常是"否"），
+    最后才 `PostMessage(WM_CLOSE)`。三步都是"结束这一轮模态"，不会把窗口销毁——
+    模态窗是常驻复用的，销毁反而会回到 TSF 上下文反复建/毁的老路。
+    """
+    closed = 0
+    for _ in range(3):
+        strays = stray_windows(pid, main)
+        if not strays:
+            break
+        for h in strays:
+            title = window_title(h)[:24]
+            focus(h)
+            time.sleep(0.2)
+            key("esc")
+            time.sleep(0.3)
+            if user32.IsWindowVisible(h):
+                key("enter")
+                time.sleep(0.3)
+            if user32.IsWindowVisible(h):
+                user32.PostMessageW(h, WM_CLOSE, 0, 0)
+                time.sleep(0.3)
+            closed += 1
+            log(f"收掉游离窗口 hwnd={h} 「{title}」", out)
+    return closed
+
+
 def list_windows(pid: int) -> list:
     """列出该进程全部顶层窗口（含隐藏），崩溃取证用。
 
@@ -453,6 +512,10 @@ def act_copy_paste(hwnd, ctx):
     time.sleep(0.3)
     chord("ctrl", "v")
     time.sleep(0.8)
+    # 目标名撞上了会弹"要覆盖吗"确认框。这个框只有 440×150，过去收窗逻辑按尺寸
+    # 找不到它，一旦留着就把主窗永久禁用（见 stray_windows）。粘贴后先按 Esc 走"否"。
+    key("esc")
+    time.sleep(0.2)
     chord("ctrl", "z")   # 撤销副本，沙箱不膨胀
 
 
@@ -620,6 +683,13 @@ def main() -> int:
     crash_log = work / "app" / "data" / "logs" / "crash.log"
     crash_base = crash_log.stat().st_size if crash_log.exists() else 0
 
+    # 原生 AV 不会写 crash.log，只会留下 procdump 的转储；而 procdump 抓转储时要
+    # DebugActiveProcess，会把被测进程**整体挂起**几十秒。这期间 poll() 仍是 None、
+    # 消息泵当然没有回音——2026-11-16 那两次"驱动卡死"和一次"应用自退"全是这么误判的。
+    # 用"转储目录里多了一份 .dmp"当崩溃判据，比退出码更早、更可信。
+    dumps_dir = work / "dumps"
+    dump_base = len(list(dumps_dir.glob("Jianlan.exe_*.dmp"))) if dumps_dir.exists() else 0
+
     # 8 小时不许睡眠：只对本进程生效，不改系统电源方案
     kernel32.SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED)
 
@@ -712,10 +782,49 @@ def main() -> int:
                         dead = not s["responsive"]
                         if dead:
                             s["mark"] = "unresponsive"
+                    if dead and proc.poll() is None:
+                        # 进程还在，"没有回音"多半是瞬时卡顿：复制整个目录、Shell 回收站
+                        # 操作、缩略图首屏生成都会把消息泵堵上一两秒。复查两次再判，
+                        # 否则一次 3 秒的复制就能把这轮压测误判成"应用自退"并停跑
+                        # （2026-11-16 10:30 的冒烟就是这么被自己人判死的）。
+                        for _ in range(2):
+                            time.sleep(1.0)
+                            if proc.poll() is not None:
+                                break
+                            if responsive(hwnd):
+                                dead = False
+                                s["responsive"] = True
+                                s.pop("mark", None)
+                                break
                     if dead:
                         code = proc.poll()
                         crash_bytes = crash_log.stat().st_size if crash_log.exists() else 0
-                        if code not in (0, None) or crash_bytes > crash_base:
+                        dumps_now = len(list(dumps_dir.glob("Jianlan.exe_*.dmp"))) if dumps_dir.exists() else 0
+                        if dumps_now > dump_base:
+                            # 有转储 = 原生崩溃。procdump 还在写盘（进程被挂起），
+                            # 等它写完再收尾，否则最后一份转储是残缺的。
+                            failures.append({"at": datetime.now().isoformat(),
+                                             "kind": "crash", "exitCode": code,
+                                             "note": "dump", "newDumps": dumps_now - dump_base,
+                                             "crashLogNewBytes": crash_bytes - crash_base})
+                            log(f"发现新转储（+{dumps_now - dump_base} 份），判定崩溃；"
+                                f"等转储写完再收尾", logf)
+                            for _ in range(60):
+                                if proc.poll() is not None:
+                                    break
+                                time.sleep(1.0)
+                            break
+                        if code is None:
+                            # 复查后仍不响应，但进程确实还活着：既不是崩溃也不是自退，
+                            # 记一笔"消息泵无响应"继续跑——真死掉的话下一轮 poll 会给退出码。
+                            if s is None:
+                                log("进程仍在但取不到计数器，本点跳过", logf)
+                                next_sample = now + args.sample
+                                continue
+                            s["responsive"] = False
+                            s["mark"] = "unresponsive"
+                            log("消息泵连续 3 秒无响应，本点记为 unresponsive，继续", logf)
+                        elif code != 0 or crash_bytes > crash_base:
                             # 非 0 退出或 crash.log 有新行 = 真崩溃，留现场停跑
                             failures.append({"at": datetime.now().isoformat(),
                                              "kind": "crash", "exitCode": code,
@@ -724,24 +833,25 @@ def main() -> int:
                             log(f"进程异常退出 exit={code}（0x{(code or 0) & 0xFFFFFFFF:08X}），"
                                 f"crash.log 新增 {crash_bytes - crash_base} 字节", logf)
                             break
-                        # exit=0 且无崩溃记录：应用是被"关掉最后一个标签"这类正常操作带走的。
-                        # 这不算崩溃，重启接上，把这件事单独记一笔。
-                        app_exits += 1
-                        log(f"应用自退（exit=0，无崩溃记录），第 {app_exits} 次重启", logf)
-                        if app_exits > 30:
-                            failures.append({"at": datetime.now().isoformat(), "kind": "too-many-exits"})
-                            log("自退次数超限，停跑", logf)
-                            break
-                        proc, hwnd = launch()
-                        if not hwnd or not drop_to_sandbox(hwnd):
-                            failures.append({"at": datetime.now().isoformat(), "kind": "restart-failed"})
-                            log("重启失败，停跑", logf)
-                            break
-                        if args.input:
-                            force_input_language(hwnd, args.input)
-                        actions_since_sample = 0
-                        next_sample = time.monotonic() + args.sample
-                        continue
+                        else:
+                            # exit=0 且无崩溃记录：应用是被"关掉最后一个标签"这类正常操作带走的。
+                            # 这不算崩溃，重启接上，把这件事单独记一笔。
+                            app_exits += 1
+                            log(f"应用自退（exit=0，无崩溃记录），第 {app_exits} 次重启", logf)
+                            if app_exits > 30:
+                                failures.append({"at": datetime.now().isoformat(), "kind": "too-many-exits"})
+                                log("自退次数超限，停跑", logf)
+                                break
+                            proc, hwnd = launch()
+                            if not hwnd or not drop_to_sandbox(hwnd):
+                                failures.append({"at": datetime.now().isoformat(), "kind": "restart-failed"})
+                                log("重启失败，停跑", logf)
+                                break
+                            if args.input:
+                                force_input_language(hwnd, args.input)
+                            actions_since_sample = 0
+                            next_sample = time.monotonic() + args.sample
+                            continue
                     s["at"] = datetime.now().isoformat()
                     s["elapsedMin"] = round((datetime.now() - started).total_seconds() / 60, 1)
                     s["crashLogBytes"] = crash_log.stat().st_size if crash_log.exists() else 0
@@ -778,6 +888,10 @@ def main() -> int:
                     order = list(range(len(ACTIONS)))
                     random.shuffle(order)
                 batch = [order.pop() for _ in range(min(7, len(order)))]
+                # 起步先收卡住的模态框：它在屏幕上，主窗就是禁用状态，focus() 必然失败，
+                # 而键也进不了模态框——不先收掉，后面每一轮都是空转。
+                if dismiss_strays(proc.pid, hwnd, logf):
+                    time.sleep(0.4)
                 if not focus(hwnd):
                     focus_fails += 1
                     log(f"抢前台失败（累计 {focus_fails} 次），本轮动作跳过", logf)
@@ -822,17 +936,9 @@ def main() -> int:
                         log(f"批 {batches} 发现 DirectUI 窗口：" +
                             "；".join(f"{w['cls']}/{w['title'][:20]}" for w in dui), logf)
 
-                # 有额外窗口（属性/确认）没收掉的话，补一次 Esc
-                extra = main_window(proc.pid, min_width=200)
-                if extra and extra != hwnd:
-                    # 确认框/属性框这类模态窗口会吃掉后续所有按键，必须收掉
-                    focus(extra)
-                    key("esc")
-                    time.sleep(0.3)
-                    if user32.IsWindow(extra):
-                        user32.PostMessageW(extra, WM_CLOSE, 0, 0)
+                # 收尾再查一遍：这一轮里可能弹了"要覆盖吗"这类确认框，留着它下一轮就空转
+                if dismiss_strays(proc.pid, hwnd, logf):
                     focus(hwnd)
-                    log("收掉一个游离窗口", logf)
 
                 cycle = args.fast_cycle if batches <= args.fast_batches else args.cycle
                 time.sleep(max(1.0, cycle - 2.2))
