@@ -32,6 +32,15 @@ public partial class TextPromptWindow : Window
         // 真正销毁（应用退出）时摘掉 IMM 关联；平时隐藏由 ModalSession 只撤组字。
         ImeFocusRelease.Attach(this);
 
+        // 与 ConfirmWindow 同一理由（见那里的注释）：常驻窗只允许在应用退出时真关闭。
+        // 隐藏期间没有守卫的话，一次 WM_CLOSE 就会把 HWND 打掉，此后 Show() 恒抛，
+        // 新建/重命名整条链路哑掉。
+        Closing += (_, e) =>
+        {
+            if (Application.Current?.MainWindow is { IsVisible: true }) e.Cancel = true;
+        };
+        Closed += (_, _) => _instance = null;
+
         // 手动模态下 Esc 不再由 IsCancel 按钮兜底（窗口不销毁、不设 DialogResult）。
         PreviewKeyDown += OnPreviewKeyDown;
     }

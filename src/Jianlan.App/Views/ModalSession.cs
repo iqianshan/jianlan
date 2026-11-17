@@ -47,7 +47,7 @@ internal static class ModalSession
 
         bool? result = null;
         bool finished = false;
-        bool allowClose = false;
+        bool closed = false;
         var frame = new DispatcherFrame();
 
         void Finish(bool? value)
@@ -61,17 +61,15 @@ internal static class ModalSession
         IInputElement? previousFocus = Keyboard.FocusedElement;
         bool ownerWasEnabled = owner?.IsEnabled ?? false;
 
-        // 窗口是常驻的：关闭请求只结束本轮模态，不销毁 HWND。
-        // 唯一例外是主窗口已经不在了（应用正在退出），此时必须放行，否则进程退不出去。
-        CancelEventHandler onClosing = (_, e) =>
-        {
-            Finish(false);
-            allowClose = Application.Current?.MainWindow is not { IsVisible: true };
-            e.Cancel = !allowClose;
-        };
+        // 窗口是常驻的：关闭请求只结束本轮模态，销毁与否由窗口自己的生命周期守卫决定
+        // （见 ConfirmWindow 构造函数）。这里只负责让本轮模态收尾。
+        CancelEventHandler onClosing = (_, _) => Finish(false);
+
+        void onClosed(object? _, EventArgs __) => closed = true;
 
         _busy = true;
         window.Closing += onClosing;
+        window.Closed += onClosed;
 
         try
         {
@@ -97,8 +95,11 @@ internal static class ModalSession
         finally
         {
             window.Closing -= onClosing;
+            window.Closed -= onClosed;
 
-            if (!allowClose)
+            // 只有窗口还活着才需要隐藏。应用退出时窗口是真被关闭了，
+            // 此时再 Hide() 没有意义（WPF 对已关闭窗口不保证行为）。
+            if (!closed)
             {
                 // 隐藏前撤掉未提交的组字，但**不**解 IMM 关联：
                 // 窗口还要再用，解关联会逼着下一次显示重新建上下文，等于绕回老路。

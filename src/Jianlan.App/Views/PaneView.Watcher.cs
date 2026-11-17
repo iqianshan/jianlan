@@ -93,6 +93,8 @@ public partial class PaneView
         Dispatcher.InvokeAsync(() =>
         {
             if (_suppressWatcher) return;
+            // 窗格已经收尾还去启定时器，等于给已摘除的视图模型排一次必然失败的刷新
+            if (_paneClosed || _viewModel is null) return;
 
             _debounceTimer ??= CreateDebounceTimer();
             _debounceTimer.Stop();
@@ -112,6 +114,10 @@ public partial class PaneView
         _debounceTimer?.Stop();
 
         if (_suppressWatcher) return;
+        // 视图模型可能已经摘除（切换标签、关标签、窗口关闭）。去抖定时器是
+        // 400ms 的 DispatcherTimer，摘除与计时器到点可以错开一拍，此时 Vm 访问会抛
+        // "PaneView 尚未附加视图模型"。8 小时长跑里出现 9 次，都在标签收尾附近。
+        if (_viewModel is null) return;
         if (string.IsNullOrEmpty(Vm.CurrentPath)) return;
 
         // 外部变化时用户可能正多选，刷新后按路径恢复

@@ -34,6 +34,24 @@ public partial class ConfirmWindow : Window
         // 真正销毁（应用退出）时摘掉 IMM 关联；平时隐藏由 ModalSession 只撤组字。
         ImeFocusRelease.Attach(this);
 
+        // 常驻窗**只有应用退出时**才允许真被关闭。
+        //
+        // 这条守卫不能挂在 ModalSession 里：那里只在"某一轮模态进行中"订阅 Closing，
+        // 一轮结束就摘掉，于是窗口隐藏期间完全没有守卫——此时任何 WM_CLOSE
+        // （任务栏关闭、外部 PostMessage、驱动收窗）都会把 HWND 销毁。
+        // 而 WPF 对已关闭的窗口调 Show() 会抛"关闭窗口后，无法设置可见性"，
+        // 单例又不会重建，结果就是此后所有确认/提示全部哑掉。
+        // 8 小时长跑（2026-11-16 11:42 轮）里正是这样：第 20 分钟窗口被关掉，
+        // 之后 7.5 小时 189 次无效调用，属性面板与删除确认一次都没弹出来过。
+        Closing += (_, e) =>
+        {
+            if (Application.Current?.MainWindow is { IsVisible: true }) e.Cancel = true;
+        };
+
+        // 万一真被关掉（应用退出路径），把单例清空，下一次调用重建一个新窗口，
+        // 宁可多一次 HWND 建毁，也不能让提示链路永久失效。
+        Closed += (_, _) => _instance = null;
+
         // 手动模态下 Esc/Enter 不再由 ShowDialog 的对话框语义兜底，得自己接。
         // 原来靠按钮的 IsCancel/IsDefault，现在窗口不销毁、不设 DialogResult，
         // 那套机制不会把窗口收回去，所以统一在隧道阶段拦掉。

@@ -201,6 +201,11 @@ def stray_windows(pid: int, main: int) -> list[int]:
         # 不是 WPF 窗口，但同样会挡住主窗、吃掉按键。
         if "HwndWrapper" not in cls.value and cls.value != "#32770":
             return True
+        # 空标题的 HwndWrapper 是提示气泡/弹出层（WPF Popup 自成一个顶层窗口），
+        # 不挡键盘、也没有可关的模态语义。8 小时轮里这类窗口每个采样点抓到一个，
+        # 被当成"游离窗口"收掉纯属误伤，还会把焦点抢走。
+        if cls.value != "#32770" and not window_title(hwnd).strip():
+            return True
         found.append(hwnd)
         return True
 
@@ -208,12 +213,26 @@ def stray_windows(pid: int, main: int) -> list[int]:
     return found
 
 
+def is_system_dialog(hwnd: int) -> bool:
+    """`#32770` = 系统对话框（Shell 的"要覆盖吗""这将取消所有正在进行的传输"）。
+
+    只有这一类可以被 WM_CLOSE 强拆：它是系统的，不属于应用状态。
+    """
+    cls = ctypes.create_unicode_buffer(256)
+    user32.GetClassNameW(hwnd, cls, 256)
+    return cls.value == "#32770"
+
+
 def dismiss_strays(pid: int, main: int, out=None) -> int:
     """把卡住的模态框收掉。返回收掉的个数。
 
     顺序是有讲究的：先 `Esc`（对话框的取消路径），再 `Enter`（默认按钮通常是"否"），
-    最后才 `PostMessage(WM_CLOSE)`。三步都是"结束这一轮模态"，不会把窗口销毁——
-    模态窗是常驻复用的，销毁反而会回到 TSF 上下文反复建/毁的老路。
+    最后才对**系统对话框** `PostMessage(WM_CLOSE)`。
+
+    WPF 窗口（`HwndWrapper`）**绝不**发 WM_CLOSE：模态窗是常驻复用的，被销毁就再也
+    Show() 不出来（WPF 抛"关闭窗口后，无法设置可见性"），整条提示链路会永久哑掉。
+    2026-11-16 的 8 小时轮就是这么被自己人打死的：第 20 分钟确认窗被 WM_CLOSE 销毁，
+    之后 7.5 小时 189 次无效调用。空标题的 `HwndWrapper` 是提示气泡/弹出层，也别碰。
     """
     closed = 0
     for _ in range(3):
@@ -229,7 +248,7 @@ def dismiss_strays(pid: int, main: int, out=None) -> int:
             if user32.IsWindowVisible(h):
                 key("enter")
                 time.sleep(0.3)
-            if user32.IsWindowVisible(h):
+            if user32.IsWindowVisible(h) and is_system_dialog(h):
                 user32.PostMessageW(h, WM_CLOSE, 0, 0)
                 time.sleep(0.3)
             closed += 1
@@ -975,6 +994,18 @@ def main() -> int:
                 and growth < 10
                 and max_gdi < 2000
             )
+            # crash.log 只增不减地累积托管异常，而"有没有异常"本身是判定条件之一。
+            # 长跑里 FAIL 了却看不出败因，就是因为汇总只说"新增 N 字节"。
+            # 把新增段里每类异常的首行与条数提出来，判定理由自带解释。
+            crash_types = {}
+            if crash_now > crash_base and crash_log.exists():
+                with open(crash_log, "r", encoding="utf-8-sig", errors="replace") as f:
+                    f.seek(crash_base)
+                    tail = f.read()
+                for line in tail.splitlines():
+                    if line.startswith("异常"):
+                        head = line[len("异常"):].strip()[:120]
+                        crash_types[head] = crash_types.get(head, 0) + 1
             # 动作生效性：沙箱目录 mtime 变过几次。撤销做对了的话文件数会回到原样，
             # 单看数量会被判成"没干活"；目录 mtime 记录的是"发生过写操作"这件事本身。
             mtimes = [s.get("sandboxMtime") for s in samples if s.get("sandboxMtime")]
@@ -987,6 +1018,7 @@ def main() -> int:
                 "checks": {
                     "crashes": 0 if not failures else len(failures),
                     "crashLogNewBytes": crash_now - crash_base,
+                    "crashLogTypes": crash_types,
                     "handleGrowthPct": round(growth, 2),
                     "handleGrowthLimitPct": 10,
                     "baselineHandles": base["handles"] if base else None,
@@ -1026,6 +1058,8 @@ def main() -> int:
                 f"crash.log 新增 {crash_now - crash_base} 字节", logf)
             log(f"动作 {actions_done} 次；沙箱目录 mtime 变化 {mtime_changes} 次（<2 说明动作没落地）；"
                 f"文件数波动 {file_span}；抢前台失败 {focus_fails} 次", logf)
+            for msg, n in crash_types.items():
+                log(f"  crash.log 新增异常 ×{n}：{msg}", logf)
             log(f"采样 {jsonl_path}", logf)
             log(f"汇总 {summary_path}", logf)
             return 0 if ok else 2
@@ -1036,4 +1070,18 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except SystemExit:
+        raise
+    except BaseException:
+        # 计划任务里没有控制台，stderr 会被丢弃，脚本自身出错时只剩一个 exit=1。
+        # 2026-11-17 08:11 那轮就是这么丢掉线索的（实则 UnboundLocalError）。
+        import traceback
+        crash_txt = traceback.format_exc()
+        print(crash_txt, file=sys.stderr)
+        try:
+            (Path(__file__).resolve().parent / "last_error.log").write_text(crash_txt, encoding="utf-8")
+        except OSError:
+            pass
+        sys.exit(1)
