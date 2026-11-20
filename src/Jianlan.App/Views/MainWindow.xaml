@@ -5,7 +5,6 @@
         xmlns:vm="clr-namespace:Jianlan.App.ViewModels"
         xmlns:loc="clr-namespace:Jianlan.App.Localization"
         Title="{Binding TitleText}"
-        Icon="pack://application:,,,/Jianlan;component/Assets/Brand/jianlan.ico"
         Height="720" Width="1100"
         MinHeight="480" MinWidth="720"
         WindowStartupLocation="CenterScreen"

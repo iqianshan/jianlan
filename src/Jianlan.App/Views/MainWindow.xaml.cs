@@ -152,22 +152,43 @@ public partial class MainWindow : Window
         int bigSize = (int)Math.Round(32 * scale);
         int smallSize = (int)Math.Round(16 * scale);
 
-        IntPtr big = LoadImage(instance, IconResourceId, ImageIcon, bigSize, bigSize, 0);
-        IntPtr small = LoadImage(instance, IconResourceId, ImageIcon, smallSize, smallSize, 0);
+        IntPtr big = LoadImage(instance, IconResourceId, ImageIcon, bigSize, bigSize, LrShared);
+        IntPtr small = LoadImage(instance, IconResourceId, ImageIcon, smallSize, smallSize, LrShared);
 
-        if (big != IntPtr.Zero) _ = SendMessage(hwnd, WmSetIcon, IconBig, big);
-        if (small != IntPtr.Zero) _ = SendMessage(hwnd, WmSetIcon, IconSmall, small);
+        // 三条路径都填上。外壳取窗口图标是按 WM_GETICON → 窗口类图标 → 默认图 逐级回退的，
+        // WPF 窗口的类图标默认是空的，只要前一级在某个时机返回 0，就直接掉到默认图。
+        // 记事本这类原生程序 WNDCLASS 里自带 hIcon，所以从来不会出这个问题。
+        if (big != IntPtr.Zero)
+        {
+            _ = SetClassLongPtr(hwnd, GclpHIcon, big);
+            _ = SendMessage(hwnd, WmSetIcon, IconBig, big);
+        }
+
+        if (small != IntPtr.Zero)
+        {
+            _ = SetClassLongPtr(hwnd, GclpHIconSm, small);
+            _ = SendMessage(hwnd, WmSetIcon, IconSmall, small);
+        }
 
         // 任务栏退回默认图时，先看这一行：资源没取到就是产物问题，取到了就是外壳侧的问题。
         AppLog.Info(
             "icon.apply",
-            $"hwnd={hwnd} big={bigSize}/{big != IntPtr.Zero} small={smallSize}/{small != IntPtr.Zero} dpi={scale:0.##}");
+            $"hwnd={hwnd} big={bigSize}/{big != IntPtr.Zero} small={smallSize}/{small != IntPtr.Zero} " +
+            $"cls={GetClassLongPtr(hwnd, GclpHIcon) != IntPtr.Zero}/{GetClassLongPtr(hwnd, GclpHIconSm) != IntPtr.Zero} " +
+            $"dpi={scale:0.##}");
     }
 
     /// <summary>csproj 里 <c>ApplicationIcon</c> 生成的组图标编号，即标准 IDI_APPLICATION。</summary>
     private const string IconResourceId = "#32512";
 
     private const uint ImageIcon = 1;
+
+    /// <summary>
+    /// 共享图标：句柄由系统托管，不在本进程生命周期内失效。
+    /// 不带这个标志时句柄归调用方所有，窗口一旦销毁或某处误 DestroyIcon，
+    /// 任务栏再取图就拿到空句柄，直接退回默认图。
+    /// </summary>
+    private const uint LrShared = 0x8000;
     private const int WmSetIcon = 0x0080;
 
     private static readonly IntPtr IconBig = new(1);
@@ -179,6 +200,15 @@ public partial class MainWindow : Window
 
     [DllImport("user32.dll")]
     private static extern IntPtr SendMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll", EntryPoint = "SetClassLongPtrW")]
+    private static extern IntPtr SetClassLongPtr(IntPtr hwnd, int index, IntPtr value);
+
+    [DllImport("user32.dll", EntryPoint = "GetClassLongPtrW")]
+    private static extern IntPtr GetClassLongPtr(IntPtr hwnd, int index);
+
+    private const int GclpHIcon = -14;
+    private const int GclpHIconSm = -34;
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
     private static extern IntPtr GetModuleHandle(string? moduleName);
