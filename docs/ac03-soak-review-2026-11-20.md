@@ -6,6 +6,9 @@
 - 产物：`tools/ac03/results/ac03-20261120-112805.{log,jsonl,win.jsonl}`、
   `D:\ac03\app\data\logs\*`、`D:\ac03\dumps`
 - 依据报告：`docs/ac03-soak-review-2026-11-17.md`（前一轮）、`docs/ac03-stability-acceptance.md` §6
+- **产物变动**：本轮跑在 `DDFF4A2B` 上；之后提交的图标修复（`0998e55`，仅 ico + CHANGELOG）
+  使指纹变为 `ac23c524`（`Jianlan.Core.dll` 仍为 `DA8D036D`）。该改动不触及稳定性路径，
+  但下一轮 8 小时应在最新产物上复核。
 
 ---
 
