@@ -53,6 +53,9 @@ new EnumerationOptions {
 
 ## 4. 图标提取
 
+> 本节讲的是**列表里每一项**的图标（按扩展名取）。应用**自身**的图标（exe 资源、窗口、任务栏）
+> 是另一套机制，见 [app-icon.md](app-icon.md)。
+
 **方案**：`SHGetFileInfo` + `SHGFI_USEFILEATTRIBUTES`，按**扩展名**取图标。
 
 关键点：
