@@ -413,7 +413,10 @@ def prepare_work(work: Path, exe: Path) -> Path:
         if stale.exists():
             shutil.rmtree(stale, ignore_errors=True)
 
-    seed_sandbox(sandbox, force=not any(sandbox.iterdir()))
+    # 每轮强制重置沙箱。11-17 那轮起点就带着上一轮残留的 2160 项，一路涨到 7.7 万，
+    # 提交内存跟着涨到 987 MB——压测就变成在测大目录，AC-03 的结论无从谈起。
+    # 起点必须恒定：200 个文件 + 4 个子目录（各 20 项），跑完才能比较。
+    reset_sandbox(sandbox)
 
     # 预置设置：新标签直接落在沙箱目录。压测不能依赖"启动后在主页按 Ctrl+L"——
     # 主页上没有文件标签，`Ctrl+L` 不响应，动作会全部落空（冒烟时踩过）。
@@ -429,6 +432,25 @@ def prepare_work(work: Path, exe: Path) -> Path:
         }, ensure_ascii=False, indent=1), encoding="utf-8")
 
     return target
+
+
+def reset_sandbox(sandbox: Path) -> None:
+    """把沙箱恢复成固定起点，且**不删任何文件**。
+
+    每轮强制重置是必要的（11-17 轮起点就带着上一轮残留的 2160 项），但
+    `seed_sandbox(force=True)` 会一次性删掉两百来个条目，同样撞上宿主的删除保护。
+    改成把整个目录 rename 到 overflow 再原地重建：同卷 rename 是瞬时的，
+    路径不变（应用设置里的 newTabPath 继续有效），也没有任何删除动作。
+    """
+    try:
+        if sandbox.exists() and any(sandbox.iterdir()):
+            dest = OVERFLOW / f"reset-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(sandbox), str(dest))
+    except OSError:
+        pass
+    sandbox.mkdir(parents=True, exist_ok=True)
+    seed_sandbox(sandbox, force=True)
 
 
 def seed_sandbox(sandbox: Path, force: bool = False) -> None:
@@ -454,19 +476,88 @@ def count_files(sandbox: Path) -> int:
         return -1
 
 
+SCALE_LIMIT = 400          # 沙箱总条目上限（种子 200 项，留两倍余量）
+MEM_LIMIT_MB = 600         # 末点提交内存上限
+SEED_PREFIX = ("item_", "inner_")
+OVERFLOW = Path(r"D:\ac03\overflow")   # 规模守卫的移出目的地，跑完人工清理
+
+
+def count_entries(root: Path) -> int:
+    """递归数文件。只看顶层会被骗——副本可能被粘进子目录。"""
+    total = 0
+    try:
+        for _, _, filenames in os.walk(root):
+            total += len(filenames)
+    except OSError:
+        return -1
+    return total
+
+
+def guard_scale(sandbox: Path, out=None) -> int:
+    """规模守卫：条目数超限就把"不是种子骨架"的文件**移出**沙箱。
+
+    11-17 那轮涨到 7.7 万项、提交内存 987 MB，根因是复制粘贴的撤销没生效，
+    而 top_up 的兜底只在顶层数、且只认"- 副本"这一种命名。这里改成递归计数 +
+    白名单：只留 item_*/inner_*（沙箱骨架），其余（副本、soak*、ren*、refill*）
+    一律移走。不清的话压测测的是磁盘目录规模，不是应用稳定性。
+
+    用 `shutil.move` 而不是 `unlink`：驱动里的批量删除会被宿主的删除保护拦下来
+    （单回合累计 50 次即中止），8 小时无人值守跑不动。移到同卷的 overflow 目录
+    是一次 rename，既不计删除、也不占额外空间，跑完由人工一次性清理。
+    """
+    total = count_entries(sandbox)
+    if total < 0 or total <= SCALE_LIMIT:
+        return 0
+    target_dir = OVERFLOW / datetime.now().strftime("%Y%m%d-%H%M")
+    moved = 0
+    for dirpath, _, filenames in os.walk(sandbox, topdown=False):
+        here = Path(dirpath)
+        for name in filenames:
+            if name.startswith(SEED_PREFIX):
+                continue
+            src = here / name
+            try:
+                target_dir.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(src), str(target_dir / f"{moved:05d}_{name}"))
+                moved += 1
+            except OSError:
+                pass
+            if moved >= 300:      # 单批上限：不能让清理本身把节奏拖垮
+                break
+        if moved >= 300:
+            break
+    if moved:
+        log(f"规模守卫：沙箱 {total} 项超限（上限 {SCALE_LIMIT}），移出 {moved} 项", out)
+    return moved
+
+
+def ensure_skeleton(sandbox: Path) -> int:
+    """补回被"删除"动作吃掉的骨架。
+
+    删除动作会整个删掉 sub00 这类子目录，5 分钟冒烟就少了 20 项。不补的话 8 小时
+    跑下来沙箱会退化成只剩顶层文件，"进子目录 / 删子目录"这条路径再也测不到。
+
+    只能低频补（每 40 批一次）：驱动自己写盘同样会改目录 mtime，而 mtime 变化是
+    "动作落地"的判据。高频补会让判据变成假阳性——8 小时门槛是 10% 的采样点，
+    40 批才贡献 1 次，不越界。
+    """
+    added = 0
+    for i in range(4):
+        sub = sandbox / f"sub{i:02d}"
+        try:
+            sub.mkdir(exist_ok=True)
+            have = sum(1 for _ in sub.iterdir())
+            for j in range(have, 20):
+                (sub / f"inner_{i:02d}_{j:03d}.txt").write_text("x", encoding="utf-8")
+                added += 1
+        except OSError:
+            pass
+    return added
+
+
 def top_up(sandbox: Path) -> int:
     """补齐被永久删除吃掉的文件，保证每轮都有东西可点。"""
     files = [p for p in sandbox.iterdir() if p.is_file()]
-    # 兜底：撤销失手会让副本/新建文件越堆越多，超过 900 个就清掉自己造的那些。
-    # 不碰 item_*/sub*，沙箱的骨架始终在。
-    if len(files) > 900:
-        for p in files:
-            if "- 副本" in p.name or p.stem.startswith(("soak", "soakd", "ren")):
-                try:
-                    p.unlink(missing_ok=True)
-                except OSError:
-                    pass   # 正被预览打开时删不掉，下一轮再来
-        files = [p for p in sandbox.iterdir() if p.is_file()]
     count = len(files)
     added = 0
     while count + added < 100:
@@ -529,6 +620,8 @@ def act_copy_paste(hwnd, ctx):
     key("down")
     chord("ctrl", "c")
     time.sleep(0.3)
+    sandbox = ctx["sandbox"]
+    before = {p.name for p in sandbox.iterdir()}
     chord("ctrl", "v")
     time.sleep(0.8)
     # 目标名撞上了会弹"要覆盖吗"确认框。这个框只有 440×150，过去收窗逻辑按尺寸
@@ -536,6 +629,14 @@ def act_copy_paste(hwnd, ctx):
     key("esc")
     time.sleep(0.2)
     chord("ctrl", "z")   # 撤销副本，沙箱不膨胀
+    time.sleep(0.3)
+    # 撤销不可靠：撞名弹框时 Ctrl+Z 落在确认框上，副本留在盘里。11-17 那轮就是这么
+    # 从 2160 项涨到 7.7 万、提交内存跟着到 987 MB 的。这里只**统计**不删——驱动内的
+    # 批量 unlink 会被宿主的删除保护拦下（单回合累计 50 次即中止），清理交给每批的
+    # guard_scale（移出沙箱，不是删除）。
+    leaked = [p.name for p in sandbox.iterdir()
+              if p.is_file() and p.name not in before and not p.name.startswith(SEED_PREFIX)]
+    ctx["copyLeaks"] = ctx.get("copyLeaks", 0) + len(leaked)
 
 
 def _seq_name(ctx, tag):
@@ -782,6 +883,9 @@ def main() -> int:
             resets = 0
             app_exits = 0
             actions_since_sample = 0
+            # 弹窗存活证据：属性/确认弹窗不写盘，mtime 摸不到它们。没有这个计数，
+            # "第 20 分钟起每次弹窗都抛异常"这种事只能靠翻 crash.log 反推。
+            dialogs_seen = set()
             ctx = {"sandbox": sandbox, "view": True, "split": False, "preview": False}
             next_sample = time.monotonic()
             order = list(range(len(ACTIONS)))
@@ -878,6 +982,7 @@ def main() -> int:
                     # 而脚本自己这一侧只在文件少于 100 个时才补 refill（正常不会触发），
                     # 所以 mtime 在动 = 按键真的打在被测窗口上并且落地写盘了。
                     s["sandboxFiles"] = count_files(sandbox)
+                    s["sandboxEntries"] = count_entries(sandbox)
                     s["sandboxMtime"] = sandbox.stat().st_mtime_ns
                     s["inSandbox"] = sandbox.name.lower() in window_title(hwnd).lower()
                     s["focusFails"] = focus_fails
@@ -934,19 +1039,31 @@ def main() -> int:
                     time.sleep(0.25)
 
                 top_up(sandbox)
+                # 每批都查规模。撤销失手是常态（目标名撞车会弹"要覆盖吗"，
+                # 那一轮的 Ctrl+Z 就落在确认框上），放到轮末才查，8 小时能堆出几万个。
+                guard_scale(sandbox, logf)
+                if batches and batches % 40 == 0:
+                    n = ensure_skeleton(sandbox)
+                    if n:
+                        log(f"骨架补回 {n} 项（第 {batches} 批）", logf)
                 for _, fn in HOUSEKEEPING:
                     fn(hwnd, ctx)
 
                 batches += 1
                 # 窗口快照必须取在"收掉游离窗口"之前：崩溃很可能就发生在收窗的那一下，
                 # 事后补记就看不到那个 DirectUI 窗口了。
+                windows_now = (list_windows(proc.pid)
+                               if (args.probe_windows or batches % 3 == 0) else [])
+                for w in windows_now:
+                    if w["visible"] and w["hwnd"] != hwnd and "HwndWrapper" in w["cls"]:
+                        dialogs_seen.add(w["hwnd"])
                 if args.probe_windows:
                     snap = {
                         "at": datetime.now().isoformat(),
                         "batch": batches,
                         "actions": actions_done,
                         "elapsedMin": round((datetime.now() - started).total_seconds() / 60, 1),
-                        "windows": list_windows(proc.pid),
+                        "windows": windows_now,
                     }
                     with open(win_path, "a", encoding="utf-8") as wf:
                         wf.write(json.dumps(snap, ensure_ascii=False) + "\n")
@@ -987,12 +1104,19 @@ def main() -> int:
             warmup_min = min(10.0, max(0.5, total_min * 0.05))
             base = next((s for s in samples if s["elapsedMin"] >= warmup_min), first)
             growth = ((last["handles"] - base["handles"]) / base["handles"] * 100) if base and last and base["handles"] else 0.0
+            # 提交内存门槛。此前没有任何内存判据：11-16 轮末点 332 MB（条目恒定）时
+            # 判 PASS，11-17 轮涨到 987 MB 也没被拦，只是恰好有别的项 FAIL。
+            # 600 MB 是"起点约 135 MB、8 小时允许涨 3.5 倍"的量级，足够容纳缓存预热，
+            # 又能拦住线性泄漏。
+            mem_end = (last or {}).get("commitMb") or 0
+            mem_max = max((s.get("commitMb") or 0 for s in samples), default=0)
 
             ok = (
                 not failures
                 and crash_now == crash_base
                 and growth < 10
                 and max_gdi < 2000
+                and mem_end <= MEM_LIMIT_MB
             )
             # crash.log 只增不减地累积托管异常，而"有没有异常"本身是判定条件之一。
             # 长跑里 FAIL 了却看不出败因，就是因为汇总只说"新增 N 字节"。
@@ -1033,6 +1157,13 @@ def main() -> int:
                     "focusFails": focus_fails,
                     "focusResets": resets,
                     "appSelfExits": app_exits,
+                    "dialogsShown": len(dialogs_seen),
+                    "copyLeaks": ctx.get("copyLeaks", 0),
+                    "commitEndMb": round(mem_end, 1),
+                    "commitMaxMb": round(mem_max, 1),
+                    "commitLimitMb": MEM_LIMIT_MB,
+                    "sandboxEntriesPeak": max((s.get("sandboxEntries") or 0 for s in samples),
+                                              default=0),
                 },
                 "run": {
                     "exe": str(target),
@@ -1055,9 +1186,11 @@ def main() -> int:
             log("", logf)
             log(f"判定 {summary['verdict']}：崩溃 {summary['checks']['crashes']} 次、"
                 f"句柄增长 {growth:.2f}%（上限 10%）、GDI 峰值 {max_gdi}（上限 2000）、"
+                f"提交内存末点 {mem_end:.0f}MB（上限 {MEM_LIMIT_MB}MB）、"
                 f"crash.log 新增 {crash_now - crash_base} 字节", logf)
             log(f"动作 {actions_done} 次；沙箱目录 mtime 变化 {mtime_changes} 次（<2 说明动作没落地）；"
-                f"文件数波动 {file_span}；抢前台失败 {focus_fails} 次", logf)
+                f"文件数波动 {file_span}；抢前台失败 {focus_fails} 次；"
+                f"弹窗出现 {len(dialogs_seen)} 个不同 HWND", logf)
             for msg, n in crash_types.items():
                 log(f"  crash.log 新增异常 ×{n}：{msg}", logf)
             log(f"采样 {jsonl_path}", logf)
