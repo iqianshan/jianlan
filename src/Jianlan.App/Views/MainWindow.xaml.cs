@@ -157,6 +157,11 @@ public partial class MainWindow : Window
 
         if (big != IntPtr.Zero) _ = SendMessage(hwnd, WmSetIcon, IconBig, big);
         if (small != IntPtr.Zero) _ = SendMessage(hwnd, WmSetIcon, IconSmall, small);
+
+        // 任务栏退回默认图时，先看这一行：资源没取到就是产物问题，取到了就是外壳侧的问题。
+        AppLog.Info(
+            "icon.apply",
+            $"hwnd={hwnd} big={bigSize}/{big != IntPtr.Zero} small={smallSize}/{small != IntPtr.Zero} dpi={scale:0.##}");
     }
 
     /// <summary>csproj 里 <c>ApplicationIcon</c> 生成的组图标编号，即标准 IDI_APPLICATION。</summary>
@@ -1840,6 +1845,10 @@ public partial class MainWindow : Window
 
         // Show() 之后再挂一次：source 若被重建，钩子要落在新对象上
         AttachKeyHook();
+
+        // 同理再设一次图标：source 重建会把先前 WM_SETICON 的结果丢掉，
+        // 任务栏按钮就退回系统默认图。重设是幂等的，代价只有两次 LoadImage。
+        ApplyIconFromExeResources();
 
         ApplySettingsToUi();
         StartupTrace.Mark("uisetup");
