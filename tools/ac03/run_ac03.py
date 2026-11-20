@@ -27,6 +27,7 @@ import ctypes
 import json
 import os
 import random
+import re
 import shutil
 import signal
 import sys
@@ -478,7 +479,11 @@ def count_files(sandbox: Path) -> int:
 
 SCALE_LIMIT = 400          # 沙箱总条目上限（种子 200 项，留两倍余量）
 MEM_LIMIT_MB = 600         # 末点提交内存上限
-SEED_PREFIX = ("item_", "inner_")
+# 骨架白名单必须按**完整命名**匹配。第一版写成 startswith(("item_", "inner_"))，
+# 结果应用自动改名的副本 `item_000 (2).txt` 同样以 item_ 开头，被当成骨架留下——
+# 守卫每批都在跑、每批都判定"全是骨架"，一个都没移走，11-20 那轮 40 分钟就堆到 1160 项。
+SKELETON_RE = re.compile(r"^(item_\d{3}\.txt|inner_\d{2}_\d{3}\.txt)$")
+SKELETON_DIRS = {f"sub{i:02d}" for i in range(4)}
 OVERFLOW = Path(r"D:\ac03\overflow")   # 规模守卫的移出目的地，跑完人工清理
 
 
@@ -509,23 +514,36 @@ def guard_scale(sandbox: Path, out=None) -> int:
     if total < 0 or total <= SCALE_LIMIT:
         return 0
     target_dir = OVERFLOW / datetime.now().strftime("%Y%m%d-%H%M")
+    target_dir.mkdir(parents=True, exist_ok=True)
     moved = 0
-    for dirpath, _, filenames in os.walk(sandbox, topdown=False):
-        here = Path(dirpath)
-        for name in filenames:
-            if name.startswith(SEED_PREFIX):
-                continue
-            src = here / name
-            try:
-                target_dir.mkdir(parents=True, exist_ok=True)
-                shutil.move(str(src), str(target_dir / f"{moved:05d}_{name}"))
-                moved += 1
-            except OSError:
-                pass
-            if moved >= 300:      # 单批上限：不能让清理本身把节奏拖垮
-                break
+    # 先清目录：应用会造出 `sub00 (2)` 这种目录副本，里面的文件仍叫
+    # `inner_00_001.txt`，按文件名白名单认不出来（11-20 那轮就卡在这：
+    # 顶层副本移完了，剩 560 项全在目录副本里）。骨架只认 sub00–sub03。
+    for entry in sorted(sandbox.iterdir()):
+        if not entry.is_dir() or entry.name in SKELETON_DIRS:
+            continue
+        try:
+            shutil.move(str(entry), str(target_dir / f"dir{moved:04d}_{entry.name}"))
+            moved += 1
+        except OSError:
+            pass
         if moved >= 300:
             break
+    if moved < 300:
+        for dirpath, _, filenames in os.walk(sandbox, topdown=False):
+            here = Path(dirpath)
+            for name in filenames:
+                if SKELETON_RE.match(name):
+                    continue
+                try:
+                    shutil.move(str(here / name), str(target_dir / f"{moved:05d}_{name}"))
+                    moved += 1
+                except OSError:
+                    pass
+                if moved >= 300:      # 单批上限：不能让清理本身把节奏拖垮
+                    break
+            if moved >= 300:
+                break
     if moved:
         log(f"规模守卫：沙箱 {total} 项超限（上限 {SCALE_LIMIT}），移出 {moved} 项", out)
     return moved
@@ -635,7 +653,7 @@ def act_copy_paste(hwnd, ctx):
     # 批量 unlink 会被宿主的删除保护拦下（单回合累计 50 次即中止），清理交给每批的
     # guard_scale（移出沙箱，不是删除）。
     leaked = [p.name for p in sandbox.iterdir()
-              if p.is_file() and p.name not in before and not p.name.startswith(SEED_PREFIX)]
+              if p.is_file() and p.name not in before and not SKELETON_RE.match(p.name)]
     ctx["copyLeaks"] = ctx.get("copyLeaks", 0) + len(leaked)
 
 

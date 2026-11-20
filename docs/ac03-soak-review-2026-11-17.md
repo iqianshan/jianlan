@@ -5,6 +5,8 @@
 - 报告日期：2026-11-17
 - 依据：`tools/ac03/results/ac03-*.{json,jsonl,log,win.jsonl}`、`D:\ac03\dumps` 全内存转储、
   `D:\ac03\app\data\logs\*`、验收文档 `docs/ac03-stability-acceptance.md` §6
+- **后续轮次见 `docs/ac03-soak-review-2026-11-20.md`（规模控制后 156 分钟受控长跑）：
+  本报告 §四 的 U-1、U-2 已定界，U-3 仍开放。**
 
 ---
 
