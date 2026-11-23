@@ -1,11 +1,15 @@
 """就地改名的冒烟验证：真的点两下、真的敲字、真的落盘。
 
 为什么要有这个脚本：这一版改的是鼠标时序与焦点转移，光看代码断不出来
-“第二次点击到底进没进编辑态”。判定规则本身有单测（RenameGesturePolicyTests），
-但“点下去 → 编辑框出现 → 回车 → 磁盘上换了名字”这条链只能在真窗口上跑。
+"第二次点击到底进没进编辑态"。判定规则本身有单测（RenameGesturePolicyTests），
+但"点下去 → 编辑框出现 → 回车 → 磁盘上换了名字"这条链只能在真窗口上跑。
 
 用法：python rename_smoke.py
-前提：交互式桌面（SendInput 需要），且没有别的窗口抢焦点。
+前提：交互式桌面（SendInput 需要），且没有别的窗口抢焦点。脚本会把窗口抢到前台，
+      跑的过程中会真的移动鼠标——别在它跑的时候干别的活。
+
+默认从仓库根的 publish\\ 取程序，拷一份到 %TEMP% 里跑（见 stage_app）。
+换程序用环境变量：JIANLAN_EXE_DIR=<含 Jianlan.exe 的目录>。
 """
 
 from __future__ import annotations
@@ -14,8 +18,10 @@ import ctypes
 import ctypes.wintypes as wt
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 user32 = ctypes.WinDLL("user32", use_last_error=True)
@@ -28,9 +34,14 @@ try:
 except AttributeError:
     user32.SetProcessDPIAware()
 
-EXE = r"D:\ac05\smoke-app\Jianlan.exe"
-DIR = r"D:\ac05\rename-smoke"
-UIA = r"D:\workspace\FileExplorer\Jianlan\tools\window-drive\uia_rename_probe.ps1"
+TOOLS = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(TOOLS))
+UIA = os.path.join(TOOLS, "uia_rename_probe.ps1")
+
+SRC_APP = os.environ.get("JIANLAN_EXE_DIR") or os.path.join(ROOT, "publish")
+WORK = os.path.join(tempfile.gettempdir(), "jianlan-rename-smoke")
+EXE = os.path.join(WORK, "app", "Jianlan.exe")
+DIR = os.path.join(WORK, "files")
 
 # ── SendInput ───────────────────────────────────────────────────────────────
 INPUT_MOUSE, INPUT_KEYBOARD = 0, 1
@@ -194,6 +205,23 @@ def name_point(row: dict) -> tuple[int, int]:
     return row["x"] + 70, row["y"] + row["h"] // 2
 
 
+def stage_app() -> None:
+    """把一份发布产物拷到临时目录里再跑。
+
+    必须在副本里跑：脚本会改名、新建、删文件，而且便携模式把设置与日志写进
+    exe\\data\\。直接在 publish\\ 或者用户解压出来的目录里跑，会把这些东西一起搅了。
+    portable.flag 每次重新写一遍——源目录里没有它（publish\\ 是非便携的，
+    跑起来会读 %LOCALAPPDATA% 里的真实配置）。
+    """
+    if not os.path.isfile(os.path.join(SRC_APP, "Jianlan.exe")):
+        raise SystemExit(f"找不到程序：{SRC_APP}\\Jianlan.exe（先跑 tools/release/publish.ps1，"
+                         f"或用 JIANLAN_EXE_DIR 指定目录）")
+
+    shutil.copytree(SRC_APP, os.path.dirname(EXE), dirs_exist_ok=True)
+    with open(os.path.join(os.path.dirname(EXE), "portable.flag"), "w", encoding="utf-8"):
+        pass
+
+
 def seed() -> None:
     """铺一份固定样本。每次跑都会把一个文件改名、删掉，所以不能指望上一次留下的目录还齐全。"""
     os.makedirs(DIR, exist_ok=True)
@@ -206,6 +234,7 @@ def seed() -> None:
 
 
 def main() -> int:
+    stage_app()
     seed()
 
     proc = launch()
@@ -230,8 +259,18 @@ def main() -> int:
             print("探针失败:", state)
             return 3
 
+        # 冷启动时窗口先出来、列表后填，4 秒不一定够：目录枚举完才画行
         rows = state["rows"]
+        for _ in range(20):
+            if rows:
+                break
+            time.sleep(0.5)
+            state = probe(pid)
+            rows = state.get("rows", [])
         print("条目:", [r["name"] for r in rows])
+        if not rows:
+            print("列表是空的，无法继续：", DIR)
+            return 4
 
         target = next(r for r in rows if r["name"] == "a.txt")
         cx, cy = name_point(target)
