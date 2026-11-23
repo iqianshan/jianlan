@@ -132,6 +132,9 @@ public static class Strings
     /// <summary>Copy full path</summary>
     public static string Menu_CopyPath => LocalizationService.Instance.Get("Menu.CopyPath");
 
+    /// <summary>Refresh</summary>
+    public static string Menu_Refresh => LocalizationService.Instance.Get("Menu.Refresh");
+
     /// <summary>Properties</summary>
     public static string Menu_Properties => LocalizationService.Instance.Get("Menu.Properties");
 

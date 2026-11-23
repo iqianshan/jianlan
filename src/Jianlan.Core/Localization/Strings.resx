@@ -152,6 +152,9 @@
   <data name="Menu.CopyPath" xml:space="preserve">
     <value>Copy full path</value>
   </data>
+  <data name="Menu.Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
   <data name="Menu.Properties" xml:space="preserve">
     <value>Properties</value>
   </data>

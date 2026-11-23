@@ -809,6 +809,13 @@
                                       Tag="ItemScope"
                                       Command="{Binding PropertiesCommand}"/>
                             <Separator Style="{StaticResource Menu.Separator}"/>
+                            <!-- 刷新（FR-6.2 的鼠标入口）。不标 ItemScope：它作用于当前目录，
+                                 空白处右键同样该有。压在「更多选项」之上是因为后者是 FR-6.9 的
+                                 兜底入口，位置必须留在最后。 -->
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.Refresh}"
+                                      Command="{Binding RefreshCommand}"/>
+                            <Separator Style="{StaticResource Menu.Separator}"/>
                             <!-- FR-6.9：系统菜单只在用户显式要"更多选项"时加载。
                                  日常操作走上面这些自建项，快且不受第三方 Shell 扩展拖累。 -->
                             <MenuItem Style="{StaticResource MenuItem.Default}"

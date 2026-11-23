@@ -146,6 +146,9 @@
   <data name="Menu.CopyPath" xml:space="preserve">
     <value>复制完整路径</value>
   </data>
+  <data name="Menu.Refresh" xml:space="preserve">
+    <value>刷新</value>
+  </data>
   <data name="Menu.Properties" xml:space="preserve">
     <value>属性</value>
   </data>
