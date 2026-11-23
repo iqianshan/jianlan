@@ -52,6 +52,8 @@ VK_SHIFT = 0x10
 # 点击必须落在自己的窗口上：一旦前台被别人抢走，SendInput 会点进别人家的界面，
 # 那就是在用户的桌面上乱点。每个 click/press 之前都核对一次，宁可中途中止。
 _TARGET_HWND = 0
+_TARGET_PID = 0
+_MAIN_HWND = 0
 
 
 class MOUSEINPUT(ctypes.Structure):
@@ -78,10 +80,20 @@ def _send(*items: INPUT) -> None:
 
 
 def _assert_foreground() -> None:
-    """确认前台还是我们的窗口，否则后面的合成输入会打到别人身上。"""
+    """确认前台还是我们的进程，否则后面的合成输入会打到别人身上。
+
+    比的是**进程**而不是窗口句柄：改扩展名会弹一个确认窗，那是同一个进程下的
+    另一个 HWND，前台落在弹窗上时按 Esc / Enter 正是这一步要做的，
+    按句柄比会把它误判成"被抢走了"。
+    """
     fg = user32.GetForegroundWindow()
-    if _TARGET_HWND and fg != _TARGET_HWND:
-        raise RuntimeError(f"前台窗口被抢走（{fg} != {_TARGET_HWND}），中止以免误点别的程序")
+    if not fg or not _TARGET_PID:
+        return
+
+    owner = wt.DWORD()
+    user32.GetWindowThreadProcessId(fg, ctypes.byref(owner))
+    if owner.value != _TARGET_PID:
+        raise RuntimeError(f"前台窗口被抢走（pid {owner.value} != {_TARGET_PID}），中止以免误点别的程序")
 
 
 def click(x: int, y: int) -> None:
@@ -94,7 +106,7 @@ def click(x: int, y: int) -> None:
 
 
 VK = {
-    "enter": 0x0D, "esc": 0x1B, "f2": 0x71, "f5": 0x74,
+    "enter": 0x0D, "esc": 0x1B, "f2": 0x71, "f5": 0x74, "backspace": 0x08,
     # 扩展键：Left/Up/Right/Down 必须带 KEYEVENTF_EXTENDEDKEY，否则笔记本键盘上
     # 会被当成小键盘那几个码，方向键在光标里不动
     "left": 0x25, "up": 0x26, "right": 0x27, "down": 0x28,
@@ -139,10 +151,12 @@ def press_combo(*keys: int) -> None:
 
 # ── 进程与窗口 ──────────────────────────────────────────────────────────────
 def launch() -> subprocess.Popen:
-    global _TARGET_HWND
+    global _TARGET_HWND, _TARGET_PID, _MAIN_HWND
     proc = subprocess.Popen([EXE, DIR])
     time.sleep(4.0)
+    _TARGET_PID = proc.pid
     _TARGET_HWND = focus(proc.pid)
+    _MAIN_HWND = _TARGET_HWND
     return proc
 
 
@@ -201,6 +215,51 @@ def probe(pid: int) -> dict:
     if not text:
         return {"ok": False, "error": "no-output", "stderr": str(out.stderr[:200])}
     return json.loads(text[-1])
+
+
+def dialog_titles(pid: int) -> list[str]:
+    """除主窗口之外的可见顶层窗口标题。
+
+    用 Win32 的 EnumWindows 而不是 UIA：确认窗带 ShowInTaskbar=False、
+    又是被 owner 禁用状态下的 owned window，UIA 的 RootElement 子级枚举
+    有时候数不到它（实测弹出来了却只看到主窗一条）。EnumWindows 按 HWND 走，
+    不管窗口归在谁的子树里，稳定得多。
+    """
+    titles = []
+    for hwnd, title in visible_windows(pid):
+        if hwnd != _MAIN_HWND and title:
+            titles.append(title)
+    return titles
+
+
+def visible_windows(pid: int) -> list[tuple[int, str]]:
+    """该进程所有可见顶层窗口（hwnd, 标题）。"""
+    found: list[tuple[int, str]] = []
+
+    @ctypes.WINFUNCTYPE(wt.BOOL, wt.HWND, wt.LPARAM)
+    def visit(hwnd, _):
+        owner = wt.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+        if owner.value == pid and user32.IsWindowVisible(hwnd):
+            length = user32.GetWindowTextLengthW(hwnd)
+            buffer = ctypes.create_unicode_buffer(length + 1)
+            user32.GetWindowTextW(hwnd, buffer, length + 1)
+            found.append((int(hwnd), buffer.value))
+        return True
+
+    user32.EnumWindows(visit, 0)
+    return found
+
+
+def wait_dialog(pid: int, timeout: float = 4.0) -> list[str]:
+    """等确认窗出现，返回最终看到的对话框标题（没出现就是空表）。"""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        titles = dialog_titles(pid)
+        if titles:
+            return titles
+        time.sleep(0.2)
+    return []
 
 
 def name_point(row: dict) -> tuple[int, int]:
@@ -483,6 +542,28 @@ def main() -> int:
             time.sleep(0.8)
             check("逐字移动用例收尾：磁盘未变", os.path.exists(os.path.join(DIR, "renamed.txt")))
 
+        # 只按过方向键、没敲过字，第二下也必须是逐字移动。
+        # 这一条是用户走查时踩到的：→ 到最右之后按 ← 又跳回最左，
+        # 光标永远在两端来回弹，插不进中间。判定用同样的"敲标记字符看落点"：
+        # right（光标到 11）→ left（应到 10，不是 0）→ 敲 K 得 renamed.txKt。
+        if check("F2 进入编辑态（方向键只按不敲）", edit_by_f2("renamed.txt")):
+            ensure_focus()
+            press("right")
+            time.sleep(0.15)
+            ensure_focus()
+            press("left")
+            time.sleep(0.15)
+            ensure_focus()
+            type_text("K")
+            time.sleep(0.3)
+            got = probe(pid).get("text")
+            check("按过一次方向键之后 ← 逐字移动", got == "renamed.txKt", f"得到 {got!r}")
+
+            ensure_focus()
+            press("esc")
+            time.sleep(0.8)
+            check("方向键用例收尾：磁盘未变", os.path.exists(os.path.join(DIR, "renamed.txt")))
+
         # 10) 点列表空白 → 取消，回到原样（敲进去的字丢掉，磁盘不动）
         row = next((r for r in probe(pid).get("rows", []) if r["name"] == "renamed.txt"), None)
         if row:
@@ -510,6 +591,53 @@ def main() -> int:
                 check("点空白处取消：列表里仍是原名",
                       any(r["name"] == "renamed.txt" for r in after.get("rows", [])),
                       str([r["name"] for r in after.get("rows", [])]))
+
+        # 11) 改扩展名 → 先弹确认，否决不落盘；确认之后才真正改
+        if check("F2 进入编辑态（改扩展名）", edit_by_f2("renamed.txt")):
+            # 不按 Ctrl+A 全选：合成按键里的组合键在 TextBox 上时灵时不灵，
+            # 这里走用户真会用的路子——先把光标送到行尾，删掉 ".txt"，再敲 ".md"。
+            ensure_focus()
+            press("right")
+            time.sleep(0.15)
+            for _ in range(4):                 # 删掉 ".txt" 四个字符，剩 "renamed"
+                press("backspace")
+                time.sleep(0.05)
+            ensure_focus()
+            type_text(".md")
+            time.sleep(0.3)
+
+            typed = probe(pid).get("text")
+            if check("编辑框里是 renamed.md", typed == "renamed.md", repr(typed)):
+                ensure_focus()
+                press("enter")
+
+                titles = wait_dialog(pid)
+                if check("改扩展名时弹出确认窗", bool(titles), str(titles)):
+                    # 否 → 磁盘不动，回到编辑态，改过的名字还留着让用户接着改
+                    press("esc")
+                    time.sleep(1.2)
+                    after = probe(pid)
+                    check("否决后确认窗已关闭", not dialog_titles(pid), str(dialog_titles(pid)))
+                    check("否决后不落盘：renamed.txt 还在",
+                          os.path.exists(os.path.join(DIR, "renamed.txt")))
+                    check("否决后没生成 renamed.md",
+                          not os.path.exists(os.path.join(DIR, "renamed.md")))
+                    check("否决后仍留在编辑态", bool(after.get("editing")))
+                    check("否决后编辑框里仍是改过的名字",
+                          after.get("text") == "renamed.md", repr(after.get("text")))
+
+                    # 是 → 真正改
+                    ensure_focus()
+                    press("enter")
+                    titles = wait_dialog(pid)
+                    if check("再次回车仍然先确认", bool(titles), str(titles)):
+                        press("enter")             # 确认窗里 Enter = 是
+                        time.sleep(1.8)
+                        check("确认后磁盘上出现 renamed.md",
+                              os.path.exists(os.path.join(DIR, "renamed.md")))
+                        check("确认后 renamed.txt 已不存在",
+                              not os.path.exists(os.path.join(DIR, "renamed.txt")))
+                        check("确认后编辑态已结束", not probe(pid).get("editing"))
 
     except RuntimeError as error:
         print("  ! 中止:", error, flush=True)

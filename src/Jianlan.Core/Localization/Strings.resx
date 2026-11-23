@@ -1916,6 +1916,15 @@
   <data name="Dialog.ExecutableBody" xml:space="preserve">
     <value>This file is about to run:/n/n{0}/n{1}/n/nContinue only if you meant to run it.</value>
   </data>
+  <data name="Dialog.RenameExtensionTitle" xml:space="preserve">
+    <value>Change file extension?</value>
+  </data>
+  <data name="Dialog.RenameExtensionBody" xml:space="preserve">
+    <value>Renaming "{0}" to "{1}" changes the file extension. The file may no longer open with the right application. Change it anyway?</value>
+  </data>
+  <data name="Status.RenameExtensionCancelled" xml:space="preserve">
+    <value>Extension change cancelled</value>
+  </data>
   <data name="Command.Undo" xml:space="preserve">
     <value>Undo</value>
   </data>

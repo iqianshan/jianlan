@@ -61,11 +61,21 @@ public partial class PaneView
     ///
     /// 这一状态决定方向键的语义：刚打开时四个方向键都跳到端点（← / ↑ 到最左，
     /// → / ↓ 到最右），符合"名字刚选中、这一下就是要去另一头"的直觉；
-    /// 一旦开始敲字或点了编辑框内部，就退回逐字移动——否则名字长一点就再也
-    /// 插不进中间。清掉它的地方有两处：<see cref="OnRenameBoxTextChanged"/> 与
-    /// <see cref="OnRenameBoxPreviewMouseDown"/>。
+    /// 一旦开始敲字、点了编辑框内部、或者已经按过一次方向键，就退回逐字移动
+    /// ——否则名字长一点就再也插不进中间。清掉它的地方有三处：
+    /// <see cref="OnRenameBoxTextChanged"/>、<see cref="OnRenameBoxPreviewMouseDown"/>
+    /// 与 <see cref="OnRenameBoxPreviewKeyDown"/> 里跳完端点那一行。
     /// </summary>
     private bool _renameFresh;
+
+    /// <summary>
+    /// 正在弹"要不要改扩展名"的确认窗。
+    ///
+    /// 模态窗会拿走键盘焦点，编辑框的 <see cref="OnRenameBoxLostKeyboardFocus"/>
+    /// 会把编辑态收掉——等用户点完"是/否"回来，编辑框已经没了、敲的字也丢了。
+    /// 所以弹窗期间挂起一切"离开即取消"的判定。
+    /// </summary>
+    private bool _confirming;
 
     /// <summary>
     /// 按下时记下的"这一下可能是改名"的候选。按下只是候选，**松开**才决定：
@@ -200,6 +210,11 @@ public partial class PaneView
         bool toEnd = e.Key is Key.Right or Key.Down;
         e.Handled = true;
         box.Select(toEnd ? box.Text.Length : 0, 0);
+
+        // 这一下已经把光标送到端点，之后就是正常的逐字移动。
+        // 不清掉标记的话，每次按方向键都会重新跳到端点——名字长一点就永远插不进中间，
+        // 表现是"←/→ 只会跳到两头"，正是用户走到这一步时踩到的那条。
+        _renameFresh = false;
     }
 
     /// <summary>点了编辑框内部（挪光标、框一段字）：从此方向键按字符走。</summary>
@@ -224,6 +239,10 @@ public partial class PaneView
     private void OnRenameBoxLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
         if (!IsRenaming) return;
+
+        // 弹"要不要改扩展名"的那一轮要放过：模态窗拿走焦点不等于用户点了别处
+        if (_confirming) return;
+
         if (e.NewFocus is null) return;
 
         CancelRename(refocus: false);
@@ -253,6 +272,15 @@ public partial class PaneView
         if (!FileOperations.TryValidateName(name, out string? error))
         {
             RejectRename(error);
+            return false;
+        }
+
+        // 改了扩展名要先问一句：文件类型是靠扩展名认的，改完多半双击打不开，
+        // 而这一下改盘没有别的痕迹能回退。否决之后留在编辑态，让用户接着把名字改回去。
+        if (RenameExtensionPolicy.ChangesExtension(entry.Name, name, entry.IsDirectory)
+            && !ConfirmExtensionChange(entry.Name, name))
+        {
+            Vm.SetStatus(Strings.Status_RenameExtensionCancelled);
             return false;
         }
 
@@ -300,6 +328,10 @@ public partial class PaneView
     {
         if (!IsRenaming) return;
 
+        // 确认窗是独立的 HWND，点它不该被当成"点了别处"。窗口被禁用时本来也收不到，
+        // 这一行是给复用窗口的那条路径兜底。
+        if (_confirming) return;
+
         // 点在编辑框自己身上：那是挪光标，不是离开
         if (_renameBox is { } box && IsDescendantOf(hit, box)) return;
 
@@ -338,6 +370,46 @@ public partial class PaneView
 
         _pendingCreate = null;
         RecordCreate(path);
+    }
+
+    /// <summary>
+    /// 扩展名变了，问一句再改。返回 <c>true</c> 表示用户确认要改。
+    ///
+    /// 为什么拦这一道：文件类型靠扩展名认，`.txt` 改成 `.docx` 之后双击多半打不开，
+    /// 而改名是一次性落盘的，撤销要用户自己想起来按 <c>Ctrl+Z</c>。资源管理器也在这里
+    /// 拦一下，手感照抄。判断规则在 <see cref="RenameExtensionPolicy"/>，大小写不算改动，
+    /// 目录不参与（文件夹名里的点不是扩展名）。
+    ///
+    /// 弹窗期间挂 <see cref="_confirming"/>：模态窗拿走键盘焦点会触发编辑框的失焦收尾，
+    /// 那样等用户点完"是/否"回来，编辑框和敲进去的字都没了。
+    /// </summary>
+    private bool ConfirmExtensionChange(string oldName, string newName)
+    {
+        _confirming = true;
+        try
+        {
+            return ConfirmWindow.Ask(
+                Window.GetWindow(this),
+                Strings.Dialog_RenameExtensionTitle,
+                string.Format(
+                    CultureInfo.CurrentCulture,
+                    Strings.Dialog_RenameExtensionBody,
+                    oldName,
+                    newName));
+        }
+        finally
+        {
+            _confirming = false;
+
+            // 模态窗收尾会把焦点还到"弹出前那个元素"，这里再稳一手：
+            // 无论点头还是摇头，回来第一件事都是能接着改（摇头时用户多半还想改回去）。
+            if (_renameBox is { } box)
+            {
+                box.Focus();
+                box.SelectAll();
+                _renameFresh = true;
+            }
+        }
     }
 
     private void RejectRename(string? error)

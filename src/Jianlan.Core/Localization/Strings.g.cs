@@ -1962,6 +1962,16 @@ public static class Strings
     public static string Dialog_ExecutableBody => LocalizationService.Instance.Get("Dialog.ExecutableBody");
     // 含占位符：string.Format(Strings.Dialog_ExecutableBody, ...)
 
+    /// <summary>Change file extension?</summary>
+    public static string Dialog_RenameExtensionTitle => LocalizationService.Instance.Get("Dialog.RenameExtensionTitle");
+
+    /// <summary>Renaming "{0}" to "{1}" changes the file extension. The file may no longer open with the right application. Change it an</summary>
+    public static string Dialog_RenameExtensionBody => LocalizationService.Instance.Get("Dialog.RenameExtensionBody");
+    // 含占位符：string.Format(Strings.Dialog_RenameExtensionBody, ...)
+
+    /// <summary>Extension change cancelled</summary>
+    public static string Status_RenameExtensionCancelled => LocalizationService.Instance.Get("Status.RenameExtensionCancelled");
+
     /// <summary>Undo</summary>
     public static string Command_Undo => LocalizationService.Instance.Get("Command.Undo");
 

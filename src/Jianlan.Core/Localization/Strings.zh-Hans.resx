@@ -1907,6 +1907,15 @@
 
 只在你确认这是自己想运行的程序时才继续。</value>
   </data>
+  <data name="Dialog.RenameExtensionTitle" xml:space="preserve">
+    <value>修改文件扩展名？</value>
+  </data>
+  <data name="Dialog.RenameExtensionBody" xml:space="preserve">
+    <value>把「{0}」改名为「{1}」会改变文件扩展名，文件可能无法正常打开。确定要改吗？</value>
+  </data>
+  <data name="Status.RenameExtensionCancelled" xml:space="preserve">
+    <value>已取消修改扩展名</value>
+  </data>
   <data name="Command.Undo" xml:space="preserve">
     <value>撤销</value>
   </data>

@@ -132,9 +132,12 @@ selected when you start (`report.docx` selects `report`; folders select the whol
 confirms and leaves you on the same row. **Only `Enter` renames anything** — `Esc`, clicking empty
 space or another row, clicking the toolbar or sidebar, switching tabs, navigating away, or scrolling
 the row out of view all discard the edit without touching the disk. While the editor is fresh,
-`←`/`↑` jump to the far left and `→`/`↓` to the far right; once you start typing they move one
-character at a time. An invalid or duplicate name does not close the editor: the box turns red and
-the next keystroke overwrites it. Newly created folders and text files drop straight into rename.
+`←`/`↑` jump to the far left and `→`/`↓` to the far right; once you type, click inside the box, or
+press an arrow once, they move one character at a time. Changing the extension asks first: renaming
+`notes.docx` to `notes.md` would leave a file that no longer opens, so `Enter` brings up a confirmation
+— say yes to go ahead, say no to stay put with the new name still in the box. An invalid or duplicate
+name does not close the editor: the box turns red and the next keystroke overwrites it. Newly created
+folders and text files drop straight into rename.
 
 Drag and drop: dropping moves within a drive and copies across drives; hold `Ctrl` to force a copy,
 `Shift` to force a move. Drop onto a folder row to put the items inside it. Drop onto another
