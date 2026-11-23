@@ -1,0 +1,260 @@
+# Jianlan
+
+[中文](README.md) ｜ **English**
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/logo-on-dark.png">
+  <img src="docs/assets/logo.png" alt="Jianlan" width="420">
+</picture>
+
+A lighter, faster file manager for Windows. Extract it and run — no installation.
+
+A dozen Explorer windows open at once, and moving files between drives means jumping back and forth.
+The batch you were half-way through yesterday takes another five minutes to find again.
+Jianlan is built for exactly that: **two panes side by side, tabs for every folder, colour tags to track
+progress, and everything back where you left it next time**.
+
+Current version **0.2.1**, interface available in Simplified Chinese and English.
+
+---
+
+## Why use it
+
+| What gets in your way | What Jianlan does |
+|---|---|
+| Too many windows, hard to tell apart | Many tabs in one window; close, restore, or open a tab in a new window |
+| Copying between two folders, back and forth | `F3` opens a second pane; drag directly across. Each pane remembers its own view and sort |
+| You forget which files you already handled | Colour tags, several colours per file, summarised by colour in the sidebar |
+| You just want a quick look at an image or a document | `Alt+P` opens the preview pane — images, text, PDF, Office files, audio and video, without launching anything |
+| A slip of the hand renames or deletes the wrong thing | `Ctrl+Z` undoes the last action: rename it back, or restore from the Recycle Bin |
+| Waiting seconds for a file manager to start | Cold start around 0.7 s; scrolling a 10,000-item folder stays smooth |
+
+---
+
+## Download and run
+
+1. Get `Jianlan-0.2.1-portable-win-x64.zip` (about 70 MB) from **Releases**.
+2. Extract it anywhere you can write, e.g. `D:\Tools\Jianlan`.
+   **Avoid `C:\Program Files`** — portable mode keeps its settings next to the program.
+3. Double-click `Jianlan.exe`.
+
+No installer, no administrator rights, and **no separate .NET installation** — the runtime is inside the zip.
+
+To verify the download, compare against the `.sha256` file published alongside it:
+
+```powershell
+Get-FileHash .\Jianlan-0.2.1-portable-win-x64.zip -Algorithm SHA256
+```
+
+**Uninstalling**: close the app and delete the extracted folder. It writes no registry keys,
+installs no services, and does not start with Windows.
+
+### Requirements
+
+| Item | Requirement |
+|---|---|
+| OS | Windows 10 / Windows 11, 64-bit (fully verified on Windows 11) |
+| Memory | 4 GB or more; the app itself uses about 130–170 MB |
+| Disk | About 190 MB extracted |
+| Rights | A standard user account is enough; run as administrator to reach protected folders |
+
+---
+
+## First run
+
+The first tab is the **Home** page with four sections: common folders, drives, recent places, favourites.
+Click any of them to jump straight in.
+
+A five-minute tour, in the order most people need it:
+
+1. **Open two panes**: press `F3`, pick the source on the left and the destination on the right, drag across.
+2. **Tag a file**: right-click → "Tags" → pick a colour. A dot appears before the name, and the sidebar
+   groups files by colour.
+3. **Bookmark**: `Ctrl+D` bookmarks the current folder or the selection.
+4. **Save a workspace**: open the folders you are working with as tabs, then click "Save current tabs…"
+   in the Workspaces section of the Home page (or right-click the "Workspaces" heading in the sidebar)
+   and restore the whole set next time, split pane and pinned tabs included.
+5. **Close and reopen**: window size, tabs, split ratio and column widths all come back.
+
+### The window at a glance
+
+| Region | What is in it |
+|---|---|
+| Tab bar (top) | One tab per folder; `＋` opens a new one, right-click to pin, close others, or open in a new window |
+| Sidebar (left) | Common folders, This PC (per-drive free space), favourites, tags, Recycle Bin and Network; drag its edge to resize, double-click to reset |
+| Main area | Toolbar (back / forward / up / refresh, breadcrumb address bar, search, view switch), file list, status bar |
+| Preview pane (right, `Alt+P`) | Images, text, code, PDF, Office files, audio and video; with a single file selected you can open it, copy its path or delete it |
+
+---
+
+## Everyday operations
+
+Only shortcuts that actually work are listed; mouse gestures follow.
+
+### Browsing and navigation
+
+| Action | Shortcut |
+|---|---|
+| Back / forward / up one level | `Alt+←` / `Alt+→` / `Alt+↑` (or `Backspace`) |
+| Jump to the address bar | `Ctrl+L` (auto-complete: `Tab` completes, `Enter` navigates) |
+| Search the current folder | `Ctrl+F`; `Esc` clears |
+| Refresh | `F5` or `Ctrl+R` |
+| Bookmark current folder / selection | `Ctrl+D` |
+| Mouse side buttons | Back / forward |
+
+### Tabs
+
+| Action | Shortcut |
+|---|---|
+| New / close / reopen the last closed | `Ctrl+T` / `Ctrl+W` / `Ctrl+Shift+T` |
+| Next / previous tab | `Ctrl+Tab` / `Ctrl+Shift+Tab` |
+| Jump to tab N / the last tab | `Ctrl+1…8` / `Ctrl+9` |
+
+Mouse: middle-click a tab to close it, drag to reorder, right-click for pin, close others,
+copy path, open in a new window. Middle-click a folder, or `Ctrl`-click it, to open it in a new tab.
+
+### File operations
+
+| Action | Shortcut |
+|---|---|
+| Open | `Enter` |
+| Copy / cut / paste | `Ctrl+C` / `Ctrl+X` / `Ctrl+V` |
+| Rename | `F2` (newly created items drop straight into rename) |
+| New folder / new text file | `Ctrl+Shift+N` / `Ctrl+Shift+M` |
+| Delete to Recycle Bin / delete permanently | `Delete` / `Shift+Delete` |
+| Undo the last action | `Ctrl+Z` |
+| Copy full path | `Ctrl+Shift+C` |
+| Properties | `Alt+Enter` |
+| Select all | `Ctrl+A` |
+
+Drag and drop: dropping moves within a drive and copies across drives; hold `Ctrl` to force a copy,
+`Shift` to force a move. Drop onto a folder row to put the items inside it. Drop onto another
+application to hand the files over.
+
+### Views and panels
+
+| Action | Shortcut |
+|---|---|
+| Details / list view | `Ctrl+Shift+1` / `Ctrl+Shift+2` |
+| Cycle theme (system → light → dark → high contrast) | `Ctrl+Shift+D` |
+| Toggle the second pane | `F3` (or `Ctrl+Shift+E`) |
+| Switch focus between panes | `Tab` or `F6` |
+| Toggle the preview pane | `Alt+P` (or `Ctrl+Shift+P`) |
+| Settings | `Ctrl+,` |
+
+---
+
+## What else it does
+
+- **Tags**: eight colours by default, renameable ("red" can become "urgent"), up to 32 entries;
+  the tag library exports to JSON.
+- **Favourites**: drop something in to bookmark it; group, rename, change icon and colour, reorder by
+  dragging; broken entries are greyed out and can be cleaned up in bulk.
+- **Workspaces**: save the current set of tabs (including the other half of the split and pinned tabs)
+  and restore them together. Up to 50.
+- **Search**: filters as you type and stays responsive even in huge folders; shows the match count and
+  tells you when the result list is truncated.
+- **Folder size**: calculated only when you ask for it, right-click → "Calculate folder size";
+  `Esc` stops it at any time.
+- **Thumbnails**: real frames for images and videos in the list, with an on-disk cache you can clear or cap.
+- **Columns**: show, hide, reorder and resize the four columns; remembered per folder type.
+- **Multiple windows**: right-click a tab → "Open in new window". The two windows are independent —
+  closing one leaves the other running.
+- **Single instance**: launching again just hands the path to the running window instead of starting
+  another. You can also drop a folder onto `Jianlan.exe` to open it.
+- **Crash recovery**: after an unexpected exit the next launch tells you so and offers a log export
+  (one click on the About page produces a zip).
+
+## What is in Settings
+
+`Ctrl+,` opens seven pages:
+
+| Page | Contents |
+|---|---|
+| General | Interface language (system / Simplified Chinese / English), start-up behaviour, default folder for new tabs |
+| Appearance | Theme (light / dark / system / high contrast), accent colour, font and size (8–24 pt), density, sidebar and status bar toggles |
+| File list | Default view and sort, hidden files, file extensions, single-click to open, thumbnail cache |
+| Actions | Delete confirmation, bulk delete confirmation, overwrite confirmation, confirm before opening executables |
+| Privacy & storage | Clear history, tag library import/export and stats, privacy statement, reset sections |
+| Tags | Names and colours of the eight tags |
+| About | Version, check for updates, export logs, licence |
+
+---
+
+## Where your data lives
+
+Settings, history, favourites, tags and workspaces stay **on your machine**. Nothing is uploaded.
+
+| How it runs | Data location |
+|---|---|
+| Portable zip (official build) | `data\` next to the program |
+| Built from source without portable mode | `%LOCALAPPDATA%\Jianlan` |
+
+`data\` holds `settings.json` and a `logs\` folder.
+**To back up or move to another machine, copy the whole `data\` folder**; deleting it resets the app.
+
+**Privacy**: no telemetry, no uploads, and the program makes no network requests on its own. The only
+outbound action is the one you trigger yourself with "Check for updates", which opens the release page in
+your browser. See [SECURITY.md](SECURITY.md).
+
+---
+
+## FAQ
+
+**The taskbar shows a blank white icon.**
+Fixed in 0.2.1. If you still see one, first make sure you are running a 0.2.1-or-later build — an older
+extracted folder or a stale system icon cache will still show the old icon, so extract the current zip into
+a fresh folder and try again.
+
+**Double-clicking does nothing, or antivirus blocks it.**
+The binary is not code-signed, and security software often warns about new unsigned programs. If you got
+it from this repository's Releases, allow it; you can also verify the `.sha256` first.
+
+**Why did Delete send the file to the Recycle Bin?**
+That is the default so the action stays undoable. Use `Shift+Delete` for permanent deletion
+(it asks for confirmation).
+
+**`Ctrl+,` does not open Settings.**
+Chinese IMEs sometimes swallow punctuation chords. Use the menu entry instead, or switch to an English
+input state.
+
+**Copying a multi-GB file shows only "Copying…" with no progress bar.**
+This version has no transfer progress window or cancel button yet; both are on the backlog.
+Avoid triggering another paste while a copy is running.
+
+**Will it change my file associations?**
+No. It registers no file types and does not take over context menus; "More options…" simply invokes the
+system menu.
+
+**Windows 7 or macOS?**
+Windows 10/11 64-bit only for now. The platform abstraction and per-OS operation mapping are documented in
+the requirements specification, which is what a macOS or Linux port would be built against.
+
+---
+
+## Known limitations (0.2.1)
+
+- Copying or moving large files has **no progress bar and no cancel**, only a status bar line.
+- **No large-icon or tile view** — details and list only.
+- A row shows at most **three colour dots**; a fourth colour is still recorded and counted in the
+  sidebar, it just does not fit on the line.
+- Tags, favourites and workspaces have **no single export/import for everything** (the tag library does).
+- Windows 10 compatibility, 8-hour stability and offline scenarios are not fully verified yet, so this
+  version makes no claims about those.
+
+The reasoning behind these trade-offs is in [CHANGELOG.md](CHANGELOG.md) and
+[docs/backlog.md](docs/backlog.md).
+
+---
+
+## For developers
+
+You need the .NET 9 SDK. Build, packaging and performance-measurement commands are in
+[CONTRIBUTING.md](CONTRIBUTING.md). Architecture, UI rules and the performance gate live in
+[docs/architecture.md](docs/architecture.md), [docs/ui-guidelines.md](docs/ui-guidelines.md) and
+[docs/performance-gate.md](docs/performance-gate.md). The full requirement set is in
+[docs/requirements.md](docs/requirements.md).
+
+## Licence
+
+[Apache-2.0](LICENSE). Copyright 2026 Qianshan.
