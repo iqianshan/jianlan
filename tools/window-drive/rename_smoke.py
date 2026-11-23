@@ -206,19 +206,24 @@ def name_point(row: dict) -> tuple[int, int]:
 
 
 def stage_app() -> None:
-    """把一份发布产物拷到临时目录里再跑。
+    """把一份发布产物拷到临时目录里再跑，每次都是干净的一份。
 
     必须在副本里跑：脚本会改名、新建、删文件，而且便携模式把设置与日志写进
     exe\\data\\。直接在 publish\\ 或者用户解压出来的目录里跑，会把这些东西一起搅了。
-    portable.flag 每次重新写一遍——源目录里没有它（publish\\ 是非便携的，
-    跑起来会读 %LOCALAPPDATA% 里的真实配置）。
+
+    拷的时候跳过 `data`：从用户解压出来的目录取程序时，那份目录里已经有他的会话，
+    启动会把上次打开的目录恢复出来，而不是我们传进去的样本目录。
+    然后再写 portable.flag——publish\\ 里没有它（那边的程序跑起来会读 %LOCALAPPDATA%
+    里的真实配置），而临时副本必须是便携的。
     """
     if not os.path.isfile(os.path.join(SRC_APP, "Jianlan.exe")):
         raise SystemExit(f"找不到程序：{SRC_APP}\\Jianlan.exe（先跑 tools/release/publish.ps1，"
                          f"或用 JIANLAN_EXE_DIR 指定目录）")
 
-    shutil.copytree(SRC_APP, os.path.dirname(EXE), dirs_exist_ok=True)
-    with open(os.path.join(os.path.dirname(EXE), "portable.flag"), "w", encoding="utf-8"):
+    app = os.path.dirname(EXE)
+    shutil.rmtree(app, ignore_errors=True)
+    shutil.copytree(SRC_APP, app, ignore=shutil.ignore_patterns("data"))
+    with open(os.path.join(app, "portable.flag"), "w", encoding="utf-8"):
         pass
 
 
