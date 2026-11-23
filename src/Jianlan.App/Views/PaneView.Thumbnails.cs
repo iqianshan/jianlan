@@ -57,10 +57,14 @@ public partial class PaneView
         // 只有真正发生位移才算滚动：内容变化也会触发 ScrollChanged，那种情况不该暂停
         if (e.VerticalChange == 0 && e.HorizontalChange == 0 && e.ExtentHeightChange == 0) return;
 
-        // 编辑中的行一旦滚出可视区就会被虚拟化回收，编辑框连字一起消失。
-        // 判据加上"编辑框有焦点"，是为了放过 BeginRename 里那次 ScrollIntoView：
-        // 那时编辑框还没拿到焦点，不该被当成"用户在滚列表"。
-        if (IsRenaming && _renameBox is { IsKeyboardFocused: true }) CommitRename(refocus: false);
+        // 编辑中的行滚出可视区后会被虚拟化回收，编辑框连字一起消失，还可能被复用到
+        // 别的行上。判据是"这一行的容器还在、且还在视口里"——BeginRename 里那次
+        // ScrollIntoView 也会把行滚进来，那种情况容器在、可见，什么都不做。
+        // 收成取消：滚动是"我在找别的文件"，不是"确认这个名字"。
+        if (IsRenaming && _renameBox is { IsKeyboardFocused: true } && !IsRenameRowVisible())
+        {
+            CancelRename(refocus: false);
+        }
 
         ThumbnailService.Pause();
 

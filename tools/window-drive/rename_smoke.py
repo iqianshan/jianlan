@@ -45,7 +45,7 @@ DIR = os.path.join(WORK, "files")
 
 # ── SendInput ───────────────────────────────────────────────────────────────
 INPUT_MOUSE, INPUT_KEYBOARD = 0, 1
-KEYEVENTF_KEYUP, KEYEVENTF_UNICODE = 0x0002, 0x0004
+KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_UNICODE = 0x0001, 0x0002, 0x0004
 MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP = 0x0002, 0x0004
 VK_SHIFT = 0x10
 
@@ -93,15 +93,26 @@ def click(x: int, y: int) -> None:
     _send(INPUT(type=INPUT_MOUSE, u=_U(mi=MOUSEINPUT(0, 0, 0, MOUSEEVENTF_LEFTUP, 0, None))))
 
 
-VK = {"enter": 0x0D, "esc": 0x1B, "f2": 0x71, "f5": 0x74}
+VK = {
+    "enter": 0x0D, "esc": 0x1B, "f2": 0x71, "f5": 0x74,
+    # 扩展键：Left/Up/Right/Down 必须带 KEYEVENTF_EXTENDEDKEY，否则笔记本键盘上
+    # 会被当成小键盘那几个码，方向键在光标里不动
+    "left": 0x25, "up": 0x26, "right": 0x27, "down": 0x28,
+}
+
+
+EXTENDED = {"left", "up", "right", "down"}
 
 
 def press(name: str) -> None:
     _assert_foreground()
     vk = VK[name]
+    # 方向键是扩展键：不带 EXTENDEDKEY 时，某些键盘布局 / 远控链路会把它当成
+    # 小键盘的 4/8/6/2，光标一动不动，看着像"方向键失灵"
+    flags = KEYEVENTF_EXTENDEDKEY if name in EXTENDED else 0
     _send(
-        INPUT(type=INPUT_KEYBOARD, u=_U(ki=KEYBDINPUT(vk, 0, 0, 0, None))),
-        INPUT(type=INPUT_KEYBOARD, u=_U(ki=KEYBDINPUT(vk, 0, KEYEVENTF_KEYUP, 0, None))),
+        INPUT(type=INPUT_KEYBOARD, u=_U(ki=KEYBDINPUT(vk, 0, flags, 0, None))),
+        INPUT(type=INPUT_KEYBOARD, u=_U(ki=KEYBDINPUT(vk, 0, flags | KEYEVENTF_KEYUP, 0, None))),
     )
 
 
@@ -228,14 +239,28 @@ def stage_app() -> None:
 
 
 def seed() -> None:
-    """铺一份固定样本。每次跑都会把一个文件改名、删掉，所以不能指望上一次留下的目录还齐全。"""
+    """铺一份固定样本，先清掉上一次留下的东西。
+
+    不清就会串味：这一轮会把 a.txt 改名成 renamed.txt、还会新建一个文件夹，
+    上一轮的产物留在目录里，这一轮"a.txt → renamed.txt"直接撞重名，
+    看着像功能坏了。样本目录是本脚本自己的，清了不心疼。
+    """
     os.makedirs(DIR, exist_ok=True)
     os.makedirs(os.path.join(DIR, "材料"), exist_ok=True)
-    for name in ("a.txt", "b.txt"):
+
+    for name in os.listdir(DIR):
+        if name == "材料":
+            continue
+
         path = os.path.join(DIR, name)
-        if not os.path.exists(path):
-            with open(path, "w", encoding="utf-8") as handle:
-                handle.write("")
+        if os.path.isdir(path):
+            shutil.rmtree(path, ignore_errors=True)
+        else:
+            os.remove(path)
+
+    for name in ("a.txt", "b.txt"):
+        with open(os.path.join(DIR, name), "w", encoding="utf-8") as handle:
+            handle.write("")
 
 
 def main() -> int:
@@ -372,7 +397,7 @@ def main() -> int:
             check("重名被拒后仍留在编辑态", bool(probe(pid).get("editing")))
             check("重名被拒后磁盘未变", os.path.exists(os.path.join(DIR, "renamed.txt")))
 
-            # 8) 点另一行 → 按提交处理，并让被点的那一行成为选中项
+            # 8) 点另一行 → 按**取消**收尾（只有 Enter 才改盘），被点的那一行接管选中
             #    校验失败时编辑框内容被全选（红框 + 全选），所以这里敲的是带扩展名的全名
             ensure_focus()
             type_text("zzz.txt")
@@ -384,13 +409,107 @@ def main() -> int:
                 click(ox, oy)
                 time.sleep(1.6)
                 after = probe(pid)
-                check("点别处提交：磁盘上出现 zzz.txt",
-                      os.path.exists(os.path.join(DIR, "zzz.txt")))
-                check("点别处提交：编辑态已结束", not after.get("editing"))
-                check("点别处之后选中的是被点的那一行",
+                check("点别处取消：磁盘上没冒出 zzz.txt",
+                      not os.path.exists(os.path.join(DIR, "zzz.txt")))
+                check("点别处取消：原名还在", os.path.exists(os.path.join(DIR, "renamed.txt")))
+                check("点别处取消：编辑态已结束", not after.get("editing"))
+                check("点别处取消后选中的是被点的那一行",
                       any(r["name"] == "b.txt" and r.get("selected") for r in after.get("rows", [])),
                       "选中=" + str([r["name"] for r in after.get("rows", []) if r.get("selected")]))
-                os.remove(os.path.join(DIR, "zzz.txt"))
+
+        # 9) 方向键：刚进编辑（词干选中、内容未动）时四个方向键直达端点。
+        #    判定方式是"敲一个标记字符，看它落在哪儿"：.NET 的 TextPatternRange
+        #    没有 Start/Length，UIA 读不到光标位置，只能这样从结果反推。
+        #    以 renamed.txt（11 字符）为例，敲 K 之后——
+        #      → / ↓ 到最右 → "renamed.txtK"
+        #      ← / ↑ 到最左 → "Krenamed.txt"
+        def edit_by_f2(name: str) -> bool:
+            row = next((r for r in probe(pid).get("rows", []) if r["name"] == name), None)
+            if row is None:
+                return False
+            rx, ry = name_point(row)
+            ensure_focus()
+            click(rx, ry)
+            time.sleep(0.5)
+            ensure_focus()
+            press("f2")
+            time.sleep(0.6)
+            return bool(probe(pid).get("editing"))
+
+        for key, expected, label in (
+            ("right", "renamed.txtK", "→ 到最右"),
+            ("left", "Krenamed.txt", "← 到最左"),
+            ("down", "renamed.txtK", "↓ 到最右"),
+            ("up", "Krenamed.txt", "↑ 到最左"),
+        ):
+            if not check(f"F2 进入编辑态（{label}）", edit_by_f2("renamed.txt")):
+                continue
+
+            ensure_focus()
+            press(key)
+            time.sleep(0.15)
+            ensure_focus()
+            type_text("K")
+            time.sleep(0.3)
+
+            got = probe(pid).get("text")
+            check(label, got == expected, f"得到 {got!r}")
+
+            ensure_focus()
+            press("esc")
+            time.sleep(0.8)
+            check(f"{label} 之后 Esc：磁盘未变", os.path.exists(os.path.join(DIR, "renamed.txt")))
+
+        # 动过内容之后方向键回到逐字移动：→ 到最右、敲 K，再按 ← 只退一格，
+        # 敲 M 应当夹在 K 前面；如果 ← 仍然跳到最左，结果会是 Mrenamed.txtK
+        if check("F2 进入编辑态（逐字移动）", edit_by_f2("renamed.txt")):
+            ensure_focus()
+            press("right")
+            time.sleep(0.15)
+            ensure_focus()
+            type_text("K")
+            time.sleep(0.2)
+            ensure_focus()
+            press("left")
+            time.sleep(0.15)
+            ensure_focus()
+            type_text("M")
+            time.sleep(0.3)
+            got = probe(pid).get("text")
+            check("动过内容后 ← 只退一格", got == "renamed.txtMK", f"得到 {got!r}")
+
+            ensure_focus()
+            press("esc")
+            time.sleep(0.8)
+            check("逐字移动用例收尾：磁盘未变", os.path.exists(os.path.join(DIR, "renamed.txt")))
+
+        # 10) 点列表空白 → 取消，回到原样（敲进去的字丢掉，磁盘不动）
+        row = next((r for r in probe(pid).get("rows", []) if r["name"] == "renamed.txt"), None)
+        if row:
+            rx, ry = name_point(row)
+            ensure_focus()
+            click(rx, ry)
+            time.sleep(0.5)
+            ensure_focus()
+            press("f2")
+            time.sleep(0.5)
+            if check("F2 进入编辑态（空白点击用例）", bool(probe(pid).get("editing"))):
+                ensure_focus()
+                type_text("junk")
+                time.sleep(0.2)
+
+                box = probe(pid)["list"]
+                ensure_focus()
+                click(int(box["x"]) + int(box["w"]) // 2, int(box["y"]) + int(box["h"]) - 8)
+                time.sleep(1.2)
+
+                after = probe(pid)
+                check("点空白处取消：编辑态已结束", not after.get("editing"))
+                check("点空白处取消：磁盘上没冒出 junk", not os.path.exists(os.path.join(DIR, "junk.txt")))
+                check("点空白处取消：原名还在", os.path.exists(os.path.join(DIR, "renamed.txt")))
+                check("点空白处取消：列表里仍是原名",
+                      any(r["name"] == "renamed.txt" for r in after.get("rows", [])),
+                      str([r["name"] for r in after.get("rows", [])]))
 
     except RuntimeError as error:
         print("  ! 中止:", error, flush=True)

@@ -25,11 +25,16 @@ namespace Jianlan.App.Views;
 ///
 /// 生命周期只有三个动作：
 ///   · <see cref="BeginRename"/> 进入，落焦点、按规则预选一段文字；
-///   · <see cref="CommitRename"/> 提交（Enter / 点别处 / 切标签），改名后按下标刷新；
-///   · <see cref="CancelRename"/> 放弃（Esc），磁盘一个字节都不动。
+///   · <see cref="CommitRename"/> 提交，**只认 Enter**，改名后按下标刷新；
+///   · <see cref="CancelRename"/> 放弃，Esc 与"点了别处"都走这里，磁盘一个字节都不动。
 ///
-/// 为什么提交后是"延后刷新"而不是当场刷新：点另一行也会触发提交，那一刻 ListBox 还没
-/// 把选中切过去，当场刷新会把这次点击吞掉。延后一拍再刷，按路径保住的选中就是用户刚点的行。
+/// 为什么离开编辑态一律按取消：敲一半的名字被鼠标顺手点一下就落盘，改错的代价
+/// 比丢几个字大得多——尤其这里是文件管理器，没有对话框可以确认。所以只有明确的
+/// Enter 才改盘，其余出口（Esc / 点空白 / 点别的行 / 切标签 / 换目录 / 滚出视野 / 关窗）
+/// 全部回到原样。
+///
+/// 为什么提交后是"延后刷新"而不是当场刷新：改名那一拍 ListBox 可能正在处理点击，
+/// 当场刷新会把选中结果抹掉。延后一拍再刷，按路径保住的选中就是用户看到的那一行。
 /// </summary>
 public partial class PaneView
 {
@@ -52,6 +57,17 @@ public partial class PaneView
     private FileEntry? _renameTarget;
 
     /// <summary>
+    /// 编辑框刚打开、内容一个字都没动过。
+    ///
+    /// 这一状态决定方向键的语义：刚打开时四个方向键都跳到端点（← / ↑ 到最左，
+    /// → / ↓ 到最右），符合"名字刚选中、这一下就是要去另一头"的直觉；
+    /// 一旦开始敲字或点了编辑框内部，就退回逐字移动——否则名字长一点就再也
+    /// 插不进中间。清掉它的地方有两处：<see cref="OnRenameBoxTextChanged"/> 与
+    /// <see cref="OnRenameBoxPreviewMouseDown"/>。
+    /// </summary>
+    private bool _renameFresh;
+
+    /// <summary>
     /// 按下时记下的"这一下可能是改名"的候选。按下只是候选，**松开**才决定：
     /// 中间只要真的拖起来了（<c>OnFileDragMove</c> 把 <c>_dragArmed</c> 清掉），
     /// 这里也会被清空——那是在拖文件，不是在改名。
@@ -70,8 +86,9 @@ public partial class PaneView
         if (entry is null) return;
         if (ReferenceEquals(entry, RenamingEntry)) return;
 
-        // 上一次还没收尾（连按 F2、右键重命名叠在编辑上）：先按提交处理，不留两份编辑态
-        if (IsRenaming) CommitRename(refocus: false, refresh: false);
+        // 上一次还没收尾（连按 F2、右键重命名叠在编辑上）：先收成取消，不留两份编辑态。
+        // 不按提交，否则"再按一次 F2"会变成把半截名字落盘。
+        if (IsRenaming) CancelRename(refocus: false);
 
         _renameTarget = entry;
         _pendingCreate = pendingCreate;
@@ -121,8 +138,16 @@ public partial class PaneView
 
         // 事件在这里挂而不是写在 XAML 上：行模板是纯资源字典，没有代码后置可以接事件；
         // 先减后加，容器复用同一只 TextBox 时不会叠出多份处理器。
-        box.KeyDown -= OnRenameBoxKeyDown;
-        box.KeyDown += OnRenameBoxKeyDown;
+        //
+        // 键盘用 PreviewKeyDown：方向键在 TextBox 的类处理器里就被消化并标成 Handled，
+        // 冒泡阶段的 KeyDown 收不到（回车、Esc 恰好没人处理，所以只用 KeyDown 时
+        // 看着是好的，方向键却怎么都改不了）。
+        box.PreviewKeyDown -= OnRenameBoxPreviewKeyDown;
+        box.PreviewKeyDown += OnRenameBoxPreviewKeyDown;
+        box.PreviewMouseDown -= OnRenameBoxPreviewMouseDown;
+        box.PreviewMouseDown += OnRenameBoxPreviewMouseDown;
+        box.TextChanged -= OnRenameBoxTextChanged;
+        box.TextChanged += OnRenameBoxTextChanged;
         box.LostKeyboardFocus -= OnRenameBoxLostKeyboardFocus;
         box.LostKeyboardFocus += OnRenameBoxLostKeyboardFocus;
 
@@ -131,35 +156,77 @@ public partial class PaneView
         box.Focus();
         box.Select(start, length);
         Keyboard.Focus(box);
+
+        // 必须在赋 Text 之后：赋 Text 会触发 TextChanged，那里会把标记清掉
+        _renameFresh = true;
     }
 
-    private void OnRenameBoxKeyDown(object sender, KeyEventArgs e)
+    /// <summary>
+    /// 编辑框里的键。
+    ///
+    /// 方向键分两段：刚打开（<see cref="_renameFresh"/>）或整名/词干还选着的时候，
+    /// 四个方向键只做"去端点"；已经在改了，还原成 TextBox 原本的逐字移动。
+    ///
+    /// 为什么不无条件拦截：文件名的词干预选只有扩展名之前那一截，按原生的
+    /// "有选区就收到选区边界"处理，→ 会停在扩展名前面那一点，是半截行为；
+    /// 而无条件跳到端点又会让长名字没法插字。按"动没动过"分两段，两头都保住了。
+    /// </summary>
+    private void OnRenameBoxPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (sender is not TextBox box) return;
+
         switch (e.Key)
         {
             case Key.Enter:
                 // 吞掉：不吞的话回车会继续冒泡给列表，变成"打开选中项"
                 e.Handled = true;
                 CommitRename(refocus: true);
-                break;
+                return;
 
             case Key.Escape:
                 e.Handled = true;
                 CancelRename();
-                break;
+                return;
         }
+
+        if (e.Key is not (Key.Left or Key.Right or Key.Up or Key.Down)) return;
+
+        // Shift+方向是选字、Ctrl+方向是整词跳，都有既定语义，不抢
+        if (Keyboard.Modifiers != ModifierKeys.None) return;
+
+        // 动过内容又没有选区：这就是正常的逐字移动
+        if (!_renameFresh && box.SelectionLength == 0) return;
+
+        bool toEnd = e.Key is Key.Right or Key.Down;
+        e.Handled = true;
+        box.Select(toEnd ? box.Text.Length : 0, 0);
+    }
+
+    /// <summary>点了编辑框内部（挪光标、框一段字）：从此方向键按字符走。</summary>
+    private void OnRenameBoxPreviewMouseDown(object sender, MouseButtonEventArgs e) => _renameFresh = false;
+
+    /// <summary>内容变了：已经不是"刚打开"的那一下，方向键按字符走。</summary>
+    private void OnRenameBoxTextChanged(object sender, TextChangedEventArgs e)
+    {
+        _renameFresh = false;
     }
 
     /// <summary>
-    /// 焦点离开编辑框：点了另一行、点了侧栏、切到别的窗口。
+    /// 焦点离开编辑框：点了别的地方、Tab 走了、切到另一个窗格。
     ///
-    /// 与资源管理器一致，按**提交**处理而不是丢弃——用户已经敲了一半名字，
-    /// 点一下别处就白敲，比改错名字更让人恼火。这里不抢回焦点：鼠标已经指到别处了。
+    /// 按**取消**处理。原来的写法是"提交"，理由是"敲了一半别白敲"；实测下来
+    /// 反了：点一下列表空白处就把半截名字落到盘上，比丢几个字糟糕得多——
+    /// 文件管理器没有确认框，改错了要用户自己发现。现在只有 Enter 会改盘。
+    ///
+    /// <see cref="KeyboardFocusChangedEventArgs.NewFocus"/> 为 null 表示整个窗口失活
+    /// （Alt+Tab 出去看一眼），这种不算"点了别处"：保持编辑态，回来还能接着改。
     /// </summary>
     private void OnRenameBoxLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
         if (!IsRenaming) return;
-        CommitRename(refocus: false);
+        if (e.NewFocus is null) return;
+
+        CancelRename(refocus: false);
     }
 
     /// <summary>
@@ -210,20 +277,53 @@ public partial class PaneView
     }
 
     /// <summary>放弃编辑。已经新建出来的东西保留默认名，撤销记录仍记"新建"。</summary>
-    internal void CancelRename()
+    /// <param name="refocus">收尾后是否把焦点交回列表。点别处触发时不能抢。</param>
+    internal void CancelRename(bool refocus = true)
     {
         if (!IsRenaming) return;
 
         string original = _pendingCreate ?? string.Empty;
-        EndRename(refocus: true);
+        EndRename(refocus);
         CompletePendingCreate(original);
+    }
+
+    /// <summary>
+    /// 鼠标按在编辑框外面：按取消收尾，回到"这一项被选中"的初始状态。
+    ///
+    /// 为什么不能只靠失焦事件：点列表空白处的那一下被框选逻辑接走了
+    /// （<c>OnFileDragStart</c> → <c>BeginRubberBand</c> 把事件标成 Handled），
+    /// WPF 默认的"点哪聚焦哪"根本没发生，编辑框一直握着键盘焦点、失焦事件不响，
+    /// 表现就是"点了别处还停在编辑态"。所以判定要自己做，而且要在窗口级做——
+    /// 工具栏、侧栏、标签栏都在窗格外面，窗格收不到那些按下。
+    /// </summary>
+    internal void CancelRenameIfClickedOutside(DependencyObject hit)
+    {
+        if (!IsRenaming) return;
+
+        // 点在编辑框自己身上：那是挪光标，不是离开
+        if (_renameBox is { } box && IsDescendantOf(hit, box)) return;
+
+        // 点在列表里（空白处、别的行）收完把焦点交回列表，方向和快捷键立刻可用；
+        // 点在工具栏、侧栏这类地方就不能抢——用户正要点那边。
+        CancelRename(refocus: IsDescendantOf(hit, FileList));
     }
 
     private void EndRename(bool refocus)
     {
+        // 先摘事件再收状态：编辑框是行模板里的、会被虚拟化复用，
+        // 留下的处理器会挂到下一行的同一个控件上
+        if (_renameBox is { } box)
+        {
+            box.PreviewKeyDown -= OnRenameBoxPreviewKeyDown;
+            box.PreviewMouseDown -= OnRenameBoxPreviewMouseDown;
+            box.TextChanged -= OnRenameBoxTextChanged;
+            box.LostKeyboardFocus -= OnRenameBoxLostKeyboardFocus;
+        }
+
         RenamingEntry = null;
         _renameTarget = null;
         _renameBox = null;
+        _renameFresh = false;
         _suppressWatcher = false;
 
         // 焦点交回列表，方向键与后续快捷键立刻可用。点别处触发时不能抢：
@@ -256,7 +356,49 @@ public partial class PaneView
         box.BorderBrush = (Brush)FindResource("Brush.Status.Danger");
         box.SelectAll();
         box.Focus();
+
+        // 又是"整名选着、还没动过"的状态，方向键回到端点
+        _renameFresh = true;
     }
+
+    /// <summary>编辑中的那一行还在可视区里吗。滚出去之后容器会被虚拟化回收，编辑框跟着消失。</summary>
+    private bool IsRenameRowVisible()
+    {
+        if (_renameTarget is not { } entry) return false;
+
+        if (FileList.ItemContainerGenerator.ContainerFromItem(entry) is not FrameworkElement container)
+        {
+            return false;
+        }
+
+        if (!container.IsVisible) return false;
+
+        // 只看 IsVisible 不够：容器可能还在（虚拟化有缓冲），但已经被滚出视口
+        Point topLeft = container.TranslatePoint(new Point(0, 0), FileList);
+        return new Rect(topLeft, container.RenderSize).IntersectsWith(new Rect(FileList.RenderSize));
+    }
+
+    /// <summary><paramref name="node"/> 是不是 <paramref name="root"/> 自己或它的后代。</summary>
+    private static bool IsDescendantOf(DependencyObject node, DependencyObject root)
+    {
+        for (DependencyObject? current = node; current is not null; current = ParentOf(current))
+        {
+            if (ReferenceEquals(current, root)) return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 统一取父级。直接调 <see cref="VisualTreeHelper.GetParent"/> 会在
+    /// <see cref="FrameworkContentElement"/>（比如 TextBlock 里的 Run）上抛异常。
+    /// </summary>
+    private static DependencyObject? ParentOf(DependencyObject node)
+        => node is Visual or System.Windows.Media.Media3D.Visual3D
+            ? VisualTreeHelper.GetParent(node)
+            : node is FrameworkContentElement content
+                ? content.Parent
+                : LogicalTreeHelper.GetParent(node);
 
     /// <summary>
     /// 延后一拍再刷新：提交可能是"点了另一行"触发的，那一刻 ListBox 还没把选中切过去。

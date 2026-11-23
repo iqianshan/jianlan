@@ -82,8 +82,8 @@ public partial class PaneView : UserControl
         if (ReferenceEquals(_viewModel, viewModel)) return;
 
         // 切标签前把编辑态收掉：新标签要接管这个视图，留着编辑框会跟着换到别的目录上。
-        // 按提交处理（用户可能已经敲完名字），不刷新——另一份视图模型会自己读盘。
-        if (IsRenaming) CommitRename(refocus: false, refresh: false);
+        // 按取消处理（只有 Enter 才改盘），不刷新——另一份视图模型会自己读盘。
+        if (IsRenaming) CancelRename(refocus: false);
 
         if (_viewModel is { } previous)
         {
@@ -957,6 +957,9 @@ public partial class PaneView : UserControl
     /// </summary>
     private void OnFileListKeyDown(object sender, KeyEventArgs e)
     {
+        // 编辑态下所有键归编辑框：Esc 是"放弃改名"，不能被这里的"清搜索/停算大小"截走
+        if (IsRenaming) return;
+
         if (e.Key != Key.Escape) return;
 
         if (_viewModel is { IsCalculatingSize: true })

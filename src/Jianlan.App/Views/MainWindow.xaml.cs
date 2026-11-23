@@ -371,6 +371,15 @@ public partial class MainWindow : Window
         // 实测 Ctrl+, 不触发。改为一张显式表 + PreviewKeyDown 派发，见 Input/KeyBindings.cs。
         PreviewKeyDown += OnPreviewKeyDown;
 
+        // 就地改名的"点别处即取消"必须在窗口级拦：工具栏、侧栏、标签栏都不在窗格里，
+        // 窗格收不到那些按下；而列表空白处的按下又被框选逻辑标成 Handled，
+        // 编辑框因此不会失焦。两头都收不到，只能由窗口统一判一次。
+        // handledEventsToo: true 是必需的——正是被标成 Handled 的那些事件最需要它。
+        AddHandler(
+            Mouse.PreviewMouseDownEvent,
+            new MouseButtonEventHandler(OnWindowPreviewMouseDown),
+            handledEventsToo: true);
+
         // 目录监听的订阅在 PaneView.Attach 里——监听的目标是"当前窗格正在看的目录"，
         // 跟着视图模型走，不再由窗口替它挂。
 
@@ -1739,6 +1748,22 @@ public partial class MainWindow : Window
         // 消息泵里直接执行可能重入（命令会 Show 窗口），交回 Dispatcher 排队
         Dispatcher.BeginInvoke(DispatcherPriority.Input, () => Dispatch(commandId));
         return IntPtr.Zero;
+    }
+
+    /// <summary>
+    /// 鼠标按下时，若有窗格正停在就地改名的编辑态、而这一下按在编辑框外面，
+    /// 就按取消收尾（回到"原名字 + 该行仍选中"的初始状态）。
+    ///
+    /// 判据放在窗口上而不是窗格里：要拦的地方横跨整个窗口——列表空白、工具栏、
+    /// 侧栏、另一侧的窗格、标签栏。两个窗格都问一遍，分屏时点右窗格不会把
+    /// 左窗格的编辑态留在那儿。
+    /// </summary>
+    private void OnWindowPreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is not DependencyObject hit) return;
+
+        Pane.CancelRenameIfClickedOutside(hit);
+        Pane2.CancelRenameIfClickedOutside(hit);
     }
 
     /// <summary>
