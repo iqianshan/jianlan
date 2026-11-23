@@ -90,13 +90,12 @@ public partial class PaneView
 
         await RefreshAndSelectAsync([created]);
 
-        // 建完立刻进重命名：默认名几乎总要改，省一次 F2
+        // 建完立刻进就地改名：默认名几乎总要改，省一次 F2。
         //
-        // 这一步**不记撤销**：撤销要撤的是"新建"整个动作，不是"改名"。
+        // 这一步**不单独记撤销**：撤销要撤的是"新建"整个动作，不是"改名"。
         // 两件事记成两条的话，用户按一次 Ctrl+Z 只会把名字改回去，
-        // 还得再按一次才删掉——而他心里这就是一件事。
-        string? final = await RenameEntryAsync(Vm.FindByPath(created), record: false);
-        RecordCreate(final ?? created);
+        // 还得再按一次才删掉——而他心里这就是一件事。收尾在 CompletePendingCreate。
+        BeginRename(Vm.FindByPath(created), pendingCreate: created);
     }
 
     internal async Task NewFileAsync()
@@ -112,49 +111,16 @@ public partial class PaneView
 
         await RefreshAndSelectAsync([created]);
 
-        // 默认名带了扩展名，重命名时选中词干部分，改完按回车即可。
-        // 与上面同理：新建成一条撤销记录。
-        string? final = await RenameEntryAsync(Vm.FindByPath(created), record: false);
-        RecordCreate(final ?? created);
+        // 默认名带了扩展名，进入改名时只选中词干，改完按回车即可。
+        // 与上面同理：整件事记成一条"新建"。
+        BeginRename(Vm.FindByPath(created), pendingCreate: created);
     }
 
-    internal async Task RenameSelectionAsync()
+    /// <summary>F2 / 右键「重命名」：与"再点一次名称"走同一条就地编辑。</summary>
+    internal void RenameSelection()
     {
         if (Vm.SelectedEntries.Count != 1) return;
-        await RenameEntryAsync(Vm.SelectedEntries[0]);
-    }
-
-    /// <summary>
-    /// 重命名一项。返回改名后的路径（取消或失败返回 null）。
-    /// <paramref name="record"/> 为 false 时**不记撤销**——新建流程用它，
-    /// 因为整件事要记成一条"新建"，而不是"新建 + 改名"两条。
-    /// </summary>
-    internal async Task<string?> RenameEntryAsync(FileEntry? entry, bool record = true)
-    {
-        if (entry is null) return null;
-
-        string? name = TextPromptWindow.Ask(
-            Window.GetWindow(this),
-            Strings.Dialog_RenameTitle,
-            string.Format(Strings.Dialog_RenamePrompt, entry.Name),
-            entry.Name,
-            value => FileOperations.TryValidateName(value, out string? error) ? null : error,
-            selectStem: !entry.IsDirectory);
-
-        if (name is null) return null;
-
-        if (!FileOperations.TryRename(entry.FullPath, name, out string renamedPath, out string? renameError))
-        {
-            Vm.SetStatus(string.Format(Strings.Status_RenameFailed, renameError));
-            return null;
-        }
-
-        // 改名前后路径都在，撤销就是反向搬一次，不需要指纹
-        if (record) Undo?.Push(UndoKind.Rename, [new UndoStep(entry.FullPath, renamedPath)]);
-
-        await RefreshAndSelectAsync([renamedPath]);
-        Vm.SetStatus(string.Format(Strings.Status_Renamed, Path.GetFileName(renamedPath)));
-        return renamedPath;
+        BeginRename(Vm.SelectedEntries[0]);
     }
 
     internal async Task DeleteSelectionAsync(bool permanent)

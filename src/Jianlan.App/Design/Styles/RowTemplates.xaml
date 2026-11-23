@@ -2,11 +2,14 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:conv="clr-namespace:Jianlan.App.Converters"
                     xmlns:controls="clr-namespace:Jianlan.App.Controls"
+                    xmlns:loc="clr-namespace:Jianlan.App.Localization"
                     xmlns:views="clr-namespace:Jianlan.App.Views">
 
     <!--
         行模板。列宽必须与主窗口列头完全一致，否则排序箭头会指在错误的列上。
         规则 R-02：单行可视元素不超过 5 个（图标 + 名称 + 日期 + 类型 + 大小）。
+        名称格里另有一个就地编辑框，但常态 Collapsed、不参与布局也不渲染，
+        只在改名那一瞬可见——这条规则数的是"同时画出来的东西"。
 
         为什么放在独立字典里：视图切换要在多个 DataTemplate 之间替换，
         DataTemplate 必须是资源而不是内联模板，才可能被 Style 的 Setter 引用。
@@ -74,11 +77,50 @@
                                    IsSuppressed="{Binding IsThumbnailSuppressed,
                                                   RelativeSource={RelativeSource AncestorType={x:Type views:PaneView}}}"/>
 
+            <!--
+                名称单元：文字与就地编辑框叠在同一格里，由窗格的 RenamingEntry 决定谁可见。
+
+                为什么放两个元素而不是一个可切换的控件：行模板是 DataTemplate，找不到
+                “同一个控件的两种形态”这种写法，而多套一层 Grid 等于每行多一个可视元素
+                （规则 R-02 数的是可视元素）。两个元素里永远有一个 Collapsed，代价可以忽略。
+
+                TextBlock 的 Background 必须是 Transparent：不给底色的 TextBlock 只在字形上
+                命中测试，点名字中间的空隙会穿到行容器，表现为“点在字上没反应”。
+                Tag="NameCell" 是给鼠标判定用的：只有点在这块上才算“点在文件名上”。
+            -->
             <TextBlock Grid.Column="2"
                        Margin="8,0,8,0"
+                       Background="Transparent"
+                       Tag="NameCell"
                        Style="{StaticResource Text.Row}"
                        Text="{Binding DisplayName}"
-                       ToolTip="{Binding Name}"/>
+                       ToolTip="{Binding Name}">
+                <TextBlock.Visibility>
+                    <MultiBinding Converter="{x:Static conv:EntryRenamingConverter.Instance}"
+                                  ConverterParameter="hide">
+                        <Binding/>
+                        <Binding Path="RenamingEntry"
+                                 RelativeSource="{RelativeSource AncestorType={x:Type views:PaneView}}"/>
+                    </MultiBinding>
+                </TextBlock.Visibility>
+            </TextBlock>
+
+            <!-- 编辑框：同一格、同一外边距，宽度由星号列决定，看起来就是文字原地变成输入框。
+                 隐藏时 Visibility=Collapsed，不吃鼠标也不占 Tab 序列。 -->
+            <TextBox Grid.Column="2"
+                     Margin="8,0,8,0"
+                     Style="{StaticResource TextBox.InlineRename}"
+                     TextWrapping="NoWrap"
+                     AutomationProperties.Name="{Binding Name}"
+                     AutomationProperties.HelpText="{loc:Tr Key=Menu.Rename}">
+                <TextBox.Visibility>
+                    <MultiBinding Converter="{x:Static conv:EntryRenamingConverter.Instance}">
+                        <Binding/>
+                        <Binding Path="RenamingEntry"
+                                 RelativeSource="{RelativeSource AncestorType={x:Type views:PaneView}}"/>
+                    </MultiBinding>
+                </TextBox.Visibility>
+            </TextBox>
 
             <!-- 三个数据列的槽位与显隐跟着列配置走（FR-6.4）。资源由 PaneView 写入
                  它自己的资源字典，双窗格各自一份，互不干扰。 -->
@@ -132,11 +174,50 @@
                                    IsSuppressed="{Binding IsThumbnailSuppressed,
                                                   RelativeSource={RelativeSource AncestorType={x:Type views:PaneView}}}"/>
 
+            <!--
+                名称单元：文字与就地编辑框叠在同一格里，由窗格的 RenamingEntry 决定谁可见。
+
+                为什么放两个元素而不是一个可切换的控件：行模板是 DataTemplate，找不到
+                “同一个控件的两种形态”这种写法，而多套一层 Grid 等于每行多一个可视元素
+                （规则 R-02 数的是可视元素）。两个元素里永远有一个 Collapsed，代价可以忽略。
+
+                TextBlock 的 Background 必须是 Transparent：不给底色的 TextBlock 只在字形上
+                命中测试，点名字中间的空隙会穿到行容器，表现为“点在字上没反应”。
+                Tag="NameCell" 是给鼠标判定用的：只有点在这块上才算“点在文件名上”。
+            -->
             <TextBlock Grid.Column="2"
                        Margin="8,0,8,0"
+                       Background="Transparent"
+                       Tag="NameCell"
                        Style="{StaticResource Text.Row}"
                        Text="{Binding DisplayName}"
-                       ToolTip="{Binding Name}"/>
+                       ToolTip="{Binding Name}">
+                <TextBlock.Visibility>
+                    <MultiBinding Converter="{x:Static conv:EntryRenamingConverter.Instance}"
+                                  ConverterParameter="hide">
+                        <Binding/>
+                        <Binding Path="RenamingEntry"
+                                 RelativeSource="{RelativeSource AncestorType={x:Type views:PaneView}}"/>
+                    </MultiBinding>
+                </TextBlock.Visibility>
+            </TextBlock>
+
+            <!-- 编辑框：同一格、同一外边距，宽度由星号列决定，看起来就是文字原地变成输入框。
+                 隐藏时 Visibility=Collapsed，不吃鼠标也不占 Tab 序列。 -->
+            <TextBox Grid.Column="2"
+                     Margin="8,0,8,0"
+                     Style="{StaticResource TextBox.InlineRename}"
+                     TextWrapping="NoWrap"
+                     AutomationProperties.Name="{Binding Name}"
+                     AutomationProperties.HelpText="{loc:Tr Key=Menu.Rename}">
+                <TextBox.Visibility>
+                    <MultiBinding Converter="{x:Static conv:EntryRenamingConverter.Instance}">
+                        <Binding/>
+                        <Binding Path="RenamingEntry"
+                                 RelativeSource="{RelativeSource AncestorType={x:Type views:PaneView}}"/>
+                    </MultiBinding>
+                </TextBox.Visibility>
+            </TextBox>
         </Grid>
     </DataTemplate>
 

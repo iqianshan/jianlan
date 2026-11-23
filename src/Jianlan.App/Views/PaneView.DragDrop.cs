@@ -26,6 +26,10 @@ public partial class PaneView
 
     private void OnFileDragStart(object sender, MouseButtonEventArgs e)
     {
+        // 每次按下先清掉上一次的候选：那一轮可能结束在窗外或另一个控件上，
+        // 不清理就会把一次无关的按下当成"再点一次改名"
+        _renameCandidate = null;
+
         // 空白处按下 = 框选起手（FR-6.7），不是拖拽。
         // 若仍走下面的拖出逻辑，用户"重新圈一批"的意图会变成"把上一次选中的东西拖走"。
         if (IsBlankArea(e.OriginalSource as DependencyObject))
@@ -36,6 +40,10 @@ public partial class PaneView
 
         _dragArmed = true;
         _dragOrigin = e.GetPosition(FileList);
+
+        // 再点一次改名（资源管理器手感）：按下时只记候选，松开才决定。
+        // 放在 _dragArmed 之后不影响拖拽——真拖起来时下面 OnFileDragMove 会同时清掉两者。
+        _renameCandidate = ResolveRenameCandidate(e);
 
         // Ctrl+点文件夹是"新标签打开"（FR-2.10），不是多选。选中必须在**按下**就拦掉：
         // 让 ListBox 先处理的话，用户会看到文件夹被选中、同时又冒出一个标签。
@@ -69,6 +77,10 @@ public partial class PaneView
         }
 
         _dragArmed = false;
+
+        // 手指已经挪动超过阈值：这是拖文件，不是改名。候选必须一起撤掉，
+        // 否则松开鼠标会顺手进编辑态，把一次拖拽变成"改了名还啥也没搬"。
+        _renameCandidate = null;
 
         // 起点行没被选中时先选中它，否则拖走的是上一批选中项
         if (FindAncestor<ListBoxItem>(e.OriginalSource as DependencyObject) is { } item &&

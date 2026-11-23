@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
   简体中文。键集合必须与 Strings.resx 完全一致（tools/i18n/check-keys.py 校验）。
   改完不要手动同步 —— 缺键会在 CI 报出来。
@@ -452,12 +452,6 @@
   </data>
   <data name="Status.NewFileFailed" xml:space="preserve">
     <value>新建文件失败：{0}</value>
-  </data>
-  <data name="Dialog.RenameTitle" xml:space="preserve">
-    <value>重命名</value>
-  </data>
-  <data name="Dialog.RenamePrompt" xml:space="preserve">
-    <value>为「{0}」输入新名称</value>
   </data>
   <data name="Status.RenameFailed" xml:space="preserve">
     <value>重命名失败：{0}</value>

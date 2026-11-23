@@ -57,6 +57,11 @@ public partial class PaneView
     {
         if (e.PropertyName == nameof(PaneViewModel.Entries))
         {
+            // 编辑期间条目被整表换掉（别处的刷新、导航提前完成）：这一行已经不在列表里，
+            // 编辑态必须收掉。收成"取消"而不是"提交"——新列表可能根本不是同一个目录，
+            // 在一个看不见的对象上执行改名，比丢掉几个字更糟。
+            if (IsRenaming) CancelRename();
+
             // 条目集合换过，可能可以把"等读盘"的那次选中恢复补上了。搜索态下
             // 这一轮是异步回来的：NavigationCompleted 触发时列表还是空的，
             // 恢复只能等到这里（否则切回一个正在搜索的标签，选中项会莫名丢掉）。
@@ -65,6 +70,11 @@ public partial class PaneView
         }
 
         if (e.PropertyName != nameof(PaneViewModel.CurrentPath)) return;
+
+        // 换目录前先收掉编辑态：提交（而不是丢弃），因为用户可能已经敲完名字，
+        // 只是顺手点了侧栏的另一处。这里不刷新——那边马上要读新目录。
+        if (IsRenaming) CommitRename(refocus: false, refresh: false);
+
         SyncColumnProfile((sender as PaneViewModel)?.CurrentPath);
     }
 

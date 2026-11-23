@@ -57,6 +57,11 @@ public partial class PaneView
         // 只有真正发生位移才算滚动：内容变化也会触发 ScrollChanged，那种情况不该暂停
         if (e.VerticalChange == 0 && e.HorizontalChange == 0 && e.ExtentHeightChange == 0) return;
 
+        // 编辑中的行一旦滚出可视区就会被虚拟化回收，编辑框连字一起消失。
+        // 判据加上"编辑框有焦点"，是为了放过 BeginRename 里那次 ScrollIntoView：
+        // 那时编辑框还没拿到焦点，不该被当成"用户在滚列表"。
+        if (IsRenaming && _renameBox is { IsKeyboardFocused: true }) CommitRename(refocus: false);
+
         ThumbnailService.Pause();
 
         _scrollIdle ??= CreateScrollIdleTimer();

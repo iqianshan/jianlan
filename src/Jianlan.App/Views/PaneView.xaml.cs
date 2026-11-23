@@ -81,6 +81,10 @@ public partial class PaneView : UserControl
         ArgumentNullException.ThrowIfNull(viewModel);
         if (ReferenceEquals(_viewModel, viewModel)) return;
 
+        // 切标签前把编辑态收掉：新标签要接管这个视图，留着编辑框会跟着换到别的目录上。
+        // 按提交处理（用户可能已经敲完名字），不刷新——另一份视图模型会自己读盘。
+        if (IsRenaming) CommitRename(refocus: false, refresh: false);
+
         if (_viewModel is { } previous)
         {
             SaveViewState(previous);
@@ -1103,6 +1107,10 @@ public partial class PaneView : UserControl
         if (e.OriginalSource is not DependencyObject source) return;
         if (FindAncestor<ListBoxItem>(source) is not { DataContext: FileEntry entry }) return;
 
+        // 双击序列的第二次按下会把候选记上（ClickCount 已是 2，理论上不会），
+        // 这里再清一次：宁可少一次改名，也不能"打开文件的同时进了编辑态"。
+        _renameCandidate = null;
+
         OpenEntry(entry);
         e.Handled = true;
     }
@@ -1158,6 +1166,17 @@ public partial class PaneView : UserControl
         _dragArmed = false;
 
         if (!wasClick) return;
+
+        // 再点一次改名（资源管理器手感）：候选是按下时记的、拖动时清掉的，
+        // 走到这里且还在，说明是一次没有位移的独立点击，且点的是已选中项的文件名。
+        // 必须在下面的"单击打开/新标签"之前处理：那两条都是对**未选中**项的手势。
+        if (_renameCandidate is { } renameTarget)
+        {
+            _renameCandidate = null;
+            e.Handled = true;
+            BeginRename(renameTarget);
+            return;
+        }
 
         // Ctrl+点击文件夹 → 新标签打开（判据见上面那段）
         if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)

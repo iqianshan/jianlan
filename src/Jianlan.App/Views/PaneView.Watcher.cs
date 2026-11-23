@@ -138,6 +138,10 @@ public partial class PaneView
         if (_paneClosed) return;
         _paneClosed = true;
 
+        // 窗口要关了，编辑框里的字不能跟着窗口一起消失：按提交处理。
+        // 不刷新也不再回头改界面——树马上就没了。
+        if (IsRenaming) CommitRename(refocus: false, refresh: false);
+
         _debounceTimer?.Stop();
         StopWatching();
         ReleaseColumns();

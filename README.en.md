@@ -119,13 +119,19 @@ copy path, open in a new window. Middle-click a folder, or `Ctrl`-click it, to o
 |---|---|
 | Open | `Enter` |
 | Copy / cut / paste | `Ctrl+C` / `Ctrl+X` / `Ctrl+V` |
-| Rename | `F2` (newly created items drop straight into rename) |
+| Rename | `F2`, or **click the file name again** while the row is selected |
 | New folder / new text file | `Ctrl+Shift+N` / `Ctrl+Shift+M` |
 | Delete to Recycle Bin / delete permanently | `Delete` / `Shift+Delete` |
 | Undo the last action | `Ctrl+Z` |
 | Copy full path | `Ctrl+Shift+C` |
 | Properties | `Alt+Enter` |
 | Select all | `Ctrl+A` |
+
+Renaming happens in place, right in the list — no dialog. Only the part before the extension is
+selected when you start (`report.docx` selects `report`; folders select the whole name). `Enter`
+confirms and leaves you on the same row, `Esc` discards, clicking elsewhere counts as confirming.
+An invalid or duplicate name does not close the editor: the box turns red and the next keystroke
+overwrites it. Newly created folders and text files drop straight into rename.
 
 Drag and drop: dropping moves within a drive and copies across drives; hold `Ctrl` to force a copy,
 `Shift` to force a move. Drop onto a folder row to put the items inside it. Drop onto another

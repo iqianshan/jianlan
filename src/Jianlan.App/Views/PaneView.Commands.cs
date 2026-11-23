@@ -172,7 +172,7 @@ public partial class PaneView
         {
             Id = CommandIds.Rename,
             TitleFactory = () => Strings.Command_Rename,
-            Execute = () => _ = RenameSelectionAsync(),
+            Execute = RenameSelection,
             CanExecute = HasSingleSelection,
         });
         _commands.Register(new AppCommand

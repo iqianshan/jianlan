@@ -443,13 +443,6 @@ public static class Strings
     public static string Status_NewFileFailed => LocalizationService.Instance.Get("Status.NewFileFailed");
     // 含占位符：string.Format(Strings.Status_NewFileFailed, ...)
 
-    /// <summary>Rename</summary>
-    public static string Dialog_RenameTitle => LocalizationService.Instance.Get("Dialog.RenameTitle");
-
-    /// <summary>Enter a new name for "{0}"</summary>
-    public static string Dialog_RenamePrompt => LocalizationService.Instance.Get("Dialog.RenamePrompt");
-    // 含占位符：string.Format(Strings.Dialog_RenamePrompt, ...)
-
     /// <summary>Rename failed: {0}</summary>
     public static string Status_RenameFailed => LocalizationService.Instance.Get("Status.RenameFailed");
     // 含占位符：string.Format(Strings.Status_RenameFailed, ...)

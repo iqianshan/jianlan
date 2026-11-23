@@ -181,6 +181,27 @@
     </Style>
 
     <!--
+        列表行内的重命名编辑框（资源管理器的"再点一次改名"）。
+        高度随内容而不是撑满行：32px 的行里塞一个满高输入框，会像给那一行加了边框；
+        而 13pt 文字加上 1px 边与 1px 上下留白刚好贴住字形。
+        背景取 Surface.Content 而不是透明：行有选中底色，编辑框必须盖住它，
+        否则选中的那行看起来像"文字浮在蓝色块上"。
+    -->
+    <Style x:Key="TextBox.InlineRename" TargetType="TextBox">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="3,1"/>
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface.Content}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent.Default}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="FontFamily" Value="{DynamicResource Font.Family.UI}"/>
+        <Setter Property="FontSize" Value="{DynamicResource Font.Size.Row}"/>
+        <!-- 默认焦点光晕是系统蓝，与主题强调色打架；边框本身已经是"正在编辑"的信号 -->
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="TextWrapping" Value="NoWrap"/>
+    </Style>
+
+    <!--
         搜索框里的"清除"小按钮。不复用 Button.Toolbar：那个最小宽度 32，
         会把 32px 高的输入框撑出一个方块，看起来像输入框里嵌了一颗正常按钮。
     -->
