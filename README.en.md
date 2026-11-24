@@ -49,46 +49,9 @@ Get-FileHash .\Jianlan-0.2.1-portable-win-x64.zip -Algorithm SHA256
 **Uninstalling**: close the app and delete the extracted folder. It writes no registry keys,
 installs no services, and does not start with Windows.
 
-### Upgrading to a new version
-
-All personal data lives in `data\` next to the executable, and the release zip does **not**
-contain `data\`. As long as you leave that folder alone, your bookmarks, workspaces, tags,
-last-open tabs and window position all survive the upgrade. The zip does ship `portable.flag`,
-so portable mode is preserved as well.
-
-The straightforward way:
-
-1. **Fully exit** Jianlan — including the tray icon and any copy on another drive. The app is
-   single-instance: as long as one copy is running, a newly launched one exits immediately and
-   hands its arguments to the running instance, which looks like "double-click does nothing".
-   A clean exit also removes `data\session.json` (the "did the last session end cleanly" marker);
-   upgrade with that file still present and the new version shows a one-off "last session did not
-   finish" banner — just delete the file, it holds no settings.
-2. Extract the new zip **over** the old folder, choosing "replace" for same-name files.
-3. Launch.
-
-Coming from a much older major version, or wanting to clear leftover files as well? The safe
-route is **back up first, then swap the folder**:
-
-1. Copy the old folder's `data\` somewhere else (it holds all your personal data).
-2. Empty the old folder (or extract into a fresh one).
-3. Extract the new zip into the original location.
-4. Copy the backed-up `data\` back.
-
-The repo's `tools/release/upgrade-keep-data.ps1` runs those four steps plus verification for you
-(that script ships with the source, not in the portable package):
-
-```powershell
-.\tools\release\upgrade-keep-data.ps1 `
-  -InstallDir 'E:\Apps\Jianlan-0.2.1-portable-win-x64' `
-  -Package   'D:\Downloads\Jianlan-0.2.1-portable-win-x64.zip'
-```
-
-It backs up `data\`, renames the old folder aside (nothing deleted), lays down the new payload,
-moves the data back, then compares bookmark / workspace / tag / tab counts item by item. Any
-failed step rolls back. The install path is unchanged, so desktop shortcuts and pinned taskbar
-entries keep working. Once the new version checks out, delete the `.old-*` and
-`_jianlan-data-bak-*` folders it leaves behind.
+**Already on an older version?** Extract the new zip over the old folder — your bookmarks,
+workspaces and tags all live in `data\` and are unaffected. See
+[Upgrading to a new version](#upgrading-to-a-new-version).
 
 ### Requirements
 
@@ -98,6 +61,72 @@ entries keep working. Once the new version checks out, delete the `.old-*` and
 | Memory | 4 GB or more; the app itself uses about 130–170 MB |
 | Disk | About 190 MB extracted |
 | Rights | A standard user account is enough; run as administrator to reach protected folders |
+
+---
+
+## Upgrading to a new version
+
+### The one rule
+
+All your personal data lives in `data\` next to the executable, and the release zip does **not**
+contain `data\`. So "extract the new build over the old one" cannot lose settings — **as long as
+you leave that folder alone**. The zip does ship `portable.flag`, so portable mode is preserved
+as well.
+
+For exactly which files live in `data\`, see [Where your data lives](#where-your-data-lives).
+
+### Option 1: extract over the old folder (simplest)
+
+Meant for minor updates within 0.2.x.
+
+1. **Fully exit** Jianlan. Quit the tray icon too — and quit **any copy on another drive or in
+   another folder**. The app is single-instance: as long as one copy is running, a newly launched
+   one exits immediately and hands its arguments to the running instance, which looks like
+   "double-click does nothing".
+2. Extract the new zip into the old folder, choosing "replace" for same-name files.
+3. Launch. Bookmarks, workspaces, tags, last-open tabs and window position are all still there.
+
+### Option 2: back up first, then swap the folder (safer)
+
+Meant for jumping across major versions, or when you want to clear leftover files as well.
+
+1. Copy the old folder's `data\` somewhere else. **`settings.json` alone is not enough** —
+   workspaces live in `workspaces.json` and the tag library in `data\tags.jsonl`.
+2. Empty the old folder.
+3. Extract the new zip into the original location.
+4. Copy the backed-up `data\` back.
+
+### Option 3: use the script
+
+The repo's `tools/release/upgrade-keep-data.ps1` automates option 2, verification included (that
+script ships with the source, not in the portable package):
+
+```powershell
+.\tools\release\upgrade-keep-data.ps1 `
+  -InstallDir 'E:\Apps\Jianlan-0.2.1-portable-win-x64' `
+  -Package   'D:\Downloads\Jianlan-0.2.1-portable-win-x64.zip'
+```
+
+It runs: back up `data\` → rename the old folder aside (nothing deleted) → lay down the new
+payload → move the data back → compare bookmark / workspace / tag / tab counts item by item. Any
+failed step rolls back, the install path is unchanged, and desktop shortcuts and pinned taskbar
+entries keep working. Once the new version checks out, delete the `.old-*` and
+`_jianlan-data-bak-*` folders it leaves behind.
+
+### Four things to check before upgrading
+
+| Check | Why it matters |
+|---|---|
+| Every copy is closed | The single-instance mutex is global; another running copy makes the new one exit |
+| `data\` was not copied while the app was running | `session.json` comes along, and the new version shows a one-off "last session did not finish" banner — delete that file, it holds no settings |
+| The backup covers all of `data\` | `settings.json` alone misses workspaces and the tag library |
+| The install path stays the same | In-place extraction keeps desktop shortcuts and pinned taskbar entries working |
+
+### How to confirm the upgrade worked
+
+Open **Settings → About**: the version reads like `0.2.1+b5890f5` (release plus build commit).
+Check that your bookmarks and workspaces are there and the last-open tabs came back, then delete
+the backup.
 
 ---
 
