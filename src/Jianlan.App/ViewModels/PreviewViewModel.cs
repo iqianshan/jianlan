@@ -14,15 +14,24 @@ namespace Jianlan.App.ViewModels;
 /// <summary>
 /// 预览窗格的状态（FR-9.1）。
 ///
-/// 一次预览要跨过三道异步：300ms 防抖（<see cref="DebounceMs"/>）、读盘/解码、
+/// 一次预览要跨过三道异步：<see cref="ThrottleMs"/> 的合并窗口、读盘/解码、
 /// 以及随时可能到来的下一次选中。因此这里有一份 <c>_generation</c> 递增票据——
 /// 结果回来时票号对不上就整份丢掉。只靠 <see cref="CancellationToken"/> 不够：
 /// 取消是协作式的，已经算完的结果照样会回来。
 /// </summary>
 public sealed class PreviewViewModel : INotifyPropertyChanged
 {
-    /// <summary>选中后延迟多久才真正去读文件（FR-9.1.2）。</summary>
-    public const int DebounceMs = 300;
+    /// <summary>
+    /// 连续切换选中时的合并窗口（FR-9.1.2）。
+    ///
+    /// 早先这里是 300ms 防抖（每次选中都重新计时），本意是"连续切换不预览"。
+    /// 实测下来那是错的：按住方向键翻页的间隔通常 150–250ms，计时器被一路推后，
+    /// 只要手不停就一次都不触发——用户看到的是"看着看着预览没了，松手后还要等一下"。
+    /// 现在改成节流：第一次选中立刻加载，之后落在窗口内的选中合并成一次，
+    /// 窗口结束时拿"当时最新的那一项"再跑。手不停就会每 120ms 出一张，
+    /// 画面始终跟着走；手停下时最多再等一个窗口。
+    /// </summary>
+    public const int ThrottleMs = 120;
 
     /// <summary>
     /// 预览内容的内存预算（FR-9.2.7）。超了就不放内容，只留基本信息。
@@ -35,6 +44,28 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
 
     private readonly DispatcherTimer _timer;
 
+    /// <summary>
+    /// 预览链路的耗时诊断（<c>JIANLAN_PREVIEWDEBUG=1</c>）。
+    ///
+    /// 只在排查"按了方向键半天不出图"时开：写的是 <c>data/logs/app.log</c>，
+    /// 每行带进程启动以来的毫秒数，能直接看出卡在防抖、读盘还是渲染。
+    /// 默认关闭——这条路径每次选中都要走，同步写日志会污染它自己要测的指标。
+    /// </summary>
+    private static readonly bool PreviewDebug =
+        Environment.GetEnvironmentVariable("JIANLAN_PREVIEWDEBUG") == "1";
+
+    private static readonly System.Diagnostics.Stopwatch Clock = System.Diagnostics.Stopwatch.StartNew();
+
+    private static void Trace(string message)
+    {
+        if (PreviewDebug) Diagnostics.AppLog.Info("preview.dbg", $"{Clock.ElapsedMilliseconds}ms {message}");
+    }
+
+    private long _selectionStamp;
+
+    /// <summary>合并窗口内又来了新的选中：窗口结束时补跑一次。</summary>
+    private bool _pending;
+
     private IReadOnlyList<FileEntry> _selection = [];
     private FileEntry? _current;
     private CancellationTokenSource? _cts;
@@ -44,6 +75,7 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
 
     private bool _isEmpty = true;
     private bool _isMultiple;
+    private bool _isLoading;
     private bool _hasImage;
     private bool _hasText;
     private bool _hasNote;
@@ -63,11 +95,18 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
 
     public PreviewViewModel()
     {
-        _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(DebounceMs) };
+        _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(ThrottleMs) };
         _timer.Tick += (_, _) =>
         {
             _timer.Stop();
+
+            if (!_pending) return;
+
+            _pending = false;
             StartPreview();
+
+            // 补跑之后继续开着窗口：还在连按的话，下一个窗口结束时再补一次
+            _timer.Start();
         };
     }
 
@@ -126,6 +165,19 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// 正在读下一个文件的内容，画面里还挂着上一个文件的那一帧。
+    ///
+    /// 这个标记存在的唯一理由是让视图把它画淡一点：既不清空内容（清空就是一闪白，
+    /// 连按时每张都闪），也不让旧内容顶着新标题冒充结果。降权是最省事的说法——
+    /// "这张是旧的，马上换"。
+    /// </summary>
+    public bool IsLoading
+    {
+        get => _isLoading;
+        private set => Set(ref _isLoading, value, nameof(IsLoading));
+    }
+
+    /// <summary>
     /// 选中了东西。标题块（文件名 / 类型 / 路径）绑它，空态时不显示那三行。
     ///
     /// 单独出一个属性而不是在 XAML 里取反：<c>BooleanToVisibilityConverter</c> 没有取反参数，
@@ -136,7 +188,7 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
     /// <summary>
     /// 预览窗格里那三颗操作按钮（FR-9.1.5）的作用对象。
     ///
-    /// 这里不另存一份"当前项"，而是从 <c>_selection</c> 现算：预览内容有 300ms 防抖，
+    /// 这里不另存一份"当前项"，而是从 <c>_selection</c> 现算：预览内容是异步落地的，
     /// 存一份就会与选中短暂不一致——用户点了"打开"，打开的却还是上一个文件。
     /// 单选才算数；多选与空选都没有唯一目标。
     /// </summary>
@@ -247,30 +299,55 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
     // ── 外部入口 ────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// 选中项变了。空选与多选立刻结算（都不需要读盘），单选走 300ms 防抖。
+    /// 选中项变了。空选与多选立刻结算（都不需要读盘），单选走节流
+    /// （<see cref="ThrottleMs"/>：第一次立即加载，窗口内的后续合并）。
     /// </summary>
     public void Update(IReadOnlyList<FileEntry> selection)
     {
+        // 同一个条目被重复通知（列表刷新、焦点来回、切回标签）不重读。
+        // 防抖时代这类通知会被计时器吃掉，现在没有那层缓冲了，重复通知就是重复读盘
+        // 加一次画面降权的闪烁。比实例而不是比路径：刷新后拿到的是新实例，可能是文件被改过。
+        if (selection.Count == 1 && _selection.Count == 1 && ReferenceEquals(selection[0], _selection[0]))
+        {
+            _selection = selection;
+            Raise(nameof(Current));
+            Raise(nameof(CanAct));
+            return;
+        }
+
         _selection = selection;
+        _selectionStamp = Clock.ElapsedMilliseconds;
         Raise(nameof(Current));
         Raise(nameof(CanAct));
 
         if (selection.Count != 1)
         {
+            Trace($"update n={selection.Count} -> summary");
             _timer.Stop();
+            _pending = false;
             CancelInFlight();
             ApplySummary(selection);
             return;
         }
 
-        _timer.Stop();
+        // 合并窗口内：只记账。窗格结束时会读 _selection 的最新值，所以这里不必保存。
+        if (_timer.IsEnabled)
+        {
+            _pending = true;
+            Trace($"update \"{selection[0].DisplayName}\" -> merged");
+            return;
+        }
+
+        StartPreview();
         _timer.Start();
+        Trace($"update \"{selection[0].DisplayName}\" -> preview started");
     }
 
-    /// <summary>「立即预览」按钮与右键菜单的入口（FR-9.2.8）。跳过防抖与延后判定。</summary>
+    /// <summary>「立即预览」按钮与右键菜单的入口（FR-9.2.8）。跳过节流与延后判定。</summary>
     public void Retry()
     {
         _timer.Stop();
+        _pending = false;
         if (_selection.Count == 1) Prepare(_selection[0], force: true);
     }
 
@@ -281,6 +358,7 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
     public void Release()
     {
         _timer.Stop();
+        _pending = false;
         CancelInFlight();
 
         _selection = [];
@@ -290,6 +368,7 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
         ClearHandler();
         Image = null;
         TextContent = string.Empty;
+        IsLoading = false;
         IsEmpty = true;
         IsMultiple = false;
         HasImage = false;
@@ -324,6 +403,7 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
     {
         ClearHandler();
         _current = null;
+        IsLoading = false;
         HasImage = false;
         HasText = false;
         HasNote = false;
@@ -360,6 +440,7 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
         if (_selection.Count != 1) return;
 
         FileEntry entry = _selection[0];
+        Trace($"throttle run after {Clock.ElapsedMilliseconds - _selectionStamp}ms \"{entry.DisplayName}\"");
         ApplyHeader(entry);
         Prepare(entry, force: false);
     }
@@ -372,6 +453,11 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
     /// </summary>
     private void Prepare(FileEntry entry, bool force)
     {
+        // 下面三条提前返回都不会去读盘，也就没有"还挂着上一帧"这回事；
+        // 真正要读的两条（LoadAsync / StartHandler）会自己把它重新置上。
+        // 同一个同步块里改两次不会闪——WPF 只在一帧渲染时取最终值。
+        IsLoading = false;
+
         if (entry.IsDirectory)
         {
             ClearHandler();
@@ -450,6 +536,7 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
         TextContent = string.Empty;
         Image = null;
         CanRetry = false;
+        IsLoading = true;
 
         // "正在准备"写在脚注而不是内容区：处理器的窗口是 HwndHost（真实子窗口），
         // 它一出现就把内容区整块盖住（WPF 的空域问题），写在里面等于看不见
@@ -468,6 +555,7 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
         // 已经切走了：这条是上一个文件的迟到通知，别把新文件的提示也清掉
         if (!_hasHandler) return;
 
+        IsLoading = false;
         HasNote = false;
         NoteText = string.Empty;
         FooterText = string.Empty;
@@ -501,7 +589,7 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
         HandlerClsid = Guid.Empty;
     }
 
-    /// <summary>先把"选的是谁"写上去，再等内容。否则防抖那 300ms 里窗格还挂着上一个文件的标题。</summary>
+    /// <summary>先把"选的是谁"写上去，再等内容。标题与内容必须同步改，不能只改其中一个。</summary>
     private void ApplyHeader(FileEntry entry)
     {
         IsEmpty = false;
@@ -523,23 +611,34 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
         CancelInFlight();
         ClearHandler();
 
+        Trace($"load start \"{entry.DisplayName}\" size={entry.Size} w={DecodeWidthProvider?.Invoke() ?? 320}");
+
         int generation = _generation;
         var cts = new CancellationTokenSource();
         _cts = cts;
 
         _current = entry;
         CanRetry = false;
-        HasImage = false;
-        HasText = false;
         HasNote = false;
+        NoteText = string.Empty;
         FooterText = string.Empty;
-        TextContent = string.Empty;
-        Image = null;
+
+        // ★ 上一帧的 Image / TextContent 刻意不清。
+        //
+        // 早先这里把 Image 置 null、TextContent 置空，等于每选中一次就先闪一下白：
+        // 连按时（每 150–250ms 一次）几乎全程是白的，"看不到预览"的感觉有一半来自这一步。
+        // 现在改为留着旧内容、只置 IsLoading——视图据此把内容层画淡，
+        // 语义是"这张是上一个文件的，马上换"，既不闪白也不冒充结果。
+        IsLoading = true;
+
         ApplyHeader(entry);
 
         PreviewResult result = await PreviewLoader
             .LoadAsync(entry, DecodeWidthProvider?.Invoke() ?? 320, cts.Token)
             .ConfigureAwait(true);
+
+        Trace($"load done in {Clock.ElapsedMilliseconds - _selectionStamp}ms (from selection) " +
+              $"note={result.Note} img={(result.Image is null ? "null" : $"{result.Image.PixelWidth}x{result.Image.PixelHeight}")}");
 
         // 票号对不上 = 用户已经选了别的文件，这份结果作废（FR-9.2.4）
         if (generation != _generation) return;
@@ -549,6 +648,9 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
 
     private void ApplyResult(PreviewResult result, FileEntry entry, bool handlerFailed)
     {
+        // 内容已落地，卸掉"上一帧"的降权标记
+        IsLoading = false;
+
         bool tooHeavy = result.EstimatedBytes > BudgetBytes;
 
         if (result.Image is { } image && !tooHeavy)
@@ -556,16 +658,27 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
             Image = image;
             HasImage = true;
 
+            // LoadAsync 不再预先清空，成功分支要自己把另一类内容收干净——
+            // 否则上一张是文本时，那截文本仍挂在 HasText=true 上跟图片抢同一块区域
+            HasText = false;
+            TextContent = string.Empty;
+            HasNote = false;
+            NoteText = string.Empty;
+
             // 缩略图是处理器的替补，得说清楚"这里只有一张图"，否则用户会以为 PDF 只有一页
-            if (handlerFailed) FooterText = Strings.Preview_Note_HandlerFallback;
+            FooterText = handlerFailed ? Strings.Preview_Note_HandlerFallback : string.Empty;
 
             return;
         }
 
         if (result.Text is { Length: > 0 } text && !tooHeavy)
         {
+            Image = null;
+            HasImage = false;
             TextContent = text;
             HasText = true;
+            HasNote = false;
+            NoteText = string.Empty;
             FooterText = result.Truncated
                 ? string.Format(
                     CultureInfo.CurrentCulture, Strings.Preview_Truncated, PreviewLoader.MaxTextChars)
@@ -573,6 +686,10 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
             return;
         }
 
+        Image = null;
+        HasImage = false;
+        TextContent = string.Empty;
+        HasText = false;
         HasNote = true;
         NoteText = tooHeavy ? Strings.Preview_Degraded : Describe(result.Note);
 

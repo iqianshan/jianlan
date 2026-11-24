@@ -71,6 +71,22 @@ pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Jianlan.exe -Path D:\perf-
 `tools/release/publish.ps1` 的产物在 `dist/`：`Jianlan-<版本>-portable-win-x64.zip`
 与配套 `.sha256`。包内的 `portable.flag` 让程序进入便携模式，设置与日志落在解压目录的 `data\` 里。
 
+### 诊断开关
+
+排查界面类问题时用得到，正常启动都不带：
+
+| 变量 | 作用 |
+|---|---|
+| `JIANLAN_PREVIEWDEBUG=1` | 预览链路（选中 → 合并窗口 → 读盘 → 解码）的分段时间戳写进 `data/logs/app.log`，前缀 `preview.dbg` |
+| `JIANLAN_INSTANCE_TAG=<串>` | 单实例互斥体与管道加一个后缀。用户正开着正式副本时，靠它在一边起一份隔离实例做真窗口实测，否则第二份会立刻转交参数并退出——表现为"脚本说窗口没起来" |
+| `JIANLAN_EXE_DIR=<目录>` | 给 `tools/window-drive` 下的冒烟脚本指定被测 exe 所在目录（默认取 `publish/`） |
+
+真窗口验收脚本在 `tools/window-drive/`：`quicklook_smoke.py`（空格预览 12 项）、
+`rename_smoke.py`（就地改名）、`clipboard_smoke.py`（剪贴板）、`alt_probe.py`（单按 Alt 不冒焦点环）、
+`preview_rapid_probe.py`（连按方向键时画面是否跟着换）。另有 `preview_lag_probe.py` /
+`preview_paint_probe.py` / `preview_long_probe.py` 三个纯诊断探针，只在查"预览慢/卡"时用。
+它们都用 `SendInput` 打真实按键，跑之前请勿操作鼠标键盘。
+
 > **脚本副作用**：打包结束会删掉 `dist/` 下同名的已解压目录，里面改过的 `data\settings.json`
 > 会一起消失。要保留先在跑之前拷走。
 >

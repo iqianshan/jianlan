@@ -15,8 +15,19 @@ namespace Jianlan.App.Services;
 internal sealed class SingleInstanceGuard : IDisposable
 {
     // Local\ 前缀表示只在本登录会话内唯一：多用户同时登录时互不干扰
-    private const string MutexName = @"Local\Jianlan.SingleInstance.v1";
-    private const string PipeName = "Jianlan.Instance.v1";
+    //
+    // 诊断后门：JIANLAN_INSTANCE_TAG=<任意串> 会让互斥体与管道多一个后缀，
+    // 于是能在用户正开着正式副本时再起一份隔离实例做实测（否则第二份会立刻转交参数并退出）。
+    // 只应由 tools/window-drive 下的脚本设置，正常双击启动不带这个变量。
+    private static readonly string InstanceSuffix = BuildSuffix();
+    private static readonly string MutexName = @"Local\Jianlan.SingleInstance.v1" + InstanceSuffix;
+    private static readonly string PipeName = "Jianlan.Instance.v1" + InstanceSuffix;
+
+    private static string BuildSuffix()
+    {
+        string tag = Environment.GetEnvironmentVariable("JIANLAN_INSTANCE_TAG") ?? string.Empty;
+        return tag.Length == 0 ? string.Empty : "." + tag;
+    }
 
     private Mutex? _mutex;
     private CancellationTokenSource? _cts;

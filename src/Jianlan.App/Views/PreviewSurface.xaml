@@ -48,7 +48,19 @@
                VerticalAlignment="Top"
                HorizontalAlignment="Stretch"
                RenderOptions.BitmapScalingMode="HighQuality"
-               Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibility}}"/>
+               Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibility}}">
+            <Image.Style>
+                <Style TargetType="Image">
+                    <!-- 正在换文件：上一帧留着但画淡。清空会白闪，留着又像结果，
+                         降权是这两者之间唯一说得通的表达（见 PreviewViewModel.IsLoading） -->
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                            <Setter Property="Opacity" Value="0.35"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Image.Style>
+        </Image>
 
         <!-- 文本。只读 TextBox 而不是 TextBlock：用户要能选中、复制其中一段，
              这在"看一眼配置文件"的场景里比什么都实用。
@@ -71,7 +83,18 @@
                  VerticalAlignment="Stretch"
                  FocusVisualStyle="{StaticResource FocusVisual.Inset}"
                  AutomationProperties.Name="{loc:Tr Key=A11y.PreviewText}"
-                 Visibility="{Binding HasText, Converter={StaticResource BoolToVisibility}}"/>
+                 Visibility="{Binding HasText, Converter={StaticResource BoolToVisibility}}">
+            <TextBox.Style>
+                <Style TargetType="TextBox">
+                    <!-- 与图片同一条规则：换文件时上一帧画淡 -->
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                            <Setter Property="Opacity" Value="0.35"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBox.Style>
+        </TextBox>
 
         <!-- 取不到内容：图标 + 一句说明（FR-9.1.4）。不报错、不弹窗。
              图标按 32px 原生尺寸画：系统图标只有 16/32 两档，硬放大只会得到一团白块。 -->
