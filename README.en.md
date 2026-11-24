@@ -64,8 +64,16 @@ The straightforward way:
 2. Extract the new zip **over** the old folder, choosing "replace" for same-name files.
 3. Launch.
 
-Coming from a much older major version, or wanting to clear leftover files as well? Use the
-script in the repo:
+Coming from a much older major version, or wanting to clear leftover files as well? The safe
+route is **back up first, then swap the folder**:
+
+1. Copy the old folder's `data\` somewhere else (it holds all your personal data).
+2. Empty the old folder (or extract into a fresh one).
+3. Extract the new zip into the original location.
+4. Copy the backed-up `data\` back.
+
+The repo's `tools/release/upgrade-keep-data.ps1` runs those four steps plus verification for you
+(that script ships with the source, not in the portable package):
 
 ```powershell
 .\tools\release\upgrade-keep-data.ps1 `
