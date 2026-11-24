@@ -6,6 +6,22 @@
 
 ### 修复
 
+- **右键菜单跑到鼠标左侧**。列表、列头的菜单一律"右边缘贴指针、向下展开"，即使右侧还有
+  上千像素空白，看着像位置算错了。
+
+  不是算错，是 WPF 照着系统的"菜单右对齐"标志把它摆到了左边。该标志的三个来源在本机
+  互相打架：注册表 `HKCU\Control Panel\Desktop\MenuDropAlignment` 不存在（默认右手）、
+  `SPI_GETMENUDROPALIGNMENT` 返回 0，唯独 `GetSystemMetrics(SM_MENUDROPALIGNMENT)`
+  返回 1——而 WPF 的 `Popup` 读的正是最后这一路。资源管理器用的是自绘菜单，不理会这个值，
+  所以同一台机器上只有本程序的菜单不对，很容易被当成坐标算错去查。
+
+  改法是在 `PaneView` 上挂一条 `ContextMenuOpening` 冒泡处理（新增 `MenuPlacement`）：
+  菜单弹出前先量一次期望宽度，右侧放得下就补一个自身宽度把它拉回指针右下，放不下则保持
+  WPF 摆的左侧位置。判断"放得下"用当前显示器的工作区，多屏按窗口所在那块算，不能只认
+  主屏。不逐个菜单处理是因为列表与列头各有一份 `ContextMenu`，漏一个就还是歪的。
+
+  仍然只在系统标志为真时补偿：换到正常的右手环境，这一层什么也不做。
+
 - **8 小时压测崩溃（`0xC0000005` @ `dui70.dll`）**。六份转储落在同一帧：`dui70+0x65642`
   的 `mov [rdx], rax` 且 `rdx = 0`，栈上自内向外 `dui70 → duser → msctf → shell32 →
   textinputframework`——TSF 文本输入界面元素在 DirectUI 上被摘除时前驱为空。

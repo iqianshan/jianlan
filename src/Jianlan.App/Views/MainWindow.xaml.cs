@@ -221,6 +221,15 @@ public partial class MainWindow : Window
 
         InitializeComponent();
 
+        // 右键菜单的左右补偿（成因见 MenuPlacement）。挂窗口级而不是逐个菜单：
+        // 列表、列头、标签条、侧栏各有一份 ContextMenu，逐个挂必然漏。
+        // 走冒泡，排在元素自己的 ContextMenuOpening 之后——列表那边要先按选中态收起
+        // 「针对条目」的项，量出来的宽度才是最终宽度。
+        AddHandler(
+            ContextMenuService.ContextMenuOpeningEvent,
+            new ContextMenuEventHandler(OnContextMenuOpeningForPlacement),
+            handledEventsToo: false);
+
         // 自绘标题栏（FR-10.11）。必须在首帧前定：WindowStyle 一旦建了窗口就改不了，
         // 运行期切换要重建 HWND，所以设置页改完只提示"重启生效"。
         ApplyWindowChrome();
@@ -1764,6 +1773,21 @@ public partial class MainWindow : Window
 
         Pane.CancelRenameIfClickedOutside(hit);
         Pane2.CancelRenameIfClickedOutside(hit);
+    }
+
+    /// <summary>
+    /// 右键菜单弹到鼠标左侧时的纠正（成因见 <see cref="MenuPlacement"/>）。
+    ///
+    /// 窗口级挂一次覆盖全部菜单：列表、列头、标签条、侧栏各有一份 <c>ContextMenu</c>，
+    /// 逐个挂必漏。走冒泡，排在元素自己的 <c>ContextMenuOpening</c> 之后，此时
+    /// "按选中态收起针对条目的项"已经做完，量出来的宽度才是最终宽度。
+    /// </summary>
+    private void OnContextMenuOpeningForPlacement(object sender, ContextMenuEventArgs e)
+    {
+        if (e.OriginalSource is not DependencyObject source) return;
+        if (MenuPlacement.FindAbove(source) is not { } menu) return;
+
+        MenuPlacement.KeepRightOfCursor(this, menu, PointToScreen(Mouse.GetPosition(this)));
     }
 
     /// <summary>
