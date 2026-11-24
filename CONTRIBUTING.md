@@ -83,10 +83,16 @@ pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Jianlan.exe -Path D:\perf-
 
 真窗口验收脚本在 `tools/window-drive/`：`quicklook_smoke.py`（空格预览 12 项）、
 `rename_smoke.py`（就地改名）、`clipboard_smoke.py`（剪贴板）、`alt_probe.py`（单按 Alt 不冒焦点环）、
-`preview_rapid_probe.py`（连按方向键时画面是否跟着换）。另有 `preview_lag_probe.py` /
-`preview_paint_probe.py` / `preview_long_probe.py` / `preview_pane_probe.py` 四个纯诊断探针，
-只在查"预览慢/卡"时用（最后一个测的是预览窗格里连翻 PDF 时 UI 线程的响应）。
+`preview_rapid_probe.py`（180ms 节奏连按，画面是否每次都换）、
+`preview_hold_probe.py`（30ms 节奏连发 12 次，模拟"按住 ↓ 不放"，并统计 `load start`/`load done`
+是否成对——不成对就是在途被反复作废）。另有 `preview_lag_probe.py` / `preview_paint_probe.py` /
+`preview_long_probe.py` / `preview_pane_probe.py` 四个纯诊断探针，只在查"预览慢/卡"时用
+（最后一个测的是预览窗格里连翻 PDF 时 UI 线程的响应）。
 它们都用 `SendInput` 打真实按键，跑之前请勿操作鼠标键盘。
+
+查预览慢时先开 `JIANLAN_PREVIEWDEBUG=1`：日志会记下每次选中的 `preview ... Nms after selection`、
+`load start ... <宽>x<高>`、`load done ... Nms from selection, img=<解出来的尺寸>`。
+解码尺寸明显大于屏幕上显示的区域，就是限幅没吃到内容区的真实大小。
 
 > **脚本副作用**：打包结束会删掉 `dist/` 下同名的已解压目录，里面改过的 `data\settings.json`
 > 会一起消失。要保留先在跑之前拷走。

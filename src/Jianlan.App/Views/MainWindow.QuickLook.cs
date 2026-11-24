@@ -39,12 +39,9 @@ public partial class MainWindow
 
     private void InitializeQuickLook()
     {
-        // 解码宽度跟着浮层实际宽度走：浮层比窗格宽得多，沿用窗格的宽度会得到一张糊图。
-        // 上限仍由 PreviewLoader 钳在 1024，与"不超过主窗"的尺寸约束配合，不会白占内存。
-        _quickLook.DecodeWidthProvider = () => _quickLookWindow is null
-            ? 640
-            : (int)Math.Round(
-                Math.Max(1, _quickLookWindow.Width - 40) * VisualTreeHelper.GetDpi(this).DpiScaleX);
+        // 解码尺寸跟着浮层内容区的实际大小走：这个区域比窗格宽、但比窗格矮，
+        // 竖图（手机截图、H5 设计稿）在这里受高度限制，沿用窗格的宽度会多解一倍有余的像素。
+        _quickLook.DecodeSizeProvider = () => _quickLookWindow?.ContentPixelSize() ?? (640, 480);
 
         // 选中变化只跟活动窗格：另一个窗格里的选中是"上次点过"，不是"我此刻在看"。
         // 浮层关着时这里什么都不做——一次预览要读盘/解码，看不见的结果不该花钱。
@@ -83,6 +80,10 @@ public partial class MainWindow
         // 没有选中项就不弹：弹一块空板比什么都不发生更像出错
         if (selection.Count == 0) return;
 
+        // 先把窗格那份停掉。同一个文件两边各解一遍，而浮层正好挡在它前面——
+        // 两份并发实测各要 95–104ms，等于把翻页速度砍半，还白占磁盘带宽。
+        _preview.Suspend();
+
         var window = new QuickLookWindow { DataContext = _quickLook };
 
         // 先登记再 Show：Show 之后主窗可能立刻收到 Deactivated（焦点还在切换），
@@ -90,11 +91,10 @@ public partial class MainWindow
         _quickLookWindow = window;
 
         window.AttachTo(this);
-        _quickLook.Update(selection);
 
-        // 首次打开不等那 300ms 防抖：空格是明确动作，用户已经在等画面了。
-        // 之后的翻页仍走防抖，连续按方向键不会把每个文件都解码一遍。
-        _quickLook.Retry();
+        // Update 现在是"没有在途就立刻加载"，不需要再补一次 Retry 跳过延后——
+        // 早先那两行是给 300ms 防抖开的侧门，现在门没了。
+        _quickLook.Update(selection);
 
         window.Show();
     }
@@ -109,6 +109,10 @@ public partial class MainWindow
         // 丢位图引用。这里不调 Release()：它会连 Shell 缩略图的全局缓存一起清掉，
         // 而预览窗格可能正开着，被顺带清理等于让窗格下次重取一遍。
         _quickLook.Update([]);
+
+        // 窗格在浮层期间是挂起的，这里补一次当前选中，否则它会停在浮层打开之前那张
+        _preview.Resume();
+        RefreshPreview();
     }
 
     private void OnQuickLookSelectionChanged(PaneView view)

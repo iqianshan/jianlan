@@ -88,7 +88,7 @@ internal static class PreviewLoader
     public const int MaxImageHeight = 1600;
 
     public static async Task<PreviewResult> LoadAsync(
-        FileEntry entry, int decodeWidth, CancellationToken cancellationToken)
+        FileEntry entry, int decodeWidth, int decodeHeight, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entry);
 
@@ -103,6 +103,7 @@ internal static class PreviewLoader
         }
 
         int width = Math.Clamp(decodeWidth, 64, 1024);
+        int height = Math.Clamp(decodeHeight, 64, MaxImageHeight);
 
         return kind switch
         {
@@ -111,7 +112,7 @@ internal static class PreviewLoader
                 PreviewResult.Fail(PreviewNote.Timeout)).ConfigureAwait(false),
 
             PreviewKind.Image => await WithTimeoutAsync(
-                () => Task.Run(() => DecodeImage(entry, width, cancellationToken), cancellationToken),
+                () => Task.Run(() => DecodeImage(entry, width, height, cancellationToken), cancellationToken),
                 PreviewResult.Fail(PreviewNote.Timeout)).ConfigureAwait(false),
 
             _ => await WithTimeoutAsync(
@@ -234,13 +235,19 @@ internal static class PreviewLoader
     // ── 图片 ────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// 解码位图，按"同时塞进窗格宽高"的比例限幅。
+    /// 解码位图，按"同时塞进可用宽高"的比例限幅。
     ///
     /// 只设 <c>DecodePixelWidth</c> 是不够的：一张 100×20000 的长条图在宽 512 时
     /// 高会变成 102400，512×102400×4 就是 200MB——一次预览就能吃掉整档内存预算。
     /// 因此先读头部尺寸（只读元数据，不解码像素），再决定限哪一边。
+    ///
+    /// 高度那一侧<b>必须给实际可用高度</b>，不能只给一个 1600 的硬上限：手机截图是
+    /// 720×1600 这类竖图，浮层内容区只有 600 出头，按宽限幅会解出一张 720×1600
+    /// （4.6MB、实测 50–100ms），而它在屏幕上最多显示 270×600。按高度限幅后
+    /// 数据量降到 1/7，翻页才跟得上手。
     /// </summary>
-    private static PreviewResult DecodeImage(FileEntry entry, int maxWidth, CancellationToken cancellationToken)
+    private static PreviewResult DecodeImage(
+        FileEntry entry, int maxWidth, int maxHeight, CancellationToken cancellationToken)
     {
         try
         {
@@ -249,7 +256,7 @@ internal static class PreviewLoader
 
             double scale = Math.Min(
                 1.0,
-                Math.Min(maxWidth / (double)pixelWidth, MaxImageHeight / (double)pixelHeight));
+                Math.Min(maxWidth / (double)pixelWidth, maxHeight / (double)pixelHeight));
 
             int targetWidth = Math.Max(1, (int)Math.Round(pixelWidth * scale));
 

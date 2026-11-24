@@ -48,9 +48,27 @@ public partial class PreviewPane : UserControl
         Hook(viewModel);
         DataContext = viewModel;
 
-        // 每次解码前现算：窗格刚被拖窄时，旧宽度会让解码出来的位图白占一倍内存
-        viewModel.DecodeWidthProvider = () => (int)Math.Round(
-            Math.Max(1, ActualWidth - 32) * VisualTreeHelper.GetDpi(this).DpiScaleX);
+        // 每次解码前现算：窗格刚被拖窄/拖矮时，旧尺寸会让解码出来的位图白占内存
+        viewModel.DecodeSizeProvider = () =>
+        {
+            DpiScale dpi = VisualTreeHelper.GetDpi(this);
+
+            // 量内容区而不是整个窗格：标题块、按钮条、脚注都不显示图片，
+            // 把它们算进去会让竖图多解一截用不到的像素
+            double width = ContentArea.ActualWidth;
+            double height = ContentArea.ActualHeight;
+
+            // 首帧还没布局：给一份保守估算，Show 之后很快就有真实值
+            if (width < 8 || height < 8)
+            {
+                width = Math.Max(1, ActualWidth - 32);
+                height = Math.Max(200, ActualHeight - 150);
+            }
+
+            return (
+                (int)Math.Round(width * dpi.DpiScaleX),
+                (int)Math.Round(height * dpi.DpiScaleY));
+        };
     }
 
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)

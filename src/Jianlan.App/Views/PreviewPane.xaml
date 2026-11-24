@@ -133,7 +133,7 @@
             <!-- 内容区。空态/图片/文本/说明层在 PreviewSurface 里，与空格浮层（FR-9.1.7）
                  共用一份；系统预览处理器是 HwndHost 真子窗口，只能挂在真实窗口里，
                  所以留在这一层，由 PreviewSurface 之上的这个 Grid 承载。 -->
-            <Grid Grid.Row="1" Margin="16,0,16,0">
+            <Grid x:Name="ContentArea" Grid.Row="1" Margin="16,0,16,0">
                 <views:PreviewSurface RetryRequested="OnRetryRequested"/>
 
                 <!-- 系统预览处理器（FR-9.1.3）。它画在一个真实的子窗口里，

@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 using Jianlan.App.ViewModels;
 
 namespace Jianlan.App.Views;
@@ -88,6 +89,33 @@ public partial class QuickLookWindow : Window
     }
 
     private void OnWindowClosed(object? sender, EventArgs e) => Detach();
+
+    /// <summary>
+    /// 内容区当前尺寸（物理像素），供解码限幅用。
+    ///
+    /// 必须按内容区而不是窗口宽度算：浮层里 720×1600 的手机截图受 600 出头的可用高度限制，
+    /// 屏幕上最多显示 270×600，按 1024 宽度解码等于多解 5 倍用不到的像素
+    /// （实测这一项让单张解码从 10ms 级涨到 95–104ms）。
+    /// </summary>
+    public (int Width, int Height) ContentPixelSize()
+    {
+        DpiScale dpi = VisualTreeHelper.GetDpi(this);
+
+        double width = ContentArea.ActualWidth;
+        double height = ContentArea.ActualHeight;
+
+        // 首帧还没布局：按窗口尺寸估一份。Show 之后很快就有真实值，
+        // 这一份只影响第一次打开时那一张图的解码尺寸。
+        if (width < 8 || height < 8)
+        {
+            width = Math.Max(1, Width - 40);
+            height = Math.Max(200, Height - 160);
+        }
+
+        return (
+            (int)Math.Round(width * dpi.DpiScaleX),
+            (int)Math.Round(height * dpi.DpiScaleY));
+    }
 
     private void Detach()
     {

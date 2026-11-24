@@ -2,7 +2,6 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Windows.Media;
-using System.Windows.Threading;
 using Jianlan.App.Services;
 using Jianlan.App.Shell;
 using Jianlan.Core.FileSystem;
@@ -14,25 +13,12 @@ namespace Jianlan.App.ViewModels;
 /// <summary>
 /// 预览窗格的状态（FR-9.1）。
 ///
-/// 一次预览要跨过三道异步：<see cref="ThrottleMs"/> 的合并窗口、读盘/解码、
-/// 以及随时可能到来的下一次选中。因此这里有一份 <c>_generation</c> 递增票据——
-/// 结果回来时票号对不上就整份丢掉。只靠 <see cref="CancellationToken"/> 不够：
-/// 取消是协作式的，已经算完的结果照样会回来。
+/// 一次预览要跨过三道异步：等上一次加载让位、读盘/解码、以及随时可能到来的下一次选中。
+/// 因此这里有一份 <c>_generation</c> 递增票据——结果回来时票号对不上就整份丢掉。
+/// 只靠 <see cref="CancellationToken"/> 不够：取消是协作式的，已经算完的结果照样会回来。
 /// </summary>
 public sealed class PreviewViewModel : INotifyPropertyChanged
 {
-    /// <summary>
-    /// 连续切换选中时的合并窗口（FR-9.1.2）。
-    ///
-    /// 早先这里是 300ms 防抖（每次选中都重新计时），本意是"连续切换不预览"。
-    /// 实测下来那是错的：按住方向键翻页的间隔通常 150–250ms，计时器被一路推后，
-    /// 只要手不停就一次都不触发——用户看到的是"看着看着预览没了，松手后还要等一下"。
-    /// 现在改成节流：第一次选中立刻加载，之后落在窗口内的选中合并成一次，
-    /// 窗口结束时拿"当时最新的那一项"再跑。手不停就会每 120ms 出一张，
-    /// 画面始终跟着走；手停下时最多再等一个窗口。
-    /// </summary>
-    public const int ThrottleMs = 120;
-
     /// <summary>
     /// 预览内容的内存预算（FR-9.2.7）。超了就不放内容，只留基本信息。
     ///
@@ -42,13 +28,11 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
     /// </summary>
     public const long BudgetBytes = 40L * 1024 * 1024;
 
-    private readonly DispatcherTimer _timer;
-
     /// <summary>
     /// 预览链路的耗时诊断（<c>JIANLAN_PREVIEWDEBUG=1</c>）。
     ///
     /// 只在排查"按了方向键半天不出图"时开：写的是 <c>data/logs/app.log</c>，
-    /// 每行带进程启动以来的毫秒数，能直接看出卡在防抖、读盘还是渲染。
+    /// 每行带进程启动以来的毫秒数，能直接看出卡在读盘、解码、还是排队。
     /// 默认关闭——这条路径每次选中都要走，同步写日志会污染它自己要测的指标。
     /// </summary>
     private static readonly bool PreviewDebug =
@@ -63,8 +47,25 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
 
     private long _selectionStamp;
 
-    /// <summary>合并窗口内又来了新的选中：窗口结束时补跑一次。</summary>
-    private bool _pending;
+    /// <summary>
+    /// 在途加载数。大于 0 时新的选中只记 <see cref="_dirty"/>，不另起一次加载。
+    ///
+    /// 这里是"有活就接着干"而不是"定时器驱动"，走过两个错版本：
+    /// 先是 300ms 防抖（连按时被一路推后，一次都不触发），再是 120ms 节流
+    /// （每 120ms 跑一张，可一张解码就要 50–100ms，加上窗口延迟仍落后手指三四张）。
+    /// 真正的约束不是"多久允许跑一次"，而是"同时只跑一份"：串行之后，
+    /// 一张解码完成就立刻上屏，下一张紧接着开始，画面更新率等于解码速度本身。
+    ///
+    /// 用计数而不是布尔：作废一次在途后可能马上又起一次，先结束的那个若直接
+    /// 把标志清掉，后来的就会被误判成"空闲"而再起第三份。
+    /// </summary>
+    private int _inflight;
+
+    /// <summary>在途期间选中又变了：这次回来之后要拿最新那一项再跑一次。</summary>
+    private bool _dirty;
+
+    /// <summary>浮层盖在窗格上时暂停：看不见的结果不该花钱（见 <see cref="Suspend"/>）。</summary>
+    private bool _suspended;
 
     private IReadOnlyList<FileEntry> _selection = [];
     private FileEntry? _current;
@@ -93,30 +94,16 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
     private string _textContent = string.Empty;
     private ImageSource? _image;
 
-    public PreviewViewModel()
-    {
-        _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(ThrottleMs) };
-        _timer.Tick += (_, _) =>
-        {
-            _timer.Stop();
-
-            if (!_pending) return;
-
-            _pending = false;
-            StartPreview();
-
-            // 补跑之后继续开着窗口：还在连按的话，下一个窗口结束时再补一次
-            _timer.Start();
-        };
-    }
-
     public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>
-    /// 解码宽度（物理像素）。由视图在每次请求前提供——窗格宽度可以拖动，
-    /// 拖窄之后还按 1024 解码等于白占内存。
+    /// 解码尺寸（物理像素）。由视图在每次请求前提供——窗格宽度可以拖动，
+    /// 浮层的内容区也更矮，拖窄/变小之后还按满宽满高解码等于白占内存与时间。
+    ///
+    /// 两个维度都要给：手机截图是 720×1600 这类竖图，只限宽度时它照样解满高，
+    /// 而屏幕上受高度限制最多显示一半——这一项在实测里把单张解码从 50–100ms 压到十几毫秒。
     /// </summary>
-    public Func<int>? DecodeWidthProvider { get; set; }
+    public Func<(int Width, int Height)>? DecodeSizeProvider { get; set; }
 
     /// <summary>选中后是否自动预览（FR-5.2.10 的"触发方式"）。</summary>
     public bool AutoPreview
@@ -299,19 +286,25 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
     // ── 外部入口 ────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// 选中项变了。空选与多选立刻结算（都不需要读盘），单选走节流
-    /// （<see cref="ThrottleMs"/>：第一次立即加载，窗口内的后续合并）。
+    /// 选中项变了。空选与多选立刻结算（都不需要读盘）；单选交给"一次一张"的队列
+    /// （见 <see cref="_inflight"/>）：没有在途就立刻加载，有在途就只记一笔、它回来再追。
     /// </summary>
     public void Update(IReadOnlyList<FileEntry> selection)
     {
+        // 浮层盖在窗格上：看不见的内容不取。这里连 _selection 都不动——
+        // 恢复时调用方会再 Update 一次当前选中，而"同一实例直接返回"那条早退
+        // 会让它误以为已经加载过了。
+        if (_suspended) return;
+
         // 同一个条目被重复通知（列表刷新、焦点来回、切回标签）不重读。
-        // 防抖时代这类通知会被计时器吃掉，现在没有那层缓冲了，重复通知就是重复读盘
-        // 加一次画面降权的闪烁。比实例而不是比路径：刷新后拿到的是新实例，可能是文件被改过。
+        // 没有缓冲层之后，重复通知就是重复读盘加一次画面降权的闪烁。
+        // 比实例而不是比路径：刷新后拿到的是新实例，可能是文件被改过。
         if (selection.Count == 1 && _selection.Count == 1 && ReferenceEquals(selection[0], _selection[0]))
         {
             _selection = selection;
             Raise(nameof(Current));
             Raise(nameof(CanAct));
+            Trace($"update \"{selection[0].DisplayName}\" -> same");
             return;
         }
 
@@ -323,33 +316,58 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
         if (selection.Count != 1)
         {
             Trace($"update n={selection.Count} -> summary");
-            _timer.Stop();
-            _pending = false;
+            _dirty = false;
             CancelInFlight();
             ApplySummary(selection);
             return;
         }
 
-        // 合并窗口内：只记账。窗格结束时会读 _selection 的最新值，所以这里不必保存。
-        if (_timer.IsEnabled)
+        // 有一张在途：只记一笔，它回来立刻追最新这张。不在这里取消重开——
+        // 取消重开会让"解码比按键慢"的那些图一张也出不来，正是之前两版的老毛病。
+        if (_inflight > 0)
         {
-            _pending = true;
-            Trace($"update \"{selection[0].DisplayName}\" -> merged");
+            _dirty = true;
+            Trace($"update \"{selection[0].DisplayName}\" -> queued");
             return;
         }
 
         StartPreview();
-        _timer.Start();
         Trace($"update \"{selection[0].DisplayName}\" -> preview started");
     }
 
-    /// <summary>「立即预览」按钮与右键菜单的入口（FR-9.2.8）。跳过节流与延后判定。</summary>
+    /// <summary>「立即预览」按钮与右键菜单的入口（FR-9.2.8）。跳过延后判定。</summary>
     public void Retry()
     {
-        _timer.Stop();
-        _pending = false;
+        _dirty = false;
+
+        // 在途时不能另起一次：并发两份加载，先回来的那个会让位，排队状态就乱了。
+        // 让它回来再追最新选中，效果一样。
+        if (_inflight > 0)
+        {
+            _dirty = true;
+            return;
+        }
+
         if (_selection.Count == 1) Prepare(_selection[0], force: true);
     }
+
+    /// <summary>
+    /// 暂停（空格浮层盖上来时调用）。
+    ///
+    /// 浮层与窗格各有一份视图模型，同一个文件会被解码两遍——而浮层通常正盖在窗格上，
+    /// 那一份谁也看不见。实测两遍并发时各要 95–104ms，也就是说连翻时有一半的解码
+    /// 与磁盘带宽花在了看不见的地方。
+    /// </summary>
+    public void Suspend()
+    {
+        _suspended = true;
+        _dirty = false;
+        CancelInFlight();
+    }
+
+    /// <summary>恢复（浮层收起时调用）。调用方要紧接着 <see cref="Update"/> 一次当前选中，
+    /// 否则窗格停在浮层打开之前那张。</summary>
+    public void Resume() => _suspended = false;
 
     /// <summary>
     /// 关掉预览窗格时调用（FR-9.2.6）。作废在途任务、丢掉位图引用、清空缩略图缓存——
@@ -357,8 +375,8 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
     /// </summary>
     public void Release()
     {
-        _timer.Stop();
-        _pending = false;
+        _suspended = false;
+        _dirty = false;
         CancelInFlight();
 
         _selection = [];
@@ -440,9 +458,22 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
         if (_selection.Count != 1) return;
 
         FileEntry entry = _selection[0];
-        Trace($"throttle run after {Clock.ElapsedMilliseconds - _selectionStamp}ms \"{entry.DisplayName}\"");
+        Trace($"preview \"{entry.DisplayName}\" {Clock.ElapsedMilliseconds - _selectionStamp}ms after selection");
         ApplyHeader(entry);
         Prepare(entry, force: false);
+
+        // Prepare 有三条同步分支（目录、超大、延后）根本不加载，_inflight 仍为 0；
+        // 若在途期间又来过选中，这里立刻把它追掉，不必等下一次选中
+        Pump();
+    }
+
+    /// <summary>在途的回来了：如果期间选中变过，拿最新那一项接着跑。</summary>
+    private void Pump()
+    {
+        if (_inflight > 0 || !_dirty) return;
+
+        _dirty = false;
+        StartPreview();
     }
 
     /// <summary>
@@ -611,39 +642,52 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
         CancelInFlight();
         ClearHandler();
 
-        Trace($"load start \"{entry.DisplayName}\" size={entry.Size} w={DecodeWidthProvider?.Invoke() ?? 320}");
+        (int width, int height) = DecodeSizeProvider?.Invoke() ?? (320, 320);
+
+        Trace($"load start \"{entry.DisplayName}\" size={entry.Size} {width}x{height}");
 
         int generation = _generation;
         var cts = new CancellationTokenSource();
         _cts = cts;
+        _inflight++;
 
-        _current = entry;
-        CanRetry = false;
-        HasNote = false;
-        NoteText = string.Empty;
-        FooterText = string.Empty;
+        try
+        {
+            _current = entry;
+            CanRetry = false;
+            HasNote = false;
+            NoteText = string.Empty;
+            FooterText = string.Empty;
 
-        // ★ 上一帧的 Image / TextContent 刻意不清。
-        //
-        // 早先这里把 Image 置 null、TextContent 置空，等于每选中一次就先闪一下白：
-        // 连按时（每 150–250ms 一次）几乎全程是白的，"看不到预览"的感觉有一半来自这一步。
-        // 现在改为留着旧内容、只置 IsLoading——视图据此把内容层画淡，
-        // 语义是"这张是上一个文件的，马上换"，既不闪白也不冒充结果。
-        IsLoading = true;
+            // ★ 上一帧的 Image / TextContent 刻意不清。
+            //
+            // 早先这里把 Image 置 null、TextContent 置空，等于每选中一次就先闪一下白：
+            // 连按时几乎全程是白的，"看不到预览"的感觉有一半来自这一步。
+            // 现在改为留着旧内容、只置 IsLoading——视图据此把内容层画淡，
+            // 语义是"这张是上一个文件的，马上换"，既不闪白也不冒充结果。
+            IsLoading = true;
 
-        ApplyHeader(entry);
+            ApplyHeader(entry);
 
-        PreviewResult result = await PreviewLoader
-            .LoadAsync(entry, DecodeWidthProvider?.Invoke() ?? 320, cts.Token)
-            .ConfigureAwait(true);
+            PreviewResult result = await PreviewLoader
+                .LoadAsync(entry, width, height, cts.Token)
+                .ConfigureAwait(true);
 
-        Trace($"load done in {Clock.ElapsedMilliseconds - _selectionStamp}ms (from selection) " +
-              $"note={result.Note} img={(result.Image is null ? "null" : $"{result.Image.PixelWidth}x{result.Image.PixelHeight}")}");
+            Trace($"load done \"{entry.DisplayName}\" " +
+                  $"{Clock.ElapsedMilliseconds - _selectionStamp}ms from selection, " +
+                  $"img={(result.Image is null ? "null" : $"{result.Image.PixelWidth}x{result.Image.PixelHeight}")}");
 
-        // 票号对不上 = 用户已经选了别的文件，这份结果作废（FR-9.2.4）
-        if (generation != _generation) return;
+            // 票号对不上 = 用户已经选了别的文件，这份结果作废（FR-9.2.4）
+            if (generation != _generation) return;
 
-        ApplyResult(result, entry, handlerFailed);
+            ApplyResult(result, entry, handlerFailed);
+        }
+        finally
+        {
+            // 回到 UI 线程（上面 ConfigureAwait(true)）：这里可以直接接着开下一张
+            _inflight--;
+            if (_inflight == 0) Pump();
+        }
     }
 
     private void ApplyResult(PreviewResult result, FileEntry entry, bool handlerFailed)

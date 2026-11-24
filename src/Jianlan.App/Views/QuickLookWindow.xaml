@@ -68,7 +68,7 @@
 
             <!-- 内容层与预览窗格共用一份（PreviewSurface）。这里不给 Preview Handler 宿主：
                  那东西是 HwndHost 真子窗口，挂不进不激活、穿透的窗口 -->
-            <views:PreviewSurface Grid.Row="1"/>
+            <views:PreviewSurface x:Name="ContentArea" Grid.Row="1"/>
 
             <!-- 脚注左、关闭提示右。提示常驻是有意的：浮层没有任何按钮，
                  不给提示就只剩"再按一次空格"这一条路靠用户猜 -->
