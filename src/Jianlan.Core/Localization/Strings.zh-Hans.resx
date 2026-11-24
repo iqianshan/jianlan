@@ -495,6 +495,9 @@
   <data name="Status.CopiedCount" xml:space="preserve">
     <value>已复制 {0} 项</value>
   </data>
+  <data name="Status.CopiedInternalOnly" xml:space="preserve">
+    <value>已复制 {0} 项（系统剪贴板被占用，仅本程序内可粘贴）</value>
+  </data>
   <data name="Status.Moving" xml:space="preserve">
     <value>正在移动…</value>
   </data>

@@ -495,6 +495,10 @@ public static class Strings
     public static string Status_CopiedCount => LocalizationService.Instance.Get("Status.CopiedCount");
     // 含占位符：string.Format(Strings.Status_CopiedCount, ...)
 
+    /// <summary>Copied {0} items (system clipboard is busy, so paste works inside Jianlan only)</summary>
+    public static string Status_CopiedInternalOnly => LocalizationService.Instance.Get("Status.CopiedInternalOnly");
+    // 含占位符：string.Format(Strings.Status_CopiedInternalOnly, ...)
+
     /// <summary>Moving…</summary>
     public static string Status_Moving => LocalizationService.Instance.Get("Status.Moving");
 

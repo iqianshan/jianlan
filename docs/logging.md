@@ -54,7 +54,7 @@
 | `E4xxx` | 设置 | `E4001` 解析失败 · `E4002` 写入失败 · `E4003` 版本过高 | `App` → `settings.load` / `settings.save` |
 | `E5xxx` | 目录监视 | `E5001` 启动失败 · `E5002` 运行期错误 | `MainWindow.Watcher` → `watcher.start` / `watcher.error` |
 | `E6xxx` | 标签页 | `E6001` 复制路径写剪贴板失败 · `E6002` 已达标签数上限（改为当前窗格导航） | `TabStrip` → `tab.copyPath`；`MainWindow` → `tab.limit` |
-| `E7xxx` | 窗口与输入 | `E7001` 全局热键注册失败 · `E7002` 会话标记写失败 · `E7003` 上次会话未正常结束 / 日志目录打不开 | `MainWindow` → `hotkey.register`；`App` → `session.mark`；`MainWindow` → `session.recovered` / `session.openlogs` |
+| `E7xxx` | 窗口与输入 | `E7001` 全局热键注册失败 · `E7002` 会话标记写失败 · `E7003` 上次会话未正常结束 / 日志目录打不开 · `E7005` 文件剪贴板读写失败（退回程序内粘贴） | `MainWindow` → `hotkey.register`；`App` → `session.mark`；`MainWindow` → `session.recovered` / `session.openlogs`；`FileClipboard` → `fileclipboard` |
 | `E8xxx` | 预览 | `E8001` Handler 缺失 · `E8002` 超时 · `E8003` 崩溃 | 预留（0.2.0） |
 | `E9xxx` | 组织（工作区） | `E9001` 工作区读取失败（备份重建）· `E9002` 写入失败 · `E9003` 读入告警（含版本过高） | `WorkspaceStore` → `workspace.load` / `workspace.save`；`MainWindow` → `workspace.load` |
 

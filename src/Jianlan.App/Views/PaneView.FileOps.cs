@@ -214,20 +214,25 @@ public partial class PaneView
         var items = Vm.SelectedEntries;
         if (items.Count == 0) return;
 
-        FileClipboard.Set(items.Select(i => i.FullPath).ToArray(), cut);
-        Vm.SetStatus(string.Format(cut ? Strings.Status_CutCount : Strings.Status_CopiedCount, items.Count));
+        // 返回值是"有没有写进系统剪贴板"。写不进去时本程序内还能粘，但换个程序去粘
+        // 就什么也没有——这时候只说"已复制"就是在骗人。
+        bool onSystem = FileClipboard.Set(items.Select(i => i.FullPath).ToArray(), cut);
+
+        Vm.SetStatus(onSystem
+            ? string.Format(cut ? Strings.Status_CutCount : Strings.Status_CopiedCount, items.Count)
+            : string.Format(Strings.Status_CopiedInternalOnly, items.Count));
+
         CommandManager.InvalidateRequerySuggested();
     }
 
     internal async Task PasteAsync()
     {
-        if (!FileClipboard.HasData) return;
+        // 来源以系统剪贴板为准：这样在资源管理器里复制一批文件，切回简览也能粘；
+        // 而中途在别的程序里复制了别的东西，这里也会自然失效，不会粘出过期内容。
+        if (!FileClipboard.TryGet(out string[] paths, out bool cut)) return;
 
         string directory = Vm.CurrentPath;
         if (string.IsNullOrEmpty(directory)) return;
-
-        string[] paths = FileClipboard.Paths.ToArray();
-        bool cut = FileClipboard.IsCut;
 
         IReadOnlyList<string> conflicts = FileOperations.FindConflicts(paths, directory);
         ConflictPolicy conflict = ResolveConflictPolicy(conflicts);

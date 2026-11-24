@@ -200,6 +200,11 @@ Drag and drop: dropping moves within a drive and copies across drives; hold `Ctr
 `Shift` to force a move. Drop onto a folder row to put the items inside it. Drop onto another
 application to hand the files over.
 
+Clipboard: what `Ctrl+C` / `Ctrl+X` puts on the **system clipboard**, so you can paste it straight
+into File Explorer, and files copied in File Explorer paste into Jianlan the same way. A cut is a
+move on the receiving side, not a copy-then-delete. Quitting Jianlan first is fine — the data is
+handed over the moment you copy.
+
 ### Views and panels
 
 | Action | Shortcut |

@@ -508,6 +508,9 @@
   <data name="Status.CopiedCount" xml:space="preserve">
     <value>Copied {0} items</value>
   </data>
+  <data name="Status.CopiedInternalOnly" xml:space="preserve">
+    <value>Copied {0} items (system clipboard is busy, so paste works inside Jianlan only)</value>
+  </data>
   <data name="Status.Moving" xml:space="preserve">
     <value>Moving…</value>
   </data>
