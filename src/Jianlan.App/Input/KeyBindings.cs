@@ -72,6 +72,13 @@ internal static class KeyBindings
         new(Key.P, Vk.P, ModifierKeys.Alt, CommandIds.TogglePreview, "P"),
         new(Key.P, Vk.P, ModifierKeys.Control | ModifierKeys.Shift, CommandIds.TogglePreview, "P"),
 
+        // 空格预览浮层（FR-9.1.7）。与 macOS 快速查看、PowerToys Peek 同一个手势，
+        // 再按一次关掉。空格是"无修饰键"的一员，因此天然受两道让路保护：
+        // 消息层在焦点不是列表时不接管（地址栏、搜索框、就地改名里的空格归输入框），
+        // PreviewKeyDown 里焦点是 TextBoxBase 时直接返回；标签上的空格归标签自己
+        // （激活标签，见 OnPreviewKeyDown 里给 TabViewModel 让路的那段）。
+        new(Key.Space, Vk.Space, ModifierKeys.None, CommandIds.ToggleQuickLook, "Space"),
+
         // 导航（§2）
         new(Key.Up, Vk.Up, ModifierKeys.Alt, CommandIds.GoUp, "↑"),
         new(Key.Left, Vk.Left, ModifierKeys.Alt, CommandIds.GoBack, "←"),
@@ -193,6 +200,7 @@ internal static class KeyBindings
         public const int Back = 0x08;
         public const int Tab = 0x09;
         public const int Enter = 0x0D;
+        public const int Space = 0x20;
         public const int Up = 0x26;
         public const int Left = 0x25;
         public const int Right = 0x27;

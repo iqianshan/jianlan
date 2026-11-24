@@ -102,6 +102,9 @@
   <data name="Command_TogglePreview" xml:space="preserve">
     <value>Toggle preview pane</value>
   </data>
+  <data name="Command_QuickLook" xml:space="preserve">
+    <value>Quick preview</value>
+  </data>
 
   <data name="Command_FocusOtherPane" xml:space="preserve">
     <value>Focus the other pane</value>
@@ -1627,6 +1630,12 @@
   </data>
   <data name="Preview.Note.HandlerFallback" xml:space="preserve">
     <value>The system preview handler is unavailable, so this is a thumbnail.</value>
+  </data>
+  <data name="QuickLook.A11y" xml:space="preserve">
+    <value>Quick preview</value>
+  </data>
+  <data name="QuickLook.Hint" xml:space="preserve">
+    <value>Space or Esc to close</value>
   </data>
   <data name="Settings.Appearance.ShowPreview" xml:space="preserve">
     <value>Show preview pane</value>

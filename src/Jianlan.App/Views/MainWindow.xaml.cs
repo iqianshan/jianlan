@@ -317,7 +317,9 @@ public partial class MainWindow : Window
         RegisterTabCommands();
         RegisterSplitCommands();
         RegisterPreviewCommands();
+        RegisterQuickLookCommand();
         InitializePreview();
+        InitializeQuickLook();
 
         // 分屏开关：工具栏那颗按钮在窗格里，真正的开关在窗口（FR-3.3）。
         // 只有主窗格显示按钮——分屏是窗口形态，两颗按钮会看起来像"两个窗格各分各的"。
@@ -920,6 +922,9 @@ public partial class MainWindow : Window
     /// </summary>
     private void ApplyTabKind(TabViewModel tab)
     {
+        // 换了标签或换了形态，浮层里那份内容就不属于眼前这屏了（空格浮层 FR-9.1.7）
+        CloseQuickLook();
+
         // 主页与标签结果页没有"选中的文件"，预览那一栏先收起（不是关掉——意图还留着）
         ApplyPreviewLayout();
 
@@ -1804,6 +1809,18 @@ public partial class MainWindow : Window
     /// </summary>
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        // 空格浮层开着时 Esc 先收浮层。
+        //
+        // Esc 在窗格里原本是"取消框选 / 清空选择"：让清空抢在前面的话，浮层会连着内容一起消失，
+        // 看起来像"按 Esc 把刚选中的文件弄没了"。焦点在输入框时不抢——那里 Esc 归
+        // 就地改名与地址栏自己（它们各自在 PreviewKeyDown 之后收尾）。
+        if (e.Key == Key.Escape && IsQuickLookOpen && Keyboard.FocusedElement is not TextBoxBase)
+        {
+            e.Handled = true;
+            CloseQuickLook();
+            return;
+        }
+
         // 单按 Alt 一律吞掉。
         //
         // 起因（走查）：鼠标选中一行后再按一下 Alt，选中行上凭空冒出一个 1px 蓝框，
@@ -1874,6 +1891,15 @@ public partial class MainWindow : Window
         }
 
         if (!Input.KeyBindings.TryMatchKey(key, out string commandId)) return;
+
+        // 空格只对文件列表有意义。焦点在工具栏按钮上时，空格该"按下这颗按钮"，
+        // 而不是凭空弹出一块预览——所以这里放行（不标已处理），与窗口消息层那条
+        // "无修饰键且列表没焦点就不接管"保持一致。
+        if (commandId == CommandIds.ToggleQuickLook && !ActiveView.IsListFocused)
+        {
+            if (KeyDebug) WriteKeyLog("  space ignored (list not focused)");
+            return;
+        }
 
         if (KeyDebug) WriteKeyLog($"  preview -> {commandId}");
 

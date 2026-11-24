@@ -25,7 +25,7 @@ Current version **0.2.1**, interface available in Simplified Chinese and English
 | Too many windows, hard to tell apart | Many tabs in one window; close, restore, or open a tab in a new window |
 | Copying between two folders, back and forth | `F3` opens a second pane; drag directly across. Each pane remembers its own view and sort |
 | You forget which files you already handled | Colour tags, several colours per file, summarised by colour in the sidebar |
-| You just want a quick look at an image or a document | `Alt+P` opens the preview pane — images, text, PDF, Office files, audio and video, without launching anything |
+| You just want a quick look at an image or a document | Select the file and press `Space` for a floating preview (it never takes focus, so the arrow keys keep browsing); `Alt+P` opens the docked preview pane instead |
 | A slip of the hand renames or deletes the wrong thing | `Ctrl+Z` undoes the last action: rename it back, or restore from the Recycle Bin |
 | Waiting seconds for a file manager to start | Cold start around 0.7 s; scrolling a 10,000-item folder stays smooth |
 
@@ -141,6 +141,7 @@ A five-minute tour, in the order most people need it:
 | Sidebar (left) | Common folders, This PC (per-drive free space), favourites, tags, Recycle Bin and Network; drag its edge to resize, double-click to reset |
 | Main area | Toolbar (back / forward / up / refresh, breadcrumb address bar, search, view switch), file list, status bar |
 | Preview pane (right, `Alt+P`) | Images, text, code, PDF, Office files, audio and video; with a single file selected you can open it, copy its path or delete it |
+| Quick preview overlay (`Space`) | Covers the list with a single-file preview without taking focus — arrow keys keep browsing; click anywhere, press `Space` again or `Esc` to dismiss |
 
 ---
 
@@ -214,6 +215,7 @@ handed over the moment you copy.
 | Toggle the second pane | `F3` (or `Ctrl+Shift+E`) |
 | Switch focus between panes | `Tab` or `F6` |
 | Toggle the preview pane | `Alt+P` (or `Ctrl+Shift+P`) |
+| Quick preview (press with a file selected, press again to close) | `Space` (`Esc` also closes) |
 | Settings | `Ctrl+,` |
 
 ---

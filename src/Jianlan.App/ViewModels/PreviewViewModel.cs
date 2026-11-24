@@ -86,6 +86,24 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
         set => _autoPreview = value;
     }
 
+    /// <summary>
+    /// 是否允许拉起系统预览处理器（FR-9.2.1）。默认允许；空格浮层设 <c>false</c>。
+    ///
+    /// 处理器把自己画在一个真实子窗口里（HwndHost），而浮层是不激活、鼠标穿透的窗口：
+    /// 子窗口在那种宿主里显示会压不住层级，也没法接收点击。浮层对 PDF/Office 就给一张
+    /// Shell 缩略图——反正它本来就是"按一下看一眼"，可翻页可播放的场合仍归预览窗格。
+    /// </summary>
+    public bool UseShellHandler { get; set; } = true;
+
+    /// <summary>
+    /// 这次预览是用户显式要的（空格、点"立即预览"），不是自动触发。
+    ///
+    /// 只影响一件事：网络盘与可移动设备上，自动预览会退成"点击立即预览"（FR-9.2.8）；
+    /// 显式请求必须真的去取，否则用户在 U 盘上按空格只得到一句"要不要预览"，
+    /// 等于把动作又还给了他。
+    /// </summary>
+    public bool ExplicitRequest { get; set; }
+
     /// <summary>什么都没选中。空态那一句提示绑它。</summary>
     public bool IsEmpty
     {
@@ -368,7 +386,7 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
             return;
         }
 
-        if (!force && (!AutoPreview || IsSlowPath(entry.FullPath)))
+        if (!force && !ExplicitRequest && (!AutoPreview || IsSlowPath(entry.FullPath)))
         {
             ClearHandler();
             _current = entry;
@@ -402,7 +420,7 @@ public sealed class PreviewViewModel : INotifyPropertyChanged
             return;
         }
 
-        Guid clsid = PreviewRouter.NeedsHandlerLookup(kind)
+        Guid clsid = UseShellHandler && PreviewRouter.NeedsHandlerLookup(kind)
             ? PreviewHandlerRegistry.Find(entry.FullPath)
             : Guid.Empty;
 

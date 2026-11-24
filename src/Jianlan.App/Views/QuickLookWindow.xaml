@@ -1,0 +1,103 @@
+<Window x:Class="Jianlan.App.Views.QuickLookWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:Jianlan.App.Localization"
+        xmlns:views="clr-namespace:Jianlan.App.Views"
+        Title="{loc:Tr Key=QuickLook.A11y}"
+        AutomationProperties.Name="{loc:Tr Key=QuickLook.A11y}"
+        Width="760"
+        Height="560"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowActivated="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="Manual"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="ClearType"
+        TextOptions.TextHintingMode="Fixed">
+
+    <!--
+        空格预览浮层（FR-9.1.7）。按一下空格盖在列表上，再按一下或 Esc 收起。
+
+        它不是对话框：不激活、不抢键盘焦点、鼠标事件整体穿透（WS_EX_NOACTIVATE |
+        WS_EX_TRANSPARENT，见 code-behind）。因此浮层开着时方向键仍在列表里翻页，
+        预览内容跟着换——这才是空格预览的价值；一旦激活窗口，第一次按键就被它吃掉。
+
+        代价是浮层内不能交互：文本选不中、长文不能滚动。取舍见 CHANGELOG：
+        要"看一眼"，不要"第二个预览窗格"。
+    -->
+
+    <!-- L2 悬浮层（ui-guidelines §5）：与右键菜单、对话框、预览窗格同一级表面，
+         靠明度差 + 1px 描边分层；不加阴影（规范禁用 Effect） -->
+    <Border Background="{DynamicResource Brush.Surface.Floating}"
+            BorderBrush="{DynamicResource Brush.Border.Hairline}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource CornerRadius.Dialog}">
+        <!-- 内容内缩 20：既给圆角留出呼吸位，也让图片不顶着 1px 边框 -->
+        <Grid Margin="20,16,20,12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- 标题块：与预览窗格同一套字段（文件名 / 类型·大小·日期 / 路径），
+                 但只读——浮层没有操作按钮 -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                <TextBlock Style="{StaticResource Text.Base}"
+                           FontWeight="{DynamicResource Font.Weight.Emphasis}"
+                           Text="{Binding TitleText}"
+                           TextTrimming="CharacterEllipsis"
+                           TextWrapping="NoWrap"/>
+                <TextBlock Margin="0,4,0,0"
+                           Style="{StaticResource Text.Caption}"
+                           Text="{Binding MetaText}"
+                           TextTrimming="CharacterEllipsis"
+                           TextWrapping="NoWrap"/>
+                <TextBlock Margin="0,2,0,0"
+                           Style="{StaticResource Text.Caption}"
+                           Text="{Binding PathText}"
+                           TextTrimming="CharacterEllipsis"
+                           TextWrapping="NoWrap"
+                           ToolTip="{Binding PathText}"/>
+            </StackPanel>
+
+            <!-- 内容层与预览窗格共用一份（PreviewSurface）。这里不给 Preview Handler 宿主：
+                 那东西是 HwndHost 真子窗口，挂不进不激活、穿透的窗口 -->
+            <views:PreviewSurface Grid.Row="1"/>
+
+            <!-- 脚注左、关闭提示右。提示常驻是有意的：浮层没有任何按钮，
+                 不给提示就只剩"再按一次空格"这一条路靠用户猜 -->
+            <Grid Grid.Row="2" Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Margin="0,0,12,0"
+                           Text="{Binding FooterText}"
+                           TextTrimming="CharacterEllipsis">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Caption}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding FooterText}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <TextBlock Grid.Column="1"
+                           Style="{StaticResource Text.Caption}"
+                           Foreground="{DynamicResource Brush.Text.Tertiary}"
+                           Text="{loc:Tr Key=QuickLook.Hint}"/>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

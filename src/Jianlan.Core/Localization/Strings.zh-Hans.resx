@@ -96,6 +96,9 @@
   <data name="Command_TogglePreview" xml:space="preserve">
     <value>切换预览窗格</value>
   </data>
+  <data name="Command_QuickLook" xml:space="preserve">
+    <value>快速预览</value>
+  </data>
 
   <data name="Command_FocusOtherPane" xml:space="preserve">
     <value>切换焦点窗格</value>
@@ -1614,6 +1617,12 @@
   </data>
   <data name="Preview.Note.HandlerFallback" xml:space="preserve">
     <value>系统预览组件不可用，这里显示的是缩略图。</value>
+  </data>
+  <data name="QuickLook.A11y" xml:space="preserve">
+    <value>快速预览</value>
+  </data>
+  <data name="QuickLook.Hint" xml:space="preserve">
+    <value>空格或 Esc 关闭</value>
   </data>
   <data name="Settings.Appearance.ShowPreview" xml:space="preserve">
     <value>显示预览窗格</value>

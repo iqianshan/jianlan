@@ -72,6 +72,10 @@ public static class CommandIds
     // 预览窗格（FR-9.1.1）。同样是窗口级：预览反映"当前焦点窗格选了什么"，
     // 一个窗口只有一栏，开在哪个标签都一样。
     public const string TogglePreview = "preview.toggle";
+
+    // 空格预览浮层（FR-9.1.7）。与预览窗格并存：窗格是"常驻一栏"，浮层是"按一下看一眼"，
+    // 两者看的是同一个选中项，但各有各的视图模型——共用一份会在开合时互相取消在途任务。
+    public const string ToggleQuickLook = "preview.quickLook";
 }
 
 /// <summary>

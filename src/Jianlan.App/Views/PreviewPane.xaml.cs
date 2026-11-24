@@ -111,7 +111,7 @@ public partial class PreviewPane : UserControl
         _handlerHost.Open(viewModel.HandlerPath, viewModel.HandlerClsid);
     }
 
-    private void OnRetryClick(object sender, RoutedEventArgs e) => _viewModel?.Retry();
+    private void OnRetryRequested(object? sender, EventArgs e) => _viewModel?.Retry();
 
     private void OnOpenClick(object sender, RoutedEventArgs e) => Request(PreviewAction.Open);
 

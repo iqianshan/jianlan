@@ -87,6 +87,9 @@ public static class Strings
     /// <summary>Toggle preview pane</summary>
     public static string Command_TogglePreview => LocalizationService.Instance.Get("Command_TogglePreview");
 
+    /// <summary>Quick preview</summary>
+    public static string Command_QuickLook => LocalizationService.Instance.Get("Command_QuickLook");
+
     /// <summary>Focus the other pane</summary>
     public static string Command_FocusOtherPane => LocalizationService.Instance.Get("Command_FocusOtherPane");
 
@@ -1668,6 +1671,12 @@ public static class Strings
 
     /// <summary>The system preview handler is unavailable, so this is a thumbnail.</summary>
     public static string Preview_Note_HandlerFallback => LocalizationService.Instance.Get("Preview.Note.HandlerFallback");
+
+    /// <summary>Quick preview</summary>
+    public static string QuickLook_A11y => LocalizationService.Instance.Get("QuickLook.A11y");
+
+    /// <summary>Space or Esc to close</summary>
+    public static string QuickLook_Hint => LocalizationService.Instance.Get("QuickLook.Hint");
 
     /// <summary>Show preview pane</summary>
     public static string Settings_Appearance_ShowPreview => LocalizationService.Instance.Get("Settings.Appearance.ShowPreview");
