@@ -61,6 +61,9 @@ The straightforward way:
 1. **Fully exit** Jianlan — including the tray icon and any copy on another drive. The app is
    single-instance: as long as one copy is running, a newly launched one exits immediately and
    hands its arguments to the running instance, which looks like "double-click does nothing".
+   A clean exit also removes `data\session.json` (the "did the last session end cleanly" marker);
+   upgrade with that file still present and the new version shows a one-off "last session did not
+   finish" banner — just delete the file, it holds no settings.
 2. Extract the new zip **over** the old folder, choosing "replace" for same-name files.
 3. Launch.
 
@@ -247,6 +250,7 @@ Settings, history, favourites, tags and workspaces stay **on your machine**. Not
 | `settings.json` | Settings, favourites, history, last-open tabs and window position |
 | `workspaces.json` | Workspaces |
 | `data\tags.jsonl` | Colour tag library |
+| `session.json` | "Did the last session end cleanly" marker; auto-generated, removed on clean exit, holds no settings |
 | `logs\` | Run logs |
 
 **To back up or move to another machine, copy the whole `data\` folder**; deleting it resets the app.
