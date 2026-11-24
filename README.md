@@ -88,20 +88,8 @@ Get-FileHash .\Jianlan-0.2.1-portable-win-x64.zip -Algorithm SHA256
 3. 把新 zip 解压到原位置。
 4. 把备份的 `data\` 拷回去。
 
-### 做法三：用脚本
-
-仓库里的 `tools/release/upgrade-keep-data.ps1` 把做法二连校验一起自动化（该脚本随源码分发，
-不在便携包里）：
-
-```powershell
-.\tools\release\upgrade-keep-data.ps1 `
-  -InstallDir 'E:\软件\Jianlan-0.2.1-portable-win-x64' `
-  -Package   'D:\下载\Jianlan-0.2.1-portable-win-x64.zip'
-```
-
-它按「备份 `data\` → 旧目录改名让位（不删）→ 新载荷落地 → 数据搬回 → 逐项比对收藏 / 工作区 /
-标签 / 标签页数量」的顺序执行，任一步失败都会回退；安装路径不变，桌面快捷方式与固定到任务栏
-的项不受影响。确认新版本正常后，再手工删掉它留下的 `.old-*` 与 `_jianlan-data-bak-*` 两个目录。
+这两步不要交给脚本或"一键替换"工具去做。它们会动程序目录本身，出错的位置与后果你事先
+看不见；而上面几步在资源管理器里手工做，改了什么、删了什么，每一步都在眼前。
 
 ### 升级前的四条检查
 

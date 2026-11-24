@@ -96,22 +96,9 @@ Meant for jumping across major versions, or when you want to clear leftover file
 3. Extract the new zip into the original location.
 4. Copy the backed-up `data\` back.
 
-### Option 3: use the script
-
-The repo's `tools/release/upgrade-keep-data.ps1` automates option 2, verification included (that
-script ships with the source, not in the portable package):
-
-```powershell
-.\tools\release\upgrade-keep-data.ps1 `
-  -InstallDir 'E:\Apps\Jianlan-0.2.1-portable-win-x64' `
-  -Package   'D:\Downloads\Jianlan-0.2.1-portable-win-x64.zip'
-```
-
-It runs: back up `data\` → rename the old folder aside (nothing deleted) → lay down the new
-payload → move the data back → compare bookmark / workspace / tag / tab counts item by item. Any
-failed step rolls back, the install path is unchanged, and desktop shortcuts and pinned taskbar
-entries keep working. Once the new version checks out, delete the `.old-*` and
-`_jianlan-data-bak-*` folders it leaves behind.
+Do not hand either option to a script or a "one-click replace" tool. Those touch the program
+folder itself, and you cannot see in advance where they will go wrong or what they will do to it;
+done by hand in Explorer, every step — what changed, what was deleted — happens in front of you.
 
 ### Four things to check before upgrading
 
