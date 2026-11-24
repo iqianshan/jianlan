@@ -220,14 +220,17 @@ public static void ApplyTheme(string name)
 
 **规则 4.1（强制）**　只允许 `Normal` 与 `Emphasis(Bold)` 两级字重。禁止 `Medium`、`SemiBold`、`Light`——微软雅黑无 Medium 字重，WPF 会走合成加粗，11–13px 下边缘发糊。强调优先靠字号与颜色，不靠加粗。
 
-**规则 4.2（强制）**　数值列必须开启等宽数字：
+**规则 4.2（强制）**　数值列必须开启等宽数字，**对齐方式与文本列一致，统一左对齐**：
 
 ```xml
 <TextBlock Text="{Binding SizeText}"
-           TextAlignment="Right"
            Typography.NumeralAlignment="Tabular"
-           Style="{StaticResource Text.Secondary}" />
+           Style="{StaticResource Text.Number}" />
 ```
+
+早期 v5 规定数值列右对齐（"让 `42.6 KB` 与 `1.2 MB` 的右缘对齐"）。2026-11-24 走查后改回左对齐：
+详情视图四个列头与四个数据列共用一套左缘，扫读时不必在"左起"与"贴右边"两套基准之间切换，
+也与资源管理器的习惯一致。等宽数字保留——左对齐下小数点与单位仍然竖着对齐，位宽不跳。
 
 日期列同样使用 Tabular，且**省略年份**（`10-28 14:32`）。跨年条目再显示年份（`2025-09-12`）。
 
@@ -579,7 +582,7 @@ ClearType 随即把红绿蓝子像素暴露出来——实测窗口右上角三�
 - [ ] 新增画刷键三份主题字典已同步，`Brush.*` + `Theme.Name` 键数一致（当前 42）
 - [ ] 所有新增 `SolidColorBrush` 带 `po:Freeze="True"`
 - [ ] 新增控件只使用表格中定义的字号/字重，未出现 `Medium`/`SemiBold`
-- [ ] 数值列已开启 `Typography.NumeralAlignment="Tabular"` 且右对齐
+- [ ] 数值列已开启 `Typography.NumeralAlignment="Tabular"`，且与文本列同为左对齐（规则 4.2）
 - [ ] 列表改动已确认虚拟化三件套仍开启，行模板元素数 ≤3
 - [ ] 未引入任何 `Effect`（`DropShadowEffect` / `BlurEffect`）
 - [ ] 动效只用了三条白名单，时长为 token

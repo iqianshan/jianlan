@@ -149,7 +149,7 @@
 
             <TextBlock Grid.Column="{DynamicResource Column.Size.Slot}"
                        Width="{DynamicResource Column.Size.Width}"
-                       Padding="0,0,8,0"
+                       Padding="6,0,8,0"
                        Visibility="{DynamicResource Column.Size.Visible}"
                        Style="{StaticResource Text.Number}"
                        Text="{Binding SizeText}"/>

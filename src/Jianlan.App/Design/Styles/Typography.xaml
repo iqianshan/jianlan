@@ -48,9 +48,12 @@
         <Setter Property="LineHeight" Value="{DynamicResource Font.LineHeight.Body}"/>
     </Style>
 
-    <!-- 数值列：右对齐 + 等宽数字 -->
+    <!-- 数值列：等宽数字。
+         对齐方式沿用文本列的左对齐：详情视图四列统一从左边起排，与资源管理器一致，
+         扫读时不用在"左起"与"贴着右边缘"两套基准之间切换。等宽数字保留——左对齐下
+         小数点与单位仍然竖着对齐，"42.6 KB" 与 "1.2 MB" 的位宽不会跳。 -->
     <Style x:Key="Text.Number" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource Text.Secondary}">
-        <Setter Property="TextAlignment" Value="Right"/>
+        <Setter Property="TextAlignment" Value="Left"/>
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
         <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
     </Style>

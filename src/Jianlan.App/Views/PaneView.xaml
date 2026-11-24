@@ -681,7 +681,6 @@
                             Content="{Binding SizeHeader}"
                             Tag="Size"
                             Click="OnSortClick"
-                            HorizontalContentAlignment="Right"
                             ToolTip="{loc:Tr Key=Sort.BySize}"/>
                     <Thumb Grid.Column="{DynamicResource Column.Size.Slot}"
                            Style="{StaticResource Thumb.ColumnResize}"
