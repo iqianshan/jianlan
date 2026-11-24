@@ -49,6 +49,36 @@ Get-FileHash .\Jianlan-0.2.1-portable-win-x64.zip -Algorithm SHA256
 **Uninstalling**: close the app and delete the extracted folder. It writes no registry keys,
 installs no services, and does not start with Windows.
 
+### Upgrading to a new version
+
+All personal data lives in `data\` next to the executable, and the release zip does **not**
+contain `data\`. As long as you leave that folder alone, your bookmarks, workspaces, tags,
+last-open tabs and window position all survive the upgrade. The zip does ship `portable.flag`,
+so portable mode is preserved as well.
+
+The straightforward way:
+
+1. **Fully exit** Jianlan — including the tray icon and any copy on another drive. The app is
+   single-instance: as long as one copy is running, a newly launched one exits immediately and
+   hands its arguments to the running instance, which looks like "double-click does nothing".
+2. Extract the new zip **over** the old folder, choosing "replace" for same-name files.
+3. Launch.
+
+Coming from a much older major version, or wanting to clear leftover files as well? Use the
+script in the repo:
+
+```powershell
+.\tools\release\upgrade-keep-data.ps1 `
+  -InstallDir 'E:\Apps\Jianlan-0.2.1-portable-win-x64' `
+  -Package   'D:\Downloads\Jianlan-0.2.1-portable-win-x64.zip'
+```
+
+It backs up `data\`, renames the old folder aside (nothing deleted), lays down the new payload,
+moves the data back, then compares bookmark / workspace / tag / tab counts item by item. Any
+failed step rolls back. The install path is unchanged, so desktop shortcuts and pinned taskbar
+entries keep working. Once the new version checks out, delete the `.old-*` and
+`_jianlan-data-bak-*` folders it leaves behind.
+
 ### Requirements
 
 | Item | Requirement |
@@ -202,8 +232,18 @@ Settings, history, favourites, tags and workspaces stay **on your machine**. Not
 | Portable zip (official build) | `data\` next to the program |
 | Built from source without portable mode | `%LOCALAPPDATA%\Jianlan` |
 
-`data\` holds `settings.json` and a `logs\` folder.
+`data\` contains:
+
+| File | Contents |
+|---|---|
+| `settings.json` | Settings, favourites, history, last-open tabs and window position |
+| `workspaces.json` | Workspaces |
+| `data\tags.jsonl` | Colour tag library |
+| `logs\` | Run logs |
+
 **To back up or move to another machine, copy the whole `data\` folder**; deleting it resets the app.
+The same applies when upgrading — never overwrite or delete `data\`, see "Upgrading to a new version"
+above.
 
 **Privacy**: no telemetry, no uploads, and the program makes no network requests on its own. The only
 outbound action is the one you trigger yourself with "Check for updates", which opens the release page in
