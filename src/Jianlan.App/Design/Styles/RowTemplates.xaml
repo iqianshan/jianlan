@@ -126,10 +126,15 @@
                  它自己的资源字典，双窗格各自一份，互不干扰。 -->
             <!-- 数据列右侧留 8px：列宽是"单元格宽"，文字贴着列边界时，
                  两列相邻的内容会连成一片（换序后「1 B」与「11-09 11:20」粘在一起）。
-                 Padding 只缩可用文字区，不改元素宽度，因此列头与行仍然对齐。 -->
+                 Padding 只缩可用文字区，不改元素宽度，因此列头与行仍然对齐。
+
+                 左边留的 6px 与列头 Button.Header 的 Padding 对齐：列头文字原本比
+                 内容右移 6px，看着像列头没对准自己的数据（走查时量到 修改日期/类型
+                 各 7px）。既然列头有内缩是为了悬停高亮不贴边，就让内容跟着内缩，
+                 而不是把列头压到列边界上。 -->
             <TextBlock Grid.Column="{DynamicResource Column.Date.Slot}"
                        Width="{DynamicResource Column.Date.Width}"
-                       Padding="0,0,8,0"
+                       Padding="6,0,8,0"
                        Visibility="{DynamicResource Column.Date.Visible}"
                        Style="{StaticResource Text.Secondary}"
                        Typography.NumeralAlignment="Tabular"
@@ -137,7 +142,7 @@
 
             <TextBlock Grid.Column="{DynamicResource Column.Type.Slot}"
                        Width="{DynamicResource Column.Type.Width}"
-                       Padding="0,0,8,0"
+                       Padding="6,0,8,0"
                        Visibility="{DynamicResource Column.Type.Visible}"
                        Style="{StaticResource Text.Secondary}"
                        Text="{Binding TypeText}"/>

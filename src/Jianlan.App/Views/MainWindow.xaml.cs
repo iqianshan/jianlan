@@ -1804,6 +1804,35 @@ public partial class MainWindow : Window
     /// </summary>
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        // 单按 Alt 一律吞掉。
+        //
+        // 起因（走查）：鼠标选中一行后再按一下 Alt，选中行上凭空冒出一个 1px 蓝框，
+        // 看着像列表里多了一条横线。那不是布局，是**焦点环**：WPF 把 Alt 当成
+        // "用户想看键盘提示"，收到后打开 KeyboardNavigation.ShowKeyboardCues，
+        // 于是给当时持有键盘焦点的元素补画 FocusVisualStyle（行是 FocusVisual.Inset）。
+        // 焦点本来就在那一行上（鼠标点中的），所以环是"突然出现"而不是"跟着焦点走"。
+        //
+        // 为什么在 PreviewKeyDown 里吞，而不是在 WM_SYSKEYDOWN 钩子里：实测钩子里
+        // 把这条消息标成已处理（日志 `bare alt swallowed` 打出来了）焦点环照旧出现——
+        // 提示模式在这条消息进 WPF 输入链路时就已经打开，且只对**未处理**的事件生效。
+        // PreviewKeyDown 里 `e.Handled = true` 是唯一关得掉它的位置（改完实测无差异）。
+        //
+        // 本程序没有访问键可提示——没有菜单栏，也没有带下划线的助记符——打开提示模式
+        // 没有任何收益；而键盘用户真要导航时方向键/Tab 照样点亮焦点环（实测：按 ↓
+        // 后环跟着选中行走），无障碍不受影响。
+        //
+        // 只认"没有 Ctrl/Shift 的单按 Alt"：Alt+←（后退）、Alt+P（预览）、Alt+F4 的
+        // SystemKey 是各自的键，不进这条；Ctrl+Alt（AltGr）带 Control，也不会被误吞。
+        // 判据不能要求"修饰键为空"：消息到手时 Alt 已在键状态里，Keyboard.Modifiers 必然含 Alt。
+        if (e.Key == Key.System
+            && (e.SystemKey is Key.LeftAlt or Key.RightAlt)
+            && (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) == ModifierKeys.None)
+        {
+            if (KeyDebug) WriteKeyLog("preview bare alt -> handled");
+            e.Handled = true;
+            return;
+        }
+
         if (Keyboard.FocusedElement is TextBoxBase) return;
 
         if (KeyDebug)
