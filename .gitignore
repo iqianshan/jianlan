@@ -51,3 +51,6 @@ tools/ac03/procdump*.exe
 # Python（tools/ac03 的脚本会被 import，解释器会留下字节码）
 __pycache__/
 *.pyc
+
+# 真窗口探针的截图与 PowerShell 原始输出（tools/window-drive/_shots/）
+tools/window-drive/_shots/

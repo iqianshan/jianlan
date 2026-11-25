@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -299,7 +299,7 @@ public partial class MainWindow
     {
         if (sender is not FrameworkElement { ContextMenu: { } menu } button) return;
 
-        AnchorMenuRight(menu, button);
+        AnchorMenuBesideNav(menu, button);
         menu.IsOpen = true;
         e.Handled = true;
     }
@@ -368,7 +368,7 @@ public partial class MainWindow
     // ── 行尾「更多操作」与右键菜单的定位（FR-7.3 / FR-8.3） ────────────────────
 
     /// <summary>
-    /// 侧栏里的菜单一律"右边缘贴侧栏右边界、向下展开"。
+    /// 侧栏里的菜单一律"贴侧栏右边界、向右展开"（FR-7.3 / FR-8.3）。
     ///
     /// 为什么不用默认的 <c>MousePoint</c>：菜单跟着鼠标在行内的横向位置漂，同一行每次点开
     /// 落在不同地方。
@@ -376,6 +376,13 @@ public partial class MainWindow
     /// 为什么不用 <c>Bottom</c>：WPF 的 <c>Bottom</c> 是"下方 + **左边缘**对齐锚点"，
     /// 不是水平居中——这一点和直觉相反。侧栏只有 227 DIP、菜单宽 210 DIP，左边缘贴上去
     /// 就是向右铺，整块压到文件列表上（实测工作区菜单右缘越过侧栏 172 物理像素）。
+    ///
+    /// 为什么向右而不是向左（2026-11-25 走查反馈）：菜单 210 DIP、侧栏 184–240 DIP，
+    /// **右缘贴侧栏右界再向左铺，整块正好压在被点的那一行上**——点完「⋯」看不出点的是哪一行，
+    /// 而且「位置」「收藏」「工作区」三处都一样，读起来像"菜单弹在了左边"。
+    /// 现在改为左缘贴侧栏右界 + 4px，向右压到内容区左侧一角；只有窗口被拖得很窄、
+    /// 右侧实在放不下时才退回原来的左侧摆法。这一条与 <see cref="MenuPlacement"/> 无关：
+    /// 那是系统"菜单右对齐"标志作用于 <c>MousePoint</c> 的补偿，这里的坐标是自己算的。
     ///
     /// 两个必须自己算的偏移：
     /// <list type="number">
@@ -385,13 +392,14 @@ public partial class MainWindow
     ///   所以左边与下边都要自己 clamp，否则菜单在窗口边缘会被裁掉。</item>
     /// </list>
     /// </summary>
-    private static void AnchorMenuRight(ContextMenu menu, FrameworkElement anchor)
+    private static void AnchorMenuBesideNav(ContextMenu menu, FrameworkElement anchor)
     {
         menu.PlacementTarget = anchor;
         menu.Placement = PlacementMode.Custom;
         menu.CustomPopupPlacementCallback = (popupSize, anchorSize, _) =>
         {
-            // 锚点右边缘 → 侧栏右边缘的那一段，补上才等于"贴着侧栏右边"
+            // 锚点右缘 → 侧栏右缘的那一段。两个元素都在同一条 ListBox 里，
+            // 相对坐标比"都换算到窗口"稳：窗口坐标还要过一层边框与 DPI，实测差 12.8 DIP。
             double extra = 0;
             double anchorLeft = 0;
             double anchorTop = 0;
@@ -419,12 +427,20 @@ public partial class MainWindow
                 catch (InvalidOperationException) { }
             }
 
-            double x = anchorSize.Width + extra - popupSize.Width;
-            double y = anchorSize.Height;
+            const double gap = 4;
 
-            // 左边越界就往回收 4px（菜单比侧栏宽的那几像素宁可压一点内容区，
-            // 也不能整块跑到窗口外）
-            if (window is { IsLoaded: true }) x = Math.Max(x, 4 - anchorLeft);
+            // 菜单左缘贴侧栏右界 + 4：向右铺到内容区上，不压被点的那一行
+            double x = anchorSize.Width + extra + gap;
+
+            // 窗口太窄、右侧放不下整块菜单时退回左侧：右缘贴侧栏右界向左铺，
+            // 左边再越界就往回收 4px（宁可压一点内容区，也不能整块跑到窗口外）
+            if (window is { IsLoaded: true } && anchorLeft + x + popupSize.Width > window.ActualWidth - 4)
+            {
+                x = anchorSize.Width + extra - popupSize.Width;
+                x = Math.Max(x, 4 - anchorLeft);
+            }
+
+            double y = anchorSize.Height;
 
             // 下方放不下就翻到锚点上方；上方也放不下再压回窗口内
             if (window is { IsLoaded: true } && anchorTop + y + popupSize.Height > window.ActualHeight - 4)
@@ -460,7 +476,7 @@ public partial class MainWindow
         if (sender is not FrameworkElement button) return;
         if (FindRowMenu(button) is not { } menu) return;
 
-        AnchorMenuRight(menu, button);
+        AnchorMenuBesideNav(menu, button);
         menu.IsOpen = true;
         e.Handled = true;
     }
@@ -480,21 +496,21 @@ public partial class MainWindow
 
         e.Handled = true;
 
-        AnchorMenuRight(menu, row);
+        AnchorMenuBesideNav(menu, row);
         menu.IsOpen = true;
     }
 
     /// <summary>
     /// 键盘打开同一份菜单（Shift+F10 / 菜单键）。鼠标右键走
     /// <see cref="OnRowRightButtonDown"/>，这里只补键盘那条路——定位规则相同，
-    /// 都交给 <see cref="AnchorMenuRight"/>。
+    /// 都交给 <see cref="AnchorMenuBesideNav"/>。
     /// </summary>
     private void OnRowMenuOpening(object sender, ContextMenuEventArgs e)
     {
         if (sender is not FrameworkElement row) return;
         if (row.ContextMenu is not { } menu) return;
 
-        AnchorMenuRight(menu, row);
+        AnchorMenuBesideNav(menu, row);
     }
 
     /// <summary>

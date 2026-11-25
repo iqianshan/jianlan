@@ -79,3 +79,33 @@ static void AnchorRight(ContextMenu menu, FrameworkElement target)
 3. **下方放不下翻到上方**。工作区行在窗口底部，菜单只能向上展开。
 
 实测：工作区菜单完整可见、落在侧栏内；`x` 方向仅在菜单比侧栏宽的那几像素处压到内容区。
+
+## 6. 再改：改为向右展开（2026-11-25，推翻第 5 节的落点）
+
+用户走查：「位置」「收藏」「工作区」里的「⋯」点开，菜单"好像也是在左侧显示的，没在右侧"。
+
+第 5 节那种摆法（右缘贴侧栏右界、向左铺）没有算错，错在**方向**：菜单宽 210–262 DIP、
+侧栏 184–240 DIP，右缘贴边后左缘必然落进侧栏里，正好盖住刚点的那一行。菜单压内容区是
+正常遮挡，压侧栏才是问题——第 2 节"要改的是第 1–6 项，全部在左侧栏内"这句的结论是对的，
+但"落在侧栏内"本身不是目标。
+
+改动只有一处：`AnchorMenuRight` → `AnchorMenuBesideNav`，`x` 由
+`anchorSize.Width + extra - popupSize.Width`（右缘贴边）改成
+`anchorSize.Width + extra + gap`（左缘贴边 + 4px）。右侧放不下时退回原来的公式，
+左 clamp 与上下翻转保持不变。
+
+改算法时踩到一个新坑：**不要为了拿"侧栏右界"把两个元素都换算到窗口坐标**。
+`scope.TransformToAncestor(window).Transform(new Point(scope.ActualWidth, 0)).X` 与
+`anchor.TransformToAncestor(window)` 之间夹着窗口边框与 DPI 换算，实测 navRight 比真实
+侧栏右界小 12.8 DIP，菜单左缘因此落进侧栏里侧。两个元素都在同一条 ListBox 里，
+用相对 `scope` 的坐标（`extra = scope.ActualWidth - 锚点右缘相对 scope 的 x`）才不偏。
+
+验收脚本 `tools/window-drive/nav_menu_probe.py`：
+
+| | 菜单元素左缘 | 文件列表左缘 |
+|---|---|---|
+| 改前（`publish/` 旧包） | 121 | 316 |
+| 改后 | 305 | 316 |
+
+判据取 UIA 的菜单元素矩形，不取 `GetWindowRect` 的 popup 矩形——后者含不可见的阴影边距，
+125% 缩放下比真实面板靠左 60px 以上，用它判会一直"失败"。

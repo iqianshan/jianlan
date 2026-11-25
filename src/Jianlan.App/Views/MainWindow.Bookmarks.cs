@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
@@ -128,9 +128,9 @@ public partial class MainWindow
         // 必须指定锚点：菜单项的显隐绑定（IsBookmarks / IsWorkspaces）靠 DataContext，
         // 而 ContextMenu 的 DataContext 是从 PlacementTarget 继承来的。
         // 少了这一句，两个分区的菜单会同时显示全部动作。
-        // 定位用 AnchorMenuRight 而不是默认的 MousePoint：见那里的说明，侧栏太窄，
-        // 菜单只有"右边缘贴锚点向左铺"才留得下。
-        AnchorMenuRight(menu, label);
+        // 定位用 AnchorMenuBesideNav 而不是默认的 MousePoint：见那里的说明，
+        // 侧栏里点出来的菜单一律贴侧栏右界、向右展开，不压在被点的那一行上。
+        AnchorMenuBesideNav(menu, label);
         menu.IsOpen = true;
     }
 
@@ -146,7 +146,7 @@ public partial class MainWindow
     {
         if (sender is not FrameworkElement { ContextMenu: { } menu } anchor) return;
 
-        AnchorMenuRight(menu, anchor);
+        AnchorMenuBesideNav(menu, anchor);
     }
 
     /// <summary>
