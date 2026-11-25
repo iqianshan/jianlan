@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -85,6 +86,20 @@ public partial class PaneView
     private FileEntry? _renameCandidate;
 
     /// <summary>
+    /// 已挂起、还没到点的"再点一次改名"。
+    ///
+    /// 不能在这一下抬起时立刻进编辑：一次**双击**的第一下，与"再点一次改名"的那一下
+    /// 在事件上完全一样——ClickCount 都是 1、行已选中、点在名字上。立刻进编辑的后果是
+    /// 打开文件的同时那一行也变成输入框；更糟的是第二下会落进刚出现的编辑框，
+    /// 让双击在已选中的文件上根本打不开。
+    ///
+    /// 所以等过一个系统双击时间、确认没有第二下才进编辑。资源管理器的手感也是这样来的。
+    /// </summary>
+    private FileEntry? _renamePending;
+
+    private DispatcherTimer? _renameTimer;
+
+    /// <summary>
     /// 新建流程留下的"原始路径"：新建后立刻进入改名，整件事要记成一条"新建"。
     /// 用户回车确认时用它算出最终路径记撤销；按 Esc 则记新建时的默认名。
     /// </summary>
@@ -95,6 +110,9 @@ public partial class PaneView
     {
         if (entry is null) return;
         if (ReferenceEquals(entry, RenamingEntry)) return;
+
+        // 别的入口（F2、右键、新建）抢先进来了：挂起的那次点击改名没有意义了
+        CancelScheduledRename();
 
         // 上一次还没收尾（连按 F2、右键重命名叠在编辑上）：先收成取消，不留两份编辑态。
         // 不按提交，否则"再按一次 F2"会变成把半截名字落盘。
@@ -511,6 +529,64 @@ public partial class PaneView
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// 系统的双击时间（毫秒）。
+    ///
+    /// WPF 的 <see cref="SystemParameters"/> 只暴露双击的**距离**，不暴露时间，
+    /// 所以直接问 user32。这个值可以在"鼠标 → 双击速度"里改（200–900ms），
+    /// 写死 500 的话慢速双击仍会被判成改名。
+    /// </summary>
+    [DllImport("user32.dll")]
+    private static extern int GetDoubleClickTime();
+
+    /// <summary>
+    /// 挂起一次"再点一次改名"，等过一个系统双击时间再确认执行。
+    ///
+    /// 期间任何一次新的按下都会把它作废（见 <see cref="OnFileDragStart"/>）——
+    /// 那说明用户还在点，得等最后一次点完。
+    /// </summary>
+    private void ScheduleRename(FileEntry entry)
+    {
+        CancelScheduledRename();
+
+        _renamePending = entry;
+
+        int window = GetDoubleClickTime();
+        if (window <= 0) window = 500;
+
+        _renameTimer = new DispatcherTimer(DispatcherPriority.Input, Dispatcher)
+        {
+            Interval = TimeSpan.FromMilliseconds(window),
+        };
+        _renameTimer.Tick += OnRenameTimerTick;
+        _renameTimer.Start();
+    }
+
+    private void OnRenameTimerTick(object? sender, EventArgs e)
+    {
+        FileEntry? target = _renamePending;
+        CancelScheduledRename();
+
+        if (target is null || _paneClosed) return;
+
+        // 这半秒里选中可能已经换了（点了别的行、方向键、目录刷新），
+        // 那这次就不该再算"再点一次"。比实例而不是比路径：刷新后是新实例。
+        if (ViewModel?.SelectedEntries.Any(item => ReferenceEquals(item, target)) != true) return;
+
+        BeginRename(target);
+    }
+
+    /// <summary>作废挂起的那次改名。新的按下、进入编辑、窗格关闭都要调。</summary>
+    private void CancelScheduledRename()
+    {
+        if (_renameTimer is null) return;
+
+        _renameTimer.Stop();
+        _renameTimer.Tick -= OnRenameTimerTick;
+        _renameTimer = null;
+        _renamePending = null;
     }
 
     /// <summary>

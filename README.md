@@ -163,7 +163,7 @@ Get-FileHash .\Jianlan-0.2.1-portable-win-x64.zip -Algorithm SHA256
 |---|---|
 | 打开 | `Enter` |
 | 复制 / 剪切 / 粘贴 | `Ctrl+C` / `Ctrl+X` / `Ctrl+V` |
-| 重命名 | `F2`；也可以**再点一次文件名**（该行已选中时） |
+| 重命名 | `F2`；也可以**再点一次文件名**（该行已选中时，等半秒确认不是双击才进入） |
 | 新建文件夹 / 新建文本文档 | `Ctrl+Shift+N` / `Ctrl+Shift+M` |
 | 删除到回收站 / 永久删除 | `Delete` / `Shift+Delete` |
 | 撤销上一步 | `Ctrl+Z` |

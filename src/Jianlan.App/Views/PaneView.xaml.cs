@@ -1074,6 +1074,9 @@ public partial class PaneView : UserControl
     /// <summary>右键先选中行再弹菜单：不选中的话菜单里的操作对象是上一批选中项。</summary>
     private void OnFileRightButtonDown(object sender, MouseButtonEventArgs e)
     {
+        // 挂起的那次点击改名作废：右键是在做别的事，半秒后冒出个编辑框会把它搅乱
+        CancelScheduledRename();
+
         if (e.OriginalSource is not DependencyObject source) return;
         if (FindAncestor<ListBoxItem>(source) is not { } item) return;
 
@@ -1173,11 +1176,14 @@ public partial class PaneView : UserControl
         // 再点一次改名（资源管理器手感）：候选是按下时记的、拖动时清掉的，
         // 走到这里且还在，说明是一次没有位移的独立点击，且点的是已选中项的文件名。
         // 必须在下面的"单击打开/新标签"之前处理：那两条都是对**未选中**项的手势。
+        //
+        // 这里只**挂起**，不立刻进编辑：同样的按下/抬起也可能是双击的第一下，
+        // 而双击要打开文件（见 ScheduleRename 的说明）。
         if (_renameCandidate is { } renameTarget)
         {
             _renameCandidate = null;
             e.Handled = true;
-            BeginRename(renameTarget);
+            ScheduleRename(renameTarget);
             return;
         }
 

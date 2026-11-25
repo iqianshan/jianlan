@@ -30,6 +30,10 @@ public partial class PaneView
         // 不清理就会把一次无关的按下当成"再点一次改名"
         _renameCandidate = null;
 
+        // 挂起的那次改名也一起作废：现在又来了一下，说明上一下还在双击序列里
+        // （第二下正是要打开文件），或者用户已经在点别的行。等最后一次点完再说。
+        CancelScheduledRename();
+
         // 空白处按下 = 框选起手（FR-6.7），不是拖拽。
         // 若仍走下面的拖出逻辑，用户"重新圈一批"的意图会变成"把上一次选中的东西拖走"。
         if (IsBlankArea(e.OriginalSource as DependencyObject))

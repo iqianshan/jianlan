@@ -177,7 +177,7 @@ copy path, open in a new window. Middle-click a folder, or `Ctrl`-click it, to o
 |---|---|
 | Open | `Enter` |
 | Copy / cut / paste | `Ctrl+C` / `Ctrl+X` / `Ctrl+V` |
-| Rename | `F2`, or **click the file name again** while the row is selected |
+| Rename | `F2`, or **click the file name again** while the row is selected (waits half a second to rule out a double-click) |
 | New folder / new text file | `Ctrl+Shift+N` / `Ctrl+Shift+M` |
 | Delete to Recycle Bin / delete permanently | `Delete` / `Shift+Delete` |
 | Undo the last action | `Ctrl+Z` |
