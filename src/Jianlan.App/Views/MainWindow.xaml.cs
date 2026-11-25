@@ -909,6 +909,7 @@ public partial class MainWindow : Window
     private void BindTab(TabViewModel tab)
     {
         ApplyTabKind(tab);
+        FollowNavPane(tab.ActivePane);
         RefreshPaneFocus();
         RefreshPreview();
     }
@@ -1341,6 +1342,7 @@ public partial class MainWindow : Window
         }
 
         Tab.SetActivePane(pane);
+        FollowNavPane(pane);
 
         // 导航栏与窗口标题跟着焦点窗格走，否则"左窗格选中桌面、标题显示右窗格"会分不清
         DataContext = pane;

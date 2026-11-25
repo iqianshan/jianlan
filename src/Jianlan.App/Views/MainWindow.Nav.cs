@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -26,6 +27,16 @@ public partial class MainWindow
     /// 写成常量而不是读 ActualWidth：导航栏隐藏时那一列是 0，再读回来会把热区一起关掉。
     /// </summary>
     private const double NavSplitterWidth = 5;
+
+    /// <summary>上一次"点已选中导航项"补导航的目标与时刻（<see cref="Environment.TickCount64"/>）。</summary>
+    private string? _navReclickPath;
+    private long _navReclickAt;
+
+    /// <summary>当前跟随侧栏高亮的窗格（焦点窗格）。</summary>
+    private PaneViewModel? _navFollow;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern int GetDoubleClickTime();
 
     /// <summary>
     /// 按设置排布导航栏：显示/隐藏、宽度、分隔条。
@@ -77,6 +88,114 @@ public partial class MainWindow
         ApplyNavLayout();
         App.SaveSettings();
         e.Handled = true;
+    }
+
+    /// <summary>
+    /// 让侧栏高亮跟着焦点窗格的导航走。
+    ///
+    /// 原来只在"点侧栏 / 切标签 / 换窗格"时同步，列表里的导航（双击进子目录、地址栏、
+    /// 后退、刷新）一次都不管。于是高亮会停在上一次点过的那一项上——明明已经在 Downloads
+    /// 的深处，侧栏还亮着上一次点过的「文档」；更糟的是因为"点已选中项不触发
+    /// SelectionChanged"，那一项还点不动（<see cref="ReclickSelectedPlace"/> 是另一半修复）。
+    /// </summary>
+    private void FollowNavPane(PaneViewModel? pane)
+    {
+        if (ReferenceEquals(_navFollow, pane)) return;
+
+        if (_navFollow is not null) _navFollow.NavigationCompleted -= OnNavFollowArrived;
+        _navFollow = pane;
+        if (pane is not null) pane.NavigationCompleted += OnNavFollowArrived;
+    }
+
+    private void OnNavFollowArrived(string path)
+    {
+        // 非焦点窗格在后台刷新目录时不改高亮：侧栏回答的是"焦点窗格在哪"
+        if (!ReferenceEquals(_navFollow, Tab.ActivePane)) return;
+
+        SyncNavSelection(path);
+    }
+
+    /// <summary>
+    /// 左键按下先进这一层（隧道），比列表行自己处理得更早。
+    ///
+    /// 为什么不能用冒泡的 <c>MouseDown</c>：点在一行上时，<c>ListBoxItem</c> 在
+    /// <c>MouseLeftButtonDown</c> 里就把事件标成已处理了，挂在 ListBox 上的
+    /// <c>MouseDown</c> 收不到——实测"点已选中行"时那个处理器一次都进不来，
+    /// 这也是本缺陷藏得深的原因之一。中键仍走冒泡（<see cref="OnNavMouseDown"/>），
+    /// 它已有的验收不受影响。
+    /// </summary>
+    private void OnNavPreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Left) return;
+        ReclickSelectedPlace(e);
+    }
+
+    /// <summary>
+    /// 点一个**已经选中**的导航行时补一次导航。
+    ///
+    /// WPF 的 ListBox 在点击已选中项时不会再触发 SelectionChanged，而这一列的导航只挂在
+    /// SelectionChanged 上。后果很具体：在 <c>下载\某个子目录</c> 里，「下载」是高亮的
+    /// （它确实是当前位置的祖先，见 <see cref="NavPanelViewModel.FindRow"/>），
+    /// 再点它却什么都不会发生——用户看到的就是"点了左上角的「下载」，右边列表没反应"。
+    ///
+    /// 只在"按下的行正是当前选中项"时接管：
+    ///   · 按在别的行上，选中会变，SelectionChanged 会照常导航；这里也去导航等于跑两遍；
+    ///   · 目标就是当前目录时不动（已经在那一层了）。
+    /// </summary>
+    private void ReclickSelectedPlace(MouseButtonEventArgs e)
+    {
+        object? hit = FindNavRow(e.OriginalSource as DependencyObject);
+        if (!ReferenceEquals(hit, QuickAccessList.SelectedItem)) return;
+
+        string? target = QuickAccessList.SelectedItem switch
+        {
+            NavItem { Kind: NavItemKind.Folder } item when !string.IsNullOrEmpty(item.Path) => item.Path,
+            NavDriveRow drive => drive.Root,
+            _ => null,
+        };
+
+        if (target is null) return;
+
+        // 驱动器上的 Ctrl+单击与"它没被选中时点它"同一个意思：新标签打开。
+        // 这条分支在 SelectionChanged 里已经有了（FR-1.2.6），这里不能漏——
+        // 否则同一个手势在"这一行刚好已高亮"时突然变成在当前标签里跳。
+        if (QuickAccessList.SelectedItem is NavDriveRow && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            e.Handled = true;
+            OpenInNewTab(ActiveView, target, background: false);
+            HighlightNavPath(Vm.CurrentPath);
+            return;
+        }
+
+        if (string.Equals(target, Vm.CurrentPath, StringComparison.OrdinalIgnoreCase)) return;
+
+        // 双击会送来两次 MouseDown，第二次时上一次的导航还没回来。同一个目标在一个
+        // 双击时间内只认一次，免得多绕一趟目录枚举。
+        long now = Environment.TickCount64;
+        if (string.Equals(target, _navReclickPath, StringComparison.OrdinalIgnoreCase)
+            && now - _navReclickAt < GetDoubleClickTime())
+        {
+            e.Handled = true;
+            return;
+        }
+
+        _navReclickPath = target;
+        _navReclickAt = now;
+
+        e.Handled = true;
+        _ = NavigateFromNavAsync(target);
+    }
+
+    private async Task NavigateFromNavAsync(string path)
+    {
+        try
+        {
+            await Vm.NavigateAsync(path);
+        }
+        catch (Exception ex)
+        {
+            Vm.ReportError(ex);
+        }
     }
 
     /// <summary>

@@ -848,12 +848,21 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
     /// <summary>
     /// 找出与某个路径对应的行（系统节点或收藏项）。导航栏高亮用它——
     /// 一个路径在两边都可能有（"下载"既是系统节点、也可能被收藏过），先认系统节点。
+    ///
+    /// 两轮：先找**精确等于**路径的行，再找**当前目录在它下面**的行。
+    /// 后一轮是为了和资源管理器对齐——在 <c>下载\某个子目录</c> 里，「下载」仍然
+    /// 显示为选中，用户一眼能看出自己在哪一处分岔下面。没有这一轮的话，只要进入
+    /// 子目录侧栏就整片失去高亮，比高亮错更让人迷路。
+    ///
+    /// 只对系统节点做这件事，**驱动器不参与**：C: 在 C 盘的任何目录里都是祖先，
+    /// 那样只要在 C 盘就永远亮着 C:，把"当前位置"变成了"当前盘符"
+    /// （下面驱动器那条注释里的结论仍然有效）。
     /// </summary>
     public INavRow? FindRow(string path)
     {
         if (string.IsNullOrEmpty(path)) return Rows.OfType<NavItem>().FirstOrDefault(i => i.IsHome);
 
-        return Rows.FirstOrDefault(row => row switch
+        INavRow? exact = Rows.FirstOrDefault(row => row switch
         {
             NavItem item => !item.IsHome && Same(item.Path, path),
 
@@ -867,6 +876,26 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
             NavBookmarkRow bookmark => Same(bookmark.Path, path),
             _ => false,
         });
+
+        if (exact is not null) return exact;
+
+        // 取最长的那个前缀：C:\Users\me\Downloads\x 命中「下载」而不是用户目录下的其它项。
+        return Rows
+            .OfType<NavItem>()
+            .Where(i => !i.IsHome && !i.IsShellNamespace && !string.IsNullOrEmpty(i.Path) && Under(i.Path, path))
+            .OrderByDescending(i => i.Path.Length)
+            .FirstOrDefault();
+
+        // 按目录边界比，不能只看 StartsWith：否则 Downloads2 会被当成 Downloads 的子目录。
+        static bool Under(string parent, string child)
+        {
+            string trimmed = parent.TrimEnd(Path.DirectorySeparatorChar);
+            if (trimmed.Length == 0) return false;
+
+            return child.Length > trimmed.Length
+                && child.StartsWith(trimmed, StringComparison.OrdinalIgnoreCase)
+                && child[trimmed.Length] == Path.DirectorySeparatorChar;
+        }
 
         static bool Same(string left, string right)
             => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);

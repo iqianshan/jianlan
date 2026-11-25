@@ -611,6 +611,7 @@
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      SelectionChanged="OnQuickAccessSelectionChanged"
                      MouseDown="OnNavMouseDown"
+                     PreviewMouseDown="OnNavPreviewMouseDown"
                      AllowDrop="True"
                      DragOver="OnNavDragOver"
                      DragLeave="OnNavDragLeave"

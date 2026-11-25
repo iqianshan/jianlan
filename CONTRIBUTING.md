@@ -83,6 +83,7 @@ pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Jianlan.exe -Path D:\perf-
 
 真窗口验收脚本在 `tools/window-drive/`：`quicklook_smoke.py`（空格预览 12 项）、
 `rename_smoke.py`（就地改名）、`doubleclick_rename_probe.py`（双击打开时不会顺带进编辑态）、
+`nav_reclick_probe.py`（在「下载」的子目录里再点侧栏「下载」要能回根，且高亮跟着地址栏走）、
 `clipboard_smoke.py`（剪贴板）、`alt_probe.py`（单按 Alt 不冒焦点环）、
 `preview_rapid_probe.py`（180ms 节奏连按，画面是否每次都换）、
 `preview_hold_probe.py`（30ms 节奏连发 12 次，模拟"按住 ↓ 不放"，并统计 `load start`/`load done`
