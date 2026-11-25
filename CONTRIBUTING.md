@@ -92,6 +92,8 @@ pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Jianlan.exe -Path D:\perf-
 是否成对——不成对就是在途被反复作废）。另有 `preview_lag_probe.py` / `preview_paint_probe.py` /
 `preview_long_probe.py` / `preview_pane_probe.py` 四个纯诊断探针，只在查"预览慢/卡"时用
 （最后一个测的是预览窗格里连翻 PDF 时 UI 线程的响应）。
+`package_smoke.py`（打完包后对 `dist/` 里那份做冷启动：`portable.flag` 在、窗口起得来、
+`startup.log` 有本次追加、`WM_CLOSE` 后退出码 0 且 `session.json` 被清）。
 它们都用 `SendInput` 打真实按键，跑之前请勿操作鼠标键盘。
 
 查预览慢时先开 `JIANLAN_PREVIEWDEBUG=1`：日志会记下每次选中的 `preview ... Nms after selection`、
