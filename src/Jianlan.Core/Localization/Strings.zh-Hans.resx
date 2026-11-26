@@ -2058,16 +2058,16 @@
     <value>显示/收起主窗口</value>
   </data>
   <data name="Settings.Shortcuts.ShowWindow.Hint" xml:space="preserve">
-    <value>系统级热键，程序运行时有效、退出后失效。不写注册表，也不开机自启；默认关闭。</value>
+    <value>系统级热键，程序运行时有效、退出后失效。可用 Win 组合；不写注册表，也不开机自启；默认关闭。</value>
   </data>
   <data name="Settings.Shortcuts.Conflict" xml:space="preserve">
     <value>与「{0}」重复</value>
   </data>
   <data name="Settings.Shortcuts.NeedsModifier" xml:space="preserve">
-    <value>需要 Ctrl 或 Alt，或使用 F1–F24</value>
+    <value>需要 Ctrl 或 Alt，或使用 F1–F24（Shift 只能配 Delete、方向键这类不产生文字的键）</value>
   </data>
   <data name="Settings.Shortcuts.Win" xml:space="preserve">
-    <value>不支持 Win 组合</value>
+    <value>窗口内的命令不支持 Win 组合，Win 组合只能用在全局唤起键上</value>
   </data>
   <data name="Settings.Shortcuts.Reserved" xml:space="preserve">
     <value>这是系统保留组合</value>

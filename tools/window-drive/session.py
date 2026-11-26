@@ -28,6 +28,7 @@
     uiname:<Name>             按可访问名调用按钮；uinames:<Name> 只列出矩形
     uiany:<Name>              不限定控件类型，只列出矩形（输入框这类）
     navdump[:ListId]          打印侧栏全部行的可访问名（默认 QuickAccessList）
+    textdump                  打印所有窗口里的文字（截图不可靠时用）
     sleep:<秒>
 
 踩过的坑写在 docs/ac06-visual-acceptance.md 与 docs/ui-guidelines.md 规则 7.16 / 7.17。
@@ -45,6 +46,7 @@ UIA = os.path.join(HERE, "uia_select.ps1")
 UIA_CLICK = os.path.join(HERE, "uia_click.ps1")
 UIA_BYNAME = os.path.join(HERE, "uia_invoke_byname.ps1")
 UIA_NAVDUMP = os.path.join(HERE, "uia_nav_dump.ps1")
+UIA_TEXTDUMP = os.path.join(HERE, "uia_text_dump.ps1")
 
 
 def call_wd(pid, args, env):
@@ -122,6 +124,19 @@ def main() -> int:
             )
             print(f"[auiclick {target}] {(r.stdout or '').strip()} {(r.stderr or '').strip()[:200]}")
             time.sleep(1.2)
+            continue
+
+        # textdump 把进程所有顶层窗口里的文字元素整批读出来。
+        # 这台机器上截图不可靠（有窗口反复抢前台、应用窗还可能落到主屏之外），
+        # 「录制态显示了什么」「底栏答复了什么」只能靠 UIA 读。
+        if step.startswith("textdump"):
+            r = subprocess.run(
+                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                 "-File", UIA_TEXTDUMP, "-TargetPid", str(proc.pid)],
+                capture_output=True, text=True, errors="replace", env=env,
+            )
+            print(f"[textdump] {(r.stdout or '').strip()[:4000]} {(r.stderr or '').strip()[:200]}")
+            time.sleep(0.3)
             continue
 
         # navdump[:ListId] 把侧栏的行名整批打出来。截图在这台机器上不可靠

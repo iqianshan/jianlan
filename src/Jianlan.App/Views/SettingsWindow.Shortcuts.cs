@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -318,12 +319,11 @@ public partial class SettingsWindow
             return true;
         }
 
-        ModifierKeys modifiers = Keyboard.Modifiers
-            & (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift | ModifierKeys.Windows);
+        ShortcutModifiers modifiers = ReadModifiers();
 
         // Delete/Backspace 单独按 = 解绑（与系统"清除快捷键"的习惯一致）。
         // 带修饰键时它就是一个普通候选键，交给下面的校验。
-        if (key is Key.Delete or Key.Back && modifiers == ModifierKeys.None)
+        if (key is Key.Delete or Key.Back && modifiers == ShortcutModifiers.None)
         {
             CommitRecording(null);
             return true;
@@ -339,10 +339,15 @@ public partial class SettingsWindow
         int virtualKey = KeyInterop.VirtualKeyFromKey(key);
         if (virtualKey == 0) return true;
 
-        var candidate = new ShortcutGesture(ToCore(modifiers), virtualKey);
+        var candidate = new ShortcutGesture(modifiers, virtualKey);
 
         if (!KeyBindings.CanAssign(candidate, _recordingId, out ShortcutProblem problem, out string? owner))
         {
+            // 录不进去时留一条：用户报"我按了组合没反应"，
+            // 日志里能看到抓到的到底是哪个组合、被哪条规则挡下。
+            Diagnostics.AppLog.Info("shortcuts",
+                $"record rejected {candidate.Format()} problem={problem} owner={owner ?? "-"}");
+
             StatusText.Text = problem switch
             {
                 ShortcutProblem.NeedsModifier => Strings.Settings_Shortcuts_NeedsModifier,
@@ -431,6 +436,32 @@ public partial class SettingsWindow
         RebuildShortcutRows();
         StatusText.Text = Strings.Settings_Shortcuts_ResetDone;
     }
+
+    /// <summary>
+    /// 录制时的修饰键状态。
+    ///
+    /// 主来源是 <c>Keyboard.Modifiers</c>：它跟着输入消息走，反映的是"按下这个键的那一刻"。
+    /// 只有 Win 单独问系统——它由外壳在 WPF 之前处理，WPF 这一位不可靠；不补的话
+    /// <c>Win+Shift+F9</c> 会被录成 <c>Shift+F9</c>，键位块显示的组合与实际注册的
+    /// 组合不是一回事，用户还以为自己绑了三个键。
+    /// </summary>
+    private static ShortcutModifiers ReadModifiers()
+    {
+        ShortcutModifiers result = ToCore(Keyboard.Modifiers);
+
+        if ((GetAsyncKeyState(VkLWin) & 0x8000) != 0 || (GetAsyncKeyState(VkRWin) & 0x8000) != 0)
+        {
+            result |= ShortcutModifiers.Win;
+        }
+
+        return result;
+    }
+
+    private const int VkLWin = 0x5B;
+    private const int VkRWin = 0x5C;
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int virtualKey);
 
     private static ShortcutModifiers ToCore(ModifierKeys modifiers)
     {

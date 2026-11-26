@@ -2120,17 +2120,17 @@ public static class Strings
     /// <summary>Show or hide the window</summary>
     public static string Settings_Shortcuts_ShowWindow => LocalizationService.Instance.Get("Settings.Shortcuts.ShowWindow");
 
-    /// <summary>System-wide and only while Jianlan is running; it stops when the window closes. Off by default.</summary>
+    /// <summary>System-wide while Jianlan runs, gone once it exits. Win combinations are allowed. No registry entry and no autostart; of</summary>
     public static string Settings_Shortcuts_ShowWindow_Hint => LocalizationService.Instance.Get("Settings.Shortcuts.ShowWindow.Hint");
 
     /// <summary>Already used by “{0}”</summary>
     public static string Settings_Shortcuts_Conflict => LocalizationService.Instance.Get("Settings.Shortcuts.Conflict");
     // 含占位符：string.Format(Strings.Settings_Shortcuts_Conflict, ...)
 
-    /// <summary>Needs Ctrl or Alt, or an F1–F24 key</summary>
+    /// <summary>Needs Ctrl or Alt, or an F1–F24 key (Shift works only with non-typing keys such as Delete or the arrows)</summary>
     public static string Settings_Shortcuts_NeedsModifier => LocalizationService.Instance.Get("Settings.Shortcuts.NeedsModifier");
 
-    /// <summary>Win combinations are not supported</summary>
+    /// <summary>Win combinations work only for the global show/hide key, not for in-window commands</summary>
     public static string Settings_Shortcuts_Win => LocalizationService.Instance.Get("Settings.Shortcuts.Win");
 
     /// <summary>Reserved by the system</summary>

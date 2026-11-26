@@ -230,6 +230,8 @@ back to the factory key. Changes take effect immediately — no restart. Backup 
 You can also give the app a **global show/hide key** there (off by default): press it in any other
 program to bring the window forward, press it again while the window is in front to tuck it away.
 It only lives while the app is running — no registry entry, no autostart, nothing resident.
+That key may use `Win` (for example `Win+Shift+F9`); in-window commands may not, because the shell
+claims those combinations first and the app would never see them.
 
 ---
 

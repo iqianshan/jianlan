@@ -95,11 +95,12 @@ public readonly record struct ShortcutGesture(ShortcutModifiers Modifiers, int V
         if (IsEmpty) return string.Empty;
 
         var text = new StringBuilder();
-        // 顺序固定，与 Windows 的书写习惯一致。反过来写会得到 "Shift+Ctrl+N" 这种别扭形式。
+        // 顺序固定：Win 在最前面，其余与 Windows 的书写习惯一致（Win+Shift+S 而不是
+        // Shift+Win+S）。用户按的是 "Win+Shift+F9"，界面上就得显示成这三个字。
+        if ((Modifiers & ShortcutModifiers.Win) != 0) text.Append("Win+");
         if ((Modifiers & ShortcutModifiers.Control) != 0) text.Append("Ctrl+");
         if ((Modifiers & ShortcutModifiers.Alt) != 0) text.Append("Alt+");
         if ((Modifiers & ShortcutModifiers.Shift) != 0) text.Append("Shift+");
-        if ((Modifiers & ShortcutModifiers.Win) != 0) text.Append("Win+");
         text.Append(KeyName(VirtualKey));
         return text.ToString();
     }

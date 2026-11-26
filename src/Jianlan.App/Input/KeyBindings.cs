@@ -272,7 +272,9 @@ internal static class KeyBindings
         out string? ownerCommandId)
     {
         ownerCommandId = null;
-        problem = ShortcutPolicy.Check(candidate);
+
+        // 唤起键是系统级热键，Win 组合由 RegisterHotKey 直接接管；程序内的命令不行。
+        problem = ShortcutPolicy.Check(candidate, allowWin: commandId == GlobalShowWindowId);
         if (problem != ShortcutProblem.None) return false;
 
         foreach ((string id, ShortcutGesture gesture) in _effective)

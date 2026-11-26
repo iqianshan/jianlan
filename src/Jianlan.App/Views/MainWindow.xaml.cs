@@ -1716,6 +1716,7 @@ public partial class MainWindow : Window
         {
             _summonHotkey = gesture;
             _summonRegistered = true;
+            Diagnostics.AppLog.Info("hotkey.summon", $"registered {gesture.Format()}");  // i18n-ignore：只进 app.log
             return true;
         }
 

@@ -185,8 +185,8 @@
 | `layout.secondaryColumns` | 与 `columns` 同结构 | 空对象 = 第二窗格从未单独调过，读的时候沿用 `columns`。**没调过就不写盘**，否则从没碰过分屏的用户文件里会凭空多出一份重复配置 |
 | `layout.primaryPane` / `secondaryPane` | `view` / `sortBy` / `sortDescending` 三项，均可为 `null` | `null` = 这一侧还没自己选过，沿用 `behavior.defaultView` / `behavior.sortBy`。写死初值会让设置页那两项默认值形同虚设 |
 | `previewAutoOpen` | 布尔 | `false` = 选中不自动预览，要按窗格里的「立即预览」。网络路径与可移动设备不受这一项影响，它们无论怎么设都不自动预览（FR-9.2.8） |
-| `shortcuts.overrides` | 键为命令 Id（`KeyBindings.Catalog` 里存在的那几个，≤120 字符），值为**规范化后的键位文本**或空串 | 认不出的键名、无法解析的写法一律**丢弃并回落默认**（留着一个坏值会让那条命令彻底没有快捷键，比回落更糟）；空串保留为"解绑"，不当作"没写"。写回前统一成 `Ctrl+Alt+Shift+Key` 的固定顺序与规范键名（`ctrl+comma` → `Ctrl+,`），这样同一套键位在文件里只有一种写法 |
-| `shortcuts.showWindow` | `null`（默认，关闭）或合法键位文本 | 空白、非法写法、以及 `ShortcutPolicy` 拒收的组合（`Win+*`、无修饰非功能键、系统保留）统一归一为 `null`。**不校验是否与其他程序冲突**：那是注册时才知道的结果（`RegisterHotKey` 返回失败），落盘时判不了；失败在设置页明说 |
+| `shortcuts.overrides` | 键为命令 Id（`KeyBindings.Catalog` 里存在的那几个，≤120 字符），值为**规范化后的键位文本**或空串 | 认不出的键名、无法解析的写法一律**丢弃并回落默认**（留着一个坏值会让那条命令彻底没有快捷键，比回落更糟）；空串保留为"解绑"，不当作"没写"。写回前统一成 `Win+Ctrl+Alt+Shift+Key` 的固定顺序与规范键名（`ctrl+comma` → `Ctrl+,`），这样同一套键位在文件里只有一种写法。归一只管语法：**"该不该允许"是界面录入时的事**（`ShortcutPolicy`），手改文件塞进去的 `Win+*` 仍会被装载，只是窗口内的匹配收不到 |
+| `shortcuts.showWindow` | `null`（默认，关闭）或合法键位文本 | 空白与非法写法归一为 `null`。**允许 `Win` 组合**（`RegisterHotKey` 的 `MOD_WIN` 合法），也允许无 Ctrl/Alt 的 `Win+X`。**不校验是否与其他程序或系统冲突**：那是注册时才知道的结果（`RegisterHotKey` 返回失败），落盘时判不了；失败在设置页明说 |
 | `showHistory` | 布尔，默认 `false` | 侧栏「历史」分区的显示开关（FR-1.2.10）。与 `privacy.historyEnabled` 各管一件事：前者管"显示不显示"，后者管"记不记"。两项都开才看得到历史行 |
 
 > **路径合法性不在归一化里判**：盘符可能暂时不在（U 盘没插），判了就把标签吃掉。

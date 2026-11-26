@@ -89,10 +89,41 @@ public sealed class ShortcutPolicyTests
     [Theory]
     [InlineData("Win+E")]
     [InlineData("Ctrl+Win+J")]
+    [InlineData("Win+Shift+F9")]
     public void 带Win键的拒绝(string text)
     {
         Assert.True(ShortcutGesture.TryParse(text, out ShortcutGesture gesture));
         Assert.Equal(ShortcutProblem.WinNotAllowed, ShortcutPolicy.Check(gesture));
+    }
+
+    [Theory]
+    [InlineData("Win+Shift+F9")]
+    [InlineData("Win+J")]
+    [InlineData("Ctrl+Win+J")]
+    public void 全局唤起键允许Win组合(string text)
+    {
+        Assert.True(ShortcutGesture.TryParse(text, out ShortcutGesture gesture));
+        Assert.Equal(ShortcutProblem.None, ShortcutPolicy.Check(gesture, allowWin: true));
+    }
+
+    [Theory]
+    [InlineData("Shift+Delete")]
+    [InlineData("Shift+Insert")]
+    [InlineData("Shift+Home")]
+    [InlineData("Shift+Left")]
+    public void Shift配不产生文字的键允许(string text)
+    {
+        Assert.True(ShortcutGesture.TryParse(text, out ShortcutGesture gesture));
+        Assert.Equal(ShortcutProblem.None, ShortcutPolicy.Check(gesture));
+    }
+
+    [Theory]
+    [InlineData("Shift+Space")]
+    [InlineData("Shift+Tab")]
+    public void Shift配会打字或抢焦点的键仍拒绝(string text)
+    {
+        Assert.True(ShortcutGesture.TryParse(text, out ShortcutGesture gesture));
+        Assert.Equal(ShortcutProblem.NeedsModifier, ShortcutPolicy.Check(gesture));
     }
 
     [Theory]

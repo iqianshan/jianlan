@@ -532,6 +532,10 @@ def main() -> int:
             # 设置页「快捷键」录制用的空闲组合（九号键位没有绑命令）
             "ctrl+shift+9": (0x11, 0xA0, 0x39),
             "ctrl+shift+8": (0x11, 0xA0, 0x38),
+            # Shift + 不产生文字的键：策略放行这一类（Shift+Delete 本来就是内置默认）
+            "shift+home": (0xA0, 0x24),
+            # 唤起键的 Win 组合。VK_LWIN = 0x5B；Win 必须显式发，SendInput 不会替我们加
+            "win+shift+f9": (0x5B, 0xA0, 0x70),
             # 标签页（FR-2）
             "ctrl+t": (0x11, 0x54),
             "ctrl+w": (0x11, 0x57),
@@ -625,12 +629,17 @@ def main() -> int:
         if actual != hwnd:
             print(f"前台切换失败（当前前台 {actual}，目标 {hwnd}），快捷键可能未送达")
 
+        # 每个键带上扫描码：VK_LSHIFT(0xA0) / VK_RSHIFT(0xA1) 这类"左右分身的修饰键"
+        # 在 scan=0 时按下可能不被系统登记，WPF 收到的 KeyDown 里也就没有 Shift。
+        user32.MapVirtualKeyW.argtypes = [wt.UINT, wt.UINT]
+        user32.MapVirtualKeyW.restype = wt.UINT
+
         for vk in keys:
-            user32.keybd_event(vk, 0, 0, 0)
-            time.sleep(0.03)
+            user32.keybd_event(vk, user32.MapVirtualKeyW(vk, 0), 0, 0)
+            time.sleep(0.06)
         for vk in reversed(keys):
-            user32.keybd_event(vk, 0, 2, 0)
-            time.sleep(0.03)
+            user32.keybd_event(vk, user32.MapVirtualKeyW(vk, 0), 2, 0)
+            time.sleep(0.06)
 
         time.sleep(0.6)
         print(f"已发送 {combo}")

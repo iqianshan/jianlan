@@ -2067,16 +2067,16 @@
     <value>Show or hide the window</value>
   </data>
   <data name="Settings.Shortcuts.ShowWindow.Hint" xml:space="preserve">
-    <value>System-wide while Jianlan runs, gone once it exits. No registry entry and no autostart; off by default.</value>
+    <value>System-wide while Jianlan runs, gone once it exits. Win combinations are allowed. No registry entry and no autostart; off by default.</value>
   </data>
   <data name="Settings.Shortcuts.Conflict" xml:space="preserve">
     <value>Already used by “{0}”</value>
   </data>
   <data name="Settings.Shortcuts.NeedsModifier" xml:space="preserve">
-    <value>Needs Ctrl or Alt, or an F1–F24 key</value>
+    <value>Needs Ctrl or Alt, or an F1–F24 key (Shift works only with non-typing keys such as Delete or the arrows)</value>
   </data>
   <data name="Settings.Shortcuts.Win" xml:space="preserve">
-    <value>Win combinations are not supported</value>
+    <value>Win combinations work only for the global show/hide key, not for in-window commands</value>
   </data>
   <data name="Settings.Shortcuts.Reserved" xml:space="preserve">
     <value>Reserved by the system</value>
