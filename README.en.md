@@ -216,7 +216,20 @@ handed over the moment you copy.
 | Switch focus between panes | `Tab` or `F6` |
 | Toggle the preview pane | `Alt+P` (or `Ctrl+Shift+P`) |
 | Quick preview (press with a file selected, press again to close) | `Space` (`Esc` also closes) |
+| Sidebar on/off | `Ctrl+B` |
+| Show/hide hidden files | `Ctrl+Shift+H` |
+| History section in the sidebar | `Ctrl+H` |
 | Settings | `Ctrl+,` |
+| Every shortcut at a glance | `F1` (opens Settings straight on the Shortcuts page) |
+
+**Shortcuts are yours to change.** `F1`, or Settings → "Shortcuts", lists every command:
+click "Change", then press the combination you want. Press `Delete` to unbind it, or "Reset" to go
+back to the factory key. Changes take effect immediately — no restart. Backup keys (for example
+`Ctrl+R` for refresh, next to `F5`) are a fixed second route and are shown read-only.
+
+You can also give the app a **global show/hide key** there (off by default): press it in any other
+program to bring the window forward, press it again while the window is in front to tuck it away.
+It only lives while the app is running — no registry entry, no autostart, nothing resident.
 
 ---
 
@@ -243,7 +256,7 @@ handed over the moment you copy.
 
 ## What is in Settings
 
-`Ctrl+,` opens seven pages:
+`Ctrl+,` opens eight pages:
 
 | Page | Contents |
 |---|---|
@@ -253,6 +266,7 @@ handed over the moment you copy.
 | Actions | Delete confirmation, bulk delete confirmation, overwrite confirmation, confirm before opening executables |
 | Privacy & storage | Clear history, tag library import/export and stats, privacy statement, reset sections |
 | Tags | Names and colours of the eight tags |
+| Shortcuts | Every command's key: change the primary key, unbind, reset, global show/hide key |
 | About | Version, check for updates, export logs, licence |
 
 ---

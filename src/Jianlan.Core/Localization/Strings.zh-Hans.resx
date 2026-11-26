@@ -2003,4 +2003,151 @@
   <data name="Settings.Tags.RenameTip" xml:space="preserve">
     <value>改名后按回车生效</value>
   </data>
+  <data name="Settings.Page.Shortcuts" xml:space="preserve">
+    <value>快捷键</value>
+  </data>
+  <data name="Settings.Page.Shortcuts.Desc" xml:space="preserve">
+    <value>查看并修改键盘操作。显示主窗口是系统级热键，其余在当前窗口内生效。</value>
+  </data>
+  <data name="Settings.Shortcuts.Group.Global" xml:space="preserve">
+    <value>全局</value>
+  </data>
+  <data name="Settings.Shortcuts.Group.Files" xml:space="preserve">
+    <value>文件</value>
+  </data>
+  <data name="Settings.Shortcuts.Group.Navigation" xml:space="preserve">
+    <value>导航</value>
+  </data>
+  <data name="Settings.Shortcuts.Group.View" xml:space="preserve">
+    <value>视图</value>
+  </data>
+  <data name="Settings.Shortcuts.Group.Tabs" xml:space="preserve">
+    <value>标签页</value>
+  </data>
+  <data name="Settings.Shortcuts.Group.Window" xml:space="preserve">
+    <value>窗口</value>
+  </data>
+  <data name="Settings.Shortcuts.Group.Tags" xml:space="preserve">
+    <value>标签</value>
+  </data>
+  <data name="Settings.Shortcuts.Filter.Hint" xml:space="preserve">
+    <value>筛选命令或键位</value>
+  </data>
+  <data name="Settings.Shortcuts.Change" xml:space="preserve">
+    <value>修改</value>
+  </data>
+  <data name="Settings.Shortcuts.Reset" xml:space="preserve">
+    <value>恢复默认</value>
+  </data>
+  <data name="Settings.Shortcuts.None" xml:space="preserve">
+    <value>未绑定</value>
+  </data>
+  <data name="Settings.Shortcuts.Fixed" xml:space="preserve">
+    <value>固定</value>
+  </data>
+  <data name="Settings.Shortcuts.Backup" xml:space="preserve">
+    <value>备用</value>
+  </data>
+  <data name="Settings.Shortcuts.Recording" xml:space="preserve">
+    <value>请按下新的组合…</value>
+  </data>
+  <data name="Settings.Shortcuts.Recording.Hint" xml:space="preserve">
+    <value>Esc 取消，Delete 清除</value>
+  </data>
+  <data name="Settings.Shortcuts.ShowWindow" xml:space="preserve">
+    <value>显示/收起主窗口</value>
+  </data>
+  <data name="Settings.Shortcuts.ShowWindow.Hint" xml:space="preserve">
+    <value>系统级热键，程序运行时有效、退出后失效。不写注册表，也不开机自启；默认关闭。</value>
+  </data>
+  <data name="Settings.Shortcuts.Conflict" xml:space="preserve">
+    <value>与「{0}」重复</value>
+  </data>
+  <data name="Settings.Shortcuts.NeedsModifier" xml:space="preserve">
+    <value>需要 Ctrl 或 Alt，或使用 F1–F24</value>
+  </data>
+  <data name="Settings.Shortcuts.Win" xml:space="preserve">
+    <value>不支持 Win 组合</value>
+  </data>
+  <data name="Settings.Shortcuts.Reserved" xml:space="preserve">
+    <value>这是系统保留组合</value>
+  </data>
+  <data name="Settings.Shortcuts.TextEditing" xml:space="preserve">
+    <value>焦点在输入框内时不生效</value>
+  </data>
+  <data name="Settings.Shortcuts.Saved" xml:space="preserve">
+    <value>快捷键已更新</value>
+  </data>
+  <data name="Settings.Shortcuts.ResetDone" xml:space="preserve">
+    <value>快捷键已恢复默认</value>
+  </data>
+  <data name="Settings.Shortcuts.Busy" xml:space="preserve">
+    <value>该组合已被其它程序占用，请换一个</value>
+  </data>
+  <data name="Shortcut.Action.ContextMenu" xml:space="preserve">
+    <value>打开右键菜单</value>
+  </data>
+  <data name="Shortcut.Action.ToggleNav" xml:space="preserve">
+    <value>显示/隐藏导航栏</value>
+  </data>
+  <data name="Shortcut.Action.ToggleHidden" xml:space="preserve">
+    <value>显示/隐藏隐藏文件</value>
+  </data>
+  <data name="Shortcut.Action.ToggleHistory" xml:space="preserve">
+    <value>显示/隐藏历史记录</value>
+  </data>
+  <data name="Shortcut.Action.TabNew" xml:space="preserve">
+    <value>新建标签页</value>
+  </data>
+  <data name="Shortcut.Action.TabClose" xml:space="preserve">
+    <value>关闭当前标签页</value>
+  </data>
+  <data name="Shortcut.Action.TabReopen" xml:space="preserve">
+    <value>恢复关闭的标签页</value>
+  </data>
+  <data name="Shortcut.Action.TabNext" xml:space="preserve">
+    <value>下一个标签页</value>
+  </data>
+  <data name="Shortcut.Action.TabPrevious" xml:space="preserve">
+    <value>上一个标签页</value>
+  </data>
+  <data name="Shortcut.Action.TabLast" xml:space="preserve">
+    <value>最后一个标签页</value>
+  </data>
+  <data name="Shortcut.Action.TabGoto" xml:space="preserve">
+    <value>跳到第 {0} 个标签页</value>
+  </data>
+  <data name="Shortcut.Action.ShortcutsHelp" xml:space="preserve">
+    <value>快捷键帮助</value>
+  </data>
+  <data name="Shortcut.Action.CloseWindow" xml:space="preserve">
+    <value>关闭窗口</value>
+  </data>
+  <data name="Shortcut.Action.SetTag" xml:space="preserve">
+    <value>打标签：{0}</value>
+  </data>
+  <data name="Nav.History" xml:space="preserve">
+    <value>历史</value>
+  </data>
+  <data name="Nav.History.Empty" xml:space="preserve">
+    <value>还没有浏览记录</value>
+  </data>
+  <data name="Status.HiddenOn" xml:space="preserve">
+    <value>已显示隐藏文件</value>
+  </data>
+  <data name="Status.HiddenOff" xml:space="preserve">
+    <value>已隐藏隐藏文件</value>
+  </data>
+  <data name="Status.HistoryOn" xml:space="preserve">
+    <value>已显示历史记录</value>
+  </data>
+  <data name="Status.HistoryOff" xml:space="preserve">
+    <value>已隐藏历史记录</value>
+  </data>
+  <data name="Status.NavHidden" xml:space="preserve">
+    <value>导航栏已收起</value>
+  </data>
+  <data name="Status.NavShown" xml:space="preserve">
+    <value>导航栏已展开</value>
+  </data>
 </root>

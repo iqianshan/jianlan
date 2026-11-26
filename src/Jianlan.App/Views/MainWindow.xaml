@@ -360,6 +360,29 @@
 
         <!-- 收藏项（FR-7.1 / FR-7.2）。失效项（FR-7.7）文字转次级色，提示里说明原因。
              管理动作有两个入口：行尾常显的「⋯」与右键，两者打开的是同一份菜单。 -->
+        <!-- 历史项（Ctrl+H，FR-5.3.1）。没有右键菜单：这里只回答"我最近去过哪"，
+             改名/分组/颜色都是收藏才有的事，给历史挂一套同样的菜单只会让人以为它也是收藏。 -->
+        <DataTemplate DataType="{x:Type vm:NavHistoryRow}">
+            <Grid Margin="{StaticResource Padding.NavItem}"
+                  Background="Transparent"
+                  VerticalAlignment="Center"
+                  ToolTip="{Binding Tooltip}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Margin="0,0,8,0"
+                           Style="{StaticResource Text.Glyph}"
+                           Text="{Binding Glyph}"/>
+                <TextBlock Grid.Column="1"
+                           Style="{StaticResource Text.Nav}"
+                           Text="{Binding Name}"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center"/>
+            </Grid>
+        </DataTemplate>
+
         <DataTemplate DataType="{x:Type vm:NavBookmarkRow}">
             <Grid Margin="{StaticResource Padding.NavItem}"
                   Background="Transparent"

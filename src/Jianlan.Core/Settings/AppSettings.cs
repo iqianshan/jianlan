@@ -101,6 +101,11 @@ public sealed class AppSettings
     /// <summary>收藏（FR-7）。主页收藏区与导航栏收藏区读同一份（FR-1.1.5）。</summary>
     public BookmarkSettings Bookmarks { get; set; } = new();
 
+    /// <summary>
+    /// 快捷键（FR-10.12）。只存用户改过的命令与全局唤起键，见 <see cref="ShortcutSettings"/>。
+    /// </summary>
+    public ShortcutSettings Shortcuts { get; set; } = new();
+
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement>? Extra { get; set; }
 
@@ -118,6 +123,7 @@ public sealed class AppSettings
         Layout ??= new LayoutSettings();
         History ??= new HistorySettings();
         Bookmarks ??= new BookmarkSettings();
+        Shortcuts ??= new ShortcutSettings();
 
         if (!GeneralSettings.IsKnownLanguage(General.Language)) General.Language = GeneralSettings.LanguageAuto;
 
@@ -176,6 +182,7 @@ public sealed class AppSettings
         // 而"设置里写 50 条、文件里留着 100 条"是最难解释的那种不一致。
         History.Normalize(Privacy.HistoryLimit);
         Bookmarks.Normalize();
+        Shortcuts.Normalize();
 
         Session.WindowWidth = Math.Max(Session.WindowWidth, MinWindowWidth);
         Session.WindowHeight = Math.Max(Session.WindowHeight, MinWindowHeight);
@@ -626,6 +633,14 @@ public sealed class AppearanceSettings
     public DensityKind Density { get; set; } = DensityKind.Comfortable;
 
     public bool ShowNavPane { get; set; } = true;
+
+    /// <summary>
+    /// 侧栏「历史」分区是否显示（Ctrl+H）。默认关闭：历史是"偶尔回头找一次"的东西，
+    /// 常驻会与收藏抢位置，而侧栏默认只有 184 DIP 宽。
+    /// 与 <see cref="PrivacySettings.HistoryEnabled"/> 不是一回事：那个管"记不记"，
+    /// 这个只管"看不看"。
+    /// </summary>
+    public bool ShowHistory { get; set; }
 
     public bool ShowStatusBar { get; set; } = true;
 

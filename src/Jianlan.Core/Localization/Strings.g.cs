@@ -2066,4 +2066,154 @@ public static class Strings
     /// <summary>Press Enter to apply the new name</summary>
     public static string Settings_Tags_RenameTip => LocalizationService.Instance.Get("Settings.Tags.RenameTip");
 
+    /// <summary>Shortcuts</summary>
+    public static string Settings_Page_Shortcuts => LocalizationService.Instance.Get("Settings.Page.Shortcuts");
+
+    /// <summary>Review and change keyboard shortcuts. Showing the window is a system-wide hotkey; the rest work inside the window.</summary>
+    public static string Settings_Page_Shortcuts_Desc => LocalizationService.Instance.Get("Settings.Page.Shortcuts.Desc");
+
+    /// <summary>Global</summary>
+    public static string Settings_Shortcuts_Group_Global => LocalizationService.Instance.Get("Settings.Shortcuts.Group.Global");
+
+    /// <summary>Files</summary>
+    public static string Settings_Shortcuts_Group_Files => LocalizationService.Instance.Get("Settings.Shortcuts.Group.Files");
+
+    /// <summary>Navigation</summary>
+    public static string Settings_Shortcuts_Group_Navigation => LocalizationService.Instance.Get("Settings.Shortcuts.Group.Navigation");
+
+    /// <summary>View</summary>
+    public static string Settings_Shortcuts_Group_View => LocalizationService.Instance.Get("Settings.Shortcuts.Group.View");
+
+    /// <summary>Tabs</summary>
+    public static string Settings_Shortcuts_Group_Tabs => LocalizationService.Instance.Get("Settings.Shortcuts.Group.Tabs");
+
+    /// <summary>Window</summary>
+    public static string Settings_Shortcuts_Group_Window => LocalizationService.Instance.Get("Settings.Shortcuts.Group.Window");
+
+    /// <summary>Tags</summary>
+    public static string Settings_Shortcuts_Group_Tags => LocalizationService.Instance.Get("Settings.Shortcuts.Group.Tags");
+
+    /// <summary>Filter commands or keys</summary>
+    public static string Settings_Shortcuts_Filter_Hint => LocalizationService.Instance.Get("Settings.Shortcuts.Filter.Hint");
+
+    /// <summary>Change</summary>
+    public static string Settings_Shortcuts_Change => LocalizationService.Instance.Get("Settings.Shortcuts.Change");
+
+    /// <summary>Reset</summary>
+    public static string Settings_Shortcuts_Reset => LocalizationService.Instance.Get("Settings.Shortcuts.Reset");
+
+    /// <summary>Unbound</summary>
+    public static string Settings_Shortcuts_None => LocalizationService.Instance.Get("Settings.Shortcuts.None");
+
+    /// <summary>Fixed</summary>
+    public static string Settings_Shortcuts_Fixed => LocalizationService.Instance.Get("Settings.Shortcuts.Fixed");
+
+    /// <summary>Backup</summary>
+    public static string Settings_Shortcuts_Backup => LocalizationService.Instance.Get("Settings.Shortcuts.Backup");
+
+    /// <summary>Press the new combination…</summary>
+    public static string Settings_Shortcuts_Recording => LocalizationService.Instance.Get("Settings.Shortcuts.Recording");
+
+    /// <summary>Esc to cancel, Delete to clear</summary>
+    public static string Settings_Shortcuts_Recording_Hint => LocalizationService.Instance.Get("Settings.Shortcuts.Recording.Hint");
+
+    /// <summary>Show or hide the window</summary>
+    public static string Settings_Shortcuts_ShowWindow => LocalizationService.Instance.Get("Settings.Shortcuts.ShowWindow");
+
+    /// <summary>System-wide and only while Jianlan is running; it stops when the window closes. Off by default.</summary>
+    public static string Settings_Shortcuts_ShowWindow_Hint => LocalizationService.Instance.Get("Settings.Shortcuts.ShowWindow.Hint");
+
+    /// <summary>Already used by “{0}”</summary>
+    public static string Settings_Shortcuts_Conflict => LocalizationService.Instance.Get("Settings.Shortcuts.Conflict");
+    // 含占位符：string.Format(Strings.Settings_Shortcuts_Conflict, ...)
+
+    /// <summary>Needs Ctrl or Alt, or an F1–F24 key</summary>
+    public static string Settings_Shortcuts_NeedsModifier => LocalizationService.Instance.Get("Settings.Shortcuts.NeedsModifier");
+
+    /// <summary>Win combinations are not supported</summary>
+    public static string Settings_Shortcuts_Win => LocalizationService.Instance.Get("Settings.Shortcuts.Win");
+
+    /// <summary>Reserved by the system</summary>
+    public static string Settings_Shortcuts_Reserved => LocalizationService.Instance.Get("Settings.Shortcuts.Reserved");
+
+    /// <summary>Won’t fire while typing in a text box</summary>
+    public static string Settings_Shortcuts_TextEditing => LocalizationService.Instance.Get("Settings.Shortcuts.TextEditing");
+
+    /// <summary>Shortcuts updated</summary>
+    public static string Settings_Shortcuts_Saved => LocalizationService.Instance.Get("Settings.Shortcuts.Saved");
+
+    /// <summary>Shortcuts reset to defaults</summary>
+    public static string Settings_Shortcuts_ResetDone => LocalizationService.Instance.Get("Settings.Shortcuts.ResetDone");
+
+    /// <summary>Another program already uses this combination</summary>
+    public static string Settings_Shortcuts_Busy => LocalizationService.Instance.Get("Settings.Shortcuts.Busy");
+
+    /// <summary>Open context menu</summary>
+    public static string Shortcut_Action_ContextMenu => LocalizationService.Instance.Get("Shortcut.Action.ContextMenu");
+
+    /// <summary>Show or hide the navigation pane</summary>
+    public static string Shortcut_Action_ToggleNav => LocalizationService.Instance.Get("Shortcut.Action.ToggleNav");
+
+    /// <summary>Show or hide hidden files</summary>
+    public static string Shortcut_Action_ToggleHidden => LocalizationService.Instance.Get("Shortcut.Action.ToggleHidden");
+
+    /// <summary>Show or hide history</summary>
+    public static string Shortcut_Action_ToggleHistory => LocalizationService.Instance.Get("Shortcut.Action.ToggleHistory");
+
+    /// <summary>New tab</summary>
+    public static string Shortcut_Action_TabNew => LocalizationService.Instance.Get("Shortcut.Action.TabNew");
+
+    /// <summary>Close tab</summary>
+    public static string Shortcut_Action_TabClose => LocalizationService.Instance.Get("Shortcut.Action.TabClose");
+
+    /// <summary>Reopen closed tab</summary>
+    public static string Shortcut_Action_TabReopen => LocalizationService.Instance.Get("Shortcut.Action.TabReopen");
+
+    /// <summary>Next tab</summary>
+    public static string Shortcut_Action_TabNext => LocalizationService.Instance.Get("Shortcut.Action.TabNext");
+
+    /// <summary>Previous tab</summary>
+    public static string Shortcut_Action_TabPrevious => LocalizationService.Instance.Get("Shortcut.Action.TabPrevious");
+
+    /// <summary>Last tab</summary>
+    public static string Shortcut_Action_TabLast => LocalizationService.Instance.Get("Shortcut.Action.TabLast");
+
+    /// <summary>Go to tab {0}</summary>
+    public static string Shortcut_Action_TabGoto => LocalizationService.Instance.Get("Shortcut.Action.TabGoto");
+    // 含占位符：string.Format(Strings.Shortcut_Action_TabGoto, ...)
+
+    /// <summary>Keyboard shortcuts</summary>
+    public static string Shortcut_Action_ShortcutsHelp => LocalizationService.Instance.Get("Shortcut.Action.ShortcutsHelp");
+
+    /// <summary>Close window</summary>
+    public static string Shortcut_Action_CloseWindow => LocalizationService.Instance.Get("Shortcut.Action.CloseWindow");
+
+    /// <summary>Tag as {0}</summary>
+    public static string Shortcut_Action_SetTag => LocalizationService.Instance.Get("Shortcut.Action.SetTag");
+    // 含占位符：string.Format(Strings.Shortcut_Action_SetTag, ...)
+
+    /// <summary>History</summary>
+    public static string Nav_History => LocalizationService.Instance.Get("Nav.History");
+
+    /// <summary>No history yet</summary>
+    public static string Nav_History_Empty => LocalizationService.Instance.Get("Nav.History.Empty");
+
+    /// <summary>Hidden files shown</summary>
+    public static string Status_HiddenOn => LocalizationService.Instance.Get("Status.HiddenOn");
+
+    /// <summary>Hidden files hidden</summary>
+    public static string Status_HiddenOff => LocalizationService.Instance.Get("Status.HiddenOff");
+
+    /// <summary>History shown</summary>
+    public static string Status_HistoryOn => LocalizationService.Instance.Get("Status.HistoryOn");
+
+    /// <summary>History hidden</summary>
+    public static string Status_HistoryOff => LocalizationService.Instance.Get("Status.HistoryOff");
+
+    /// <summary>Navigation pane hidden</summary>
+    public static string Status_NavHidden => LocalizationService.Instance.Get("Status.NavHidden");
+
+    /// <summary>Navigation pane shown</summary>
+    public static string Status_NavShown => LocalizationService.Instance.Get("Status.NavShown");
+
 }

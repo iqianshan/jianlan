@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -17,6 +17,7 @@ using Jianlan.App.ViewModels;
 using Jianlan.Core.Commands;
 using Jianlan.Core.Diagnostics;
 using Jianlan.Core.FileSystem;
+using Jianlan.Core.Input;
 using Jianlan.Core.Navigation;
 using Jianlan.Core.Settings;
 
@@ -262,7 +263,10 @@ public partial class MainWindow : Window
             },
             // FR-1.2.9：勾掉的位置不进列表。传委托而不是传当时的快照，
             // 每次重建都问一次最新值，勾完立刻生效、不必重启。
-            hiddenPlaces: () => App.Settings.Layout.NavHiddenPlaces);
+            hiddenPlaces: () => App.Settings.Layout.NavHiddenPlaces,
+            // Ctrl+H 的「历史」分区。条数与主页一致（12），两个地方看到的是同一份记录。
+            recentPaths: () => _history.Recent(HistorySettings.HomePageLimit),
+            showHistory: () => App.Settings.Appearance.ShowHistory);
         QuickAccessList.ItemsSource = _nav.Rows;
 
         // 新建标签走「设置 → 新标签页默认目录」，没设就是主页（FR-2.1）；关掉最后一个标签
@@ -301,7 +305,7 @@ public partial class MainWindow : Window
             Id = CommandIds.OpenSettings,
             TitleFactory = () => Strings.Command_OpenSettings,
             Gesture = "Ctrl+,",
-            Execute = OpenSettings,
+            Execute = () => OpenSettings(),
         });
         _commands.Register(new AppCommand
         {
@@ -318,6 +322,7 @@ public partial class MainWindow : Window
         RegisterSplitCommands();
         RegisterPreviewCommands();
         RegisterQuickLookCommand();
+        RegisterShortcutCommands();
         InitializePreview();
         InitializeQuickLook();
 
@@ -1515,16 +1520,21 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OpenSettings()
+    /// <param name="startAtShortcuts">
+    /// F1 走这条路：直接把「快捷键」页翻出来。用户按 F1 是来找键位的，
+    /// 落到上次停留的那一页还得自己再找一次。
+    /// </param>
+    private void OpenSettings(bool startAtShortcuts = false)
     {
         // 单例：重复点"设置"不应叠出多个窗口
         if (Application.Current.Windows.OfType<SettingsWindow>().FirstOrDefault() is { } existing)
         {
             existing.Activate();
+            if (startAtShortcuts) existing.ShowShortcutsPage();
             return;
         }
 
-        var window = new SettingsWindow { Owner = this };
+        var window = new SettingsWindow(startAtShortcuts) { Owner = this };
         window.Show();
     }
 
@@ -1567,6 +1577,12 @@ public partial class MainWindow : Window
 
         ApplyIconFromExeResources();
         AttachKeyHook();
+        RegisterSummonHotkey();
+        Closed += (_, _) =>
+        {
+            UnregisterSettingsHotkey();
+            UnregisterSummonHotkey();
+        };
     }
 
     /// <summary>
@@ -1592,7 +1608,7 @@ public partial class MainWindow : Window
         if (KeyDebug) WriteKeyLog($"hook attached hwnd=0x{handle:X} source=0x{source.Handle:X}");
     }
 
-    // ── 窗口热键：Ctrl+, 的最后一道保障 ────────────────────────────────────
+    // ── 系统热键：Ctrl+, 与"显示/收起主窗口" ──────────────────────────────
     //
     // 实测结论（2026-11-04）：注入 WM_KEYDOWN 能触发，真实按键盘不能。
     // 已排除"其它程序占用了 Ctrl+, 全局热键"（RegisterHotKey 在裸进程里注册成功）。
@@ -1603,17 +1619,23 @@ public partial class MainWindow : Window
     //   到注册者窗口，按键不再作为普通输入下发。输入法、WPF 的 Key 归一化、
     //   TranslateMessage 全被绕过。
     //
-    // 只在窗口激活期间注册，失活立即注销：热键是系统级的，长期持有会把
-    // 其它程序的 Ctrl+, 也抢过来。这是"本窗口内生效"与"不打扰别人"的折中。
+    // 两种热键的生命周期**刻意不同**：
+    //   · 打开设置：只在窗口激活期间注册，失活立即注销。它要的是"本窗口内生效"，
+    //     长期持有会把其它程序的 Ctrl+, 也抢过来。
+    //   · 显示/收起主窗口：从窗口创建一直持有到关闭。它的全部意义就是"别的程序在前台时
+    //     也能按"，失活就注销等于没做。代价是这条组合在程序运行期间被本进程独占，
+    //     所以默认关闭，由用户自己选一组低冲突的键。
 
     private const int HotkeySettings = 0x4C50;          // 任意固定 id，仅本窗口使用
+    private const int HotkeySummon = 0x4C51;
     private const int WmHotkey = 0x0312;
-    private const uint ModControl = 0x0002;
     private const uint ModNoRepeat = 0x4000;            // 长按不重复触发
-    private const int VkOemComma = 0xBC;
 
     private IntPtr _hotkeyWindow;
     private bool _hotkeyRegistered;
+    private ShortcutGesture _settingsHotkey;
+    private ShortcutGesture _summonHotkey;
+    private bool _summonRegistered;
 
     protected override void OnActivated(EventArgs e)
     {
@@ -1642,10 +1664,17 @@ public partial class MainWindow : Window
         _hotkeyWindow = new WindowInteropHelper(this).Handle;
         if (_hotkeyWindow == IntPtr.Zero) return;
 
-        if (RegisterHotKey(_hotkeyWindow, HotkeySettings, ModControl | ModNoRepeat, VkOemComma))
+        // 用户可以把这一项解绑。解绑后仍能从侧栏齿轮或 F1 进设置，
+        // 键位表里那条 F1 也还在——不靠 Ctrl+, 活命。
+        ShortcutGesture gesture = Input.KeyBindings.GestureOf(CommandIds.OpenSettings) ?? ShortcutGesture.None;
+        if (gesture.IsEmpty) return;
+
+        uint modifiers = Input.KeyBindings.ToWin32Modifiers(gesture) | ModNoRepeat;
+        if (RegisterHotKey(_hotkeyWindow, HotkeySettings, modifiers, gesture.VirtualKey))
         {
             _hotkeyRegistered = true;
-            if (KeyDebug) WriteKeyLog("hotkey registered: Ctrl+,");
+            _settingsHotkey = gesture;
+            if (KeyDebug) WriteKeyLog($"hotkey registered: {gesture.Format()}");
             return;
         }
 
@@ -1653,7 +1682,7 @@ public partial class MainWindow : Window
         // 这条一定要落盘——它决定了用户报告的"按了没反应"到底怪谁。
         // 成功路径不写盘（每次激活都会走这里），失败才留痕。
         int error = Marshal.GetLastWin32Error();
-        Diagnostics.AppLog.Warn("hotkey.register", "E7001", $"Ctrl+, 注册失败 err={error}");  // i18n-ignore：只进 app.log
+        Diagnostics.AppLog.Warn("hotkey.register", "E7001", $"{gesture.Format()} 注册失败 err={error}");  // i18n-ignore：只进 app.log
         if (KeyDebug) WriteKeyLog($"hotkey register FAILED err={error}");
     }
 
@@ -1663,6 +1692,102 @@ public partial class MainWindow : Window
 
         UnregisterHotKey(_hotkeyWindow, HotkeySettings);
         _hotkeyRegistered = false;
+    }
+
+    /// <summary>
+    /// 注册"显示/收起主窗口"。返回 false 表示组合被其它程序占用或用户没设。
+    ///
+    /// 只由主窗口注册：副窗口没有独立生命期，让主窗口持有不会出现两个窗口抢同一颗键。
+    /// </summary>
+    private bool RegisterSummonHotkey()
+    {
+        UnregisterSummonHotkey();
+
+        if (ProbePath is not null || _isSecondaryWindow) return false;
+
+        ShortcutGesture gesture = Input.KeyBindings.ShowWindowGesture;
+        if (gesture.IsEmpty) return false;
+
+        IntPtr handle = new WindowInteropHelper(this).Handle;
+        if (handle == IntPtr.Zero) return false;
+
+        uint modifiers = Input.KeyBindings.ToWin32Modifiers(gesture) | ModNoRepeat;
+        if (RegisterHotKey(handle, HotkeySummon, modifiers, gesture.VirtualKey))
+        {
+            _summonHotkey = gesture;
+            _summonRegistered = true;
+            return true;
+        }
+
+        int error = Marshal.GetLastWin32Error();
+        Diagnostics.AppLog.Warn("hotkey.summon", "E7002", $"{gesture.Format()} 注册失败 err={error}");  // i18n-ignore：只进 app.log
+        return false;
+    }
+
+    private void UnregisterSummonHotkey()
+    {
+        if (!_summonRegistered) return;
+
+        UnregisterHotKey(new WindowInteropHelper(this).Handle, HotkeySummon);
+        _summonRegistered = false;
+        _summonHotkey = ShortcutGesture.None;
+    }
+
+    /// <summary>
+    /// 设置页改完键位后调用：重建匹配表，并让两条系统热键按新组合重新注册。
+    ///
+    /// 顺序有讲究：先重建表再重注册。反过来会拿旧表里的组合去注册，
+    /// 用户改完看到的仍是旧键位生效——这类"改了没反应"最难自查。
+    /// </summary>
+    public bool ApplyShortcutSettings()
+    {
+        Input.KeyBindings.Rebuild(App.Settings.Shortcuts);
+
+        UnregisterSettingsHotkey();
+        if (IsActive) RegisterSettingsHotkey();
+
+        // 返回"唤起键此刻是否真的注册上了"。没设返回 true（没有什么需要注册），
+        // 设了但被别的程序占用返回 false，设置页据此提示，而不是让用户以为设成功了。
+        //
+        // 不管有没有设都要调用一次：它内部先注销旧的。只在"设了"时调用的话，
+        // 用户把唤起键清空之后，旧组合仍然被本进程占着。
+        bool wanted = !Input.KeyBindings.ShowWindowGesture.IsEmpty;
+        bool registered = RegisterSummonHotkey();
+        return !wanted || registered;
+    }
+
+    /// <summary>
+    /// 热键触发：不在前台就还原并前置，已在前台就收起（最小化）。
+    ///
+    /// "收起"用的是最小化而不是隐藏：本程序没有托盘图标（P4 零常驻），
+    /// 隐藏窗口等于让用户失去唯一的入口。最小化至少还在任务栏里。
+    /// </summary>
+    private void ToggleFromSummonHotkey()
+    {
+        if (WindowState == WindowState.Minimized)
+        {
+            Show();
+            WindowState = WindowState.Normal;
+            EnsureVisibleOnScreen();
+            Activate();
+            Topmost = true;
+            Topmost = false;
+            return;
+        }
+
+        if (!IsActive)
+        {
+            // 被别的窗口挡住时，Activate() 受前台锁限制；Topmost 抖一下是
+            // 既有第二实例唤起用的同一招，这里保持一致。
+            Show();
+            EnsureVisibleOnScreen();
+            Activate();
+            Topmost = true;
+            Topmost = false;
+            return;
+        }
+
+        WindowState = WindowState.Minimized;
     }
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -1703,11 +1828,24 @@ public partial class MainWindow : Window
 
         if (msg == WmHotkey)
         {
-            if (wParam.ToInt32() != HotkeySettings) return IntPtr.Zero;
+            int id = wParam.ToInt32();
 
-            if (KeyDebug) WriteKeyLog("wm_hotkey -> app.openSettings");
-            handled = true;
-            Dispatcher.BeginInvoke(DispatcherPriority.Input, () => Dispatch(CommandIds.OpenSettings));
+            if (id == HotkeySettings)
+            {
+                if (KeyDebug) WriteKeyLog("wm_hotkey -> app.openSettings");
+                handled = true;
+                Dispatcher.BeginInvoke(DispatcherPriority.Input, () => Dispatch(CommandIds.OpenSettings));
+                return IntPtr.Zero;
+            }
+
+            if (id == HotkeySummon)
+            {
+                if (KeyDebug) WriteKeyLog("wm_hotkey -> window.toggle");
+                handled = true;
+                Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(ToggleFromSummonHotkey));
+                return IntPtr.Zero;
+            }
+
             return IntPtr.Zero;
         }
 
@@ -1749,9 +1887,12 @@ public partial class MainWindow : Window
         }
 
         // 无修饰键只在列表有焦点时接管：焦点在按钮上按 Enter 应触发按钮，而不是"打开选中项"。
-        // 功能键（F3 分屏）例外——它不产生文本、也不该由某个按钮"拥有"，
+        // 功能键（F1 帮助、F3 分屏、F6 换窗格）例外——它们不产生文本、也不该由某个按钮"拥有"，
         // 焦点停在工具栏按钮上时按 F3 仍然要能分屏。
-        bool functionKey = vk is Input.KeyBindings.Vk.F3 or Input.KeyBindings.Vk.F6;
+        //
+        // 判据按"此刻有没有一条无修饰的功能键绑在这个 VK 上"，不再写死 F3/F6：
+        // 键位可以改，写死会让用户把分屏改到 F7 之后，F7 在按钮上失去作用。
+        bool functionKey = Input.KeyBindings.IsUnmodifiedFunctionKey(vk);
         if (modifiers == ModifierKeys.None && !listFocused && !functionKey) return IntPtr.Zero;
 
         if (!Input.KeyBindings.TryMatchVirtualKey(vk, out string commandId)) return IntPtr.Zero;
@@ -2067,6 +2208,30 @@ public partial class MainWindow : Window
             try
             {
                 await Vm.NavigateAsync(driveRow.Root);
+            }
+            catch (Exception ex)
+            {
+                Vm.ReportError(ex);
+            }
+
+            return;
+        }
+
+        // 历史项（Ctrl+H）：点一下回到那个目录。Ctrl+单击与其它位置一致，新标签打开。
+        if (QuickAccessList.SelectedItem is NavHistoryRow historyRow)
+        {
+            if (Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                OpenInNewTab(ActiveView, historyRow.Path, background: false);
+                HighlightNavPath(Vm.CurrentPath);
+                return;
+            }
+
+            if (string.Equals(historyRow.Path, Vm.CurrentPath, StringComparison.OrdinalIgnoreCase)) return;
+
+            try
+            {
+                await Vm.NavigateAsync(historyRow.Path);
             }
             catch (Exception ex)
             {

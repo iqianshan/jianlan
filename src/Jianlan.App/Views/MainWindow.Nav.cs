@@ -113,6 +113,10 @@ public partial class MainWindow
         if (!ReferenceEquals(_navFollow, Tab.ActivePane)) return;
 
         SyncNavSelection(path);
+
+        // 历史分区显示时跟上这一步：刚进的目录要出现在最上面。
+        // 先移高亮再刷历史——反过来会把"当前选中的历史行"删掉，选中态凭空消失。
+        _nav.RefreshHistoryRows();
     }
 
     /// <summary>
@@ -151,6 +155,7 @@ public partial class MainWindow
         {
             NavItem { Kind: NavItemKind.Folder } item when !string.IsNullOrEmpty(item.Path) => item.Path,
             NavDriveRow drive => drive.Root,
+            NavHistoryRow history => history.Path,
             _ => null,
         };
 

@@ -523,8 +523,15 @@ def main() -> int:
         combos = {
             "ctrl+comma": (0x11, 0xBC),
             "ctrl+l": (0x11, 0x4C),
+            # 快捷键帮助（FR-10.13）：F1 打开设置的「快捷键」页
+            "f1": (0x70,),
+            # 全局唤起键的验证组合。刻意选一个不会被系统或其它程序占用的组合。
+            "ctrl+alt+shift+f9": (0x11, 0x12, 0xA0, 0x70),
             "ctrl+shift+1": (0x11, 0xA0, 0x31),
             "ctrl+shift+2": (0x11, 0xA0, 0x32),
+            # 设置页「快捷键」录制用的空闲组合（九号键位没有绑命令）
+            "ctrl+shift+9": (0x11, 0xA0, 0x39),
+            "ctrl+shift+8": (0x11, 0xA0, 0x38),
             # 标签页（FR-2）
             "ctrl+t": (0x11, 0x54),
             "ctrl+w": (0x11, 0x57),
@@ -554,6 +561,10 @@ def main() -> int:
             "delete": (0x2E,),
             "enter": (0x0D,),
             "ctrl+a": (0x11, 0x41),
+            # 视图开关（FR-10.12 补齐）：侧栏、隐藏文件、历史分区
+            "ctrl+b": (0x11, 0x42),
+            "ctrl+h": (0x11, 0x48),
+            "ctrl+shift+h": (0x11, 0xA0, 0x48),
             "ctrl+d": (0x11, 0x44),
             # 复制完整路径（FR-6.14）。VK_C = 0x43，Shift 用 VK_LSHIFT(0xA0)
             # 而不是 VK_SHIFT(0x10)——与上面 ctrl+shift+n/m/d 保持同一写法。

@@ -3,7 +3,7 @@
 > 对应 `docs/requirements.md` FR-10.8、FR-10.9、AC-10。阶段：**0.2.0**。
 > 依赖：`docs/i18n.md` 先落地——关于页文案全部走资源键，否则又要抽一遍。
 
-> **0.2.1 变更（v3 走查）**：形态从「独立窗口」改为「内嵌设置页第六页」。
+> **0.2.1 变更（v3 走查）**：形态从「独立窗口」改为「内嵌设置页第八页」。
 > 下文 §二 的方案对比与 §五、§六 里的窗口尺寸，是 0.2.0 的决策记录，保留作依据；
 > 现状以实现为准——
 >
@@ -11,7 +11,7 @@
 >   由 `SettingsWindow` 的 `PageAbout` 直接承载；`AboutWindow` 已删除。
 > - 理由：入口本来就只有设置页那一颗按钮，点开再弹一扇 480×680 的窗，
 >   等于把同一份内容放到更远的地方，还多一次关闭。§二 里"会把设置页拉得很长"的顾虑，
->   在设置页改成分页导航后不成立——第六页本来就是空的。
+>   在设置页改成分页导航后不成立——关于页本来就是空的。
 > - 三个许可全文仍然开独立的 `LicenseWindow`：11KB 法律文本内嵌进来，
 >   这一页会变成几千行，且它不该参与本地化。
 > - 版本号、运行环境、目录、诊断四段与 0.2.0 完全一致，没有删减。
@@ -130,7 +130,7 @@ Apache-2.0 的合规要求是「**随分发物提供** LICENSE 与 NOTICE，并�
 
 | 项 | 做法 |
 |---|---|
-| 形态 | `src/Jianlan.App/Views/AboutView.xaml(.cs)` 用户控件，挂在 `SettingsWindow` 的 `PageAbout`（第六页）里。尺寸随设置窗（760×600），不单独设宽高，长文案靠 `TextWrapping` 换行。0.2.0 时是 480×680 的独立窗口，0.2.1 删除 |
+| 形态 | `src/Jianlan.App/Views/AboutView.xaml(.cs)` 用户控件，挂在 `SettingsWindow` 的 `PageAbout`（第八页）里。尺寸随设置窗（760×600），不单独设宽高，长文案靠 `TextWrapping` 换行。0.2.0 时是 480×680 的独立窗口，0.2.1 删除 |
 | 品牌区 | 图标 40×40 + 右侧两行：第一行 `Jianlan`（资源键 `About.AppName`，中英同值，品牌名不翻译），第二行版本号与实际构建号（`·` 分隔）。无构建号时版本行只剩版本号，分隔点一并隐藏 |
 | 版本号 | `Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion`；`+` 后为 commit，无 `+` 时只显示版本号 |
 | 打开目录 | `Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })`；路径不存在先 `Directory.CreateDirectory`（日志目录可能尚未创建）；异常 → 状态行提示，不弹原始异常 |

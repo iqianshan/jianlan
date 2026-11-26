@@ -104,6 +104,11 @@
                     <ListBoxItem>
                         <TextBlock Margin="{StaticResource Padding.NavItem}"
                                    Style="{StaticResource Text.Nav}"
+                                   Text="{loc:Tr Key=Settings.Page.Shortcuts}"/>
+                    </ListBoxItem>
+                    <ListBoxItem>
+                        <TextBlock Margin="{StaticResource Padding.NavItem}"
+                                   Style="{StaticResource Text.Nav}"
                                    Text="{loc:Tr Key=Settings.Page.About}"/>
                     </ListBoxItem>
                 </ListBox>
@@ -908,6 +913,47 @@
                                            Style="{StaticResource Text.FieldHint}"
                                            Text="{loc:Tr Key=Settings.Tags.Limit}"/>
                             </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ══════ 页 7：快捷键 ══════ -->
+                    <!--
+                        行是代码生成的：40 多条命令、分组、过滤、录制态，写死在 XAML 里
+                        既不好排版也无法随操作刷新（docs/settings-layout.md §7）。
+                        这一页之外只有「关于」页无字段，所以顺序必须与 SettingsPage 枚举一致。
+                    -->
+                    <ScrollViewer x:Name="PageShortcuts"
+                                  Padding="20,14,20,16"
+                                  Visibility="Collapsed"
+                                  VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <!--
+                                页说明不在这里重复：固定的页头（PageSubtitle）已经显示了同一句
+                                Settings.Page.Shortcuts.Desc，页内再写一遍就是两行一样的字。
+                            -->
+
+                            <!-- 过滤框常驻：40 多行超过两屏，没有它只能靠滚轮找。
+                                 必须 Stretch：只给 MaxWidth + 左对齐时，空文本的输入框量不出
+                                 期望宽度，会被压成一条竖线（走查发现）。 -->
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="ShortcutFilterBox"
+                                         Grid.Column="0"
+                                         Margin="0,0,12,0"
+                                         Style="{StaticResource TextBox.Address}"
+                                         AutomationProperties.Name="{loc:Tr Key=Settings.Shortcuts.Filter.Hint}"
+                                         TextChanged="OnShortcutFilterChanged"
+                                         ToolTip="{loc:Tr Key=Settings.Shortcuts.Filter.Hint}"/>
+                                <TextBlock Grid.Column="1"
+                                           VerticalAlignment="Center"
+                                           Style="{StaticResource Text.FieldHint}"
+                                           Text="{loc:Tr Key=Settings.Shortcuts.Filter.Hint}"/>
+                            </Grid>
+
+                            <StackPanel x:Name="ShortcutListPanel"/>
                         </StackPanel>
                     </ScrollViewer>
 

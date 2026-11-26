@@ -1,4 +1,5 @@
-using Jianlan.App.Commands;
+﻿using Jianlan.App.Commands;
+using Jianlan.App.ViewModels;
 using Jianlan.Core.Commands;
 using Jianlan.Core.Localization;
 using Jianlan.Core.Settings;
@@ -253,6 +254,28 @@ public partial class PaneView
             Execute = () => _ = ClearTagsAsync(),
             CanExecute = HasSelection,
         });
+
+        // Alt+1…8：给选中项打上第 N 号标签（docs/shortcuts.md §6）。
+        //
+        // 这里用**槽位**而不是颜色名做命令 Id：用户在设置里改名或增删标签后，
+        // 颜色名会变、槽位不会。菜单里的颜色项仍是预设表 + EventSetter，
+        // 与这里共用 ApplyTagAsync 的切换语义，不存在两套行为。
+        for (int slot = 0; slot < AppearanceSettings.DefaultTagCount; slot++)
+        {
+            int index = slot;
+            TagColors color = TagPalette.FromSlot(index);
+
+            _commands.Register(new AppCommand
+            {
+                Id = CommandIds.SetTagSlot(index),
+                TitleFactory = () => string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    Strings.Shortcut_Action_SetTag,
+                    TagPresets.NameOf(TagPalette.FromSlot(index))),
+                Execute = () => _ = ApplyTagAsync(color),
+                CanExecute = HasSelection,
+            });
+        }
         _commands.Register(new AppCommand
         {
             Id = CommandIds.CalculateSize,

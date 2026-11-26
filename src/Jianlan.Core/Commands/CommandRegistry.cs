@@ -50,6 +50,12 @@ public static class CommandIds
     /// <summary>给某项设置颜色标签的命令 Id。只用于诊断与将来的快捷键绑定。</summary>
     public static string SetTag(string colorName) => $"file.tag.{colorName}";
 
+    /// <summary>
+    /// 按槽位打标签（Alt+1…8）。与 <see cref="SetTag"/> 分开：槽位是"第几个标签"，
+    /// 用户在设置里改名或增删标签后，槽位不变而颜色名会变，快捷键绑定必须跟着槽位走。
+    /// </summary>
+    public static string SetTagSlot(int slot) => $"file.tag.slot{slot}";
+
     // 标签页（FR-2）。窗口级：标签集合属于窗口，不属于某个窗格。
     public const string NewTab = "tab.new";
     public const string CloseTab = "tab.close";
@@ -76,6 +82,18 @@ public static class CommandIds
     // 空格预览浮层（FR-9.1.7）。与预览窗格并存：窗格是"常驻一栏"，浮层是"按一下看一眼"，
     // 两者看的是同一个选中项，但各有各的视图模型——共用一份会在开合时互相取消在途任务。
     public const string ToggleQuickLook = "preview.quickLook";
+
+    // 视图开关（FR-10.12 补齐）：导航栏、隐藏文件、历史记录。
+    // 三者都是"窗口级偏好 + 立即重排界面"，与 Ctrl+D 收藏同一类，只是入口从设置页搬到了键位。
+    public const string ToggleNav = "view.toggleNav";
+    public const string ToggleHidden = "view.toggleHidden";
+    public const string ToggleHistory = "view.toggleHistory";
+
+    /// <summary>快捷键帮助（F1）：打开设置页的「快捷键」页。</summary>
+    public const string ShortcutsHelp = "app.shortcutsHelp";
+
+    /// <summary>关闭窗口（含全部标签页）。与「关闭当前标签页」分开：后者只关一个标签。</summary>
+    public const string CloseWindow = "window.close";
 }
 
 /// <summary>

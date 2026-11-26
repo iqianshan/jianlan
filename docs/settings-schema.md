@@ -32,6 +32,8 @@
     "showNavPane": true,
     "showStatusBar": true,
     "showPreview": false,       // 预览窗格的默认状态（FR-5.2.10）。默认关闭：内存占用最大的可选功能
+    "showHistory": false,       // 侧栏「历史」分区是否显示（FR-1.2.10）。与 privacy.historyEnabled 分工：
+                                // 那个管"记不记"，这个管"显示不显示"。默认关：侧栏只有 184px，先摆常用项
     "tabStripPosition": "top",  // top | bottom（FR-2.4），无法识别时回落 top
     "immersiveTitleBar": true,  // 隐藏系统标题栏，标签栏充当标题栏（FR-10.11）。**改后需重启**
     "tagColorNames": {          // 旧口径（≤0.2.1），只读兼容：装载时并入 tags 后清空，见下
@@ -117,6 +119,13 @@
     "navWidth": 184,            // 导航栏宽度，160–320（FR-1.2.4）。拖完分隔条才落盘，双击分隔条回 184
     "thisPcExpanded": false,    // 侧栏「此电脑」是否展开（FR-1.2.7）。默认折叠：侧栏只有 184px 宽时先摆目录与收藏
     "navHiddenPlaces": []       // 侧栏「位置」被隐藏的项（FR-1.2.9）。空 = 九项全显示；键见下表
+  },
+
+  "shortcuts": {                // 自定义键位（FR-10.12）。**只存差异**，见 §4
+    "overrides": {              // 命令 Id → 键位文本。键不存在 = 用内置默认；空串 = 用户明确解绑
+      "file.rename": "F4"
+    },
+    "showWindow": null          // 全局唤起键；null = 关闭（默认）。写法同 overrides 的值
   }
 }
 ```
@@ -176,6 +185,9 @@
 | `layout.secondaryColumns` | 与 `columns` 同结构 | 空对象 = 第二窗格从未单独调过，读的时候沿用 `columns`。**没调过就不写盘**，否则从没碰过分屏的用户文件里会凭空多出一份重复配置 |
 | `layout.primaryPane` / `secondaryPane` | `view` / `sortBy` / `sortDescending` 三项，均可为 `null` | `null` = 这一侧还没自己选过，沿用 `behavior.defaultView` / `behavior.sortBy`。写死初值会让设置页那两项默认值形同虚设 |
 | `previewAutoOpen` | 布尔 | `false` = 选中不自动预览，要按窗格里的「立即预览」。网络路径与可移动设备不受这一项影响，它们无论怎么设都不自动预览（FR-9.2.8） |
+| `shortcuts.overrides` | 键为命令 Id（`KeyBindings.Catalog` 里存在的那几个，≤120 字符），值为**规范化后的键位文本**或空串 | 认不出的键名、无法解析的写法一律**丢弃并回落默认**（留着一个坏值会让那条命令彻底没有快捷键，比回落更糟）；空串保留为"解绑"，不当作"没写"。写回前统一成 `Ctrl+Alt+Shift+Key` 的固定顺序与规范键名（`ctrl+comma` → `Ctrl+,`），这样同一套键位在文件里只有一种写法 |
+| `shortcuts.showWindow` | `null`（默认，关闭）或合法键位文本 | 空白、非法写法、以及 `ShortcutPolicy` 拒收的组合（`Win+*`、无修饰非功能键、系统保留）统一归一为 `null`。**不校验是否与其他程序冲突**：那是注册时才知道的结果（`RegisterHotKey` 返回失败），落盘时判不了；失败在设置页明说 |
+| `showHistory` | 布尔，默认 `false` | 侧栏「历史」分区的显示开关（FR-1.2.10）。与 `privacy.historyEnabled` 各管一件事：前者管"显示不显示"，后者管"记不记"。两项都开才看得到历史行 |
 
 > **路径合法性不在归一化里判**：盘符可能暂时不在（U 盘没插），判了就把标签吃掉。
 > 恢复时按 `Directory.Exists` 过滤（`MainWindow.RestoreTabs`），宁少一个标签，不留死标签。
@@ -202,6 +214,14 @@
 > **工作区不在这个文件里**：`behavior.startupWorkspace` 只存一个名字，工作区本体在独立的
 > `workspaces.json`（同目录，`AppPaths.WorkspacesFile`）。放进 `settings.json` 等于每次启动
 > 都要解析一遍所有工作区的标签列表，与"不参与冷启动默认路径"的要求相违。
+>
+> **`shortcuts` 只存差异，不存全表。** 没改过的命令不出现在 `overrides` 里，用的是程序内置
+> 默认值（`KeyBindings.Catalog`）。存全表会把"这一版的默认值"永久冻进用户文件，以后想调整
+> 默认键位再也到不了老用户——与标签只存改过的名字、第二窗格没调过不写 `secondaryColumns`
+> 是同一个口径。
+>
+> 空串与"键不存在"是两件事，必须分开：前者是明确意图（这条命令不要快捷键），后者是没改过。
+> 合并之后，"解绑"会变成"下次启动又回来"，用户只能反复解绑。
 
 ## 4. 读写规则
 

@@ -93,7 +93,14 @@ pwsh tools/perf-fixture/Measure-List.ps1 -Exe publish/Jianlan.exe -Path D:\perf-
 `preview_long_probe.py` / `preview_pane_probe.py` 四个纯诊断探针，只在查"预览慢/卡"时用
 （最后一个测的是预览窗格里连翻 PDF 时 UI 线程的响应）。
 `package_smoke.py`（打完包后对 `dist/` 里那份做冷启动：`portable.flag` 在、窗口起得来、
-`startup.log` 有本次追加、`WM_CLOSE` 后退出码 0 且 `session.json` 被清）。
+`startup.log` 有本次追加、`WM_CLOSE` 后退出码 0 且 `session.json` 被清）、
+`summon_probe.py`（全局唤起键三步：前台按 → 收起、别的程序在前台时按 → 回到前台、再按 → 收起。
+它用 `SendInput` 发键且**不改前台**，因为 `session.py` 的 `keys` 会先把目标窗口拎到最前，
+"从后台唤起"那一步在它手里根本构造不出来）。
+
+设置页的「快捷键」行是代码生成的，按钮上只有 `AutomationProperties.Name`、没有 `AutomationId`，
+`session.py` 里对应的是 `uiname:<名称>`（调用）/ `uinames:<名称>`（只列矩形），
+`uiany:<名称>` 则不限定控件类型（给输入框这类没有按钮语义的控件量位置用）。
 它们都用 `SendInput` 打真实按键，跑之前请勿操作鼠标键盘。
 
 查预览慢时先开 `JIANLAN_PREVIEWDEBUG=1`：日志会记下每次选中的 `preview ... Nms after selection`、

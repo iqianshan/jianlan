@@ -2012,4 +2012,151 @@
   <data name="Settings.Tags.RenameTip" xml:space="preserve">
     <value>Press Enter to apply the new name</value>
   </data>
+  <data name="Settings.Page.Shortcuts" xml:space="preserve">
+    <value>Shortcuts</value>
+  </data>
+  <data name="Settings.Page.Shortcuts.Desc" xml:space="preserve">
+    <value>Review and change keyboard shortcuts. Showing the window is a system-wide hotkey; the rest work inside the window.</value>
+  </data>
+  <data name="Settings.Shortcuts.Group.Global" xml:space="preserve">
+    <value>Global</value>
+  </data>
+  <data name="Settings.Shortcuts.Group.Files" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="Settings.Shortcuts.Group.Navigation" xml:space="preserve">
+    <value>Navigation</value>
+  </data>
+  <data name="Settings.Shortcuts.Group.View" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="Settings.Shortcuts.Group.Tabs" xml:space="preserve">
+    <value>Tabs</value>
+  </data>
+  <data name="Settings.Shortcuts.Group.Window" xml:space="preserve">
+    <value>Window</value>
+  </data>
+  <data name="Settings.Shortcuts.Group.Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Settings.Shortcuts.Filter.Hint" xml:space="preserve">
+    <value>Filter commands or keys</value>
+  </data>
+  <data name="Settings.Shortcuts.Change" xml:space="preserve">
+    <value>Change</value>
+  </data>
+  <data name="Settings.Shortcuts.Reset" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="Settings.Shortcuts.None" xml:space="preserve">
+    <value>Unbound</value>
+  </data>
+  <data name="Settings.Shortcuts.Fixed" xml:space="preserve">
+    <value>Fixed</value>
+  </data>
+  <data name="Settings.Shortcuts.Backup" xml:space="preserve">
+    <value>Backup</value>
+  </data>
+  <data name="Settings.Shortcuts.Recording" xml:space="preserve">
+    <value>Press the new combination…</value>
+  </data>
+  <data name="Settings.Shortcuts.Recording.Hint" xml:space="preserve">
+    <value>Esc to cancel, Delete to clear</value>
+  </data>
+  <data name="Settings.Shortcuts.ShowWindow" xml:space="preserve">
+    <value>Show or hide the window</value>
+  </data>
+  <data name="Settings.Shortcuts.ShowWindow.Hint" xml:space="preserve">
+    <value>System-wide while Jianlan runs, gone once it exits. No registry entry and no autostart; off by default.</value>
+  </data>
+  <data name="Settings.Shortcuts.Conflict" xml:space="preserve">
+    <value>Already used by “{0}”</value>
+  </data>
+  <data name="Settings.Shortcuts.NeedsModifier" xml:space="preserve">
+    <value>Needs Ctrl or Alt, or an F1–F24 key</value>
+  </data>
+  <data name="Settings.Shortcuts.Win" xml:space="preserve">
+    <value>Win combinations are not supported</value>
+  </data>
+  <data name="Settings.Shortcuts.Reserved" xml:space="preserve">
+    <value>Reserved by the system</value>
+  </data>
+  <data name="Settings.Shortcuts.TextEditing" xml:space="preserve">
+    <value>Won’t fire while typing in a text box</value>
+  </data>
+  <data name="Settings.Shortcuts.Saved" xml:space="preserve">
+    <value>Shortcuts updated</value>
+  </data>
+  <data name="Settings.Shortcuts.ResetDone" xml:space="preserve">
+    <value>Shortcuts reset to defaults</value>
+  </data>
+  <data name="Settings.Shortcuts.Busy" xml:space="preserve">
+    <value>Another program already uses this combination</value>
+  </data>
+  <data name="Shortcut.Action.ContextMenu" xml:space="preserve">
+    <value>Open context menu</value>
+  </data>
+  <data name="Shortcut.Action.ToggleNav" xml:space="preserve">
+    <value>Show or hide the navigation pane</value>
+  </data>
+  <data name="Shortcut.Action.ToggleHidden" xml:space="preserve">
+    <value>Show or hide hidden files</value>
+  </data>
+  <data name="Shortcut.Action.ToggleHistory" xml:space="preserve">
+    <value>Show or hide history</value>
+  </data>
+  <data name="Shortcut.Action.TabNew" xml:space="preserve">
+    <value>New tab</value>
+  </data>
+  <data name="Shortcut.Action.TabClose" xml:space="preserve">
+    <value>Close tab</value>
+  </data>
+  <data name="Shortcut.Action.TabReopen" xml:space="preserve">
+    <value>Reopen closed tab</value>
+  </data>
+  <data name="Shortcut.Action.TabNext" xml:space="preserve">
+    <value>Next tab</value>
+  </data>
+  <data name="Shortcut.Action.TabPrevious" xml:space="preserve">
+    <value>Previous tab</value>
+  </data>
+  <data name="Shortcut.Action.TabLast" xml:space="preserve">
+    <value>Last tab</value>
+  </data>
+  <data name="Shortcut.Action.TabGoto" xml:space="preserve">
+    <value>Go to tab {0}</value>
+  </data>
+  <data name="Shortcut.Action.ShortcutsHelp" xml:space="preserve">
+    <value>Keyboard shortcuts</value>
+  </data>
+  <data name="Shortcut.Action.CloseWindow" xml:space="preserve">
+    <value>Close window</value>
+  </data>
+  <data name="Shortcut.Action.SetTag" xml:space="preserve">
+    <value>Tag as {0}</value>
+  </data>
+  <data name="Nav.History" xml:space="preserve">
+    <value>History</value>
+  </data>
+  <data name="Nav.History.Empty" xml:space="preserve">
+    <value>No history yet</value>
+  </data>
+  <data name="Status.HiddenOn" xml:space="preserve">
+    <value>Hidden files shown</value>
+  </data>
+  <data name="Status.HiddenOff" xml:space="preserve">
+    <value>Hidden files hidden</value>
+  </data>
+  <data name="Status.HistoryOn" xml:space="preserve">
+    <value>History shown</value>
+  </data>
+  <data name="Status.HistoryOff" xml:space="preserve">
+    <value>History hidden</value>
+  </data>
+  <data name="Status.NavHidden" xml:space="preserve">
+    <value>Navigation pane hidden</value>
+  </data>
+  <data name="Status.NavShown" xml:space="preserve">
+    <value>Navigation pane shown</value>
+  </data>
 </root>

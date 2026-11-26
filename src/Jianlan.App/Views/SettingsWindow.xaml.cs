@@ -44,7 +44,8 @@ public partial class SettingsWindow : Window
         Actions = 3,
         Privacy = 4,
         Tags = 5,
-        About = 6,
+        Shortcuts = 6,
+        About = 7,
     }
 
     /// <summary>
@@ -55,6 +56,14 @@ public partial class SettingsWindow : Window
     private static SettingsPage _lastPage = SettingsPage.Appearance;
 
     public SettingsWindow()
+        : this(startAtShortcuts: false)
+    {
+    }
+
+    /// <param name="startAtShortcuts">
+    /// F1 直接落到「快捷键」页。用户按 F1 是来找键位的，停在上次那一页还得再找一遍。
+    /// </param>
+    public SettingsWindow(bool startAtShortcuts)
     {
         InitializeComponent();
 
@@ -69,7 +78,7 @@ public partial class SettingsWindow : Window
 
         // 选中即切页（OnNavChanged）。放在所有控件就绪之后：
         // ShowPage 要给 PageTitle / PageSubtitle 赋值，早了会拿到 null。
-        NavList.SelectedIndex = (int)_lastPage;
+        NavList.SelectedIndex = (int)(startAtShortcuts ? SettingsPage.Shortcuts : _lastPage);
 
         // 字体枚举与标签库条数都不进构造：两者都要读盘/遍历系统字体，
         // 放在首帧之后跑，窗口才是"先出来再填"。缓存占用同理（要遍历上万个小文件）。
@@ -109,10 +118,15 @@ public partial class SettingsWindow : Window
         PageActions.Visibility = Visible(page == SettingsPage.Actions);
         PagePrivacy.Visibility = Visible(page == SettingsPage.Privacy);
         PageTags.Visibility = Visible(page == SettingsPage.Tags);
+        PageShortcuts.Visibility = Visible(page == SettingsPage.Shortcuts);
         PageAbout.Visibility = Visible(page == SettingsPage.About);
 
         PageTitle.Text = TitleOf(page);
         PageSubtitle.Text = SubtitleOf(page);
+
+        // 每次翻到这一页都按当前设置重画：快捷键可能在别处被改过（F1 只是翻页），
+        // 也可能上一次调试留下了录制态。重画的成本是几十个控件，可以忽略。
+        if (page == SettingsPage.Shortcuts) RebuildShortcutRows();
 
         // 「关于」页没有可恢复的设置项，按钮留着只会让人点一下发现什么都没变
         ResetPageButton.Visibility = Visible(page != SettingsPage.About);
@@ -128,6 +142,7 @@ public partial class SettingsWindow : Window
         SettingsPage.Actions => Strings.Settings_Page_Actions,
         SettingsPage.Privacy => Strings.Settings_Page_Privacy,
         SettingsPage.Tags => Strings.Settings_Page_Tags,
+        SettingsPage.Shortcuts => Strings.Settings_Page_Shortcuts,
         _ => Strings.Settings_Page_About,
     };
 
@@ -139,6 +154,7 @@ public partial class SettingsWindow : Window
         SettingsPage.Actions => Strings.Settings_Page_Actions_Desc,
         SettingsPage.Privacy => Strings.Settings_Page_Privacy_Desc,
         SettingsPage.Tags => Strings.Settings_Page_Tags_Desc,
+        SettingsPage.Shortcuts => Strings.Settings_Page_Shortcuts_Desc,
         _ => Strings.Settings_Page_About_Desc,
     };
 
@@ -149,6 +165,10 @@ public partial class SettingsWindow : Window
     /// </summary>
     private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        // 录制键位优先：这一刻用户按的任何键都是"要绑的组合"，不该再去翻页、
+        // 也不该触发按钮的默认动作（否则按空格会把刚点的「修改」再点一次）。
+        if (HandleShortcutCaptureKey(e)) return;
+
         if (e.Key != Key.Tab) return;
         if ((Keyboard.Modifiers & ModifierKeys.Control) != ModifierKeys.Control) return;
 
@@ -509,6 +529,12 @@ public partial class SettingsWindow : Window
             // 恢复默认只把标签名单换回默认八色，不动 tags.jsonl 里打过的标记
             case SettingsPage.Tags:
                 ResetAndSync(Settings.ResetTagsPage, Strings.Settings_ResetPage_Done, resetFont: false);
+                break;
+
+            // 快捷键不是 BehaviorSettings 的字段，也不是"用户数据"：清空覆盖项即回默认。
+            // 唤起键一起关掉——它本来就默认关，留着会让"恢复了却没变"。
+            case SettingsPage.Shortcuts:
+                ResetShortcutsPage();
                 break;
         }
     }
@@ -1215,6 +1241,14 @@ public partial class SettingsWindow : Window
     {
         // 点右上角关闭时输入框未必失焦，这里补一次
         CommitNewTabPath();
+
+        // 录制中途关窗：系统热键是在进入录制时摘掉的，不还回去就永久失效
+        if (_recordingId is not null)
+        {
+            _recordingId = null;
+            Owner_?.SetShortcutCaptureMode(false);
+        }
+
         base.OnClosed(e);
     }
 

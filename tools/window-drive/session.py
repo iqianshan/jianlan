@@ -25,6 +25,9 @@
     set:VAR=VALUE             之后的步骤都带这个环境变量
     uia:<行序号>              按行序号选侧栏（AutomationId=QuickAccessList）
     auiclick:<AutomationId>   按 AutomationId 调用按钮（WPF 的 x:Name 即 AutomationId）
+    uiname:<Name>             按可访问名调用按钮；uinames:<Name> 只列出矩形
+    uiany:<Name>              不限定控件类型，只列出矩形（输入框这类）
+    navdump[:ListId]          打印侧栏全部行的可访问名（默认 QuickAccessList）
     sleep:<秒>
 
 踩过的坑写在 docs/ac06-visual-acceptance.md 与 docs/ui-guidelines.md 规则 7.16 / 7.17。
@@ -40,6 +43,8 @@ WD = os.path.join(HERE, "window_drive.py")
 SHOT = os.path.join(HERE, "fullshot.py")
 UIA = os.path.join(HERE, "uia_select.ps1")
 UIA_CLICK = os.path.join(HERE, "uia_click.ps1")
+UIA_BYNAME = os.path.join(HERE, "uia_invoke_byname.ps1")
+UIA_NAVDUMP = os.path.join(HERE, "uia_nav_dump.ps1")
 
 
 def call_wd(pid, args, env):
@@ -116,6 +121,37 @@ def main() -> int:
                 capture_output=True, text=True, errors="replace", env=env,
             )
             print(f"[auiclick {target}] {(r.stdout or '').strip()} {(r.stderr or '').strip()[:200]}")
+            time.sleep(1.2)
+            continue
+
+        # navdump[:ListId] 把侧栏的行名整批打出来。截图在这台机器上不可靠
+        # （有个 always-on-top 的窗口会抢前台），"有哪些分区、历史行写了什么"走 UIA 读。
+        if step.startswith("navdump"):
+            _, _, list_id = step.partition(":")
+            args = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                    "-File", UIA_NAVDUMP, "-TargetPid", str(proc.pid)]
+            if list_id.strip():
+                args += ["-ListId", list_id.strip()]
+            r = subprocess.run(args, capture_output=True, text=True, errors="replace", env=env)
+            print(f"[navdump] {(r.stdout or '').strip()} {(r.stderr or '').strip()[:200]}")
+            time.sleep(0.4)
+            continue
+
+        # uiname:<Name> 按可访问名点按钮；uinames:<Name> 只列出所有同名按钮的矩形；
+        # uiany:<Name> 不限定控件类型，只列矩形（给输入框这类没有按钮语义的控件用）。
+        # 设置页的行是代码生成的，按钮只有 AutomationProperties.Name、没有 AutomationId，
+        # 也没有 x:Name，所以 auiclick 那一条路走不通。
+        if step.startswith(("uiname:", "uinames:", "uiany:")):
+            kind, _, target = step.partition(":")
+            target = target.strip()
+            args = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                    "-File", UIA_BYNAME, "-TargetPid", str(proc.pid), "-Name", target]
+            if kind != "uiname":
+                args.append("-All")
+            if kind == "uiany":
+                args.append("-Any")
+            r = subprocess.run(args, capture_output=True, text=True, errors="replace", env=env)
+            print(f"[uiname {target}] {(r.stdout or '').strip()} {(r.stderr or '').strip()[:200]}")
             time.sleep(1.2)
             continue
 

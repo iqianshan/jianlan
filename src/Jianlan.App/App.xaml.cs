@@ -217,6 +217,10 @@ public partial class App : Application
         _loadedLastPath = Settings.Session.LastPath;
         _loadedTabs = [.. Settings.Session.Tabs];
 
+        // 快捷键表按设置重建一次。必须在创建主窗口之前：窗口的 OnSourceInitialized
+        // 会拿表里的组合去注册系统热键，晚一步就注册的是默认值，用户改的键位不生效。
+        Input.KeyBindings.Rebuild(Settings.Shortcuts);
+
         // 启用中的标签掩码。行内色点在 Core 层算（FileEntry），拿不到设置，
         // 所以在读设置之后注入一次：被删除的标签即使记录还在，也不该在行上留点。
         Core.Tagging.TagPalette.SetActiveMask(
