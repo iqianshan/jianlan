@@ -80,6 +80,10 @@ public sealed class ShortcutPolicyTests
     [InlineData("F12")]
     [InlineData("Ctrl+Alt+J")]
     [InlineData("Alt+`")]
+    [InlineData("Ctrl+Shift+A")]
+    [InlineData("Ctrl+Q")]
+    [InlineData("Ctrl+Alt+S")]
+    [InlineData("Ctrl+Alt+O")]
     public void 允许的组合(string text)
     {
         Assert.True(ShortcutGesture.TryParse(text, out ShortcutGesture gesture));

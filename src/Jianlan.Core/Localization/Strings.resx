@@ -155,6 +155,12 @@
   <data name="Menu.CopyPath" xml:space="preserve">
     <value>Copy full path</value>
   </data>
+  <data name="Menu.SelectAll" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="Menu.SelectInvert" xml:space="preserve">
+    <value>Invert selection</value>
+  </data>
   <data name="Menu.Refresh" xml:space="preserve">
     <value>Refresh</value>
   </data>
@@ -656,6 +662,18 @@
   </data>
   <data name="Command.SelectAll" xml:space="preserve">
     <value>Select all</value>
+  </data>
+  <data name="Command.SelectInvert" xml:space="preserve">
+    <value>Invert selection</value>
+  </data>
+  <data name="Command.Exit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="Command.WorkspaceSave" xml:space="preserve">
+    <value>Save as workspace</value>
+  </data>
+  <data name="Command.WorkspaceOpenList" xml:space="preserve">
+    <value>Open workspace list</value>
   </data>
   <data name="Hint.DragMoveTo" xml:space="preserve">
     <value>Move to "{0}"</value>
@@ -1178,6 +1196,9 @@
   </data>
   <data name="Status.Workspace.NoTabs" xml:space="preserve">
     <value>Nothing to save</value>
+  </data>
+  <data name="Status.Workspace.ListHint" xml:space="preserve">
+    <value>Workspaces are listed on the home page and in the sidebar</value>
   </data>
   <data name="Status.Workspace.Missing" xml:space="preserve">
     <value>Workspace not found</value>

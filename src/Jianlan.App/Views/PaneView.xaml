@@ -810,6 +810,15 @@
                                       Tag="ItemScope"
                                       Command="{Binding PropertiesCommand}"/>
                             <Separator Style="{StaticResource Menu.Separator}"/>
+                            <!-- 选择（Ctrl+A / Ctrl+Shift+A）。不标 ItemScope：空白处右键也要能用，
+                                 否则"先全选再操作"在空白处没有入口。 -->
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.SelectAll}"
+                                      Command="{Binding SelectAllCommand}"/>
+                            <MenuItem Style="{StaticResource MenuItem.Default}"
+                                      Header="{loc:Tr Key=Menu.SelectInvert}"
+                                      Command="{Binding SelectInvertCommand}"/>
+                            <Separator Style="{StaticResource Menu.Separator}"/>
                             <!-- 刷新（FR-6.2 的鼠标入口）。不标 ItemScope：它作用于当前目录，
                                  空白处右键同样该有。压在「更多选项」之上是因为后者是 FR-6.9 的
                                  兜底入口，位置必须留在最后。 -->

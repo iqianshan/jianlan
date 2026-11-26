@@ -149,6 +149,12 @@
   <data name="Menu.CopyPath" xml:space="preserve">
     <value>复制完整路径</value>
   </data>
+  <data name="Menu.SelectAll" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="Menu.SelectInvert" xml:space="preserve">
+    <value>反选</value>
+  </data>
   <data name="Menu.Refresh" xml:space="preserve">
     <value>刷新</value>
   </data>
@@ -643,6 +649,18 @@
   </data>
   <data name="Command.SelectAll" xml:space="preserve">
     <value>全选</value>
+  </data>
+  <data name="Command.SelectInvert" xml:space="preserve">
+    <value>反选</value>
+  </data>
+  <data name="Command.Exit" xml:space="preserve">
+    <value>退出</value>
+  </data>
+  <data name="Command.WorkspaceSave" xml:space="preserve">
+    <value>保存为工作区</value>
+  </data>
+  <data name="Command.WorkspaceOpenList" xml:space="preserve">
+    <value>打开工作区列表</value>
   </data>
   <data name="Hint.DragMoveTo" xml:space="preserve">
     <value>移动到「{0}」</value>
@@ -1165,6 +1183,9 @@
   </data>
   <data name="Status.Workspace.NoTabs" xml:space="preserve">
     <value>没有可保存的标签</value>
+  </data>
+  <data name="Status.Workspace.ListHint" xml:space="preserve">
+    <value>工作区在主页与侧栏「工作区」中列出</value>
   </data>
   <data name="Status.Workspace.Missing" xml:space="preserve">
     <value>工作区不存在</value>

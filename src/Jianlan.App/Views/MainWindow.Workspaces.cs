@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -175,6 +176,20 @@ public partial class MainWindow
         }
 
         return [.. created];
+    }
+
+    /// <summary>
+    /// 打开工作区列表（Ctrl+Alt+O）。列表在主页的工作区卡片区与侧栏「工作区」分区各有一份，
+    /// 这里把用户送到主页那份；当前标签已经是主页就直接复用，不再叠一个空标签。
+    ///
+    /// 不用 <c>Tab.ShowHome()</c> 就地替换：那会把正在浏览的目录换成主页，
+    /// 按一个"打开列表"的键不该丢掉当前位置。
+    /// </summary>
+    private void OpenWorkspaceList()
+    {
+        if (!Tab.IsHome) _tabs.Activate(_tabs.AddPendingHome());
+
+        Vm.SetStatusHold(Strings.Status_Workspace_ListHint, TimeSpan.FromSeconds(1.6));
     }
 
     /// <summary>保存当前标签为一份新工作区（FR-8.1 / 8.3）。</summary>

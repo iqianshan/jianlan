@@ -706,6 +706,30 @@ public partial class PaneView : UserControl
         CommandManager.InvalidateRequerySuggested();
     }
 
+    /// <summary>
+    /// 反选（Ctrl+Shift+A）：选中的取消、没选中的全部选上。
+    ///
+    /// 先清空再逐项加，而不是逐项 Remove：Extended 模式没有批量接口，清空只有一次
+    /// CollectionChanged 通知，逐项 Remove 会有 N 次。万项目录里这一步仍比全选慢，
+    /// 但反选天然要遍历全集，没有更省的做法。
+    /// </summary>
+    internal void InvertSelection()
+    {
+        var selected = new HashSet<object>(FileList.SelectedItems.Count);
+        foreach (object item in FileList.SelectedItems) selected.Add(item);
+
+        var toSelect = new List<object>();
+        foreach (object item in FileList.Items)
+        {
+            if (!selected.Contains(item)) toSelect.Add(item);
+        }
+
+        FileList.SelectedItems.Clear();
+        foreach (object item in toSelect) FileList.SelectedItems.Add(item);
+
+        CommandManager.InvalidateRequerySuggested();
+    }
+
     /// <summary>列表已有条目数，供"全选"命令的可执行性判断。</summary>
     internal int ItemCount => FileList.Items.Count;
 

@@ -44,6 +44,10 @@ public partial class PaneView
     public CommandAdapter MoreOptionsCommand { get; private set; } = null!;
     public CommandAdapter TagRemoveCommand { get; private set; } = null!;
 
+    /// <summary>全选与反选（右键菜单入口）。Ctrl+A / Ctrl+Shift+A 走同一批命令。</summary>
+    public CommandAdapter SelectAllCommand { get; private set; } = null!;
+    public CommandAdapter SelectInvertCommand { get; private set; } = null!;
+
     /// <summary>
     /// 右键菜单里的「收藏」（FR-7.1）。由窗口注入而不是在这里注册：
     /// 收藏要同时刷导航栏、主页与设置文件，这些状态都归窗口；窗格只需要
@@ -296,6 +300,14 @@ public partial class PaneView
             Execute = SelectAllItems,
             CanExecute = () => _viewModel is { IsLoading: false } && ItemCount > 0,
         });
+        // 反选（Ctrl+Shift+A）。可执行条件与全选一致：列表加载中或空目录时没有可反选的对象。
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.SelectInvert,
+            TitleFactory = () => Strings.Command_SelectInvert,
+            Execute = InvertSelection,
+            CanExecute = () => _viewModel is { IsLoading: false } && ItemCount > 0,
+        });
 
         UpCommand = new CommandAdapter(_commands.Get(CommandIds.GoUp));
         BackCommand = new CommandAdapter(_commands.Get(CommandIds.GoBack));
@@ -317,5 +329,7 @@ public partial class PaneView
         CalculateSizeCommand = new CommandAdapter(_commands.Get(CommandIds.CalculateSize));
         MoreOptionsCommand = new CommandAdapter(_commands.Get(CommandIds.MoreOptions));
         TagRemoveCommand = new CommandAdapter(_commands.Get(CommandIds.RemoveTag));
+        SelectAllCommand = new CommandAdapter(_commands.Get(CommandIds.SelectAll));
+        SelectInvertCommand = new CommandAdapter(_commands.Get(CommandIds.SelectInvert));
     }
 }

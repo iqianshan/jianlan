@@ -532,6 +532,15 @@ def main() -> int:
             # 设置页「快捷键」录制用的空闲组合（九号键位没有绑命令）
             "ctrl+shift+9": (0x11, 0xA0, 0x39),
             "ctrl+shift+8": (0x11, 0xA0, 0x38),
+            # 选择（Ctrl+A / Ctrl+Shift+A 反选）
+            "ctrl+a": (0x11, 0x41),
+            "ctrl+shift+a": (0x11, 0xA0, 0x41),
+            # 退出与应用级快捷键
+            "ctrl+q": (0x11, 0x51),
+            "ctrl+alt+s": (0x11, 0x12, 0x53),
+            "ctrl+alt+o": (0x11, 0x12, 0x4F),
+            # 菜单键（VK_APPS）：键盘打开列表右键菜单，验证菜单项用
+            "apps": (0x5D,),
             # Shift + 不产生文字的键：策略放行这一类（Shift+Delete 本来就是内置默认）
             "shift+home": (0xA0, 0x24),
             # 唤起键的 Win 组合。VK_LWIN = 0x5B；Win 必须显式发，SendInput 不会替我们加

@@ -184,6 +184,7 @@ copy path, open in a new window. Middle-click a folder, or `Ctrl`-click it, to o
 | Copy full path | `Ctrl+Shift+C` |
 | Properties | `Alt+Enter` |
 | Select all | `Ctrl+A` |
+| Invert selection | `Ctrl+Shift+A` |
 
 Renaming happens in place, right in the list — no dialog. Only the part before the extension is
 selected when you start (`report.docx` selects `report`; folders select the whole name). `Enter`
@@ -206,7 +207,7 @@ into File Explorer, and files copied in File Explorer paste into Jianlan the sam
 move on the receiving side, not a copy-then-delete. Quitting Jianlan first is fine — the data is
 handed over the moment you copy.
 
-### Views and panels
+### Views, workspaces and the app
 
 | Action | Shortcut |
 |---|---|
@@ -221,6 +222,9 @@ handed over the moment you copy.
 | History section in the sidebar | `Ctrl+H` |
 | Settings | `Ctrl+,` |
 | Every shortcut at a glance | `F1` (opens Settings straight on the Shortcuts page) |
+| Save the current tabs as a workspace | `Ctrl+Alt+S` (asks for a name) |
+| Open the workspace list | `Ctrl+Alt+O` (jumps to the cards on the home page) |
+| Quit | `Alt+F4` or `Ctrl+Q` |
 
 **Shortcuts are yours to change.** `F1`, or Settings → "Shortcuts", lists every command:
 click "Change", then press the combination you want. Press `Delete` to unbind it, or "Reset" to go

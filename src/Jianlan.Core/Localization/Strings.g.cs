@@ -135,6 +135,12 @@ public static class Strings
     /// <summary>Copy full path</summary>
     public static string Menu_CopyPath => LocalizationService.Instance.Get("Menu.CopyPath");
 
+    /// <summary>Select all</summary>
+    public static string Menu_SelectAll => LocalizationService.Instance.Get("Menu.SelectAll");
+
+    /// <summary>Invert selection</summary>
+    public static string Menu_SelectInvert => LocalizationService.Instance.Get("Menu.SelectInvert");
+
     /// <summary>Refresh</summary>
     public static string Menu_Refresh => LocalizationService.Instance.Get("Menu.Refresh");
 
@@ -654,6 +660,18 @@ public static class Strings
 
     /// <summary>Select all</summary>
     public static string Command_SelectAll => LocalizationService.Instance.Get("Command.SelectAll");
+
+    /// <summary>Invert selection</summary>
+    public static string Command_SelectInvert => LocalizationService.Instance.Get("Command.SelectInvert");
+
+    /// <summary>Exit</summary>
+    public static string Command_Exit => LocalizationService.Instance.Get("Command.Exit");
+
+    /// <summary>Save as workspace</summary>
+    public static string Command_WorkspaceSave => LocalizationService.Instance.Get("Command.WorkspaceSave");
+
+    /// <summary>Open workspace list</summary>
+    public static string Command_WorkspaceOpenList => LocalizationService.Instance.Get("Command.WorkspaceOpenList");
 
     /// <summary>Move to "{0}"</summary>
     public static string Hint_DragMoveTo => LocalizationService.Instance.Get("Hint.DragMoveTo");
@@ -1196,6 +1214,9 @@ public static class Strings
 
     /// <summary>Nothing to save</summary>
     public static string Status_Workspace_NoTabs => LocalizationService.Instance.Get("Status.Workspace.NoTabs");
+
+    /// <summary>Workspaces are listed on the home page and in the sidebar</summary>
+    public static string Status_Workspace_ListHint => LocalizationService.Instance.Get("Status.Workspace.ListHint");
 
     /// <summary>Workspace not found</summary>
     public static string Status_Workspace_Missing => LocalizationService.Instance.Get("Status.Workspace.Missing");

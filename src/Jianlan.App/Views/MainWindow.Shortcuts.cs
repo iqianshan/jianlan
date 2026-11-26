@@ -46,6 +46,29 @@ public partial class MainWindow
             TitleFactory = () => Strings.Shortcut_Action_CloseWindow,
             Execute = Close,
         });
+        // Ctrl+Q 退出。与 Ctrl+Shift+W 走同一条关闭路径（ShutdownMode=OnMainWindowClose，
+        // 关掉主窗即退出进程），只是给习惯 Ctrl+Q 的用户一个入口。
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.Exit,
+            TitleFactory = () => Strings.Command_Exit,
+            Execute = Close,
+        });
+        // 工作区两条（FR-8）：保存当前标签、打开工作区列表。
+        // 「保存」不加 CanExecute：主页标签下仍可能开着别的目录标签，是否为空由
+        // CollectWorkspaceTabs 判并在状态栏说明，比在命令层猜更准。
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.WorkspaceSave,
+            TitleFactory = () => Strings.Command_WorkspaceSave,
+            Execute = SaveCurrentWorkspace,
+        });
+        _commands.Register(new AppCommand
+        {
+            Id = CommandIds.WorkspaceOpenList,
+            TitleFactory = () => Strings.Command_WorkspaceOpenList,
+            Execute = OpenWorkspaceList,
+        });
     }
 
     /// <summary>

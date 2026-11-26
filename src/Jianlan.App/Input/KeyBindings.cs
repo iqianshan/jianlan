@@ -388,6 +388,7 @@ internal static class KeyBindings
             new(CommandIds.Paste, Group.Files, () => Strings.Command_Paste, "Ctrl+V"),
             new(CommandIds.CopyPath, Group.Files, () => Strings.Command_CopyPath, "Ctrl+Shift+C"),
             new(CommandIds.SelectAll, Group.Files, () => Strings.Command_SelectAll, "Ctrl+A"),
+            new(CommandIds.SelectInvert, Group.Files, () => Strings.Command_SelectInvert, "Ctrl+Shift+A"),
             new(CommandIds.Undo, Group.Files, () => Strings.Command_Undo, "Ctrl+Z"),
             new(CommandIds.NewFolder, Group.Files, () => Strings.Command_NewFolder, "Ctrl+Shift+N"),
             new(CommandIds.NewFile, Group.Files, () => Strings.Command_NewFile, "Ctrl+Shift+M"),
@@ -428,6 +429,9 @@ internal static class KeyBindings
             new(CommandIds.OpenSettings, Group.Window, () => Strings.Command_OpenSettings, "Ctrl+,"),
             new(CommandIds.ShortcutsHelp, Group.Window, () => Strings.Shortcut_Action_ShortcutsHelp, "F1"),
             new(CommandIds.CloseWindow, Group.Window, () => Strings.Shortcut_Action_CloseWindow, "Ctrl+Shift+W"),
+            new(CommandIds.Exit, Group.Window, () => Strings.Command_Exit, "Ctrl+Q"),
+            new(CommandIds.WorkspaceSave, Group.Window, () => Strings.Command_WorkspaceSave, "Ctrl+Alt+S"),
+            new(CommandIds.WorkspaceOpenList, Group.Window, () => Strings.Command_WorkspaceOpenList, "Ctrl+Alt+O"),
             new(CommandIds.ToggleSplit, Group.Window, () => Strings.Command_ToggleSplit, "F3", Backup: "Ctrl+Shift+E"),
             new(CommandIds.FocusOtherPane, Group.Window, () => Strings.Command_FocusOtherPane, "F6"),
 

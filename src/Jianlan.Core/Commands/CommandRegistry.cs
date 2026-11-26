@@ -37,6 +37,9 @@ public static class CommandIds
     public const string ShowContextMenu = "file.contextMenu";
     public const string SelectAll = "file.selectAll";
 
+    /// <summary>反选（Ctrl+Shift+A）。与全选成对，只作用于当前窗格的列表。</summary>
+    public const string SelectInvert = "file.selectInvert";
+
     // 文件夹大小（FR-6.16）。只有用户显式点菜单才会走到，没有任何自动触发路径。
     public const string CalculateSize = "file.calculateSize";
 
@@ -94,6 +97,16 @@ public static class CommandIds
 
     /// <summary>关闭窗口（含全部标签页）。与「关闭当前标签页」分开：后者只关一个标签。</summary>
     public const string CloseWindow = "window.close";
+
+    /// <summary>退出（Ctrl+Q）。与关闭窗口是同一条路径，只是提供给习惯 Ctrl+Q 的用户。</summary>
+    public const string Exit = "app.exit";
+
+    // 工作区（FR-8）。窗口级：一份工作区是一整套标签的快照，不属于某个窗格。
+    /// <summary>把当前标签存成一份新工作区（Ctrl+Alt+S）。</summary>
+    public const string WorkspaceSave = "workspace.save";
+
+    /// <summary>打开工作区列表（Ctrl+Alt+O）：切到主页，列表在工作区卡片区与侧栏各有一份。</summary>
+    public const string WorkspaceOpenList = "workspace.openList";
 }
 
 /// <summary>
