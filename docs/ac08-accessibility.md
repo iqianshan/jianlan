@@ -135,6 +135,25 @@
 修复：`AutomationProperties.Name="{Binding ToolTip, RelativeSource={RelativeSource Self}}"`，
 与可见提示同源（禁用时自动读「已达上限」），修复后读作「新建标签页（Ctrl+T）」。
 
+**2026-11-26 补测（侧栏整表）**：用 `tools/window-drive/uia_nav_dump.ps1` 把侧栏每一行
+的可访问名整批读出来，不再只抽 Tab 链上的停靠点。结果发现一类此前没测到的缺陷：
+
+| 行类型 | 改前读作 | 改后 |
+|---|---|---|
+| 分区标题（位置 / 收藏 / 标签 / 工作区 / 历史） | `Jianlan.App.ViewModels.NavSectionRow` | 位置 / 收藏 / 标签 / 工作区 / 历史 |
+| 「此电脑」行 | `Jianlan.App.ViewModels.NavThisPcRow` | 此电脑 |
+| 空态提示行 | `Jianlan.App.ViewModels.NavEmptyRow` | 在目录里按 Ctrl+D 收藏当前位置（等原文） |
+
+原因是 `ListBoxItem` 的可访问名取数据对象的 `ToString()`，而这些行类型没覆盖它，
+默认实现就是类型全名。屏读器会逐个字母念出 `Jianlan.App.ViewModels...`。
+
+修法：`NavRow` 上加 `virtual string AccessibleName`，各子类覆盖成界面上那行字，
+基类 `override ToString()` 返回它。`NavItem`（位置项）是 record，本来就有可读的
+`ToString()`，不受影响——所以这十行里只有「桌面/文档/下载」一直是正常的，
+更不容易被发现。
+
+这也说明"只抽 20 个停靠点读名称"不够：被抽到的恰好都是有名称的那几类。
+
 ## 7. 未覆盖与留白
 
 - **只用代码读名称，没有真的开读屏软件。** NVDA / 讲述人未实测，"读出来是否顺口、顺序是否合理"仍需人工过一遍。

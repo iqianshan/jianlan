@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -30,6 +30,18 @@ public abstract class NavRow : INavRow
     /// 都挂同一颗），行类型只管数据。字形本身仍由 <see cref="IconGlyphs"/> 登记（界面规则 9.2）。
     /// </summary>
     public string MoreGlyph => IconGlyphs.More;
+
+    /// <summary>
+    /// 屏读器与 UIA 读到的行名（FR-10.7）。每个行类型覆盖成"界面上那行字"。
+    ///
+    /// 不覆盖的话，`ListBoxItem` 的可访问名取的是数据对象的 <c>ToString()</c>，
+    /// 而默认实现是类型全名——侧栏的分区标题会念成
+    /// "Jianlan.App.ViewModels.NavSectionRow"，「此电脑」念成 "NavThisPcRow"，
+    /// 空态提示念成 "NavEmptyRow"。走查（2026-11-26）就是用 UIA 读出来的这一串。
+    /// </summary>
+    public virtual string AccessibleName => string.Empty;
+
+    public override string ToString() => AccessibleName;
 }
 
 /// <summary>
@@ -42,6 +54,8 @@ public abstract class NavRow : INavRow
 public sealed class NavSectionRow : NavRow
 {
     public required string Title { get; init; }
+
+    public override string AccessibleName => Title;
 
     /// <summary>这份标题属于哪个分区。模板据此决定右键菜单里出哪几项。</summary>
     public NavSectionKind Kind { get; init; } = NavSectionKind.Bookmarks;
@@ -84,12 +98,49 @@ public enum NavSectionKind
     Tags,
 
     Workspaces,
+
+    /// <summary>最近访问（Ctrl+H 显示/隐藏）。默认隐藏，见 <c>appearance.showHistory</c>。</summary>
+    History,
+}
+
+/// <summary>
+/// 侧栏「历史」分区的一行（最近访问过的目录）。
+///
+/// 与收藏项分开一个类型：收藏有改名、颜色、分组、拖拽排序这一整套，历史只需要"点一下回去"。
+/// 复用 <see cref="NavBookmarkRow"/> 会把那些菜单项一起带进来，而它们对一条历史记录没有意义。
+/// </summary>
+public sealed class NavHistoryRow : NavRow
+{
+    public NavHistoryRow(HistoryEntry entry)
+    {
+        Path = entry.Path;
+
+        // 盘根目录（D:\）取文件名会得到空串，此时退回完整路径：
+        // 侧栏宁可显示 "D:\"，也不要留一行空白让人点。
+        string trimmed = entry.Path.TrimEnd(
+            System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+        Name = System.IO.Path.GetFileName(trimmed) is { Length: > 0 } name ? name : entry.Path;
+        Tooltip = entry.Path;
+    }
+
+    public string Path { get; }
+
+    public string Name { get; }
+
+    public override string AccessibleName => Name;
+
+    public string Tooltip { get; }
+
+    /// <summary>时钟字形，与主页「最近访问」同一颗，用户不用重新认。</summary>
+    public string Glyph => IconGlyphs.History;
 }
 
 /// <summary>分区下方的空态提示，例如"还没有收藏，Ctrl+D 添加当前目录"。</summary>
 public sealed class NavEmptyRow : NavRow
 {
     public required string Text { get; init; }
+
+    public override string AccessibleName => Text;
 
     /// <summary>提示行要能折行，行高交给内容（见 Nav.Item 里的触发器）。</summary>
     public bool IsHint => true;
@@ -101,6 +152,8 @@ public sealed class NavEmptyRow : NavRow
 /// </summary>
 public sealed class NavGroupRow : NavRow, INotifyPropertyChanged
 {
+    public override string AccessibleName => Name;
+
     private bool _isExpanded;
 
     public required string Name { get; init; }
@@ -150,6 +203,8 @@ public sealed class NavWorkspaceRow : NavRow
 
     public string Name => Workspace.Name;
 
+    public override string AccessibleName => Name;
+
     public int TabCount => Workspace.Tabs.Count;
 
     /// <summary>起点标记：启动时自动恢复的那一份，行尾有一个小点，避免"改了名不知道哪份在生效"。</summary>
@@ -187,6 +242,8 @@ public sealed class NavTagRow : NavRow
     public TagColors Color { get; }
 
     public string Name { get; }
+
+    public override string AccessibleName => Name;
 
     /// <summary>圆点颜色。<c>#RRGGBB</c>，与列表行尾那个圆点取自同一张色表。</summary>
     public string Hex { get; }
@@ -235,6 +292,8 @@ public sealed class NavThisPcRow : NavRow, INotifyPropertyChanged
     public string Glyph => IconGlyphs.ThisPc;
 
     public string Title => Strings.Nav_ThisPc;
+
+    public override string AccessibleName => Title;
 
     public string TooltipText => Strings.Nav_ThisPc_Tip;
 }
@@ -301,6 +360,8 @@ public sealed class NavThisPcNoteRow : NavRow
 {
     public required string Text { get; init; }
 
+    public override string AccessibleName => Text;
+
     public bool IsHint => true;
 }
 
@@ -336,6 +397,8 @@ public sealed class NavBookmarkRow : NavRow, INotifyPropertyChanged{
     public string Path => Entry.Path;
 
     public string Name { get; }
+
+    public override string AccessibleName => Name;
 
     public string Tooltip { get; }
 
@@ -417,9 +480,17 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
     /// <summary>驱动器是否正在枚举。并发保护：展开一次只发起一轮，避免连点堆出多次读盘。</summary>
     private bool _drivesLoading;
 
+    /// <summary>最近访问的目录，最多 12 条。null = 不显示历史分区（测试与无设置宿主）。</summary>
+    private readonly Func<IReadOnlyList<HistoryEntry>>? _recentPaths;
+
+    /// <summary>历史分区此刻是否显示。用委托而不是值：Ctrl+H 改完要立刻反映，不必重建宿主。</summary>
+    private readonly Func<bool>? _showHistory;
+
     public NavPanelViewModel(BookmarkStore store, Func<IReadOnlyList<NavItem>> systemRows,
         TagStore? tags = null, bool thisPcExpanded = false, Action<bool>? onThisPcExpandedChanged = null,
-        Func<IReadOnlyList<string>>? hiddenPlaces = null)
+        Func<IReadOnlyList<string>>? hiddenPlaces = null,
+        Func<IReadOnlyList<HistoryEntry>>? recentPaths = null,
+        Func<bool>? showHistory = null)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
         _systemRows = systemRows ?? throw new ArgumentNullException(nameof(systemRows));
@@ -427,6 +498,8 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
         _thisPcExpanded = thisPcExpanded;
         _onThisPcExpandedChanged = onThisPcExpandedChanged;
         _hiddenPlaces = hiddenPlaces;
+        _recentPaths = recentPaths;
+        _showHistory = showHistory;
 
         // 这里**不**调 Rebuild：systemRows 要读窗口的活动标签，而本对象在
         // "标签集合刚建出来"之前就被构造了，此时取不到东西（一取就是空引用）。
@@ -515,6 +588,7 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
         Raise(nameof(HasBookmarks));
         AddTagRows();
         AddWorkspaceRows();
+        AddHistoryRows();
         _ = CheckMissingAsync();
     }
 
@@ -773,6 +847,61 @@ public sealed class NavPanelViewModel : INotifyPropertyChanged
     {
         foreach (INavRow row in BuildWorkspaceRows()) Rows.Add(row);
         Raise(nameof(HasWorkspaces));
+    }
+
+    /// <summary>
+    /// 历史一段（Ctrl+H）。默认不显示：它排在收藏、标签、工作区之后，
+    /// 侧栏默认只有 184 DIP 宽，常驻会把真正每天用的项挤下去。
+    /// </summary>
+    private void AddHistoryRows()
+    {
+        foreach (INavRow row in BuildHistoryRows()) Rows.Add(row);
+    }
+
+    /// <summary>「历史」一段的全部行：分区标题 + 最近访问。不显示时返回空表。</summary>
+    private List<INavRow> BuildHistoryRows()
+    {
+        var rows = new List<INavRow>();
+        if (_showHistory?.Invoke() != true || _recentPaths is null) return rows;
+
+        rows.Add(new NavSectionRow { Title = Strings.Nav_History, Kind = NavSectionKind.History });
+
+        IReadOnlyList<HistoryEntry> entries = _recentPaths();
+        if (entries.Count == 0)
+        {
+            rows.Add(new NavEmptyRow { Text = Strings.Nav_History_Empty });
+            return rows;
+        }
+
+        foreach (HistoryEntry entry in entries) rows.Add(new NavHistoryRow(entry));
+        return rows;
+    }
+
+    /// <summary>
+    /// 只刷新「历史」一段。每次导航完调用（显示时才做事）。
+    ///
+    /// 与 <see cref="RefreshTagRows"/> 同一个理由：整条 <see cref="Rebuild"/> 会清掉
+    /// 侧栏的选中项与滚动位置——用户刚点开一个目录，侧栏自己跳回顶部，像出了故障。
+    /// </summary>
+    public void RefreshHistoryRows()
+    {
+        if (_showHistory?.Invoke() != true) return;
+
+        int start = -1;
+        for (int i = 0; i < Rows.Count; i++)
+        {
+            if (Rows[i] is NavSectionRow { Kind: NavSectionKind.History }) { start = i; break; }
+        }
+
+        if (start < 0) return;
+
+        int end = start + 1;
+        while (end < Rows.Count && Rows[end] is not NavSectionRow) end++;
+
+        for (int i = end - 1; i > start; i--) Rows.RemoveAt(i);
+
+        int insert = start;
+        foreach (INavRow row in BuildHistoryRows().Skip(1)) Rows.Insert(++insert, row);
     }
 
     /// <summary>「工作区」一段的全部行：分区标题 + 各行。数据没接上时返回空表。</summary>
