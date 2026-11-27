@@ -21,7 +21,9 @@
 
 ## 下载
 
-`Jianlan-1.0.0-portable-win-x64.zip`（约 70 MB）
+`Jianlan-1.0.0-portable-win-x64.zip`（70.7 MB，展开 182.8 MB）
+
+SHA256：`5d9532a9bcecb7da65717506110062bb3c8835f6ce164e5a4c85b0ed1798bb1e`
 
 解压到任意有写权限的目录（不建议 `C:\Program Files`，便携模式要把设置写在程序旁边），双击
 `Jianlan.exe`。卸载就是删掉整个目录——不写注册表、不装服务、不开机自启。
