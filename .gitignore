@@ -26,6 +26,13 @@ TestResults/
 coverage*.xml
 coverage*.json
 
+# AC-03 压测原始数据：每跑一轮就新增一批，不入库。
+# 只保留 1.0 收口那一轮，作为 docs/ac03-soak-review-2026-11-20.md 的证据。
+tools/ac03/results/*
+!tools/ac03/results/ac03-20261120-112805.jsonl
+!tools/ac03/results/ac03-20261120-112805.log
+!tools/ac03/results/ac03-20261120-112805.win.jsonl
+
 # ---------- 运行时产物（便携模式会写到 exe 同级 data/）----------
 data/
 logs/
@@ -54,3 +61,7 @@ __pycache__/
 
 # 真窗口探针的截图与 PowerShell 原始输出（tools/window-drive/_shots/）
 tools/window-drive/_shots/
+
+# 上面 *.log 的例外：1.0 收口那一轮的压测日志是文档引用的证据，需入库。
+# 规则必须放在 *.log 之后才生效（gitignore 后者优先）。
+!tools/ac03/results/ac03-20261120-112805.log
