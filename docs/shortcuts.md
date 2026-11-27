@@ -1,6 +1,8 @@
 # 快捷键
 
-> 对应 FR-10.6。键位一经发布不再变更；新增键位必须避开下表已占用组合。
+> 对应 FR-6.15（完整快捷键体系）与 FR-10.12（自定义键位），实现清单见 `docs/requirements.md` 附录 A。
+> 默认键位原则上不再变更，新增键位必须避开下表已占用组合；用户改过的键位按
+> `shortcuts.overrides` 只存差异，调整默认值不会覆盖它。
 >
 > **实现状态（M1）**：`Alt+←/→/↑`、`Backspace`、`Ctrl+L`、`F5`、`Ctrl+R`、`Ctrl+Shift+1/2`、
 > `Ctrl+Shift+D`、`Ctrl+,`、`Enter`、`F2`、`Delete`、`Shift+Delete`、`Ctrl+C/X/V`、`Ctrl+A`、
