@@ -1924,10 +1924,10 @@
     <value>删除到回收站，可用 Ctrl+Z 撤销</value>
   </data>
   <data name="Settings.Behavior.WarnOnExecutable" xml:space="preserve">
-    <value>双击可执行文件时先确认</value>
+    <value>打开可执行文件前先确认</value>
   </data>
   <data name="Settings.Behavior.WarnOnExecutable.Hint" xml:space="preserve">
-    <value>开启后，双击 .exe / .bat / .cmd / .ps1 / .msi 这类文件会先显示文件名与完整路径，确认后才运行。默认关闭：它挡的是误双击，不是病毒，而每一次正常运行都会多一道弹窗。</value>
+    <value>开启后，打开 .exe / .bat / .cmd / .ps1 / .msi 这类文件会先显示文件名与完整路径，确认后才运行。双击、回车、拖进窗口、从收藏点开都算。默认关闭：它挡的是误操作，不是病毒，而每一次正常运行都会多一道弹窗。</value>
   </data>
   <data name="Dialog.ExecutableTitle" xml:space="preserve">
     <value>打开可执行文件？</value>

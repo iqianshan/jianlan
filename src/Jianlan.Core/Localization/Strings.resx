@@ -1941,7 +1941,7 @@
     <value>Ask before opening executable files</value>
   </data>
   <data name="Settings.Behavior.WarnOnExecutable.Hint" xml:space="preserve">
-    <value>When on, double-clicking an .exe / .bat / .cmd / .ps1 / .msi file shows its name and full path before it runs. Off by default: this guards against accidental double-clicks, not malware, and it costs a dialog on every normal launch.</value>
+    <value>When on, opening an .exe / .bat / .cmd / .ps1 / .msi file shows its name and full path before it runs — whether by double-click, Enter, dropping it on the window, or opening it from a bookmark. Off by default: this guards against accidental activation, not malware, and it costs a dialog on every normal launch.</value>
   </data>
   <data name="Dialog.ExecutableTitle" xml:space="preserve">
     <value>Open this executable?</value>

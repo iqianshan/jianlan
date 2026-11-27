@@ -1986,7 +1986,7 @@ public static class Strings
     /// <summary>Ask before opening executable files</summary>
     public static string Settings_Behavior_WarnOnExecutable => LocalizationService.Instance.Get("Settings.Behavior.WarnOnExecutable");
 
-    /// <summary>When on, double-clicking an .exe / .bat / .cmd / .ps1 / .msi file shows its name and full path before it runs. Off by de</summary>
+    /// <summary>When on, opening an .exe / .bat / .cmd / .ps1 / .msi file shows its name and full path before it runs — whether by doubl</summary>
     public static string Settings_Behavior_WarnOnExecutable_Hint => LocalizationService.Instance.Get("Settings.Behavior.WarnOnExecutable.Hint");
 
     /// <summary>Open this executable?</summary>

@@ -45,9 +45,9 @@ public partial class PaneView
             return;
         }
 
-        // FR-5.2.11：可执行文件先问一句。预览窗格的「打开」也走这里，
-        // 所以两条入口的拦截口径天然一致。
-        if (!ConfirmExecutable(entry)) return;
+        // FR-5.2.11：可执行文件先问一句。判定与问句在 ExecutableGuard，
+        // 拖到标签栏、从收藏点开也走同一份——四处口径一致，不会漏一条路。
+        if (!ExecutableGuard.Confirm(Window.GetWindow(this), entry.FullPath)) return;
 
         try
         {
@@ -57,24 +57,6 @@ public partial class PaneView
         {
             Vm.SetStatus(string.Format(Strings.Status_OpenItemFailed, entry.Name));
         }
-    }
-
-    /// <summary>
-    /// 双击可执行文件时的确认（FR-5.2.11）。返回 <c>true</c> 表示继续打开。
-    ///
-    /// 问句里同时给文件名和**完整路径**：只给文件名的话，"报告.exe"和"报告.exe"
-    /// 长得一模一样，而真正要看的就是它在哪个目录——伪装成文档的程序都靠这一点露馅。
-    /// </summary>
-    private bool ConfirmExecutable(FileEntry entry)
-    {
-        if (!App.Settings.Behavior.WarnOnExecutable) return true;
-        if (!Executables.IsRisky(entry.FullPath)) return true;
-
-        return ConfirmWindow.Ask(
-            Window.GetWindow(this),
-            Strings.Dialog_ExecutableTitle,
-            string.Format(
-                CultureInfo.CurrentCulture, Strings.Dialog_ExecutableBody, entry.Name, entry.FullPath));
     }
 
     internal async Task NewFolderAsync()

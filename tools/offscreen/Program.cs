@@ -15,6 +15,7 @@ using Jianlan.App;
 using Jianlan.App.ViewModels;
 using Jianlan.App.Views;
 using Jianlan.Core.FileSystem;
+using Jianlan.Core.Settings;
 using Jianlan.Core.Tagging;
 
 namespace OffscreenShot;
@@ -207,6 +208,12 @@ internal static class Program
         string? warnExecPath = null;
         bool warnExecAnswer = false;
         bool warnExecDefault = false;
+        string? warnDropPath = null;
+        bool warnDropAnswer = false;
+        bool warnDropDefault = false;
+        string? warnBookmarkPath = null;
+        bool warnBookmarkAnswer = false;
+        bool warnBookmarkDefault = false;
         string? undoPasteSource = null;
         bool undoDelete = false;
         string? undoModifiedSource = null;
@@ -557,6 +564,18 @@ internal static class Program
                     warnExecDefault = argv[++i] == "default";
                     warnExecAnswer = argv[i] == "yes";
                     break;
+                case "--warn-drop" when i + 2 < argv.Length:
+                    // 拖到标签栏的文件（FR-5.2.11 的另一条入口）。参数同 --warn-exec
+                    warnDropPath = Path.GetFullPath(argv[++i]);
+                    warnDropDefault = argv[++i] == "default";
+                    warnDropAnswer = argv[i] == "yes";
+                    break;
+                case "--warn-bookmark" when i + 2 < argv.Length:
+                    // 从收藏里点开文件（FR-5.2.11 的第三条入口）。参数同 --warn-exec
+                    warnBookmarkPath = Path.GetFullPath(argv[++i]);
+                    warnBookmarkDefault = argv[++i] == "default";
+                    warnBookmarkAnswer = argv[i] == "yes";
+                    break;
                 case "--undo-paste" when i + 1 < argv.Length:
                     // 粘贴后撤销（FR-6.8）：把源目录里的文件粘进当前目录，再按 Ctrl+Z
                     undoPasteSource = Path.GetFullPath(argv[++i]);
@@ -818,6 +837,17 @@ internal static class Program
                 if (warnExecPath is not null)
                 {
                     await ExerciseWarnExec(window, warnExecPath, warnExecAnswer, warnExecDefault);
+                }
+
+                if (warnDropPath is not null)
+                {
+                    await ExerciseWarnDrop(window, warnDropPath, warnDropAnswer, warnDropDefault);
+                }
+
+                if (warnBookmarkPath is not null)
+                {
+                    await ExerciseWarnBookmark(
+                        window, warnBookmarkPath, warnBookmarkAnswer, warnBookmarkDefault);
                 }
 
                 if (undoPasteSource is not null)
@@ -2742,6 +2772,40 @@ internal static class Program
     }
 
     /// <summary>
+    /// 离屏环境下替用户按下确认窗的按钮，返回被作答窗口的标题（没找到窗口返回 null）。
+    ///
+    /// **不能设 <c>DialogResult</c>**：那个属性只对 <c>ShowDialog()</c> 显示的窗口有效，
+    /// 而本应用的模态是自建的（<c>ModalSession</c> 用 Show + PushFrame，见 AC-03 的 dui70 崩溃），
+    /// 赋值会抛 <c>InvalidOperationException</c>——这个坑让 <c>--warn-exec</c> 的弹窗分支
+    /// 一直没能真正跑通：异常把 Tick 打断，模态就永远等不到人回答。
+    ///
+    /// 走按钮的 <c>Click</c> 事件而不是直接调 <c>_finish</c>：反射能证明"逻辑对"，
+    /// 证明不了"按钮接上了"。
+    /// </summary>
+    private static string? AnswerConfirm(bool yes)
+    {
+        foreach (Window each in Application.Current.Windows)
+        {
+            if (each is not ConfirmWindow confirm || !confirm.IsVisible) continue;
+
+            string name = yes ? "ConfirmButton" : "CancelButton";
+
+            if (typeof(ConfirmWindow)
+                    .GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)
+                    ?.GetValue(confirm) is not Button button)
+            {
+                return null;
+            }
+
+            string title = confirm.Title;
+            button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent, button));
+            return title;
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// 双击可执行文件的确认（FR-5.2.11）。
     ///
     /// 模态弹窗没有人可点，但 ShowDialog 会跑嵌套消息循环——所以这里是"先挂一个
@@ -2762,14 +2826,8 @@ internal static class Program
 
         timer.Tick += (_, _) =>
         {
-            foreach (Window each in Application.Current.Windows)
-            {
-                if (each is not ConfirmWindow confirm || !confirm.IsVisible) continue;
-
-                titles.Add(confirm.Title);
-                confirm.DialogResult = answerYes;
-                return;
-            }
+            string? answered = AnswerConfirm(answerYes);
+            if (answered is not null) titles.Add(answered);
         };
 
         timer.Start();
@@ -2801,7 +2859,94 @@ internal static class Program
         Console.WriteLine($"warn.setting={App.Settings.Behavior.WarnOnExecutable}");
         Console.WriteLine($"warn.dialog={(titles.Count > 0 ? titles[0] : "(none)")}");
         Console.WriteLine($"warn.answer={(useDefault ? "(default)" : answerYes ? "yes" : "no")}");
-        Console.WriteLine($"warn.dialogLeft={Application.Current.Windows.OfType<ConfirmWindow>().Count()}");
+        // 窗口是常驻的（ModalSession 只 Hide，不销毁），所以数"还可见的"而不是"存在的"：
+        // 数存在的话永远是 1，这一行就再也说明不了"有没有关掉"
+        Console.WriteLine($"dialogLeft={Application.Current.Windows.OfType<ConfirmWindow>().Count(w => w.IsVisible)}");
+    }
+
+    /// <summary>
+    /// 拖到标签栏的文件（FR-5.2.11）。这条入口以前自己 <c>Process.Start</c>，绕过了确认。
+    ///
+    /// 拖放本身要一个真实的 OLE 拖源，离屏进程造不出来，所以直接调 <c>OnTabsDropped</c>：
+    /// 要验的是"这个入口有没有问一句"，不是"鼠标能不能拖"（那是 PaneView.DragDrop 的事）。
+    /// 落点取 null 即"拖到标签栏空白处"，文件这个分支与落点无关。
+    /// </summary>
+    private static async Task ExerciseWarnDrop(MainWindow window, string path, bool answerYes, bool useDefault)
+    {
+        if (!useDefault) App.Settings.Behavior.WarnOnExecutable = true;
+
+        var titles = new List<string>();
+
+        var timer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMilliseconds(100),
+        };
+
+        timer.Tick += (_, _) =>
+        {
+            string? answered = AnswerConfirm(answerYes);
+            if (answered is not null) titles.Add(answered);
+        };
+
+        timer.Start();
+
+        MethodInfo? drop = typeof(MainWindow).GetMethod(
+            "OnTabsDropped", BindingFlags.NonPublic | BindingFlags.Instance);
+        if (drop is null) throw new MissingMethodException("MainWindow.OnTabsDropped");
+
+        drop.Invoke(window, [new[] { path }, null]);
+
+        await Task.Delay(1200);
+        timer.Stop();
+
+        Console.WriteLine($"warndrop.setting={App.Settings.Behavior.WarnOnExecutable}");
+        Console.WriteLine($"warndrop.dialog={(titles.Count > 0 ? titles[0] : "(none)")}");
+        Console.WriteLine($"warndrop.answer={(useDefault ? "(default)" : answerYes ? "yes" : "no")}");
+        Console.WriteLine($"warndrop.dialogLeft={Application.Current.Windows.OfType<ConfirmWindow>().Count(w => w.IsVisible)}");
+    }
+
+    /// <summary>
+    /// 从收藏点开一个文件（FR-5.2.11 的第三条入口）。这条路径平时碰不到——要先收藏过文件，
+    /// 但恰恰因为碰不到才容易在改判定时被漏掉，所以单独给一档。
+    ///
+    /// 直接构造 <see cref="NavBookmarkRow"/> 调 <c>OpenBookmarkFile</c>，不经过导航栏点击：
+    /// 要验的是"这一步问没问"，不是"收藏区能不能点"（那是 FR-7 的事）。
+    /// </summary>
+    private static async Task ExerciseWarnBookmark(
+        MainWindow window, string path, bool answerYes, bool useDefault)
+    {
+        if (!useDefault) App.Settings.Behavior.WarnOnExecutable = true;
+
+        var titles = new List<string>();
+
+        var timer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMilliseconds(100),
+        };
+
+        timer.Tick += (_, _) =>
+        {
+            string? answered = AnswerConfirm(answerYes);
+            if (answered is not null) titles.Add(answered);
+        };
+
+        timer.Start();
+
+        var row = new NavBookmarkRow(new BookmarkEntry { Path = path, Kind = BookmarkKind.File });
+
+        MethodInfo? open = typeof(MainWindow).GetMethod(
+            "OpenBookmarkFile", BindingFlags.NonPublic | BindingFlags.Instance);
+        if (open is null) throw new MissingMethodException("MainWindow.OpenBookmarkFile");
+
+        open.Invoke(window, [row]);
+
+        await Task.Delay(1200);
+        timer.Stop();
+
+        Console.WriteLine($"warnbm.setting={App.Settings.Behavior.WarnOnExecutable}");
+        Console.WriteLine($"warnbm.dialog={(titles.Count > 0 ? titles[0] : "(none)")}");
+        Console.WriteLine($"warnbm.answer={(useDefault ? "(default)" : answerYes ? "yes" : "no")}");
+        Console.WriteLine($"warnbm.dialogLeft={Application.Current.Windows.OfType<ConfirmWindow>().Count(w => w.IsVisible)}");
     }
 
     private static async Task ExerciseUndoPaste(MainWindow window, string source)

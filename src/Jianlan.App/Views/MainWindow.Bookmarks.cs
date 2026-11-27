@@ -7,6 +7,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using Jianlan.App.Diagnostics;
+using Jianlan.App.Services;
 using Jianlan.App.ViewModels;
 using Jianlan.Core.FileSystem;
 using Jianlan.Core.Localization;
@@ -204,6 +205,10 @@ public partial class MainWindow
 
     private void OpenBookmarkFile(NavBookmarkRow row)
     {
+        // 收藏可以指向文件，而"打开"它等于执行——与双击、拖入同口径（FR-5.2.11）。
+        // 这条路径平时碰不到，但恰恰因为碰不到才容易在改判定时被漏掉。
+        if (!ExecutableGuard.Confirm(this, row.Path)) return;
+
         try
         {
             Process.Start(new ProcessStartInfo(row.Path) { UseShellExecute = true });

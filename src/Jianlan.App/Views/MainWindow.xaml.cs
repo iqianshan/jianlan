@@ -745,6 +745,12 @@ public partial class MainWindow : Window
                 continue;
             }
 
+            // 拖进来的文件同样是"打开它"，与双击同口径（FR-5.2.11）。
+            // 这里以前直接 Process.Start：一批文件里混一个 .exe 就绕过了确认——
+            // 而"手滑拖进来"与"手滑双击"在用户那边是同一件事。答"否"只跳过这一个，
+            // 不中断整批（同批里其它文件与目录照常处理）。
+            if (!ExecutableGuard.Confirm(this, path)) continue;
+
             try
             {
                 Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });

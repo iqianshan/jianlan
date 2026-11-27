@@ -58,7 +58,7 @@
     "confirmOverwrite": true,   // 粘贴时目标处已有同名项是否先问一句（FR-5.2.8 的「覆盖」）。
                                 // 三项统一语义：开 = 先问，关 = 直接执行；关掉时覆盖就是覆盖，不退回自动改名
     "naturalSort": true,        // 自然排序（FR-5.2.3）。false = 逐字符比，file10 会排在 file2 前
-    "warnOnExecutable": false,  // 双击可执行文件时先确认（FR-5.2.11）。与上面三项相反：默认关
+    "warnOnExecutable": false,  // 打开可执行文件前先确认（FR-5.2.11）。与上面三项相反：默认关
     "caseSensitiveSort": false, // 区分大小写排序。开启后 Zebra.txt 排在 apple.txt 前（大写字母码位更小）
     "doubleClickOpens": true,
     "openFolderInNewTab": false,      // 双击/回车进目录时开新标签（FR-2.10）；分屏时不生效，进目录恒在当前窗格（FR-3.2）
@@ -180,7 +180,7 @@
 
 | `confirmOverwrite` | 布尔 | 与 `confirmDelete` / `confirmBatch` 同一语义：**开 = 先问一句，关 = 直接执行**。关掉时覆盖就是覆盖，不会退回自动改名——否则"我就想覆盖"的用户没有任何入口 |
 | `naturalSort` | 布尔，默认 `true` | 默认开与 0.2.0 之前的行为一致（`file2` 在 `file10` 前）。关掉是逐字符比（`file10` 在 `file2` 前） |
-| `warnOnExecutable` | 布尔，默认 `false` | 双击可执行文件前问一句（FR-5.2.11）。**与上面三项确认开关方向相反：默认关**。三项确认防的是"手滑删掉/覆盖掉"，代价是把要做的事多问一遍；这一项防的是"手滑跑起一个程序"，而正常运行每次都要多一道弹窗，代价落在每一天。它也不是安全检查——判定只按扩展名，不认识内容好坏，用户点了"是"就照原样交给系统。扩展名清单显式列举（`.exe` `.com` `.scr` `.pif` `.bat` `.cmd` `.ps1` `.vbs` `.vbe` `.js` `.jse` `.wsf` `.wsh` `.hta` `.msi` `.msp` `.msix` `.appx` `.reg` `.lnk` `.url`），宁可多拦一个，也不看图时顺手把程序跑起来 |
+| `warnOnExecutable` | 布尔，默认 `false` | 打开可执行文件前问一句（FR-5.2.11），覆盖双击、回车、预览窗格的「打开」、拖到标签栏、收藏里的文件——五条入口共用 `ExecutableGuard` 一份判定，**不要在新入口里自己 `Process.Start`**，那会让这一项重新变得不完整。**与上面三项确认开关方向相反：默认关**。三项确认防的是"手滑删掉/覆盖掉"，代价是把要做的事多问一遍；这一项防的是"手滑跑起一个程序"，而正常运行每次都要多一道弹窗，代价落在每一天。它也不是安全检查——判定只按扩展名，不认识内容好坏，用户点了"是"就照原样交给系统。扩展名清单显式列举（`.exe` `.com` `.scr` `.pif` `.bat` `.cmd` `.ps1` `.vbs` `.vbe` `.js` `.jse` `.wsf` `.wsh` `.hta` `.msi` `.msp` `.msix` `.appx` `.reg` `.lnk` `.url`），宁可多拦一个，也不看图时顺手把程序跑起来 |
 | `caseSensitiveSort` | 布尔，默认 `false` | 默认关 = 与资源管理器一致。开启后按码位比，`Zebra.txt` 会排到 `apple.txt` 前 |
 | `layout.secondaryColumns` | 与 `columns` 同结构 | 空对象 = 第二窗格从未单独调过，读的时候沿用 `columns`。**没调过就不写盘**，否则从没碰过分屏的用户文件里会凭空多出一份重复配置 |
 | `layout.primaryPane` / `secondaryPane` | `view` / `sortBy` / `sortDescending` 三项，均可为 `null` | `null` = 这一侧还没自己选过，沿用 `behavior.defaultView` / `behavior.sortBy`。写死初值会让设置页那两项默认值形同虚设 |
