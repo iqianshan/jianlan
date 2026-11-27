@@ -142,6 +142,15 @@ public partial class App : Application
         // 崩溃记录要在任何业务代码之前挂上，否则启动期异常会静默消失
         Diagnostics.CrashLogger.Attach(this);
 
+        // 便携版 0.2.x 把标签库写到了 data\data\：DataDir 曾无条件拼一层 data，而便携模式的
+        // Root 本身已经是 exe\data。这里搬回正确位置，必须早于任何 TagStore 创建——
+        // 否则新位置读不到旧文件，用户会看到"标签全没了"。
+        int migrated = AppPaths.MigrateNestedPortableData();
+        if (migrated > 0)
+        {
+            Diagnostics.AppLog.Info("paths.migrate", $"nestedDataFiles={migrated} root='{AppPaths.Root}'");
+        }
+
         // 关机/注销时提前摘掉会话标记（FR-10.6）：OnExit 通常仍会走到，
         // 但关机走的是另一条路，提前删一次可以把"关机"从"异常退出"里排除，
         // 否则每天早上开机都会看到一条假的崩溃提示。

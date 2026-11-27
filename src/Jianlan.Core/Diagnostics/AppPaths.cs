@@ -36,7 +36,62 @@ public static class AppPaths
 
     public static string WorkspacesFile => Path.Combine(Root, "workspaces.json");
 
-    public static string DataDir => Path.Combine(Root, PortableDataDir);
+    /// <summary>
+    /// 用户数据目录。便携模式下 <see cref="Root"/> 本身就是 <c>exe\data</c>，
+    /// **不能再拼一层**；非便携模式下 Root 是 <c>%LOCALAPPDATA%\Jianlan</c>，才分 <c>data\</c>。
+    /// 0.2.x 曾无条件拼接，结果便携版的标签库落在 <c>data\data\tags.jsonl</c>。
+    /// </summary>
+    public static string DataDir => ResolveDataDir(Root, IsPortable);
+
+    /// <summary>
+    /// 数据目录的推导规则，抽成纯函数以便单测：<see cref="Root"/> 是进程内只算一次的静态属性，
+    /// 测试改不了它，只能直接验这条规则。
+    /// </summary>
+    public static string ResolveDataDir(string root, bool portable)
+        => portable ? root : Path.Combine(root, PortableDataDir);
+
+    /// <summary>
+    /// 把 0.2.x 便携版误写进 <c>exe\data\data\</c> 的文件搬回 <c>exe\data\</c>，
+    /// 返回实际搬动的文件数。目标已存在同名文件时不覆盖——宁可少搬一个，
+    /// 也不能拿旧的覆盖用户在新位置的数据。搬完尝试删掉空出来的旧目录。
+    /// </summary>
+    public static int MigrateNestedPortableData() => MigrateNestedPortableData(Root, IsPortable);
+
+    /// <inheritdoc cref="MigrateNestedPortableData()"/>
+    public static int MigrateNestedPortableData(string root, bool portable)
+    {
+        if (!portable) return 0;
+
+        string legacy = Path.Combine(root, PortableDataDir); // exe\data\data
+        if (!Directory.Exists(legacy)) return 0;
+
+        string target = ResolveDataDir(root, portable);      // exe\data
+        int moved = 0;
+
+        foreach (string source in Directory.EnumerateFiles(legacy))
+        {
+            string destination = Path.Combine(target, Path.GetFileName(source));
+            if (File.Exists(destination)) continue;
+
+            try
+            {
+                File.Move(source, destination);
+                moved++;
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+
+        // 只在确实空了的时候删：里面可能还有别的东西，不能连同用户数据一起删
+        try
+        {
+            if (Directory.GetFileSystemEntries(legacy).Length == 0) Directory.Delete(legacy, false);
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+
+        return moved;
+    }
 
     /// <summary>
     /// 彩色标签库（FR-4.2.1）。放在 <c>data\</c> 而不是根目录：它是"用户数据"，

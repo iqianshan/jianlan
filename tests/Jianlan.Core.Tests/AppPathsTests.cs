@@ -112,4 +112,56 @@ public sealed class AppPathsTests : IDisposable
 
         Assert.Equal(Path.Combine(local, AppPaths.AppDataFolder), AppPaths.ResolveUserRoot(local));
     }
+
+    // ── 数据目录的拼接规则 ──────────────────────────────────────────────────
+    // 便携模式 Root 就是 exe\data，再拼一层会变成 data\data。0.2.x 就是这么错的：
+    // 便携包里的标签库实际落在 data\data\tags.jsonl，与文档写的 data\tags.jsonl 不符。
+
+    [Fact]
+    public void 便携模式的数据目录就是_Root_本身()
+        => Assert.Equal(_dir, AppPaths.ResolveDataDir(_dir, portable: true));
+
+    [Fact]
+    public void 非便携模式的数据目录在_Root_下再分一层()
+        => Assert.Equal(
+            Path.Combine(_dir, AppPaths.PortableDataDir),
+            AppPaths.ResolveDataDir(_dir, portable: false));
+
+    [Fact]
+    public void 双层_data_里的文件会被搬回上一层()
+    {
+        string nested = Path.Combine(_dir, AppPaths.PortableDataDir);
+        Directory.CreateDirectory(nested);
+        File.WriteAllText(Path.Combine(nested, "tags.jsonl"), "legacy");
+
+        int moved = AppPaths.MigrateNestedPortableData(_dir, portable: true);
+
+        Assert.Equal(1, moved);
+        Assert.Equal("legacy", File.ReadAllText(Path.Combine(_dir, "tags.jsonl")));
+        Assert.False(Directory.Exists(nested));
+    }
+
+    [Fact]
+    public void 目标已有同名文件时不覆盖也不删旧文件()
+    {
+        string nested = Path.Combine(_dir, AppPaths.PortableDataDir);
+        Directory.CreateDirectory(nested);
+        File.WriteAllText(Path.Combine(nested, "tags.jsonl"), "old");
+        File.WriteAllText(Path.Combine(_dir, "tags.jsonl"), "new");
+
+        int moved = AppPaths.MigrateNestedPortableData(_dir, portable: true);
+
+        Assert.Equal(0, moved);
+        Assert.Equal("new", File.ReadAllText(Path.Combine(_dir, "tags.jsonl")));
+        Assert.Equal("old", File.ReadAllText(Path.Combine(nested, "tags.jsonl")));
+    }
+
+    [Fact]
+    public void 非便携模式不做双层迁移()
+    {
+        // 非便携模式下 <Root>\data 就是正常的数据目录，搬走等于删用户数据
+        Directory.CreateDirectory(Path.Combine(_dir, AppPaths.PortableDataDir));
+
+        Assert.Equal(0, AppPaths.MigrateNestedPortableData(_dir, portable: false));
+    }
 }
