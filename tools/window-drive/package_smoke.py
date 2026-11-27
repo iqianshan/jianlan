@@ -8,8 +8,11 @@
 这个脚本只做四件事：起、看窗口、正常关、确认 data 里的退出标记被清掉。
 
 用法：
-    python package_smoke.py                       # 默认查 dist\\Jianlan-0.2.1-portable-win-x64
+    python package_smoke.py                       # 默认查 dist 下最新解压出的那份
     python package_smoke.py --dir <解压目录>
+
+“最新”按目录修改时间取，不按名字排序：`0.2.1` 字符串上排在 `1.0.0` 前面，
+按名字取第一个会一直测旧包，看起来像新包没修好。
 """
 
 from __future__ import annotations
@@ -35,11 +38,14 @@ def find_dir() -> str:
     if "--dir" in sys.argv:
         return sys.argv[sys.argv.index("--dir") + 1]
     dist = os.path.join(ROOT, "dist")
-    for name in sorted(os.listdir(dist)):
-        full = os.path.join(dist, name)
-        if os.path.isdir(full) and os.path.isfile(os.path.join(full, "Jianlan.exe")):
-            return full
-    raise SystemExit(f"{dist} 下找不到解压好的程序")
+    found = [
+        os.path.join(dist, name)
+        for name in os.listdir(dist)
+        if os.path.isfile(os.path.join(dist, name, "Jianlan.exe"))
+    ]
+    if not found:
+        raise SystemExit(f"{dist} 下找不到解压好的程序")
+    return max(found, key=os.path.getmtime)
 
 
 def main() -> int:

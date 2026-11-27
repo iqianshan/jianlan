@@ -14,7 +14,9 @@ The batch you were half-way through yesterday takes another five minutes to find
 Jianlan is built for exactly that: **two panes side by side, tabs for every folder, colour tags to track
 progress, and everything back where you left it next time**.
 
-Current version **0.2.1**, interface available in Simplified Chinese and English.
+Current version **1.0.0**, interface available in Simplified Chinese and English. 1.0 means the
+**feature set is frozen**: every P0 and P1 in the specification has shipped; later releases only
+close out acceptance runs and polish details.
 
 ---
 
@@ -33,7 +35,7 @@ Current version **0.2.1**, interface available in Simplified Chinese and English
 
 ## Download and run
 
-1. Get `Jianlan-0.2.1-portable-win-x64.zip` (about 70 MB) from **Releases**.
+1. Get `Jianlan-1.0.0-portable-win-x64.zip` (about 70 MB) from **Releases**.
 2. Extract it anywhere you can write, e.g. `D:\Tools\Jianlan`.
    **Avoid `C:\Program Files`** — portable mode keeps its settings next to the program.
 3. Double-click `Jianlan.exe`.
@@ -43,7 +45,7 @@ No installer, no administrator rights, and **no separate .NET installation** —
 To verify the download, compare against the `.sha256` file published alongside it:
 
 ```powershell
-Get-FileHash .\Jianlan-0.2.1-portable-win-x64.zip -Algorithm SHA256
+Get-FileHash .\Jianlan-1.0.0-portable-win-x64.zip -Algorithm SHA256
 ```
 
 **Uninstalling**: close the app and delete the extracted folder. It writes no registry keys,
@@ -77,7 +79,8 @@ For exactly which files live in `data\`, see [Where your data lives](#where-your
 
 ### Option 1: extract over the old folder (simplest)
 
-Meant for minor updates within 0.2.x.
+Meant for patch releases (`1.0.0` → `1.0.1`), or when you simply want a fresh folder and do not
+mind leaving the old one behind.
 
 1. **Fully exit** Jianlan. Quit the tray icon too — and quit **any copy on another drive or in
    another folder**. The app is single-instance: as long as one copy is running, a newly launched
@@ -88,7 +91,8 @@ Meant for minor updates within 0.2.x.
 
 ### Option 2: back up first, then swap the folder (safer)
 
-Meant for jumping across major versions, or when you want to clear leftover files as well.
+Meant for jumping across major versions (`0.2.1` → `1.0.0`), or when you want to clear leftover
+files as well.
 
 1. Copy the old folder's `data\` somewhere else. **`settings.json` alone is not enough** —
    workspaces live in `workspaces.json` and the tag library in `data\tags.jsonl`.
@@ -111,7 +115,7 @@ done by hand in Explorer, every step — what changed, what was deleted — happ
 
 ### How to confirm the upgrade worked
 
-Open **Settings → About**: the version reads like `0.2.1+b5890f5` (release plus build commit).
+Open **Settings → About**: the version reads like `1.0.0+<commit>` (release plus build commit).
 Check that your bookmarks and workspaces are there and the last-open tabs came back, then delete
 the backup.
 
@@ -309,7 +313,7 @@ your browser. See [SECURITY.md](SECURITY.md).
 ## FAQ
 
 **The taskbar shows a blank white icon.**
-Fixed in 0.2.1. If you still see one, first make sure you are running a 0.2.1-or-later build — an older
+Fixed in 1.0. If you still see one, first make sure you are running a 1.0-or-later build — an older
 extracted folder or a stale system icon cache will still show the old icon, so extract the current zip into
 a fresh folder and try again.
 
@@ -339,15 +343,17 @@ the requirements specification, which is what a macOS or Linux port would be bui
 
 ---
 
-## Known limitations (0.2.1)
+## Known limitations (1.0)
 
 - Copying or moving large files has **no progress bar and no cancel**, only a status bar line.
 - **No large-icon or tile view** — details and list only.
 - A row shows at most **three colour dots**; a fourth colour is still recorded and counted in the
   sidebar, it just does not fit on the line.
 - Tags, favourites and workspaces have **no single export/import for everything** (the tag library does).
-- Windows 10 compatibility, 8-hour stability and offline scenarios are not fully verified yet, so this
-  version makes no claims about those.
+- The address bar accepts **folders only**; typing a file path will not open the file.
+- Windows 10 compatibility, the full 8-hour soak duration and offline scenarios are not fully verified
+  yet, so this version makes no claims about those. The exact gaps are listed under "1.0 已知限制" in
+  [CHANGELOG.md](CHANGELOG.md).
 
 The reasoning behind these trade-offs is in [CHANGELOG.md](CHANGELOG.md) and
 [docs/backlog.md](docs/backlog.md).

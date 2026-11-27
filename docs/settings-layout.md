@@ -251,7 +251,7 @@
 
 0.2.1 起不再有「关于 Jianlan」按钮与独立窗口：整块内容就是这一页本身（`AboutWindow` 已删除）。
 版本号取自 `AboutView` 内部的 `AppInfo.DisplayVersion`（= `InformationalVersion`，发版时由脚本写入
-`0.2.1+<短commit>`）。
+`1.0.0+<短commit>`）。
 
 ---
 
